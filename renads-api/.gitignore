@@ -1,0 +1,25 @@
+# Entorno
+.env
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Django
+db.sqlite3
+/staticfiles/
+/media/
+
+# Herramientas
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+schema.yml
+
+# Editores / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

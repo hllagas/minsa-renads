@@ -1,0 +1,16 @@
+# Core
+Django==6.0.6
+djangorestframework==3.17.1
+python-decouple==3.8
+
+# API: auth JWT, documentación OpenAPI, filtros, CORS
+djangorestframework-simplejwt==5.5.1
+django-cors-headers==4.9.0
+drf-spectacular==0.29.0
+django-filter==25.2
+
+# Base de datos / despliegue (Railway)
+psycopg2-binary==2.9.12
+dj-database-url==3.1.2
+gunicorn==26.0.0
+whitenoise==6.12.0

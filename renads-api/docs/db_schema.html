@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Esquema de Base de Datos — RENADS</title>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#1e293b; --panel2:#172033; --border:#334155;
+    --text:#e2e8f0; --muted:#94a3b8; --accent:#38bdf8; --accent2:#22d3ee;
+    --pk:#fbbf24; --fk:#f472b6; --ok:#34d399; --chip:#0ea5e9;
+    --m1:#38bdf8; --m2:#a78bfa; --m3:#34d399;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
+  header{padding:32px 24px 20px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,#13203a,#0f172a)}
+  header h1{margin:0 0 6px;font-size:26px}
+  header p{margin:0;color:var(--muted);font-size:14px}
+  .layout{display:flex;gap:0;align-items:flex-start}
+  nav{position:sticky;top:0;align-self:flex-start;width:280px;max-height:100vh;overflow-y:auto;padding:18px 14px;border-right:1px solid var(--border);background:var(--panel2);font-size:13px}
+  nav h3{margin:14px 6px 6px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  nav a{display:block;padding:4px 8px;border-radius:6px;color:var(--text);text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  nav a:hover{background:#243049}
+  nav .b1{border-left:3px solid var(--m1)}
+  nav .b2{border-left:3px solid var(--m2)}
+  nav .b3{border-left:3px solid var(--m3)}
+  main{flex:1;padding:24px 28px;min-width:0}
+  .controls{position:sticky;top:0;z-index:5;background:rgba(15,23,42,.92);backdrop-filter:blur(6px);padding:12px 0;margin-bottom:8px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .controls input{flex:1;min-width:200px;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:14px}
+  .controls input:focus{outline:2px solid var(--accent);border-color:transparent}
+  .filterbtn{padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--panel);color:var(--text);cursor:pointer;font-size:13px}
+  .filterbtn.active{border-color:var(--accent);color:var(--accent)}
+  .tabbar{display:flex;gap:6px;margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:0}
+  .tab{padding:10px 18px;border:1px solid var(--border);border-bottom:none;background:var(--panel2);color:var(--muted);cursor:pointer;font-size:14px;border-radius:8px 8px 0 0;margin-bottom:-1px}
+  .tab.active{background:var(--panel);color:var(--accent);border-color:var(--accent);border-bottom:1px solid var(--panel)}
+  .erbtn{padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:var(--panel);color:var(--text);cursor:pointer;font-size:13px}
+  .erbtn.active{border-color:var(--accent2);color:var(--accent2)}
+  #er-container{background:#0b1220;border:1px solid var(--border);border-radius:12px;padding:18px;overflow:auto}
+  #er-container .mermaid{display:flex;justify-content:center;min-width:100%}
+  #er-container svg{max-width:none;height:auto}
+  .erloading{color:var(--muted);font-size:13px;padding:20px}
+  .modulo{margin:28px 0}
+  .modulo>h2{font-size:20px;padding:10px 14px;border-radius:10px;margin:0 0 4px}
+  .m1 .modulo>h2,h2.m1h{background:linear-gradient(90deg,#0b3a52,#0f172a);border-left:5px solid var(--m1)}
+  .m2 .modulo>h2,h2.m2h{background:linear-gradient(90deg,#2e2150,#0f172a);border-left:5px solid var(--m2)}
+  .m3 .modulo>h2,h2.m3h{background:linear-gradient(90deg,#103d31,#0f172a);border-left:5px solid var(--m3)}
+  .seccion{margin:18px 0 6px;color:var(--accent2);font-size:15px;font-weight:600;border-bottom:1px solid var(--border);padding-bottom:4px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .card.b1{border-top:3px solid var(--m1)}
+  .card.b2{border-top:3px solid var(--m2)}
+  .card.b3{border-top:3px solid var(--m3)}
+  .card h4{margin:0;padding:11px 14px;background:var(--panel2);font-family:ui-monospace,"Cascadia Code",Consolas,monospace;font-size:14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)}
+  .card h4 .desc{font-family:system-ui;font-weight:400;font-size:11px;color:var(--muted);margin-left:auto}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{text-align:left;padding:6px 10px;border-bottom:1px solid #243049;vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+  tr:last-child td{border-bottom:none}
+  td.col{font-family:ui-monospace,Consolas,monospace;color:var(--text);white-space:nowrap}
+  .tag{display:inline-block;font-size:9.5px;font-weight:700;padding:1px 5px;border-radius:5px;margin-left:5px;vertical-align:middle}
+  .tag.pk{background:#3b2f0b;color:var(--pk);border:1px solid #6b5410}
+  .tag.fk{background:#3b1830;color:var(--fk);border:1px solid #6b1f50}
+  .tag.uq{background:#0b2f3b;color:var(--accent2);border:1px solid #135668}
+  td.type{font-family:ui-monospace,Consolas,monospace;color:#7dd3fc;white-space:nowrap}
+  td.null{text-align:center;width:34px}
+  td.null .y{color:var(--muted)} td.null .n{color:var(--ok);font-weight:700}
+  td.dsc{color:var(--muted)}
+  .fkref{color:var(--fk);text-decoration:none;border-bottom:1px dotted var(--fk)}
+  .fkref:hover{color:#f9a8d4}
+  .note{background:var(--panel2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;padding:10px 14px;margin:10px 0;color:var(--muted);font-size:13px}
+  details.rel{margin:14px 0;background:var(--panel);border:1px solid var(--border);border-radius:10px}
+  details.rel summary{cursor:pointer;padding:12px 16px;font-weight:600;color:var(--accent2)}
+  details.rel pre{margin:0;padding:0 16px 16px;overflow-x:auto;font-size:12px;color:#cbd5e1;line-height:1.55}
+  .pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;background:var(--panel2);border:1px solid var(--border);color:var(--muted);margin:2px}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .hidden{display:none!important}
+  footer{padding:20px 28px;color:var(--muted);font-size:12px;border-top:1px solid var(--border);margin-top:30px}
+  code{background:#0b1220;padding:1px 5px;border-radius:4px;font-size:12px;color:#7dd3fc}
+  @media(max-width:860px){nav{display:none}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Esquema de Base de Datos — RENADS</h1>
+  <p>Registro Nacional de Articulación Docencia-Servicio en Salud · 3 módulos · tablas, columnas y relaciones</p>
+  <div class="legend">
+    <span><span class="tag pk">PK</span> clave primaria</span>
+    <span><span class="tag fk">FK</span> clave foránea</span>
+    <span><span class="tag uq">UQ</span> único</span>
+    <span><b style="color:var(--ok)">No</b> = NOT NULL</span>
+    <span><b style="color:var(--m1)">■</b> Convenios</span>
+    <span><b style="color:var(--m2)">■</b> Internados</span>
+    <span><b style="color:var(--m3)">■</b> Actividades</span>
+  </div>
+</header>
+
+<div class="layout">
+<nav id="toc"></nav>
+<main>
+  <div class="tabbar">
+    <button class="tab active" data-view="tablas">📋 Tablas</button>
+    <button class="tab" data-view="er">🔗 Diagrama ER</button>
+  </div>
+
+  <div id="view-tablas">
+    <div class="controls">
+      <input id="search" type="text" placeholder="🔎 Filtrar tablas o columnas…">
+      <button class="filterbtn active" data-f="all">Todos</button>
+      <button class="filterbtn" data-f="b1">Convenios</button>
+      <button class="filterbtn" data-f="b2">Internados</button>
+      <button class="filterbtn" data-f="b3">Actividades</button>
+    </div>
+    <div id="content"></div>
+  </div>
+
+  <div id="view-er" class="hidden">
+    <div class="controls">
+      <span style="color:var(--muted);font-size:13px;flex:1;min-width:200px">Modelo entidad-relación (crow's foot). Catálogos y tablas nativas Django omitidos para mayor claridad.</span>
+      <button class="erbtn active" data-e="all">Todos</button>
+      <button class="erbtn" data-e="b1">Convenios</button>
+      <button class="erbtn" data-e="b2">Internados</button>
+      <button class="erbtn" data-e="b3">Actividades</button>
+    </div>
+    <div id="er-container"><div class="erloading">Cargando diagrama…</div></div>
+  </div>
+
+  <footer>
+    Generado desde <code>db_schema_modulo_01_convenios.md</code>, <code>db_schema_modulo_02_internados.md</code>, <code>db_schema_modulo_03_actividades.md</code>.
+    Tablas nativas de Django (<code>auth_user</code>, <code>auth_group</code>, <code>django_content_type</code>) se reutilizan y no se detallan aquí.
+  </footer>
+</main>
+</div>
+
+<script src="mermaid.min.js"></script>
+<script>
+// ---- Datos del esquema (extraídos de los 3 .md) ----
+// row: [columna, tipo, null(false=NOT NULL), descripcion, flag(pk|fk|uq|''), fkTarget]
+const SCHEMA = [
+{ modulo:"Módulo 1 — Gestionar Convenios", mod:"b1", secciones:[
+  { titulo:"Catálogos", note:"Patrón común: <code>id</code> (PK), <code>codigo</code> (varchar único), <code>nombre</code> (varchar), <code>activo</code> (bool). Columnas adicionales listadas.", tablas:[
+    {n:"ubigeo", d:"Ubigeo distrital INEI (carga: load_ubigeo)", cols:[
+      ["id","PK",false,"","pk",""],["codigo","varchar(6)",false,"Código UBIGEO INEI (único)","uq",""],
+      ["departamento","varchar(100)",false,"","",""],["provincia","varchar(100)",false,"","",""],["distrito","varchar(100)",false,"","",""],["activo","bool",false,"","",""]]},
+    {n:"region", d:"Regiones del Perú (seed 25, INEI)", cols:[["+ patrón catálogo","","" ,"id, codigo, nombre, activo","",""]]},
+    {n:"ambito_geografico_sanitario", d:"Ámbito sanitario (seed 29)", cols:[["+ patrón catálogo","","","DIRESA/GERESA + 4 DIRIS Lima","",""]]},
+    {n:"tipo_convenio", d:"Tipo de convenio", cols:[["anios_vigencia","int",false,"Marco=4, Específico=3","",""]]},
+    {n:"estado_convenio", d:"Estados del flujo (26)", cols:[["aplica_a","varchar",false,"TODOS | ESPECIFICO","",""],["orden","int",false,"Orden en el flujo","",""]]},
+    {n:"tipo_documento", d:"Tipos de documento", cols:[]},
+    {n:"tipo_gestion_universidad", d:"PUBLICA / PRIVADA", cols:[]},
+    {n:"tipo_entidad_universidad", d:"UNIVERSIDAD / ESCUELA_POSGRADO / ESCUELA_SUPERIOR / INSTITUTO", cols:[]},
+    {n:"tipo_autorizacion", d:"LICENCIADA / DENEGADA / PENDIENTE (SUNEDU)", cols:[]},
+    {n:"nivel_academico", d:"CARRERA_PROFESIONAL / SEGUNDA_ESPECIALIDAD / MAESTRIA / DOCTORADO", cols:[]},
+    {n:"especialidad", d:"Especialidades (seed 46, CONAREME)", cols:[]},
+    {n:"tipo_autoridad_firmante", d:"Tipo de autoridad firmante", cols:[]},
+    {n:"tipo_organo_regional", d:"GERESA / DIRESA / DIRIS", cols:[]},
+    {n:"tipo_unidad_ejecutora", d:"HOSPITAL / INSTITUTO_ESPECIALIZADO / RED_SALUD", cols:[]},
+    {n:"tipo_organo_minsa", d:"DIGEP / OGAJ / SG / VICEPAS", cols:[]},
+    {n:"cargo_ejecutivo", d:"Cargos ejecutivos de representantes", cols:[]},
+    {n:"motivo_observacion", d:"Motivos de observación", cols:[]},
+    {n:"motivo_rechazo", d:"Motivos de rechazo", cols:[]},
+    {n:"motivo_cierre", d:"Motivos de cierre o anulación", cols:[]},
+  ]},
+  { titulo:"Entidades — Gobiernos Regionales (GORE → Órgano → Unidad Ejecutora → IPRESS)", tablas:[
+    {n:"gobierno_regional", cols:[
+      ["id","PK",false,"","pk",""],["nombre","varchar(255)",false,"Nombre del gobierno regional","",""],
+      ["region_id","FK",false,"Región","fk","region"],["referencia_logo","varchar(500)",true,"Ref. externa del logo","",""],["activo","bool",false,"","",""]]},
+    {n:"organo_regional", d:"GERESA / DIRESA / DIRIS", cols:[
+      ["id","PK",false,"","pk",""],["gobierno_regional_id","FK",false,"GORE al que pertenece","fk","gobierno_regional"],
+      ["tipo_organo_regional_id","FK",false,"GERESA/DIRESA/DIRIS","fk","tipo_organo_regional"],["nombre","varchar(255)",false,"","",""],
+      ["siglas","varchar(50)",true,"","",""],["direccion","varchar(500)",true,"Dirección","",""],["ubigeo_id","FK",true,"UBIGEO","fk","ubigeo"],["referencia_logo","varchar(500)",true,"Ref. externa del logo","",""],["activo","bool",false,"","",""]]},
+    {n:"unidad_ejecutora", d:"Hospital / Instituto / Red", cols:[
+      ["id","PK",false,"","pk",""],["organo_regional_id","FK",false,"Órgano que la administra","fk","organo_regional"],
+      ["tipo_unidad_ejecutora_id","FK",false,"Hospital/Instituto/Red","fk","tipo_unidad_ejecutora"],["nombre","varchar(255)",false,"","",""],
+      ["codigo","varchar(50)",true,"Código presupuestal","",""],["direccion","varchar(500)",true,"Dirección","",""],["ubigeo_id","FK",true,"UBIGEO","fk","ubigeo"],["referencia_logo","varchar(500)",true,"Ref. externa del logo","",""],["activo","bool",false,"","",""]]},
+    {n:"ipress", d:"Establecimiento de salud / sede docente", cols:[
+      ["id","PK",false,"","pk",""],["unidad_ejecutora_id","FK",false,"Unidad ejecutora","fk","unidad_ejecutora"],
+      ["nombre","varchar(255)",false,"Nombre del establecimiento","",""],["codigo_renipress","varchar(20)",true,"Código RENIPRESS","",""],
+      ["direccion","varchar(500)",true,"Dirección","",""],["ubigeo_id","FK",true,"UBIGEO","fk","ubigeo"],
+      ["ambito_geografico_sanitario_id","FK",false,"Ámbito sanitario","fk","ambito_geografico_sanitario"],["activo","bool",false,"","",""]]},
+  ]},
+  { titulo:"Entidades — MINSA / CONAPRES", tablas:[
+    {n:"organo_minsa", d:"DIGEP / OGAJ / SG / VICEPAS", cols:[
+      ["id","PK",false,"","pk",""],["tipo_organo_minsa_id","FK",false,"DIGEP/OGAJ/SG/VICEPAS","fk","tipo_organo_minsa"],
+      ["nombre","varchar(255)",false,"","",""],["siglas","varchar(50)",true,"","",""],["activo","bool",false,"","",""]]},
+    {n:"conapres", d:"Máxima instancia del SINAPRES", cols:[
+      ["id","PK",false,"","pk",""],["nombre","varchar(255)",false,"Denominación","",""],["descripcion","text",true,"","",""],["activo","bool",false,"","",""]]},
+    {n:"representante", d:"Genérico (polimórfico) — miembros/autoridades", cols:[
+      ["id","PK",false,"","pk",""],["tipo_contenido_id","FK",false,"Tipo de entidad representada","fk","django_content_type"],
+      ["id_objeto","int",false,"ID de la entidad","",""],["nombre","varchar(255)",false,"Nombre del representante","",""],
+      ["cargo_ejecutivo_id","FK",false,"Cargo (catálogo)","fk","cargo_ejecutivo"],["origen","varchar(30)",true,"Solo CONAPRES: MINSA/GOBIERNO_REGIONAL/ASOCIACION_FACULTADES","",""],
+      ["fecha_inicio","date",true,"","",""],["fecha_fin","date",true,"","",""],["activo","bool",false,"","",""]]},
+  ]},
+  { titulo:"Entidades — Universidades", tablas:[
+    {n:"universidad", cols:[
+      ["id","PK",false,"","pk",""],["nombre","varchar(255)",false,"","",""],["siglas","varchar(50)",true,"","",""],
+      ["tipo_gestion_id","FK",false,"Pública/privada","fk","tipo_gestion_universidad"],["tipo_entidad_id","FK",false,"Universidad/Escuela/Instituto","fk","tipo_entidad_universidad"],
+      ["tipo_autorizacion_id","FK",false,"Licenciada/Denegada/Pendiente","fk","tipo_autorizacion"],["codigo_inei","varchar(20)",true,"","",""],
+      ["fecha_constitucion","date",true,"","",""],["fecha_autorizacion","date",true,"","",""],["numero_resolucion","varchar(100)",true,"","",""],
+      ["direccion_legal","varchar(500)",true,"","",""],["telefono","varchar(30)",true,"","",""],["correo_institucional","varchar(255)",true,"","",""],
+      ["ubigeo_id","FK",true,"UBIGEO","fk","ubigeo"],["referencia_logo","varchar(500)",true,"Ref. externa del logo","",""],["activo","bool",false,"","",""]]},
+    {n:"autoridad_universidad", cols:[
+      ["id","PK",false,"","pk",""],["universidad_id","FK",false,"Universidad","fk","universidad"],["nombre","varchar(255)",false,"","",""],
+      ["cargo","varchar(150)",false,"","",""],["fecha_inicio_cargo","date",false,"","",""],["fecha_fin_cargo","date",true,"","",""],
+      ["numero_resolucion","varchar(100)",true,"","",""],["referencia_documento_resolucion","varchar(500)",true,"Ref. externa PDF resolución","",""],["activo","bool",false,"","",""]]},
+    {n:"facultad", cols:[
+      ["id","PK",false,"","pk",""],["universidad_id","FK",false,"Universidad","fk","universidad"],["nombre","varchar(255)",false,"","",""],["activo","bool",false,"","",""]]},
+    {n:"carrera_profesional", cols:[
+      ["id","PK",false,"","pk",""],["facultad_id","FK",false,"Facultad","fk","facultad"],["nombre","varchar(255)",false,"Carrera o programa","",""],
+      ["nivel_academico_id","FK",false,"Nivel académico","fk","nivel_academico"],["especialidad_id","FK",true,"Especialidad","fk","especialidad"],["activo","bool",false,"","",""]]},
+    {n:"local_universidad", cols:[
+      ["id","PK",false,"","pk",""],["universidad_id","FK",false,"Universidad","fk","universidad"],["nombre","varchar(255)",false,"Nombre del local","",""],
+      ["direccion","varchar(500)",true,"","",""],["region_id","FK",true,"Región","fk","region"],["ubigeo_id","FK",true,"UBIGEO","fk","ubigeo"],["activo","bool",false,"","",""]]},
+  ]},
+  { titulo:"Seguridad / perfil institucional", tablas:[
+    {n:"perfil_usuario_entidad", d:"Vínculo usuario↔entidad↔rol (polimórfico)", cols:[
+      ["id","PK",false,"","pk",""],["usuario_id","FK",false,"Usuario","fk","auth_user"],
+      ["tipo_contenido_id","FK",false,"Tipo de entidad","fk","django_content_type"],["id_objeto","int",false,"ID de la entidad","",""],
+      ["grupo_id","FK",false,"Rol institucional","fk","auth_group"],["activo","bool",false,"","",""],
+      ["(usuario_id, tipo_contenido_id, id_objeto, grupo_id)","unique",false,"Restricción de unicidad","uq",""]]},
+  ]},
+  { titulo:"Núcleo de convenios", tablas:[
+    {n:"plantilla_convenio", cols:[
+      ["id","PK",false,"","pk",""],["tipo_convenio_id","FK",false,"Tipo al que aplica","fk","tipo_convenio"],["nombre","varchar(255)",false,"","",""],
+      ["referencia_externa","varchar(500)",false,"Ref. externa del archivo","",""],["version","int",false,"","",""],["activo","bool",false,"","",""],["creado_en","datetime",false,"","",""]]},
+    {n:"convenio", d:"Solicitante polimórfico", cols:[
+      ["id","PK",false,"","pk",""],["tipo_convenio_id","FK",false,"Marco/Específico","fk","tipo_convenio"],
+      ["convenio_marco_id","FK",true,"Marco del que depende (RN-3)","fk","convenio"],["plantilla_id","FK",true,"Plantilla usada","fk","plantilla_convenio"],
+      ["codigo","varchar(50)",true,"","",""],["titulo","varchar(255)",false,"","",""],
+      ["solicitante_tipo_contenido_id","FK",false,"Tipo entidad solicitante","fk","django_content_type"],["solicitante_id_objeto","int",false,"ID solicitante","",""],
+      ["estado_actual_id","FK",false,"Estado actual","fk","estado_convenio"],["fecha_solicitud","date",false,"","",""],
+      ["fecha_inicio","date",true,"","",""],["fecha_fin","date",true,"4 años Marco / 3 Específico","",""],
+      ["max_campos_clinicos","int",true,"Solo Específico","",""],["creado_por","FK",false,"Usuario","fk","auth_user"],["creado_en","datetime",false,"","",""],["actualizado_en","datetime",false,"","",""]]},
+    {n:"participante_convenio", d:"Participante polimórfico", cols:[
+      ["id","PK",false,"","pk",""],["convenio_id","FK",false,"","fk","convenio"],["tipo_contenido_id","FK",false,"Tipo entidad participante","fk","django_content_type"],
+      ["id_objeto","int",false,"ID participante","",""],["tipo_autoridad_firmante_id","FK",true,"","fk","tipo_autoridad_firmante"],
+      ["es_firmante","bool",false,"Indica si firma","",""],["creado_en","datetime",false,"","",""],
+      ["(convenio_id, tipo_contenido_id, id_objeto)","unique",false,"Restricción de unicidad","uq",""]]},
+    {n:"historial_estado_convenio", d:"Trazabilidad (RNF-AUD-03)", cols:[
+      ["id","PK",false,"","pk",""],["convenio_id","FK",false,"","fk","convenio"],["estado_id","FK",false,"Estado registrado","fk","estado_convenio"],
+      ["cambiado_por","FK",false,"Responsable","fk","auth_user"],["cambiado_en","datetime",false,"","",""],["observacion","text",true,"","",""]]},
+  ]},
+  { titulo:"Tablas del flujo", tablas:[
+    {n:"evaluacion_tecnica", d:"DIGEP (4.2)", cols:[
+      ["id","PK",false,"","pk",""],["convenio_id","FK",false,"","fk","convenio"],["resultado","varchar(20)",false,"VALIDADO/OBSERVADO/RECHAZADO","",""],
+      ["observaciones","text",true,"","",""],["subsanacion","text",true,"","",""],["evaluado_por","FK",false,"Responsable","fk","auth_user"],
+      ["organo_minsa_id","FK",true,"Unidad evaluadora","fk","organo_minsa"],["fecha_evaluacion","date",false,"","",""],["creado_en","datetime",false,"","",""]]},
+    {n:"opinion_conapres", d:"Solo Específico (4.3)", cols:[
+      ["id","PK",false,"","pk",""],["convenio_id","FK",false,"","fk","convenio"],["fecha_solicitud","date",false,"","",""],
+      ["estado_atencion","varchar(20)",false,"","",""],["resultado_opinion","varchar(20)",true,"FAVORABLE/OBSERVADO","",""],["fecha_respuesta","date",true,"","",""],["creado_en","datetime",false,"","",""]]},
+    {n:"campo_clinico", d:"Solo Específico (4.4)", cols:[
+      ["id","PK",false,"","pk",""],["convenio_id","FK",false,"","fk","convenio"],["ipress_id","FK",false,"Sede docente","fk","ipress"],
+      ["carrera_profesional_id","FK",false,"Carrera/programa","fk","carrera_profesional"],["especialidad_id","FK",true,"","fk","especialidad"],
+      ["cantidad_maxima","int",false,"Máx. campos clínicos","",""],["vigencia_inicio","date",false,"","",""],["vigencia_fin","date",false,"","",""],
+      ["ambito_geografico_sanitario_id","FK",false,"Ámbito","fk","ambito_geografico_sanitario"],["observaciones","text",true,"","",""],["creado_en","datetime",false,"","",""]]},
+    {n:"opinion_juridica", d:"OGAJ (4.5)", cols:[
+      ["id","PK",false,"","pk",""],["convenio_id","FK",false,"","fk","convenio"],["fecha_envio","date",false,"","",""],
+      ["resultado_opinion","varchar(20)",true,"FAVORABLE/OBSERVADO","",""],["observaciones_legales","text",true,"","",""],["subsanacion","text",true,"","",""],
+      ["fecha_respuesta","date",true,"","",""],["creado_en","datetime",false,"","",""]]},
+    {n:"firma", d:"Firmante polimórfico (4.6/4.7)", cols:[
+      ["id","PK",false,"","pk",""],["convenio_id","FK",false,"","fk","convenio"],["firmante_tipo_contenido_id","FK",false,"Tipo entidad firmante","fk","django_content_type"],
+      ["firmante_id_objeto","int",false,"ID firmante","",""],["tipo_autoridad_firmante_id","FK",true,"","fk","tipo_autoridad_firmante"],["orden_firma","int",true,"Circuito de firmas","",""],
+      ["fecha_envio","date",true,"","",""],["fecha_recepcion","date",true,"","",""],["estado_firma","varchar(20)",false,"PENDIENTE/FIRMADO/DEVUELTO","",""],["observaciones","text",true,"","",""],["creado_en","datetime",false,"","",""]]},
+    {n:"publicacion", d:"(4.8)", cols:[
+      ["id","PK",false,"","pk",""],["convenio_id","FK",false,"","fk","convenio"],["fecha_publicacion","date",false,"","",""],
+      ["referencia_publicacion","varchar(255)",true,"Enlace/código/constancia","",""],["creado_por","FK",false,"","fk","auth_user"],["creado_en","datetime",false,"","",""]]},
+  ]},
+  { titulo:"Documento y auditoría (transversales)", tablas:[
+    {n:"documento", d:"Adjuntos en repositorio externo (polimórfico)", cols:[
+      ["id","PK",false,"","pk",""],["tipo_documento_id","FK",false,"Tipo de documento","fk","tipo_documento"],["tipo_contenido_id","FK",false,"Tabla destino","fk","django_content_type"],
+      ["id_objeto","int",false,"Registro destino","",""],["referencia_externa","varchar(500)",false,"Clave/URL externa","",""],["nombre_archivo","varchar(255)",false,"","",""],
+      ["version","int",false,"","",""],["estado","varchar(20)",false,"ACTIVO/REEMPLAZADO/ANULADO/OBSERVADO/VALIDADO","",""],["version_anterior_id","FK",true,"Versión previa","fk","documento"],
+      ["cargado_por","FK",false,"Usuario","fk","auth_user"],["cargado_en","datetime",false,"","",""]]},
+    {n:"bitacora_auditoria", d:"RNF-AUD-01/02 (polimórfico)", cols:[
+      ["id","PK",false,"","pk",""],["usuario_id","FK",true,"Usuario","fk","auth_user"],["accion","varchar(30)",false,"CREAR/ACTUALIZAR/ELIMINAR/CAMBIO_ESTADO","",""],
+      ["tipo_contenido_id","FK",false,"Entidad afectada","fk","django_content_type"],["id_objeto","int",false,"Registro afectado","",""],["nombre_campo","varchar(100)",true,"","",""],
+      ["valor_anterior","text",true,"","",""],["valor_nuevo","text",true,"","",""],["direccion_ip","varchar(45)",true,"","",""],["creado_en","datetime",false,"","",""]]},
+  ]},
+]},
+{ modulo:"Módulo 2 — Registrar Internados", mod:"b2", secciones:[
+  { titulo:"Catálogos", note:"Patrón común: <code>id</code>, <code>codigo</code>, <code>nombre</code>, <code>activo</code>.", tablas:[
+    {n:"estado_internado", d:"Estados del internado (12)", cols:[["orden","int",false,"REGISTRADO…ANULADO","",""]]},
+    {n:"estado_rotacion", d:"Estados de la rotación (8)", cols:[["orden","int",false,"SOLICITADA…CANCELADA","",""]]},
+    {n:"servicio_area", d:"Servicio, área o unidad", cols:[]},
+    {n:"tipo_documento_identidad", d:"DNI / CE / PASAPORTE", cols:[]},
+  ]},
+  { titulo:"Personas", tablas:[
+    {n:"interno", cols:[
+      ["id","PK",false,"","pk",""],["tipo_documento_identidad_id","FK",false,"Tipo doc.","fk","tipo_documento_identidad"],["numero_documento","varchar(20)",false,"","",""],
+      ["nombres","varchar(150)",false,"","",""],["apellido_paterno","varchar(100)",false,"","",""],["apellido_materno","varchar(100)",true,"","",""],
+      ["fecha_nacimiento","date",true,"","",""],["sexo","varchar(1)",true,"M/F","",""],["correo","varchar(255)",true,"","",""],["telefono","varchar(30)",true,"","",""],
+      ["direccion","varchar(500)",true,"Dirección","",""],["ubigeo_id","FK",true,"UBIGEO","fk","ubigeo"],
+      ["universidad_id","FK",false,"Universidad","fk","universidad"],["carrera_profesional_id","FK",false,"Carrera","fk","carrera_profesional"],["especialidad_id","FK",true,"2da especialidad","fk","especialidad"],
+      ["codigo_universitario","varchar(50)",true,"","",""],["anio_academico","int",true,"","",""],["activo","bool",false,"","",""],["creado_por","FK",false,"","fk","auth_user"],["creado_en","datetime",false,"","",""],
+      ["(tipo_documento_identidad_id, numero_documento)","unique",false,"Restricción de unicidad","uq",""]]},
+    {n:"tutor", cols:[
+      ["id","PK",false,"","pk",""],["tipo_documento_identidad_id","FK",false,"Tipo doc.","fk","tipo_documento_identidad"],["numero_documento","varchar(20)",false,"","",""],
+      ["nombres","varchar(150)",false,"","",""],["apellido_paterno","varchar(100)",false,"","",""],["apellido_materno","varchar(100)",true,"","",""],
+      ["correo","varchar(255)",true,"","",""],["telefono","varchar(30)",true,"","",""],["numero_colegiatura","varchar(50)",true,"","",""],
+      ["direccion","varchar(500)",true,"Dirección","",""],["ubigeo_id","FK",true,"UBIGEO","fk","ubigeo"],
+      ["especialidad_id","FK",true,"Especialidad del tutor","fk","especialidad"],["ipress_id","FK",true,"Establecimiento","fk","ipress"],["activo","bool",false,"","",""]]},
+  ]},
+  { titulo:"Internado", tablas:[
+    {n:"internado", cols:[
+      ["id","PK",false,"","pk",""],["interno_id","FK",false,"Interno","fk","interno"],["convenio_id","FK",false,"Convenio Específico vigente","fk","convenio"],
+      ["campo_clinico_id","FK",false,"Campo clínico asignado","fk","campo_clinico"],["ipress_id","FK",false,"Sede docente principal","fk","ipress"],["tutor_id","FK",false,"Tutor responsable","fk","tutor"],
+      ["ambito_geografico_sanitario_id","FK",false,"Ámbito","fk","ambito_geografico_sanitario"],["estado_actual_id","FK",false,"Estado actual","fk","estado_internado"],
+      ["fecha_inicio","date",false,"","",""],["fecha_fin","date",false,"Máx. 1 año","",""],["observaciones","text",true,"","",""],["creado_por","FK",false,"","fk","auth_user"],["creado_en","datetime",false,"","",""],["actualizado_en","datetime",false,"","",""]]},
+    {n:"historial_estado_internado", d:"Trazabilidad (RN-15)", cols:[
+      ["id","PK",false,"","pk",""],["internado_id","FK",false,"","fk","internado"],["estado_id","FK",false,"","fk","estado_internado"],
+      ["cambiado_por","FK",false,"Responsable","fk","auth_user"],["cambiado_en","datetime",false,"","",""],["observacion","text",true,"","",""]]},
+    {n:"historial_tutor", d:"Cambio de tutor (RN-14)", cols:[
+      ["id","PK",false,"","pk",""],["internado_id","FK",false,"","fk","internado"],["tutor_id","FK",false,"Tutor asignado","fk","tutor"],
+      ["fecha_cambio","date",false,"","",""],["motivo","text",false,"","",""],["responsable_id","FK",false,"Responsable","fk","auth_user"],["creado_en","datetime",false,"","",""]]},
+  ]},
+  { titulo:"Rotaciones", tablas:[
+    {n:"rotacion", cols:[
+      ["id","PK",false,"","pk",""],["internado_id","FK",false,"","fk","internado"],["numero_rotacion","int",false,"1–4 (RN-9)","",""],
+      ["ipress_origen_id","FK",false,"Sede origen","fk","ipress"],["ipress_destino_id","FK",false,"Sede destino","fk","ipress"],["servicio_area_id","FK",false,"Servicio/área","fk","servicio_area"],
+      ["estado_actual_id","FK",false,"Estado actual","fk","estado_rotacion"],["fecha_inicio","date",false,"","",""],["fecha_fin","date",false,"","",""],
+      ["observaciones","text",true,"","",""],["creado_por","FK",false,"","fk","auth_user"],["creado_en","datetime",false,"","",""]]},
+    {n:"autorizacion_rotacion", d:"RN-10/11", cols:[
+      ["id","PK",false,"","pk",""],["rotacion_id","FK",false,"Rotación","fk","rotacion"],["participante_convenio_id","FK",false,"Autoridad suscrita","fk","participante_convenio"],
+      ["resultado","varchar(20)",false,"APROBADO/OBSERVADO/RECHAZADO","",""],["fecha_autorizacion","date",false,"","",""],["observaciones","text",true,"","",""],
+      ["autorizado_por","FK",false,"Usuario","fk","auth_user"],["creado_en","datetime",false,"","",""]]},
+    {n:"historial_estado_rotacion", d:"Trazabilidad (RN-15)", cols:[
+      ["id","PK",false,"","pk",""],["rotacion_id","FK",false,"","fk","rotacion"],["estado_id","FK",false,"","fk","estado_rotacion"],
+      ["cambiado_por","FK",false,"Responsable","fk","auth_user"],["cambiado_en","datetime",false,"","",""],["observacion","text",true,"","",""]]},
+  ]},
+]},
+{ modulo:"Módulo 3 — Registrar Actividades Docente-Asistenciales", mod:"b3", secciones:[
+  { titulo:"Catálogos", tablas:[
+    {n:"tipo_actividad", d:"Tipo de actividad", cols:[]},
+    {n:"estado_actividad", d:"Estados (7)", cols:[["orden","int",false,"REGISTRADA…CERRADA","",""]]},
+  ]},
+  { titulo:"Actividad", tablas:[
+    {n:"actividad_docente_asistencial", cols:[
+      ["id","PK",false,"","pk",""],["interno_id","FK",false,"Interno","fk","interno"],["internado_id","FK",false,"Internado activo","fk","internado"],
+      ["ipress_id","FK",false,"Sede docente","fk","ipress"],["rotacion_id","FK",true,"Rotación autorizada (opc.)","fk","rotacion"],["tutor_id","FK",false,"Tutor responsable","fk","tutor"],
+      ["servicio_area_id","FK",false,"Servicio/área","fk","servicio_area"],["tipo_actividad_id","FK",false,"Tipo","fk","tipo_actividad"],["estado_actual_id","FK",false,"Estado actual","fk","estado_actividad"],
+      ["fecha_actividad","date",false,"","",""],["descripcion","text",true,"","",""],["carga_horaria","decimal(5,2)",true,"Horas","",""],
+      ["creado_por","FK",false,"","fk","auth_user"],["creado_en","datetime",false,"","",""],["actualizado_en","datetime",false,"","",""]]},
+    {n:"validacion_actividad", d:"RF-DA-13/14/15", cols:[
+      ["id","PK",false,"","pk",""],["actividad_id","FK",false,"Actividad","fk","actividad_docente_asistencial"],["resultado","varchar(20)",false,"VALIDADA/OBSERVADA/RECHAZADA","",""],
+      ["comentario","text",true,"","",""],["validado_por","FK",false,"Validador","fk","auth_user"],["fecha_validacion","datetime",false,"","",""],["creado_en","datetime",false,"","",""]]},
+    {n:"historial_estado_actividad", d:"Trazabilidad (RN-8)", cols:[
+      ["id","PK",false,"","pk",""],["actividad_id","FK",false,"","fk","actividad_docente_asistencial"],["estado_id","FK",false,"","fk","estado_actividad"],
+      ["cambiado_por","FK",false,"Responsable","fk","auth_user"],["cambiado_en","datetime",false,"","",""],["observacion","text",true,"","",""]]},
+  ]},
+]},
+];
+
+const RELATIONS = `ubigeo (INEI distrital) >──< organo_regional / unidad_ejecutora / ipress / universidad / local_universidad / interno / tutor
+gobierno_regional ──< organo_regional ──< unidad_ejecutora ──< ipress
+ipress >── ambito_geografico_sanitario
+representante >── django_content_type (organo_minsa/organo_regional/unidad_ejecutora/ipress/conapres) ; >── cargo_ejecutivo
+universidad ──< autoridad_universidad ; ──< facultad ──< carrera_profesional >── nivel_academico/especialidad ; ──< local_universidad
+auth_user ──< perfil_usuario_entidad >── django_content_type / auth_group
+
+convenio >── tipo_convenio / estado_convenio / plantilla_convenio
+convenio ──self< (Específico → Marco)  [convenio_marco_id]
+convenio >── django_content_type (solicitante polimórfico)
+convenio ──< participante_convenio / historial_estado_convenio
+convenio ──< evaluacion_tecnica / opinion_conapres* / campo_clinico* / opinion_juridica / firma / publicacion   (* solo Específico)
+campo_clinico >── ipress / carrera_profesional / especialidad / ambito_geografico_sanitario
+
+interno >── universidad / carrera_profesional / especialidad
+internado >── interno / convenio / campo_clinico / ipress / tutor / ambito_geografico_sanitario / estado_internado
+internado ──< historial_estado_internado / historial_tutor / rotacion
+rotacion >── ipress(origen) / ipress(destino) / servicio_area / estado_rotacion
+rotacion ──< autorizacion_rotacion >── participante_convenio
+rotacion ──< historial_estado_rotacion
+
+actividad_docente_asistencial >── interno / internado / ipress / rotacion(opc) / tutor / servicio_area / tipo_actividad / estado_actividad
+actividad_docente_asistencial ──< validacion_actividad / historial_estado_actividad
+
+documento          >── django_content_type  (genérico → cualquier tabla del flujo)
+bitacora_auditoria >── django_content_type  (genérico → cualquier entidad)`;
+
+// ---- Render ----
+const ids = {};
+function slug(n){return n.replace(/[^a-z0-9_]/gi,'_');}
+function colRows(cols){
+  if(!cols.length) return '';
+  return cols.map(([c,t,nul,d,flag,target])=>{
+    let cell = `<span>${c}</span>`;
+    if(flag==='pk') cell+=`<span class="tag pk">PK</span>`;
+    if(flag==='fk') cell+=`<span class="tag fk">FK</span>`;
+    if(flag==='uq') cell+=`<span class="tag uq">UQ</span>`;
+    let typeCell = t;
+    if(flag==='fk' && target){
+      const internal = ids[target];
+      if(internal) typeCell = `→ <a class="fkref" href="#${slug(target)}">${target}</a>`;
+      else typeCell = `→ <span style="color:var(--muted)">${target}</span>`;
+    } else if(flag==='pk'){ typeCell='int'; }
+    const nu = nul===false ? `<span class="n">No</span>` : (nul===true? `<span class="y">Sí</span>`:'');
+    return `<tr><td class="col">${cell}</td><td class="type">${typeCell}</td><td class="null">${nu}</td><td class="dsc">${d||''}</td></tr>`;
+  }).join('');
+}
+// pre-index table ids
+SCHEMA.forEach(m=>m.secciones.forEach(s=>s.tablas.forEach(t=>ids[t.n]=true)));
+
+let html='', toc='';
+SCHEMA.forEach(m=>{
+  toc += `<h3>${m.modulo.replace(/^Módulo \d+ — /,'')}</h3>`;
+  html += `<div class="modulo ${m.mod}" data-mod="${m.mod}"><h2 class="${m.mod}h">${m.modulo}</h2>`;
+  m.secciones.forEach(s=>{
+    html += `<div class="seccion">${s.titulo}</div>`;
+    if(s.note) html += `<div class="note">${s.note}</div>`;
+    html += `<div class="grid">`;
+    s.tablas.forEach(t=>{
+      toc += `<a class="${m.mod}" href="#${slug(t.n)}">${t.n}</a>`;
+      const body = t.cols.length
+        ? `<table><thead><tr><th>Columna</th><th>Tipo</th><th>Null</th><th>Descripción</th></tr></thead><tbody>${colRows(t.cols)}</tbody></table>`
+        : `<div style="padding:10px 14px;color:var(--muted);font-size:12px">Solo columnas del patrón catálogo.</div>`;
+      html += `<div class="card ${m.mod}" id="${slug(t.n)}" data-name="${t.n}" data-mod="${m.mod}">
+        <h4>${t.n}${t.d?`<span class="desc">${t.d}</span>`:''}</h4>${body}</div>`;
+    });
+    html += `</div>`;
+  });
+  html += `</div>`;
+});
+html += `<details class="rel" open><summary>🔗 Mapa de relaciones (global)</summary><pre>${RELATIONS}</pre></details>`;
+
+document.getElementById('content').innerHTML = html;
+document.getElementById('toc').innerHTML = toc;
+
+// ---- Filtro por módulo ----
+document.querySelectorAll('.filterbtn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.filterbtn').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  const f=b.dataset.f;
+  document.querySelectorAll('.modulo').forEach(mod=>{
+    mod.classList.toggle('hidden', f!=='all' && mod.dataset.mod!==f);
+  });
+}));
+
+// ---- Búsqueda ----
+const search=document.getElementById('search');
+search.addEventListener('input',()=>{
+  const q=search.value.trim().toLowerCase();
+  document.querySelectorAll('.modulo').forEach(mod=>{
+    let anyVisible=false;
+    mod.querySelectorAll('.card').forEach(card=>{
+      const name=card.dataset.name.toLowerCase();
+      const txt=card.textContent.toLowerCase();
+      const match = !q || name.includes(q) || txt.includes(q);
+      card.classList.toggle('hidden',!match);
+      if(match) anyVisible=true;
+    });
+    mod.querySelectorAll('.seccion,.note').forEach(el=>el.classList.toggle('hidden', q && !anyVisible));
+  });
+});
+
+// ---- Diagrama ER (Mermaid) ----
+const catalogSet = new Set();
+SCHEMA.forEach(m=>m.secciones.forEach(s=>{ if(/Catálogos/i.test(s.titulo)) s.tablas.forEach(t=>catalogSet.add(t.n)); }));
+const SKIP_ER = new Set([...catalogSet, "django_content_type", "auth_user", "auth_group"]);
+const MOD_LABEL = {b1:"Convenios", b2:"Internados", b3:"Actividades"};
+
+function erDiagramText(filter){
+  const edges=[]; const nodes=new Set(); const edgeNodes=new Set();
+  SCHEMA.forEach(m=>{
+    if(filter!=="all" && m.mod!==filter) return;
+    m.secciones.forEach(s=>{
+      if(/Catálogos/i.test(s.titulo)) return;
+      s.tablas.forEach(t=>{
+        nodes.add(t.n);
+        t.cols.forEach(([col,,,,flag,target])=>{
+          if(flag!=="fk" || !target || SKIP_ER.has(target)) return;
+          const rel = (target===t.n) ? "||--o{" : "||--o{";
+          edges.push(`  ${target} ${rel} ${t.n} : "${col.replace(/_id$/,'')}"`);
+          nodes.add(target); edgeNodes.add(target); edgeNodes.add(t.n);
+        });
+      });
+    });
+  });
+  // entidades aisladas (sin FK propias ni entrantes en el filtro) → declararlas
+  const solitarias = [...nodes].filter(n=>!edgeNodes.has(n)).map(n=>`  ${n}`);
+  return "erDiagram\n" + edges.join("\n") + (solitarias.length? "\n"+solitarias.join("\n") : "");
+}
+
+let mermaidReady=false, erRenderedFor=null;
+function initMermaid(){
+  if(mermaidReady || typeof mermaid==="undefined") return mermaidReady;
+  mermaid.initialize({startOnLoad:false, theme:"dark", securityLevel:"loose",
+    er:{useMaxWidth:false, entityPadding:10}});
+  mermaidReady=true; return true;
+}
+async function renderER(filter){
+  const cont=document.getElementById("er-container");
+  if(!initMermaid()){ cont.innerHTML='<div class="erloading">No se pudo cargar Mermaid. Verifica que <code>mermaid.min.js</code> esté junto a este HTML.</div>'; return; }
+  const txt=erDiagramText(filter);
+  try{
+    const {svg}=await mermaid.render("erGraph_"+Date.now(), txt);
+    cont.innerHTML=`<div class="mermaid">${svg}</div>`;
+    erRenderedFor=filter;
+  }catch(e){
+    cont.innerHTML='<div class="erloading">Error al renderizar el diagrama: '+e.message+'</div>';
+  }
+}
+
+// ---- Pestañas ----
+let erFilter="all";
+document.querySelectorAll('.tab').forEach(tab=>tab.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  tab.classList.add('active');
+  const v=tab.dataset.view;
+  document.getElementById('view-tablas').classList.toggle('hidden', v!=='tablas');
+  document.getElementById('view-er').classList.toggle('hidden', v!=='er');
+  if(v==='er' && erRenderedFor!==erFilter) renderER(erFilter);
+}));
+document.querySelectorAll('.erbtn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.erbtn').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  erFilter=b.dataset.e;
+  renderER(erFilter);
+}));
+</script>
+</body>
+</html>
