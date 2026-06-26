@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -88,12 +89,14 @@ export function AppShell({ children }: { children: ReactNode }) {
               <span className="hidden text-sm sm:inline">{user?.nombre}</span>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>
-                <div className="font-medium">{user?.nombre}</div>
-                <div className="text-xs text-muted-foreground">
-                  {user?.grupos.join(", ") || "Sin roles"}
-                </div>
-              </DropdownMenuLabel>
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>
+                  <div className="font-medium">{user?.nombre}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {user?.grupos.join(", ") || "Sin roles"}
+                  </div>
+                </DropdownMenuLabel>
+              </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout}>Cerrar sesión</DropdownMenuItem>
             </DropdownMenuContent>

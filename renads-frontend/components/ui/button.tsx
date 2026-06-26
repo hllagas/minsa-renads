@@ -1,3 +1,5 @@
+import { isValidElement } from "react"
+import Link from "next/link"
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -44,12 +46,23 @@ function Button({
   className,
   variant = "default",
   size = "default",
+  nativeButton,
+  render,
   ...props
 }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+  // Si `render` produce un ancla (Next <Link> o <a>), desactivar `nativeButton`
+  // para conservar la semántica correcta y evitar el warning de Base UI. Otros
+  // componentes (p. ej. wrappers que renderizan un <button>) mantienen el default.
+  const rendersAnchor =
+    isValidElement(render) && (render.type === Link || render.type === "a")
+  const resolvedNativeButton = nativeButton ?? (rendersAnchor ? false : undefined)
+
   return (
     <ButtonPrimitive
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
+      nativeButton={resolvedNativeButton}
+      render={render}
       {...props}
     />
   )
