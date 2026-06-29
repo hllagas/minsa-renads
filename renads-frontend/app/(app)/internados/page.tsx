@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { internshipHooks, type InternshipRead } from "@/lib/internados/hooks";
+import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import { PageHeader } from "@/components/data/page-header";
 import { DataTable } from "@/components/ui/data-table";
 import { DataTablePagination } from "@/components/data/data-table-pagination";
@@ -18,9 +19,12 @@ export default function InternadosPage() {
   const [convenio, setConvenio] = useState<number | null>(null);
   const [estado, setEstado] = useState<number | null>(null);
 
+  const debouncedSearch = useDebouncedValue(search, 300);
+  useEffect(() => setPage(1), [debouncedSearch]);
+
   const list = internshipHooks.useList({
     page,
-    search,
+    search: debouncedSearch,
     ordering: "-id",
     filters: { convenio, estado_actual: estado },
   });
@@ -74,13 +78,10 @@ export default function InternadosPage() {
         <Input
           placeholder="Buscar por interno…"
           value={search}
-          onChange={(e) => {
-            setPage(1);
-            setSearch(e.target.value);
-          }}
-          className="max-w-xs"
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full sm:max-w-xs"
         />
-        <div className="w-56">
+        <div className="w-full sm:w-56">
           <EntityCombobox
             endpoint="conventions"
             toLabel={(r) => String(r.titulo ?? r.codigo ?? r.id)}
@@ -92,7 +93,7 @@ export default function InternadosPage() {
             placeholder="Todos los convenios"
           />
         </div>
-        <div className="w-56">
+        <div className="w-full sm:w-56">
           <EntityCombobox
             endpoint="internship-statuses"
             value={estado}
@@ -106,12 +107,25 @@ export default function InternadosPage() {
       </div>
 
       {list.isError ? (
-        <p className="text-sm text-destructive">No se pudo cargar el listado.</p>
+        <div className="flex flex-col items-start gap-3 rounded-md border border-destructive/30 p-4">
+          <p className="text-sm text-destructive">
+            No se pudo cargar el listado.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => list.refetch()}
+            disabled={list.isFetching}
+          >
+            {list.isFetching ? "Reintentando…" : "Reintentar"}
+          </Button>
+        </div>
       ) : (
         <>
           <DataTable
             columns={columns as ColumnDef<InternshipRead, unknown>[]}
             data={list.data?.results ?? []}
+            isLoading={list.isLoading}
           />
           <DataTablePagination
             page={page}

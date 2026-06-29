@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { conventionHooks, type ConventionRead } from "@/lib/convenios/hooks";
+import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import { PageHeader } from "@/components/data/page-header";
 import { DataTable } from "@/components/ui/data-table";
 import { DataTablePagination } from "@/components/data/data-table-pagination";
@@ -18,9 +19,15 @@ export default function ConveniosPage() {
   const [tipo, setTipo] = useState<number | null>(null);
   const [estado, setEstado] = useState<number | null>(null);
 
+  // La búsqueda se aplica con retraso para no pedir al backend en cada tecla.
+  const debouncedSearch = useDebouncedValue(search, 300);
+
+  // Volver a la primera página cuando cambia el término de búsqueda ya aplicado.
+  useEffect(() => setPage(1), [debouncedSearch]);
+
   const list = conventionHooks.useList({
     page,
-    search,
+    search: debouncedSearch,
     ordering: "-id",
     filters: { tipo_convenio: tipo, estado_actual: estado },
   });
@@ -67,13 +74,10 @@ export default function ConveniosPage() {
         <Input
           placeholder="Buscar por título o código…"
           value={search}
-          onChange={(e) => {
-            setPage(1);
-            setSearch(e.target.value);
-          }}
-          className="max-w-xs"
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full sm:max-w-xs"
         />
-        <div className="w-56">
+        <div className="w-full sm:w-56">
           <EntityCombobox
             endpoint="convention-types"
             value={tipo}
@@ -84,7 +88,7 @@ export default function ConveniosPage() {
             placeholder="Todos los tipos"
           />
         </div>
-        <div className="w-56">
+        <div className="w-full sm:w-56">
           <EntityCombobox
             endpoint="convention-statuses"
             value={estado}
@@ -98,12 +102,25 @@ export default function ConveniosPage() {
       </div>
 
       {list.isError ? (
-        <p className="text-sm text-destructive">No se pudo cargar el listado.</p>
+        <div className="flex flex-col items-start gap-3 rounded-md border border-destructive/30 p-4">
+          <p className="text-sm text-destructive">
+            No se pudo cargar el listado.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => list.refetch()}
+            disabled={list.isFetching}
+          >
+            {list.isFetching ? "Reintentando…" : "Reintentar"}
+          </Button>
+        </div>
       ) : (
         <>
           <DataTable
             columns={columns as ColumnDef<ConventionRead, unknown>[]}
             data={list.data?.results ?? []}
+            isLoading={list.isLoading}
           />
           <DataTablePagination
             page={page}

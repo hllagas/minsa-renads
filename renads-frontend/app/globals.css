@@ -39,6 +39,13 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  /* Marca: navbar navy, CTA verde y variante teal */
+  --color-navy: var(--navy);
+  --color-navy-foreground: var(--navy-foreground);
+  --color-cta: var(--cta);
+  --color-cta-foreground: var(--cta-foreground);
+  --color-teal: var(--teal);
+  --color-teal-foreground: var(--teal-foreground);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -49,14 +56,23 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
+  /* Fondo general slate-50 (#F8FAFC); tarjetas/forms/modals en blanco. */
+  --background: oklch(0.984 0.003 248);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  /* Primary = sky-500 */
+  --primary: oklch(0.685 0.17 237);
   --primary-foreground: oklch(0.985 0 0);
+  /* Marca (constantes; válidas en claro y oscuro) */
+  --navy: oklch(0.25 0.05 255);
+  --navy-foreground: oklch(0.985 0 0);
+  --cta: oklch(0.69 0.15 162); /* verde esmeralda */
+  --cta-foreground: oklch(0.985 0 0);
+  --teal: oklch(0.70 0.13 180);
+  --teal-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -67,11 +83,13 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  /* Paleta categórica accesible (base Okabe-Ito, colorblind-safe). Azul/naranja
+     primero para evitar el par rojo-verde. Valores para fondo claro (contraste ≥3:1). */
+  --chart-1: oklch(0.55 0.14 245); /* azul */
+  --chart-2: oklch(0.60 0.16 41);  /* naranja */
+  --chart-3: oklch(0.60 0.13 165); /* verde */
+  --chart-4: oklch(0.72 0.14 78);  /* ámbar */
+  --chart-5: oklch(0.62 0.12 350); /* púrpura */
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
@@ -90,8 +108,9 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  /* Primary = sky (más claro para fondo oscuro) */
+  --primary: oklch(0.72 0.15 237);
+  --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -102,11 +121,12 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  /* Mismas tonalidades, más claras y algo desaturadas para fondo oscuro (no invertir). */
+  --chart-1: oklch(0.70 0.13 245); /* azul */
+  --chart-2: oklch(0.72 0.15 45);  /* naranja */
+  --chart-3: oklch(0.72 0.12 165); /* verde */
+  --chart-4: oklch(0.80 0.13 80);  /* ámbar */
+  --chart-5: oklch(0.72 0.11 350); /* púrpura */
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
@@ -115,6 +135,43 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* Landing: paleta del MASTER (renadsweb) con soporte claro/oscuro.
+   Las superficies glass se exponen como variables para adaptarse al tema. */
+.landing-theme {
+  --ld-primary: #2563eb;
+  --ld-secondary: #3b82f6;
+  --ld-cta: #f97316;
+  --ld-bg: #eff6ff;
+  --ld-text: #1e40af;
+  --ld-surface: rgba(255, 255, 255, 0.6);
+  --ld-surface-strong: rgba(255, 255, 255, 0.8);
+  --ld-glass-bg: rgba(255, 255, 255, 0.55);
+  --ld-glass-border: rgba(255, 255, 255, 0.6);
+  --ld-input: #ffffff;
+}
+.dark .landing-theme {
+  --ld-primary: #60a5fa;
+  --ld-secondary: #3b82f6;
+  --ld-cta: #fb923c;
+  --ld-bg: #0b1220; /* navy profundo */
+  --ld-text: #dbeafe; /* azul muy claro, contraste AA sobre el fondo */
+  --ld-surface: rgba(255, 255, 255, 0.06);
+  --ld-surface-strong: rgba(15, 23, 42, 0.82);
+  --ld-glass-bg: rgba(255, 255, 255, 0.05);
+  --ld-glass-border: rgba(255, 255, 255, 0.1);
+  --ld-input: rgba(255, 255, 255, 0.06);
+}
+
+/* Marquee infinito para la barra de logos del landing. */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
 }
 
 @layer base {

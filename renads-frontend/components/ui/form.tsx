@@ -82,7 +82,7 @@ function FormLabel({ className, ...props }: React.ComponentProps<typeof Label>) 
     <Label
       data-slot="form-label"
       data-error={!!error}
-      className={cn("data-[error=true]:text-destructive", className)}
+      className={cn("font-bold data-[error=true]:text-destructive", className)}
       htmlFor={formItemId}
       {...props}
     />

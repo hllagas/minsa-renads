@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 
@@ -9,6 +9,7 @@ import { createResourceHooks } from "@/lib/crud/hooks";
 import type { WithId } from "@/lib/api/query";
 import { useAuthStore, userHasRole } from "@/lib/auth/store";
 import { extractApiError } from "@/lib/api/errors";
+import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 
 import { PageHeader } from "@/components/data/page-header";
 import { DataTable } from "@/components/ui/data-table";
@@ -18,6 +19,8 @@ import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -47,8 +50,13 @@ export function ResourceCrud<TRead extends WithId>({
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<TRead | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState<TRead | null>(null);
 
-  const list = hooks.useList({ page, search, ordering: "id" });
+  // La búsqueda se aplica con retraso para no pedir al backend en cada tecla.
+  const debouncedSearch = useDebouncedValue(search, 300);
+  useEffect(() => setPage(1), [debouncedSearch]);
+
+  const list = hooks.useList({ page, search: debouncedSearch, ordering: "id" });
   const createM = hooks.useCreate();
   const updateM = hooks.useUpdate();
   const removeM = hooks.useRemove();
@@ -77,9 +85,9 @@ export function ResourceCrud<TRead extends WithId>({
               Editar
             </Button>
             <Button
-              variant="outline"
+              variant="destructive"
               size="sm"
-              onClick={() => onDelete(row.original)}
+              onClick={() => setDeleting(row.original)}
             >
               Eliminar
             </Button>
@@ -96,10 +104,13 @@ export function ResourceCrud<TRead extends WithId>({
     setDialogOpen(true);
   }
 
-  function onDelete(row: TRead) {
-    if (!window.confirm(`¿Eliminar ${config.singular}?`)) return;
-    removeM.mutate(row.id, {
-      onSuccess: () => toast.success(`${config.singular} eliminada.`),
+  function confirmDelete() {
+    if (!deleting) return;
+    removeM.mutate(deleting.id, {
+      onSuccess: () => {
+        toast.success(`${config.singular} eliminada.`);
+        setDeleting(null);
+      },
       onError: (e) => toast.error(extractApiError(e)),
     });
   }
@@ -131,11 +142,8 @@ export function ResourceCrud<TRead extends WithId>({
         <Input
           placeholder={config.searchPlaceholder ?? "Buscar…"}
           value={search}
-          onChange={(e) => {
-            setPage(1);
-            setSearch(e.target.value);
-          }}
-          className="max-w-xs"
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full sm:max-w-xs"
         />
         {!canWrite ? (
           <Badge variant="secondary">Solo lectura</Badge>
@@ -143,10 +151,26 @@ export function ResourceCrud<TRead extends WithId>({
       </div>
 
       {list.isError ? (
-        <p className="text-sm text-destructive">No se pudo cargar el listado.</p>
+        <div className="flex flex-col items-start gap-3 rounded-md border border-destructive/30 p-4">
+          <p className="text-sm text-destructive">
+            No se pudo cargar el listado.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => list.refetch()}
+            disabled={list.isFetching}
+          >
+            {list.isFetching ? "Reintentando…" : "Reintentar"}
+          </Button>
+        </div>
       ) : (
         <>
-          <DataTable columns={columns as ColumnDef<TRead, unknown>[]} data={data} />
+          <DataTable
+            columns={columns as ColumnDef<TRead, unknown>[]}
+            data={data}
+            isLoading={list.isLoading}
+          />
           <DataTablePagination
             page={page}
             count={list.data?.count ?? 0}
@@ -170,6 +194,38 @@ export function ResourceCrud<TRead extends WithId>({
             onSubmit={onSubmit}
             onCancel={() => setDialogOpen(false)}
           />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={deleting !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleting(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Eliminar {config.singular}</DialogTitle>
+            <DialogDescription>
+              Esta acción no se puede deshacer. ¿Deseas continuar?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleting(null)}
+              disabled={removeM.isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={removeM.isPending}
+            >
+              {removeM.isPending ? "Eliminando…" : "Eliminar"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

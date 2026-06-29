@@ -15,12 +15,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   /** Mensaje cuando no hay filas. */
   emptyMessage?: string;
+  /** Muestra filas skeleton mientras se cargan los datos. */
+  isLoading?: boolean;
+  /** Nº de filas skeleton a mostrar durante la carga. */
+  skeletonRows?: number;
 }
 
 /**
@@ -32,6 +37,8 @@ export function DataTable<TData, TValue>({
   columns,
   data,
   emptyMessage = "Sin resultados.",
+  isLoading = false,
+  skeletonRows = 5,
 }: DataTableProps<TData, TValue>) {
   const table = useReactTable({
     data,
@@ -40,9 +47,9 @@ export function DataTable<TData, TValue>({
   });
 
   return (
-    <div className="rounded-md border">
+    <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
       <Table>
-        <TableHeader>
+        <TableHeader className="bg-muted/60 [&_th]:text-muted-foreground">
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
@@ -56,7 +63,17 @@ export function DataTable<TData, TValue>({
           ))}
         </TableHeader>
         <TableBody>
-          {table.getRowModel().rows.length ? (
+          {isLoading ? (
+            Array.from({ length: skeletonRows }).map((_, rowIdx) => (
+              <TableRow key={`skeleton-${rowIdx}`}>
+                {columns.map((_, cellIdx) => (
+                  <TableCell key={cellIdx}>
+                    <Skeleton className="h-4 w-full" />
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))
+          ) : table.getRowModel().rows.length ? (
             table.getRowModel().rows.map((row) => (
               <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
                 {row.getVisibleCells().map((cell) => (
