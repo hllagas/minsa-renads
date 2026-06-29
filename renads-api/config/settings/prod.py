@@ -20,6 +20,9 @@ DATABASES = {
 # Orígenes confiables para CSRF (dominios de Railway)
 CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default="", cast=Csv())
 
+# CORS — orígenes del frontend autorizados (dominio del frontend en producción)
+CORS_ALLOWED_ORIGINS = config("CORS_ALLOWED_ORIGINS", default="", cast=Csv())
+
 # WhiteNoise para servir estáticos en producción
 MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")  # noqa: F405
 STORAGES = {

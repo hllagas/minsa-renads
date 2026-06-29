@@ -11,6 +11,8 @@ router.register("conventions", views.ConventionViewSet, basename="convention")
 router.register("convention-templates", views.ConventionTemplateViewSet)
 router.register("representatives", views.RepresentativeViewSet)
 router.register("ubigeos", views.UbigeoViewSet)
+router.register("documents", views.DocumentViewSet, basename="document")
+router.register("audit-logs", views.AuditLogViewSet, basename="audit-log")
 
 # Catálogos (solo lectura)
 for basename, viewset in views.CATALOG_VIEWSETS.items():

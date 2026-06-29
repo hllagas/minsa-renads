@@ -2,7 +2,7 @@
 
 from django_filters import rest_framework as filters
 
-from apps.convenios.models import ClinicalField, Convention
+from apps.convenios.models import AuditLog, ClinicalField, Convention
 
 
 class ConventionFilter(filters.FilterSet):
@@ -31,4 +31,19 @@ class ClinicalFieldFilter(filters.FilterSet):
             "carrera_profesional": ["exact"],
             "especialidad": ["exact"],
             "ambito_geografico_sanitario": ["exact"],
+        }
+
+
+class AuditLogFilter(filters.FilterSet):
+    accion_contiene = filters.CharFilter(field_name="accion", lookup_expr="icontains")
+    creado_en_desde = filters.DateTimeFilter(field_name="creado_en", lookup_expr="gte")
+    creado_en_hasta = filters.DateTimeFilter(field_name="creado_en", lookup_expr="lte")
+
+    class Meta:
+        model = AuditLog
+        fields = {
+            "usuario": ["exact"],
+            "accion": ["exact"],
+            "tipo_contenido": ["exact"],
+            "id_objeto": ["exact"],
         }

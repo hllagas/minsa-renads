@@ -7,10 +7,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.common.permissions import IsInstitutionalMember, exigir_ambito
-from apps.common.services import registrar_auditoria
+from apps.common.services import adjuntar_documento, registrar_auditoria
+from apps.common.storage import storage_por_defecto
 from apps.convenios import models as m
 from apps.convenios import selectors, services
-from apps.convenios.filters import ConventionFilter
+from apps.convenios.filters import AuditLogFilter, ConventionFilter
 from apps.convenios.models import ConventionTemplate
 from apps.convenios.permissions import (
     ConventionScope,
@@ -19,6 +20,7 @@ from apps.convenios.permissions import (
     exigir_roles,
 )
 from apps.convenios.serializers import (
+    AuditLogSerializer,
     CambiarEstadoSerializer,
     ClinicalFieldSerializer,
     ConapresOpinionSerializer,
@@ -27,6 +29,8 @@ from apps.convenios.serializers import (
     ConventionStatusHistorySerializer,
     ConventionTemplateSerializer,
     ConventionWriteSerializer,
+    DocumentSerializer,
+    DocumentWriteSerializer,
     LegalOpinionSerializer,
     PublicationSerializer,
     RepresentativeSerializer,
@@ -334,3 +338,64 @@ class RepresentativeViewSet(AuditedModelViewSet):
     permission_classes = [IsAuthenticated, IsAdminRoleOrReadOnly]
     filterset_fields = ["tipo_contenido", "id_objeto", "cargo_ejecutivo", "activo"]
     ordering = ["id"]
+
+
+# ---------------------------------------------------------------------------
+# Soporte transversal — Documento y bitácora de auditoría
+# ---------------------------------------------------------------------------
+class DocumentViewSet(AuditedModelViewSet):
+    """Gestión documental polimórfica con versionado (RNF-DOC-01/02/03/04).
+
+    Las nuevas versiones se crean adjuntando otro documento al mismo objeto (no
+    hay update/partial_update); la lógica de versionado vive en el service.
+    """
+
+    queryset = m.Document.objects.select_related(
+        "tipo_documento", "tipo_contenido", "version_anterior", "cargado_por"
+    )
+    permission_classes = [IsAuthenticated, IsInstitutionalMember]
+    filterset_fields = ["tipo_contenido", "id_objeto", "tipo_documento", "estado"]
+    ordering = ["-id"]
+    http_method_names = ["get", "post", "delete", "head", "options"]
+    storage = storage_por_defecto
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return DocumentWriteSerializer
+        return DocumentSerializer
+
+    def create(self, request, *args, **kwargs):
+        ser = DocumentWriteSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        tipo_contenido = ser.validated_data["tipo_contenido"]
+        objeto = tipo_contenido.get_object_for_this_type(pk=ser.validated_data["id_objeto"])
+        documento = adjuntar_documento(
+            objeto,
+            tipo_documento=ser.validated_data["tipo_documento"],
+            nombre_archivo=ser.validated_data["nombre_archivo"],
+            referencia_externa=ser.validated_data["referencia_externa"],
+            usuario=request.user,
+        )
+        return Response(DocumentSerializer(documento).data, status=201)
+
+    def perform_destroy(self, instance):
+        # Punto de integración del repositorio externo (stub no-op por ahora).
+        self.storage.eliminar(instance.referencia_externa)
+        super().perform_destroy(instance)
+
+    @action(detail=True, methods=["get"], url_path="url-descarga")
+    def url_descarga(self, request, pk=None):
+        documento = self.get_object()
+        return Response({"url": self.storage.url_firmada(documento.referencia_externa)})
+
+
+class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
+    """Consulta de la bitácora de auditoría (RNF-AUD-01/02). Restringida a Administrador/Auditor."""
+
+    queryset = m.AuditLog.objects.select_related("usuario", "tipo_contenido").all()
+    serializer_class = AuditLogSerializer
+    permission_classes = [IsAuthenticated, IsAdminRole]
+    filterset_class = AuditLogFilter
+    search_fields = ["accion"]
+    ordering_fields = ["creado_en", "id"]
+    ordering = ["-creado_en"]

@@ -1,14 +1,17 @@
 """Serializers del módulo Convenios (bloque núcleo + entradas de flujo)."""
 
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 
 from apps.convenios.models import (
+    AuditLog,
     ClinicalField,
     ConapresOpinion,
     Convention,
     ConventionParticipant,
     ConventionStatusHistory,
     ConventionTemplate,
+    Document,
     LegalOpinion,
     Publication,
     Representative,
@@ -155,3 +158,70 @@ class RepresentativeSerializer(serializers.ModelSerializer):
                     {"id_objeto": "La entidad referenciada no existe."}
                 )
         return attrs
+
+
+# ---------------------------------------------------------------------------
+# Documento (gestión documental polimórfica con versionado)
+# ---------------------------------------------------------------------------
+class DocumentSerializer(serializers.ModelSerializer):
+    """Lectura de documentos: incluye etiquetas legibles del tipo y la entidad destino."""
+
+    tipo_documento_nombre = serializers.CharField(source="tipo_documento.nombre", read_only=True)
+    tipo_contenido_label = serializers.CharField(source="tipo_contenido.model", read_only=True)
+
+    class Meta:
+        model = Document
+        fields = [
+            "id", "tipo_documento", "tipo_documento_nombre",
+            "tipo_contenido", "tipo_contenido_label", "id_objeto",
+            "referencia_externa", "nombre_archivo", "version", "estado",
+            "version_anterior", "cargado_por", "cargado_en",
+        ]
+        read_only_fields = [
+            "version", "estado", "version_anterior", "cargado_por", "cargado_en",
+        ]
+
+
+class DocumentWriteSerializer(serializers.ModelSerializer):
+    """Escritura de documentos: el versionado y el estado los fija el service."""
+
+    class Meta:
+        model = Document
+        fields = [
+            "tipo_contenido", "id_objeto", "tipo_documento",
+            "nombre_archivo", "referencia_externa",
+        ]
+
+    def validate(self, attrs):
+        tipo_contenido = attrs.get("tipo_contenido")
+        id_objeto = attrs.get("id_objeto")
+        try:
+            tipo_contenido.get_object_for_this_type(pk=id_objeto)
+        except ObjectDoesNotExist:
+            raise serializers.ValidationError(
+                {"id_objeto": "El objeto destino indicado no existe."}
+            )
+        return attrs
+
+
+# ---------------------------------------------------------------------------
+# Bitácora de auditoría (solo lectura)
+# ---------------------------------------------------------------------------
+class AuditLogSerializer(serializers.ModelSerializer):
+    """Lectura de la bitácora de auditoría (RNF-AUD-01/02). Todos los campos read-only."""
+
+    usuario_nombre = serializers.SerializerMethodField()
+    tipo_contenido_label = serializers.CharField(source="tipo_contenido.model", read_only=True)
+
+    class Meta:
+        model = AuditLog
+        fields = [
+            "id", "usuario", "usuario_nombre", "accion",
+            "tipo_contenido", "tipo_contenido_label", "id_objeto",
+            "nombre_campo", "valor_anterior", "valor_nuevo",
+            "direccion_ip", "creado_en",
+        ]
+        read_only_fields = fields
+
+    def get_usuario_nombre(self, obj) -> str:
+        return obj.usuario.get_username() if obj.usuario else ""
