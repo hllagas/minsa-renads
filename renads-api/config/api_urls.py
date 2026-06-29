@@ -28,6 +28,8 @@ urlpatterns = [
     path("", include("apps.convenios.urls")),
     path("", include("apps.internados.urls")),
     path("", include("apps.actividades.urls")),
+    # Administración transversal (usuarios, roles y permisos)
+    path("", include("apps.common.urls")),
 ]
 
 urlpatterns += router.urls

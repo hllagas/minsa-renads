@@ -43,7 +43,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/convenios", label: "Convenios", roles: ["Administrador RENADS", "DIGEP", "CONAPRES", "OGAJ", "Secretaría General"] },
   { href: "/internados", label: "Internados", roles: ["Administrador RENADS", "Universidad", "Autoridad de convenio"] },
   { href: "/actividades", label: "Actividades", roles: ["Administrador RENADS", "Universidad", "Tutor", "Sede docente"] },
-  { href: "/catalogos", label: "Catálogos", roles: ["Administrador RENADS"] },
+  { href: "/catalogos", label: "Catálogos", roles: ["Administrador RENADS", "Auditor"] },
   { href: "/usuarios", label: "Gestión de Usuarios", roles: ["Administrador RENADS"] },
 ];
 
@@ -113,24 +113,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const items = NAV_ITEMS.filter((item) => visibleParaUsuario(item, user));
 
   return (
-    <div className="flex min-h-dvh">
-      {/* Barra lateral fija solo en desktop */}
-      <aside className="hidden w-60 shrink-0 border-r bg-muted/30 p-4 md:block">
-        <div className="mb-6 px-2">
-          <Image
-            src="/logo-minsa.png"
-            alt="Ministerio de Salud del Perú"
-            width={2000}
-            height={408}
-            priority
-            className="h-8 w-auto"
-          />          
-        </div>
-        <NavLinks items={items} pathname={pathname} />
-      </aside>
-
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header
+    <div className="flex min-h-dvh flex-col">
+      {/* Navbar full width, siempre visible (sticky) sobre toda la app */}
+      <header
           className={cn(
             "sticky top-0 z-40 flex h-14 items-center gap-2 px-4 text-white transition-colors",
             scrolled
@@ -222,11 +207,28 @@ export function AppShell({ children }: { children: ReactNode }) {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-        </header>
+      </header>
 
-        <main className="flex-1 p-4 sm:p-6">{children}</main>
+      <div className="flex flex-1">
+        {/* Barra lateral siempre visible (sticky bajo el navbar) en desktop */}
+        <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-60 shrink-0 self-start overflow-y-auto border-r bg-muted/30 p-4 md:block">
+          <div className="mb-6 px-2">
+            <Image
+              src="/logo-minsa.png"
+              alt="Ministerio de Salud del Perú"
+              width={2000}
+              height={408}
+              priority
+              className="h-8 w-auto"
+            />
+          </div>
+          <NavLinks items={items} pathname={pathname} />
+        </aside>
 
-        <Footer />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <main className="flex-1 p-4 sm:p-6">{children}</main>
+          <Footer />
+        </div>
       </div>
     </div>
   );

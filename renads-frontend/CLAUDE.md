@@ -16,18 +16,23 @@ campos, roles, estados) sin necesidad de abrir el repo del backend:
 | `docs/mvp.md` | **Orden obligatorio de módulos** y alcance de cada uno |
 | `docs/backend-overview.md` | Stack, base URL (`http://localhost:8000/api/v1/`), paginación, filtros, roles, OpenAPI |
 | `docs/api-auth.md` | JWT (`/auth/token`, `/refresh`, `/me`), roles/grupos, alcance institucional |
-| `docs/api-convenios.md` | Módulo 1 — Gestionar Convenios |
+| `docs/api-convenios.md` | Módulo 1 — Gestionar Convenios (núcleo) |
+| `docs/api-catalogos.md` | Módulo 1 — CRUD transversales: catálogos, entidades, representantes, documentos, auditoría (rutas `/catalogos` y `/usuarios`) |
 | `docs/api-internados.md` | Módulo 2 — Registrar Internados |
 | `docs/api-actividades.md` | Módulo 3 — Registrar Actividades docente-asistenciales |
+| `docs/api-usuarios.md` | Gestión de Usuarios — usuarios, roles/grupos y permisos (`apps/common`, ruta `/usuarios`, solo superusuario) |
 | `docs/frontend-conventions.md` | Idioma, SDD, cliente HTTP, gating por rol, estructura propuesta |
 
 ### Módulos del backend
 
 1. **Gestionar Convenios** (`apps/convenios`) — convenios Marco/Específicos, evaluaciones, opiniones (DIGEP/CONAPRES/OGAJ), firmas, publicación, vigencia.
+   - **CRUD transversales del Módulo 1** (`apps/convenios` + `apps/common`): catálogos (solo lectura), entidades organizacionales/académicas (CRUD, escritura `Administrador RENADS`), representantes, `user-entity-profiles`, **documentos** (`documents`, gestión documental polimórfica con versionado) y **bitácora de auditoría** (`audit-logs`, solo lectura, `Administrador RENADS`/Auditor). Contrato: `docs/api-catalogos.md`. Rutas front: `/catalogos` y `/usuarios`.
 2. **Registrar Internados** (`apps/internados`) — internos, tutores, internados, rotaciones, autorizaciones.
 3. **Registrar Actividades** (`apps/actividades`) — actividades docente-asistenciales y su validación.
 
-Más auth/transversal (`apps/common`): login JWT, `/auth/me`, alcance institucional, auditoría.
+Más auth/transversal (`apps/common`): login JWT, `/auth/me`, alcance institucional, auditoría, y
+**administración de usuarios/roles/permisos** (`users`, `groups`, `permissions` — solo superusuario;
+contrato en `docs/api-usuarios.md`, ruta front `/usuarios`).
 
 ### Convenciones de idioma
 

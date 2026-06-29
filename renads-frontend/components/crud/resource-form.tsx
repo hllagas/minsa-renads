@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { EntityCombobox } from "@/components/form/entity-combobox";
+import { MultiEntityCombobox } from "@/components/form/multi-entity-combobox";
 import {
   Select,
   SelectContent,
@@ -19,6 +20,10 @@ import {
 type FormValues = Record<string, unknown>;
 
 function defaultFor(field: FieldConfig, initial: FormValues | null): unknown {
+  if (field.type === "multiselect") {
+    const v = initial?.[field.name];
+    return Array.isArray(v) ? v : [];
+  }
   const v = initial?.[field.name];
   if (v !== undefined && v !== null) return v;
   if (field.defaultValue !== undefined) return field.defaultValue;
@@ -34,6 +39,16 @@ function buildPayload(fields: FieldConfig[], values: FormValues): FormValues {
     const v = values[f.name];
     if (f.type === "boolean") {
       out[f.name] = Boolean(v);
+      continue;
+    }
+    if (f.type === "multiselect") {
+      // Siempre se envía el array (incluido `[]` para vaciar la relación).
+      out[f.name] = (Array.isArray(v) ? v : []).map(Number);
+      continue;
+    }
+    if (f.type === "password") {
+      // Contraseña write-only: solo se incluye si hay valor; nunca se imprime ni se cachea.
+      if (typeof v === "string" && v !== "") out[f.name] = v;
       continue;
     }
     const vacio = v === "" || v === null || v === undefined;
@@ -73,6 +88,8 @@ export function ResourceForm({
       {fields.map((field) =>
         field.type === "select" ? (
           <SelectFieldRow key={field.name} field={field} control={control} />
+        ) : field.type === "multiselect" ? (
+          <MultiSelectFieldRow key={field.name} field={field} control={control} />
         ) : field.type === "boolean" ? (
           <BooleanFieldRow key={field.name} field={field} control={control} />
         ) : (
@@ -99,7 +116,15 @@ function InputFieldRow({
   control: Control<FormValues>;
 }) {
   const inputType =
-    field.type === "number" ? "number" : field.type === "date" ? "date" : field.type === "email" ? "email" : "text";
+    field.type === "number"
+      ? "number"
+      : field.type === "date"
+        ? "date"
+        : field.type === "email"
+          ? "email"
+          : field.type === "password"
+            ? "password"
+            : "text";
   return (
     <Controller
       control={control}
@@ -114,10 +139,50 @@ function InputFieldRow({
           <Input
             id={field.name}
             type={inputType}
+            autoComplete={field.type === "password" ? "new-password" : undefined}
             value={(f.value as string | number | null) ?? ""}
             onChange={(e) => f.onChange(e.target.value)}
             onBlur={f.onBlur}
             aria-invalid={!!fieldState.error}
+          />
+          {fieldState.error ? (
+            <p className="text-sm text-destructive">{fieldState.error.message}</p>
+          ) : null}
+        </div>
+      )}
+    />
+  );
+}
+
+function MultiSelectFieldRow({
+  field,
+  control,
+}: {
+  field: FieldConfig;
+  control: Control<FormValues>;
+}) {
+  return (
+    <Controller
+      control={control}
+      name={field.name}
+      rules={{
+        validate: (v) =>
+          !field.required || (Array.isArray(v) && v.length > 0)
+            ? true
+            : "Selecciona al menos una opción.",
+      }}
+      render={({ field: f, fieldState }) => (
+        <div className="grid gap-1.5">
+          <Label>
+            {field.label}
+            {field.required ? " *" : ""}
+          </Label>
+          <MultiEntityCombobox
+            endpoint={field.optionsEndpoint!}
+            params={field.optionsParams}
+            toLabel={field.optionsToLabel}
+            value={Array.isArray(f.value) ? (f.value as number[]) : []}
+            onChange={(val) => f.onChange(val)}
           />
           {fieldState.error ? (
             <p className="text-sm text-destructive">{fieldState.error.message}</p>

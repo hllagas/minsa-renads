@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
 
@@ -20,7 +20,6 @@ export default function InternadosPage() {
   const [estado, setEstado] = useState<number | null>(null);
 
   const debouncedSearch = useDebouncedValue(search, 300);
-  useEffect(() => setPage(1), [debouncedSearch]);
 
   const list = internshipHooks.useList({
     page,
@@ -78,7 +77,10 @@ export default function InternadosPage() {
         <Input
           placeholder="Buscar por interno…"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
           className="w-full sm:max-w-xs"
         />
         <div className="w-full sm:w-56">

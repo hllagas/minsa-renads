@@ -22,6 +22,20 @@ def exigir_ambito(usuario, tipo_contenido_id: int, id_objeto: int) -> None:
         raise PermissionDenied("La entidad indicada está fuera de tu ámbito institucional.")
 
 
+class IsSuperUser(BasePermission):
+    """Restringe la vista a superusuarios (`is_superuser`).
+
+    Garantiza que solo un superadministrador administre usuarios, roles y
+    permisos, evitando la escalación de privilegios (RNF-SEG-01/02/03).
+    """
+
+    message = "Solo un superadministrador puede acceder a la gestión de usuarios, roles y permisos."
+
+    def has_permission(self, request, view) -> bool:
+        user = request.user
+        return bool(user and user.is_authenticated and user.is_superuser)
+
+
 class IsInstitutionalMember(BasePermission):
     """El usuario debe estar autenticado y tener al menos un perfil institucional.
 

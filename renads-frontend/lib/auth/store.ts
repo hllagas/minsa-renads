@@ -67,3 +67,9 @@ export const useAuthStore = create<AuthState>()(
 /** Helpers de gating por rol (la autoridad final es el backend; esto es UX). */
 export const userHasRole = (user: AuthUser | null, ...roles: string[]): boolean =>
   !!user && (user.es_superusuario || roles.some((r) => user.grupos.includes(r)));
+
+/**
+ * Gating estricto a superusuario puro (`es_superusuario`). Más restrictivo que `userHasRole`:
+ * no basta con tener un grupo/rol. Lo exige `/usuarios` (cuentas/roles/permisos).
+ */
+export const isSuperuser = (user: AuthUser | null): boolean => !!user?.es_superusuario;

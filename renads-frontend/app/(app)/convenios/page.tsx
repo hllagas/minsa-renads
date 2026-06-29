@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
 
@@ -21,9 +21,6 @@ export default function ConveniosPage() {
 
   // La búsqueda se aplica con retraso para no pedir al backend en cada tecla.
   const debouncedSearch = useDebouncedValue(search, 300);
-
-  // Volver a la primera página cuando cambia el término de búsqueda ya aplicado.
-  useEffect(() => setPage(1), [debouncedSearch]);
 
   const list = conventionHooks.useList({
     page,
@@ -74,7 +71,10 @@ export default function ConveniosPage() {
         <Input
           placeholder="Buscar por título o código…"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
           className="w-full sm:max-w-xs"
         />
         <div className="w-full sm:w-56">

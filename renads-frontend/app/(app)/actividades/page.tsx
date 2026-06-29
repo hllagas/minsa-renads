@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
 
@@ -23,7 +23,6 @@ export default function ActividadesPage() {
   const [estado, setEstado] = useState<number | null>(null);
 
   const debouncedSearch = useDebouncedValue(search, 300);
-  useEffect(() => setPage(1), [debouncedSearch]);
 
   const list = teachingActivityHooks.useList({
     page,
@@ -74,7 +73,10 @@ export default function ActividadesPage() {
         <Input
           placeholder="Buscar por descripción…"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
           className="w-full sm:max-w-xs"
         />
         <div className="w-full sm:w-56">

@@ -78,11 +78,59 @@ Depende de internados/rotaciones (módulo 3, el más pequeño).
 
 ---
 
+## Módulos transversales / administrativos
+
+Estos módulos **no forman parte de la secuencia obligatoria** (no bloquean el orden 1→4): son
+transversales o de administración y se construyen una vez que el core lo permite. Sus rutas ya están
+**habilitadas** en el frontend.
+
+### 5. Dashboard (transversal) — analítica
+Ruta `/dashboard`. Visibilidad estadística del proceso docencia-servicio.
+- Pantallas: tablero con barra de filtros global (rango de fechas, tipo, estado, entidad, ámbito),
+  fila de KPIs y gráficos por módulo (Convenios, Internados, Actividades).
+- Datos: **Vía A** (agregación en cliente sobre los endpoints de lista existentes) en v1; **Vía B**
+  (endpoints `/stats/` del backend) pendiente para escalar.
+- Librería de gráficos: shadcn charts (Recharts) con tokens `--chart-1..5`.
+- Gating por rol: visible a todo usuario autenticado (cada gráfico respeta el alcance del backend).
+- Endpoints/campos: reutiliza `docs/api-convenios.md`, `docs/api-internados.md`,
+  `docs/api-actividades.md`. Diseño y lista de gráficos: `docs/dashboard-graficos.md`; spec:
+  `spec/dashboard.md`.
+- **Estado:** v1 implementado (KPIs + C1/C2/C3 · I1/I2/I5 · A1/A2/A3). Pendiente v2 y migración a `/stats/`.
+
+### 6. Catálogos — mantenimiento de tablas maestras
+Ruta `/catalogos`. CRUD de las tablas maestras del sistema.
+- Pantallas: lista/alta/edición/baja de cada maestro vía el CRUD declarativo (`ResourceCrud`).
+- Recursos: catálogos de solo lectura del backend (p. ej. `convention-statuses`, `specialties`,
+  `regions`, `service-areas`, `activity-types`, `internship-statuses`, `rotation-statuses`,
+  `document-types`, etc.) y entidades organizacionales/académicas con escritura
+  (`universities`, `ipress`, `faculties`, `professional-careers`, `minsa-organs`, ...).
+- Gating por rol: **Administrador RENADS** (la autoridad final es el backend).
+- Endpoints/campos: catálogos y entidades listados en `docs/api-convenios.md` (secciones
+  «Catálogos» y «Entidades organizacionales/académicas»); también `internship-statuses`/
+  `rotation-statuses`/`service-areas` (`docs/api-internados.md`) y `activity-types`/`activity-statuses`
+  (`docs/api-actividades.md`).
+- **Estado:** ruta habilitada (placeholder). Pendiente spec/implementación.
+
+### 7. Gestión de Usuarios — usuarios, perfiles y roles
+Ruta `/usuarios`. Administración de usuarios y su alcance institucional.
+- Pantallas: lista/alta/edición de usuarios; asignación de **grupos/roles** y de **perfiles
+  institucionales** (vínculo usuario↔entidad para el alcance).
+- Recursos: `user-entity-profiles` (escritura solo `Administrador RENADS`, sin lectura abierta),
+  grupos/roles del backend, y datos de usuario expuestos por `GET /auth/me/`.
+- Gating por rol: **Administrador RENADS**.
+- Endpoints/campos: `docs/api-auth.md` (roles/grupos, alcance institucional, `user-entity-profiles`).
+- **Estado:** ruta habilitada (placeholder). Pendiente spec/implementación.
+
+---
+
 ## Resumen
 
-| # | Módulo | Tipo | Depende de | Doc contrato |
-|---|--------|------|------------|--------------|
-| 1 | Auth | Base (no CRUD) | — | `docs/api-auth.md` |
-| 2 | Convenios | CRUD + flujo | Auth | `docs/api-convenios.md` |
-| 3 | Internados | CRUD + flujo | Convenios | `docs/api-internados.md` |
-| 4 | Actividades | CRUD + flujo | Internados | `docs/api-actividades.md` |
+| # | Módulo | Tipo | Depende de | Doc contrato | Estado |
+|---|--------|------|------------|--------------|--------|
+| 1 | Auth | Base (no CRUD) | — | `docs/api-auth.md` | Hecho |
+| 2 | Convenios | CRUD + flujo | Auth | `docs/api-convenios.md` | — |
+| 3 | Internados | CRUD + flujo | Convenios | `docs/api-internados.md` | — |
+| 4 | Actividades | CRUD + flujo | Internados | `docs/api-actividades.md` | — |
+| 5 | Dashboard | Transversal (analítica) | Convenios/Internados/Actividades | `docs/dashboard-graficos.md` · `spec/dashboard.md` | v1 hecho |
+| 6 | Catálogos | CRUD maestros | Auth | `docs/api-convenios.md` (catálogos/entidades) | Ruta habilitada |
+| 7 | Gestión de Usuarios | Administración | Auth | `docs/api-auth.md` | Ruta habilitada |

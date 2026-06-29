@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 
-import type { ResourceConfig } from "@/lib/crud/types";
+import type { ResourceConfig, RowAction } from "@/lib/crud/types";
 import { createResourceHooks } from "@/lib/crud/hooks";
 import type { WithId } from "@/lib/api/query";
-import { useAuthStore, userHasRole } from "@/lib/auth/store";
+import { isSuperuser, useAuthStore, userHasRole } from "@/lib/auth/store";
 import { extractApiError } from "@/lib/api/errors";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 
@@ -26,6 +26,10 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { ResourceForm } from "@/components/crud/resource-form";
+import {
+  ResourceFilters,
+  type FilterValues,
+} from "@/components/crud/resource-filters";
 
 const WRITE_ROLES = ["Administrador RENADS"];
 
@@ -35,8 +39,11 @@ const WRITE_ROLES = ["Administrador RENADS"];
  */
 export function ResourceCrud<TRead extends WithId>({
   config,
+  rowActions,
 }: {
   config: ResourceConfig<TRead>;
+  /** Acciones por fila inyectadas por la página (p. ej. abrir el diálogo de contraseña). */
+  rowActions?: RowAction<TRead>[];
 }) {
   const hooks = useMemo(
     () => createResourceHooks<TRead, Record<string, unknown>>(config.endpoint),
@@ -44,19 +51,40 @@ export function ResourceCrud<TRead extends WithId>({
   );
 
   const user = useAuthStore((s) => s.user);
-  const canWrite = userHasRole(user, ...(config.writeRoles ?? WRITE_ROLES));
+  // `readOnly` fuerza solo lectura para cualquier rol (catálogos ya poblados en backend).
+  // `requireSuperuser` añade el gating estricto a superusuario (usuarios/roles/permisos).
+  const canWrite =
+    !config.readOnly &&
+    userHasRole(user, ...(config.writeRoles ?? WRITE_ROLES)) &&
+    (!config.requireSuperuser || isSuperuser(user));
+  const canCreate = canWrite && !config.disableCreate;
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [filterValues, setFilterValues] = useState<FilterValues>({});
   const [editing, setEditing] = useState<TRead | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState<TRead | null>(null);
 
   // La búsqueda se aplica con retraso para no pedir al backend en cada tecla.
   const debouncedSearch = useDebouncedValue(search, 300);
-  useEffect(() => setPage(1), [debouncedSearch]);
 
-  const list = hooks.useList({ page, search: debouncedSearch, ordering: "id" });
+  function onFilterChange(name: string, value: string) {
+    setFilterValues((prev) => ({ ...prev, [name]: value }));
+    setPage(1); // resetear la paginación al cambiar cualquier filtro
+  }
+
+  function onClearFilters() {
+    setFilterValues({});
+    setPage(1);
+  }
+
+  const list = hooks.useList({
+    page,
+    search: debouncedSearch,
+    ordering: config.defaultOrdering ?? "id",
+    filters: filterValues,
+  });
   const createM = hooks.useCreate();
   const updateM = hooks.useUpdate();
   const removeM = hooks.useRemove();
@@ -84,20 +112,33 @@ export function ResourceCrud<TRead extends WithId>({
             >
               Editar
             </Button>
+            {(rowActions ?? []).map((action) =>
+              action.visible && !action.visible(row.original) ? null : action.render ? (
+                <span key={action.key}>{action.render(row.original)}</span>
+              ) : (
+                <Button
+                  key={action.key}
+                  variant={action.variant ?? "outline"}
+                  size="sm"
+                  onClick={() => action.onClick(row.original)}
+                >
+                  {action.label}
+                </Button>
+              ),
+            )}
             <Button
               variant="destructive"
               size="sm"
               onClick={() => setDeleting(row.original)}
             >
-              Eliminar
+              {config.deleteActionLabel ?? "Eliminar"}
             </Button>
           </div>
         ),
       });
     }
     return base;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config.columns, canWrite]);
+  }, [config.columns, config.deleteActionLabel, canWrite, rowActions]);
 
   function onCreate() {
     setEditing(null);
@@ -108,7 +149,9 @@ export function ResourceCrud<TRead extends WithId>({
     if (!deleting) return;
     removeM.mutate(deleting.id, {
       onSuccess: () => {
-        toast.success(`${config.singular} eliminada.`);
+        toast.success(
+          config.deleteSuccessMessage ?? `${config.singular} eliminada.`,
+        );
         setDeleting(null);
       },
       onError: (e) => toast.error(extractApiError(e)),
@@ -135,20 +178,32 @@ export function ResourceCrud<TRead extends WithId>({
       <PageHeader
         title={config.title}
         description={config.description}
-        actions={canWrite ? <Button onClick={onCreate}>Nuevo</Button> : null}
+        actions={canCreate ? <Button onClick={onCreate}>Nuevo</Button> : null}
       />
 
       <div className="mb-4 flex items-center gap-2">
         <Input
           placeholder={config.searchPlaceholder ?? "Buscar…"}
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
           className="w-full sm:max-w-xs"
         />
         {!canWrite ? (
           <Badge variant="secondary">Solo lectura</Badge>
         ) : null}
       </div>
+
+      {config.filters?.length ? (
+        <ResourceFilters
+          filters={config.filters}
+          values={filterValues}
+          onChange={onFilterChange}
+          onClear={onClearFilters}
+        />
+      ) : null}
 
       {list.isError ? (
         <div className="flex flex-col items-start gap-3 rounded-md border border-destructive/30 p-4">
@@ -187,8 +242,17 @@ export function ResourceCrud<TRead extends WithId>({
               {editing ? `Editar ${config.singular}` : `Nueva ${config.singular}`}
             </DialogTitle>
           </DialogHeader>
+          {editing && config.renderEditInfo ? (
+            <div className="rounded-md border bg-muted/40 p-3 text-sm">
+              {config.renderEditInfo(editing)}
+            </div>
+          ) : null}
           <ResourceForm
-            fields={config.fields}
+            fields={
+              editing
+                ? config.editFields ?? config.fields
+                : config.createFields ?? config.fields
+            }
             initial={editing as Record<string, unknown> | null}
             submitting={createM.isPending || updateM.isPending}
             onSubmit={onSubmit}
@@ -205,9 +269,15 @@ export function ResourceCrud<TRead extends WithId>({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Eliminar {config.singular}</DialogTitle>
+            <DialogTitle>
+              {config.deleteConfirmTitle ??
+                `${config.deleteActionLabel ?? "Eliminar"} ${config.singular}`}
+            </DialogTitle>
             <DialogDescription>
-              Esta acción no se puede deshacer. ¿Deseas continuar?
+              {config.deleteConfirmDescription ??
+                (config.softDelete
+                  ? "Esta acción desactiva el registro; podrá reactivarse. ¿Deseas continuar?"
+                  : "Esta acción no se puede deshacer. ¿Deseas continuar?")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -223,7 +293,9 @@ export function ResourceCrud<TRead extends WithId>({
               onClick={confirmDelete}
               disabled={removeM.isPending}
             >
-              {removeM.isPending ? "Eliminando…" : "Eliminar"}
+              {removeM.isPending
+                ? "Procesando…"
+                : config.deleteActionLabel ?? "Eliminar"}
             </Button>
           </DialogFooter>
         </DialogContent>
