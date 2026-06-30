@@ -224,11 +224,12 @@ const SCHEMA = [
     {n:"plantilla_convenio", cols:[
       ["id","PK",false,"","pk",""],["tipo_convenio_id","FK",false,"Tipo al que aplica","fk","tipo_convenio"],["nombre","varchar(255)",false,"","",""],
       ["referencia_externa","varchar(500)",false,"Ref. externa del archivo","",""],["version","int",false,"","",""],["activo","bool",false,"","",""],["creado_en","datetime",false,"","",""]]},
-    {n:"convenio", d:"Solicitante polimórfico", cols:[
+    {n:"convenio", d:"Solicitante polimórfico + partes explícitas (órgano regional ↔ universidad; tipos derivados)", cols:[
       ["id","PK",false,"","pk",""],["tipo_convenio_id","FK",false,"Marco/Específico","fk","tipo_convenio"],
       ["convenio_marco_id","FK",true,"Marco del que depende (RN-3)","fk","convenio"],["plantilla_id","FK",true,"Plantilla usada","fk","plantilla_convenio"],
       ["codigo","varchar(50)",true,"","",""],["titulo","varchar(255)",false,"","",""],
       ["solicitante_tipo_contenido_id","FK",false,"Tipo entidad solicitante","fk","django_content_type"],["solicitante_id_objeto","int",false,"ID solicitante","",""],
+      ["organo_regional_id","FK",false,"Órgano regional parte; su tipo se deriva de la entidad","fk","organo_regional"],["universidad_id","FK",false,"Universidad parte; su tipo de entidad se deriva de la entidad","fk","universidad"],
       ["estado_actual_id","FK",false,"Estado actual","fk","estado_convenio"],["fecha_solicitud","date",false,"","",""],
       ["fecha_inicio","date",true,"","",""],["fecha_fin","date",true,"4 años Marco / 3 Específico","",""],
       ["max_campos_clinicos","int",true,"Solo Específico","",""],["creado_por","FK",false,"Usuario","fk","auth_user"],["creado_en","datetime",false,"","",""],["actualizado_en","datetime",false,"","",""]]},
@@ -361,6 +362,7 @@ auth_user ──< perfil_usuario_entidad >── django_content_type / auth_grou
 convenio >── tipo_convenio / estado_convenio / plantilla_convenio
 convenio ──self< (Específico → Marco)  [convenio_marco_id]
 convenio >── django_content_type (solicitante polimórfico)
+convenio >── organo_regional / universidad   (partes explícitas; tipo derivado de la entidad)
 convenio ──< participante_convenio / historial_estado_convenio
 convenio ──< evaluacion_tecnica / opinion_conapres* / campo_clinico* / opinion_juridica / firma / publicacion   (* solo Específico)
 campo_clinico >── ipress / carrera_profesional / especialidad / ambito_geografico_sanitario

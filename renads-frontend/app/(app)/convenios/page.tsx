@@ -34,6 +34,16 @@ export default function ConveniosPage() {
       { accessorKey: "codigo", header: "Código", cell: ({ row }) => row.original.codigo || "—" },
       { accessorKey: "titulo", header: "Título" },
       { accessorKey: "tipo_convenio", header: "Tipo" },
+      {
+        accessorKey: "universidad_nombre",
+        header: "Universidad",
+        cell: ({ row }) => row.original.universidad_nombre || "—",
+      },
+      {
+        accessorKey: "organo_regional_nombre",
+        header: "Órgano regional",
+        cell: ({ row }) => row.original.organo_regional_nombre || "—",
+      },
       { accessorKey: "estado_actual", header: "Estado" },
       {
         accessorKey: "fecha_inicio",

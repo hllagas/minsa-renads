@@ -7,7 +7,15 @@ export const FLOW_ACTIONS: FlowAction[] = [
     label: "Cambiar estado",
     roles: ["Administrador RENADS"],
     fields: [
-      { name: "estado_codigo", label: "Código de estado", type: "text", required: true },
+      {
+        name: "estado_codigo",
+        label: "Estado",
+        type: "select",
+        required: true,
+        optionsEndpoint: "convention-statuses",
+        optionsValueKey: "codigo",
+        optionsToLabel: (row) => String(row.nombre ?? row.codigo ?? row.id),
+      },
       { name: "observacion", label: "Observación", type: "text" },
     ],
   },

@@ -1,10 +1,13 @@
 """ViewSets del módulo Convenios (bloque núcleo). Vistas delgadas: delegan en services/selectors."""
 
+from django.contrib.contenttypes.models import ContentType
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers as drf_serializers
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from apps.common.permissions import IsInstitutionalMember, exigir_ambito
 from apps.common.services import adjuntar_documento, registrar_auditoria
@@ -21,6 +24,7 @@ from apps.convenios.permissions import (
 )
 from apps.convenios.serializers import (
     AuditLogSerializer,
+    SolicitanteContentTypeSerializer,
     CambiarEstadoSerializer,
     ClinicalFieldSerializer,
     ConapresOpinionSerializer,
@@ -399,3 +403,46 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     search_fields = ["accion"]
     ordering_fields = ["creado_en", "id"]
     ordering = ["-creado_en"]
+
+
+# Entidades que pueden ser solicitantes de un convenio (relación polimórfica `solicitante`).
+SOLICITANTE_MODELS = (
+    m.University,
+    m.Ipress,
+    m.RegionalGovernment,
+    m.ExecutingUnit,
+    m.RegionalOrgan,
+    m.MinsaOrgan,
+    m.Conapres,
+)
+
+
+class SolicitanteContentTypeView(APIView):
+    """Lista los `ContentType` elegibles como entidad solicitante de un convenio.
+
+    El frontend usa esta lista para el selector «Tipo de entidad solicitante»: el `id`
+    es el valor que espera `solicitante_tipo_contenido`, y `model` permite elegir el
+    endpoint de la entidad concreta. Los ids de `ContentType` dependen de la base de
+    datos, por eso se exponen vía API en lugar de fijarse en el cliente.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        responses=SolicitanteContentTypeSerializer(many=True),
+        summary="Tipos de entidad solicitante",
+        description=(
+            "Lista los ContentType elegibles como entidad solicitante de un convenio. "
+            "El `id` es el valor que espera `solicitante_tipo_contenido` y `model` permite "
+            "resolver el endpoint de la entidad concreta."
+        ),
+        tags=["convenios"],
+    )
+    def get(self, request):
+        cts = ContentType.objects.get_for_models(*SOLICITANTE_MODELS)
+        data = [
+            {"id": ct.id, "app_label": ct.app_label, "model": ct.model}
+            for ct in cts.values()
+        ]
+        data.sort(key=lambda item: item["id"])
+        return Response(SolicitanteContentTypeSerializer(data, many=True).data)

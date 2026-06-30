@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { Control } from "react-hook-form";
 
 import type { WithId } from "@/lib/api/query";
 
@@ -10,7 +11,11 @@ export type FieldType =
   | "email"
   | "select"
   | "password"
-  | "multiselect";
+  | "multiselect"
+  | "custom";
+
+/** Valores del formulario declarativo (claves = `FieldConfig.name`). */
+export type FormValues = Record<string, unknown>;
 
 export interface FieldConfig {
   name: string;
@@ -25,6 +30,12 @@ export interface FieldConfig {
   optionsToLabel?: (row: WithId) => string;
   /** Solo para `type: "select"`: opciones estáticas (enum). Si está, no usa endpoint. */
   choices?: { value: string; label: string }[];
+  /**
+   * Solo para `type: "select"` con `optionsEndpoint`: usa esta clave del registro como **valor**
+   * (cadena) en vez del `id`. P. ej. `"codigo"` para enviar el código de estado y no su id.
+   * Renderiza un dropdown (no búsqueda) con la etiqueta de `optionsToLabel`/`nombre`.
+   */
+  optionsValueKey?: string;
   /** Valor por defecto al crear. */
   defaultValue?: string | number | boolean | null;
   /**
@@ -32,6 +43,19 @@ export interface FieldConfig {
    * Poner `false` para excluir (p. ej. `username`, que es sensible a may/min en el login).
    */
   uppercase?: boolean;
+  /** Deshabilita el campo (solo lectura en el formulario). */
+  disabled?: boolean;
+  /**
+   * Para `type: "custom"`: render propio del campo (recibe el `control` de react-hook-form).
+   * El componente gestiona sus propios `Controller`/`useController`; útil para controles
+   * compuestos como el selector polimórfico de entidad solicitante (tipo + entidad ligados).
+   */
+  render?: (control: Control<FormValues>) => ReactNode;
+  /**
+   * Para `type: "custom"`: claves que el campo aporta al payload (un control compuesto puede
+   * escribir varias). Cada clave se serializa como número si tiene valor. Si se omite, se usa `name`.
+   */
+  payloadKeys?: string[];
 }
 
 export interface ColumnConfig<T extends WithId = WithId> {

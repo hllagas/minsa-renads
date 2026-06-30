@@ -558,6 +558,16 @@ class Convention(models.Model):
         "id objeto solicitante", help_text="Identificador de la entidad solicitante"
     )
     solicitante = GenericForeignKey("solicitante_tipo_contenido", "solicitante_id_objeto")
+    organo_regional = models.ForeignKey(
+        RegionalOrgan, on_delete=models.PROTECT, db_column="organo_regional_id",
+        related_name="convenios",
+        help_text="Órgano regional (GERESA/DIRESA/DIRIS) parte del convenio. Su tipo se deriva de esta relación.",
+    )
+    universidad = models.ForeignKey(
+        University, on_delete=models.PROTECT, db_column="universidad_id",
+        related_name="convenios",
+        help_text="Universidad parte del convenio. Su tipo de entidad se deriva de esta relación.",
+    )
     estado_actual = models.ForeignKey(
         ConventionStatus, on_delete=models.PROTECT, db_column="estado_actual_id",
         help_text="Estado actual",

@@ -111,6 +111,22 @@ export default function ConvenioDetallePage() {
                 <Dato label="Tipo" value={c.tipo_convenio} />
                 <Dato label="Estado" value={`${c.estado_actual} (${c.estado_codigo})`} />
                 <Dato label="Solicitante" value={c.solicitante} />
+                <Dato
+                  label="Órgano regional"
+                  value={
+                    c.organo_regional_nombre
+                      ? `${c.organo_regional_nombre}${c.tipo_organo_regional ? ` (${c.tipo_organo_regional})` : ""}`
+                      : "—"
+                  }
+                />
+                <Dato
+                  label="Universidad"
+                  value={
+                    c.universidad_nombre
+                      ? `${c.universidad_nombre}${c.tipo_entidad_universidad ? ` (${c.tipo_entidad_universidad})` : ""}`
+                      : "—"
+                  }
+                />
                 <Dato label="Fecha de solicitud" value={c.fecha_solicitud} />
                 <Dato label="Inicio de vigencia" value={c.fecha_inicio} />
                 <Dato label="Fin de vigencia" value={c.fecha_fin} />

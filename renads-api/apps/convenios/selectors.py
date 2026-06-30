@@ -19,7 +19,10 @@ def convenios_visibles(usuario) -> QuerySet[Convention]:
     Superusuario ve todo. Un usuario ve los convenios donde su entidad es
     solicitante o participante. Sin perfiles institucionales no ve ninguno.
     """
-    qs = Convention.objects.select_related("tipo_convenio", "estado_actual", "convenio_marco")
+    qs = Convention.objects.select_related(
+        "tipo_convenio", "estado_actual", "convenio_marco",
+        "organo_regional__tipo_organo_regional", "universidad__tipo_entidad",
+    )
     if usuario.is_superuser:
         return qs
     refs = entidades_del_usuario(usuario)

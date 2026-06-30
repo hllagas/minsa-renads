@@ -100,6 +100,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/audit-logs/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Consulta de la bitácora de auditoría (RNF-AUD-01/02). Restringida a Administrador/Auditor. */
+        get: operations["audit_logs_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit-logs/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Consulta de la bitácora de auditoría (RNF-AUD-01/02). Restringida a Administrador/Auditor. */
+        get: operations["audit_logs_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/me/": {
         parameters: {
             query?: never;
@@ -583,6 +617,84 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/documents/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Gestión documental polimórfica con versionado (RNF-DOC-01/02/03/04).
+         *
+         *     Las nuevas versiones se crean adjuntando otro documento al mismo objeto (no
+         *     hay update/partial_update); la lógica de versionado vive en el service.
+         */
+        get: operations["documents_list"];
+        put?: never;
+        /**
+         * @description Gestión documental polimórfica con versionado (RNF-DOC-01/02/03/04).
+         *
+         *     Las nuevas versiones se crean adjuntando otro documento al mismo objeto (no
+         *     hay update/partial_update); la lógica de versionado vive en el service.
+         */
+        post: operations["documents_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Gestión documental polimórfica con versionado (RNF-DOC-01/02/03/04).
+         *
+         *     Las nuevas versiones se crean adjuntando otro documento al mismo objeto (no
+         *     hay update/partial_update); la lógica de versionado vive en el service.
+         */
+        get: operations["documents_retrieve"];
+        put?: never;
+        post?: never;
+        /**
+         * @description Gestión documental polimórfica con versionado (RNF-DOC-01/02/03/04).
+         *
+         *     Las nuevas versiones se crean adjuntando otro documento al mismo objeto (no
+         *     hay update/partial_update); la lógica de versionado vive en el service.
+         */
+        delete: operations["documents_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents/{id}/url-descarga/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Gestión documental polimórfica con versionado (RNF-DOC-01/02/03/04).
+         *
+         *     Las nuevas versiones se crean adjuntando otro documento al mismo objeto (no
+         *     hay update/partial_update); la lógica de versionado vive en el service.
+         */
+        get: operations["documents_url_descarga_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/executing-unit-types/": {
         parameters: {
             query?: never;
@@ -721,6 +833,44 @@ export interface paths {
         head?: never;
         /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         patch: operations["faculties_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/groups/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description CRUD de grupos (roles) con asignación de permisos (solo superadministrador). */
+        get: operations["groups_list"];
+        put?: never;
+        /** @description CRUD de grupos (roles) con asignación de permisos (solo superadministrador). */
+        post: operations["groups_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/groups/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description CRUD de grupos (roles) con asignación de permisos (solo superadministrador). */
+        get: operations["groups_retrieve"];
+        /** @description CRUD de grupos (roles) con asignación de permisos (solo superadministrador). */
+        put: operations["groups_update"];
+        post?: never;
+        /** @description CRUD de grupos (roles) con asignación de permisos (solo superadministrador). */
+        delete: operations["groups_destroy"];
+        options?: never;
+        head?: never;
+        /** @description CRUD de grupos (roles) con asignación de permisos (solo superadministrador). */
+        patch: operations["groups_partial_update"];
         trace?: never;
     };
     "/api/v1/health-geographic-scopes/": {
@@ -1096,6 +1246,40 @@ export interface paths {
             cookie?: never;
         };
         get: operations["observation_reasons_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/permissions/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Catálogo de permisos (solo lectura, solo superadministrador). */
+        get: operations["permissions_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/permissions/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Catálogo de permisos (solo lectura, solo superadministrador). */
+        get: operations["permissions_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1550,6 +1734,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/solicitante-content-types/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tipos de entidad solicitante
+         * @description Lista los ContentType elegibles como entidad solicitante de un convenio. El `id` es el valor que espera `solicitante_tipo_contenido` y `model` permite resolver el endpoint de la entidad concreta.
+         */
+        get: operations["solicitante_content_types_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/specialties/": {
         parameters: {
             query?: never;
@@ -1976,6 +2180,61 @@ export interface paths {
         patch: operations["user_entity_profiles_partial_update"];
         trace?: never;
     };
+    "/api/v1/users/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description CRUD de usuarios (solo superadministrador). `DELETE` desactiva, no borra. */
+        get: operations["users_list"];
+        put?: never;
+        /** @description CRUD de usuarios (solo superadministrador). `DELETE` desactiva, no borra. */
+        post: operations["users_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description CRUD de usuarios (solo superadministrador). `DELETE` desactiva, no borra. */
+        get: operations["users_retrieve"];
+        /** @description CRUD de usuarios (solo superadministrador). `DELETE` desactiva, no borra. */
+        put: operations["users_update"];
+        post?: never;
+        /** @description Desactiva el usuario (`is_active=False`) conservando su trazabilidad. */
+        delete: operations["users_destroy"];
+        options?: never;
+        head?: never;
+        /** @description CRUD de usuarios (solo superadministrador). `DELETE` desactiva, no borra. */
+        patch: operations["users_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/users/{id}/set-password/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Cambia la contraseña del usuario sin exponer su valor en la auditoría. */
+        post: operations["users_set_password_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2027,6 +2286,42 @@ export interface components {
          * @enum {string}
          */
         AplicaAEnum: "TODOS" | "ESPECIFICO";
+        /** @description Lectura de la bitácora de auditoría (RNF-AUD-01/02). Todos los campos read-only. */
+        AuditLog: {
+            readonly id: number;
+            /** @description Usuario que ejecutó la acción */
+            readonly usuario: number | null;
+            readonly usuario_nombre: string;
+            /**
+             * Acción
+             * @description CREAR / ACTUALIZAR / ELIMINAR / CAMBIO_ESTADO / …
+             */
+            readonly accion: string;
+            /** @description Entidad afectada */
+            readonly tipo_contenido: number;
+            readonly tipo_contenido_label: string;
+            /** @description Registro afectado */
+            readonly id_objeto: number;
+            /**
+             * Nombre del campo
+             * @description Campo modificado
+             */
+            readonly nombre_campo: string;
+            /** @description Valor anterior */
+            readonly valor_anterior: string;
+            /** @description Valor nuevo */
+            readonly valor_nuevo: string;
+            /**
+             * Dirección IP
+             * @description IP de origen
+             */
+            readonly direccion_ip: string;
+            /**
+             * Format: date-time
+             * @description Fecha y hora
+             */
+            readonly creado_en: string;
+        };
         AuthorizationTypeAuto: {
             readonly id: number;
             /**
@@ -2090,6 +2385,14 @@ export interface components {
              */
             solicitante_id_objeto: number;
             readonly solicitante: string;
+            /** @description Órgano regional (GERESA/DIRESA/DIRIS) parte del convenio. Su tipo se deriva de esta relación. */
+            organo_regional: number;
+            readonly organo_regional_nombre: string;
+            readonly tipo_organo_regional: string;
+            /** @description Universidad parte del convenio. Su tipo de entidad se deriva de esta relación. */
+            universidad: number;
+            readonly universidad_nombre: string;
+            readonly tipo_entidad_universidad: string;
             readonly estado_actual: string;
             readonly estado_codigo: string;
             /**
@@ -2208,6 +2511,10 @@ export interface components {
              * @description Identificador de la entidad solicitante
              */
             solicitante_id_objeto: number;
+            /** @description Órgano regional (GERESA/DIRESA/DIRIS) parte del convenio. Su tipo se deriva de esta relación. */
+            organo_regional: number;
+            /** @description Universidad parte del convenio. Su tipo de entidad se deriva de esta relación. */
+            universidad: number;
             /**
              * Fecha de solicitud
              * Format: date
@@ -2233,10 +2540,61 @@ export interface components {
              */
             max_campos_clinicos?: number | null;
         };
-        /** @description Agrega los roles y el nombre del usuario a los claims del token JWT. */
+        /**
+         * @description Agrega los roles, el nombre y la condición de superusuario al token JWT.
+         *
+         *     El claim y el campo `es_superusuario` permiten al frontend habilitar u
+         *     ocultar la interfaz de administración de usuarios, roles y permisos.
+         */
         CustomTokenObtainPair: {
             username: string;
             password: string;
+        };
+        /** @description Lectura de documentos: incluye etiquetas legibles del tipo y la entidad destino. */
+        Document: {
+            readonly id: number;
+            /** @description Tipo de documento */
+            tipo_documento: number;
+            readonly tipo_documento_nombre: string;
+            /** @description Tabla destino */
+            tipo_contenido: number;
+            readonly tipo_contenido_label: string;
+            /**
+             * Format: int64
+             * @description Registro destino
+             */
+            id_objeto: number;
+            /** @description Clave/URL del archivo en el repositorio externo */
+            referencia_externa: string;
+            /**
+             * Nombre del archivo
+             * @description Nombre del archivo
+             */
+            nombre_archivo: string;
+            /**
+             * Versión
+             * @description Versión
+             */
+            readonly version: number;
+            /**
+             * @description Estado
+             *
+             *     * `ACTIVO` - Activo
+             *     * `REEMPLAZADO` - Reemplazado
+             *     * `ANULADO` - Anulado
+             *     * `OBSERVADO` - Observado
+             *     * `VALIDADO` - Validado
+             */
+            readonly estado: components["schemas"]["EstadoEnum"];
+            /** @description Versión previa reemplazada */
+            readonly version_anterior: number | null;
+            /** @description Usuario que cargó */
+            readonly cargado_por: number;
+            /**
+             * Format: date-time
+             * @description Fecha y hora de carga
+             */
+            readonly cargado_en: string;
         };
         DocumentTypeAuto: {
             readonly id: number;
@@ -2250,6 +2608,34 @@ export interface components {
             /** @description Indica si está activo */
             activo?: boolean;
         };
+        /** @description Escritura de documentos: el versionado y el estado los fija el service. */
+        DocumentWrite: {
+            /** @description Tabla destino */
+            tipo_contenido: number;
+            /**
+             * Format: int64
+             * @description Registro destino
+             */
+            id_objeto: number;
+            /** @description Tipo de documento */
+            tipo_documento: number;
+            /**
+             * Nombre del archivo
+             * @description Nombre del archivo
+             */
+            nombre_archivo: string;
+            /** @description Clave/URL del archivo en el repositorio externo */
+            referencia_externa: string;
+        };
+        /**
+         * @description * `ACTIVO` - Activo
+         *     * `REEMPLAZADO` - Reemplazado
+         *     * `ANULADO` - Anulado
+         *     * `OBSERVADO` - Observado
+         *     * `VALIDADO` - Validado
+         * @enum {string}
+         */
+        EstadoEnum: "ACTIVO" | "REEMPLAZADO" | "ANULADO" | "OBSERVADO" | "VALIDADO";
         ExecutingUnitAuto: {
             readonly id: number;
             /** @description Nombre */
@@ -2308,6 +2694,20 @@ export interface components {
             activo?: boolean;
             /** @description Universidad */
             universidad: number;
+        };
+        /** @description CRUD de grupos (roles) con asignación de permisos por PK. */
+        Group: {
+            readonly id: number;
+            /** Nombre */
+            name: string;
+            permissions?: number[];
+            readonly permissions_detalle: components["schemas"]["Permission"][];
+        };
+        /** @description Detalle reducido de un grupo (rol) para mostrar nombres legibles en la UI. */
+        GroupBrief: {
+            readonly id: number;
+            /** Nombre */
+            name: string;
         };
         HealthGeographicScopeAuto: {
             readonly id: number;
@@ -2595,6 +2995,21 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["ActivityTypeAuto"][];
         };
+        PaginatedAuditLogList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["AuditLog"][];
+        };
         PaginatedAuthorizationTypeAutoList: {
             /** @example 123 */
             count: number;
@@ -2700,6 +3115,21 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["ConventionTypeAuto"][];
         };
+        PaginatedDocumentList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Document"][];
+        };
         PaginatedDocumentTypeAutoList: {
             /** @example 123 */
             count: number;
@@ -2774,6 +3204,21 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["FacultyAuto"][];
+        };
+        PaginatedGroupList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Group"][];
         };
         PaginatedHealthGeographicScopeAutoList: {
             /** @example 123 */
@@ -2909,6 +3354,21 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["ObservationReasonAuto"][];
+        };
+        PaginatedPermissionList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Permission"][];
         };
         PaginatedProfessionalCareerAutoList: {
             /** @example 123 */
@@ -3225,6 +3685,21 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["UserEntityProfileAuto"][];
         };
+        PaginatedUserReadList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["UserRead"][];
+        };
         PatchedConapresAuto: {
             readonly id?: number;
             /** @description Denominación */
@@ -3279,6 +3754,10 @@ export interface components {
              * @description Identificador de la entidad solicitante
              */
             solicitante_id_objeto?: number;
+            /** @description Órgano regional (GERESA/DIRESA/DIRIS) parte del convenio. Su tipo se deriva de esta relación. */
+            organo_regional?: number;
+            /** @description Universidad parte del convenio. Su tipo de entidad se deriva de esta relación. */
+            universidad?: number;
             /**
              * Fecha de solicitud
              * Format: date
@@ -3338,6 +3817,14 @@ export interface components {
             activo?: boolean;
             /** @description Universidad */
             universidad?: number;
+        };
+        /** @description CRUD de grupos (roles) con asignación de permisos por PK. */
+        PatchedGroup: {
+            readonly id?: number;
+            /** Nombre */
+            name?: string;
+            permissions?: number[];
+            readonly permissions_detalle?: components["schemas"]["Permission"][];
         };
         PatchedIntern: {
             readonly id?: number;
@@ -3723,6 +4210,49 @@ export interface components {
             /** @description Rol institucional */
             grupo?: number;
         };
+        /** @description Edición de usuarios. La contraseña se cambia solo por la acción `set-password`. */
+        PatchedUserUpdate: {
+            readonly id?: number;
+            /**
+             * Nombre de usuario
+             * @description Requerido. 150 carácteres como máximo. Únicamente letras, dígitos y @/./+/-/_
+             */
+            username?: string;
+            /** Format: email */
+            email?: string;
+            /** Nombre */
+            first_name?: string;
+            /** Apellidos */
+            last_name?: string;
+            /**
+             * Activo
+             * @description Indica si el usuario debe ser tratado como activo. Desmarque esta opción en lugar de borrar la cuenta.
+             */
+            is_active?: boolean;
+            /**
+             * Es staff
+             * @description Indica si el usuario puede entrar en este sitio de administración.
+             */
+            is_staff?: boolean;
+            /**
+             * Estado de superusuario
+             * @description Indica que este usuario tiene todos los permisos sin asignárselos explícitamente.
+             */
+            is_superuser?: boolean;
+            groups?: number[];
+        };
+        /** @description Catálogo de permisos (solo lectura) con el `content_type` desglosado. */
+        Permission: {
+            readonly id: number;
+            /** Nombre */
+            readonly name: string;
+            /** Nombre en código */
+            readonly codename: string;
+            /** Tipo de contenido */
+            readonly content_type: number;
+            readonly app_label: string;
+            readonly model: string;
+        };
         ProfessionalCareerAuto: {
             readonly id: number;
             /** @description Nombre de la carrera o programa */
@@ -3909,6 +4439,10 @@ export interface components {
             /** @description Indica si está activo */
             activo?: boolean;
         };
+        /** @description Cambio de contraseña: valida la fortaleza con los validadores de Django. */
+        SetPassword: {
+            password: string;
+        };
         /**
          * @description * `M` - Masculino
          *     * `F` - Femenino
@@ -3926,6 +4460,20 @@ export interface components {
             nombre: string;
             /** @description Indica si está activo */
             activo?: boolean;
+        };
+        /**
+         * @description Tipo de entidad elegible como solicitante de un convenio (`ContentType`).
+         *
+         *     `id` es el valor que espera `solicitante_tipo_contenido`; `model` permite al cliente
+         *     resolver el endpoint de la entidad concreta. Los ids dependen de la base de datos.
+         */
+        SolicitanteContentType: {
+            /** @description ID del ContentType (valor de solicitante_tipo_contenido) */
+            id: number;
+            /** @description App de Django (p. ej. convenios) */
+            app_label: string;
+            /** @description Modelo de Django (p. ej. university, conapres) */
+            model: string;
         };
         SpecialtyAuto: {
             readonly id: number;
@@ -4210,6 +4758,38 @@ export interface components {
             /** @description Indica si está activo */
             activo?: boolean;
         };
+        /** @description Alta de usuarios: contraseña write-only hasheada con `set_password`. */
+        UserCreate: {
+            readonly id: number;
+            /**
+             * Nombre de usuario
+             * @description Requerido. 150 carácteres como máximo. Únicamente letras, dígitos y @/./+/-/_
+             */
+            username: string;
+            /** Format: email */
+            email: string;
+            /** Nombre */
+            first_name?: string;
+            /** Apellidos */
+            last_name?: string;
+            password: string;
+            /**
+             * Activo
+             * @description Indica si el usuario debe ser tratado como activo. Desmarque esta opción en lugar de borrar la cuenta.
+             */
+            is_active?: boolean;
+            /**
+             * Es staff
+             * @description Indica si el usuario puede entrar en este sitio de administración.
+             */
+            is_staff?: boolean;
+            /**
+             * Estado de superusuario
+             * @description Indica que este usuario tiene todos los permisos sin asignárselos explícitamente.
+             */
+            is_superuser?: boolean;
+            groups?: number[];
+        };
         UserEntityProfileAuto: {
             readonly id: number;
             /**
@@ -4224,6 +4804,86 @@ export interface components {
             tipo_contenido: number;
             /** @description Rol institucional */
             grupo: number;
+        };
+        /** @description Lectura de usuarios: nunca expone la contraseña ni su hash. */
+        UserRead: {
+            readonly id: number;
+            /**
+             * Nombre de usuario
+             * @description Requerido. 150 carácteres como máximo. Únicamente letras, dígitos y @/./+/-/_
+             */
+            readonly username: string;
+            /**
+             * Dirección de correo electrónico
+             * Format: email
+             */
+            readonly email: string;
+            /** Nombre */
+            readonly first_name: string;
+            /** Apellidos */
+            readonly last_name: string;
+            /**
+             * Activo
+             * @description Indica si el usuario debe ser tratado como activo. Desmarque esta opción en lugar de borrar la cuenta.
+             */
+            readonly is_active: boolean;
+            /**
+             * Es staff
+             * @description Indica si el usuario puede entrar en este sitio de administración.
+             */
+            readonly is_staff: boolean;
+            /**
+             * Estado de superusuario
+             * @description Indica que este usuario tiene todos los permisos sin asignárselos explícitamente.
+             */
+            readonly is_superuser: boolean;
+            /**
+             * Fecha de alta
+             * Format: date-time
+             */
+            readonly date_joined: string;
+            /**
+             * Último inicio de sesión
+             * Format: date-time
+             */
+            readonly last_login: string | null;
+            /**
+             * Grupos
+             * @description Los grupos a los que pertenece este usuario. Un usuario tendrá todos los permisos asignados a cada uno de sus grupos.
+             */
+            readonly groups: number[];
+            readonly groups_detalle: components["schemas"]["GroupBrief"][];
+        };
+        /** @description Edición de usuarios. La contraseña se cambia solo por la acción `set-password`. */
+        UserUpdate: {
+            readonly id: number;
+            /**
+             * Nombre de usuario
+             * @description Requerido. 150 carácteres como máximo. Únicamente letras, dígitos y @/./+/-/_
+             */
+            username: string;
+            /** Format: email */
+            email: string;
+            /** Nombre */
+            first_name?: string;
+            /** Apellidos */
+            last_name?: string;
+            /**
+             * Activo
+             * @description Indica si el usuario debe ser tratado como activo. Desmarque esta opción en lugar de borrar la cuenta.
+             */
+            is_active?: boolean;
+            /**
+             * Es staff
+             * @description Indica si el usuario puede entrar en este sitio de administración.
+             */
+            is_staff?: boolean;
+            /**
+             * Estado de superusuario
+             * @description Indica que este usuario tiene todos los permisos sin asignárselos explícitamente.
+             */
+            is_superuser?: boolean;
+            groups?: number[];
         };
     };
     responses: never;
@@ -4377,6 +5037,61 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ActivityTypeAuto"];
+                };
+            };
+        };
+    };
+    audit_logs_list: {
+        parameters: {
+            query?: {
+                accion?: string;
+                accion_contiene?: string;
+                creado_en_desde?: string;
+                creado_en_hasta?: string;
+                id_objeto?: number;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+                tipo_contenido?: number;
+                usuario?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedAuditLogList"];
+                };
+            };
+        };
+    };
+    audit_logs_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este bitácora de auditoría. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLog"];
                 };
             };
         };
@@ -5421,6 +6136,135 @@ export interface operations {
             };
         };
     };
+    documents_list: {
+        parameters: {
+            query?: {
+                /**
+                 * @description Estado
+                 *
+                 *     * `ACTIVO` - Activo
+                 *     * `REEMPLAZADO` - Reemplazado
+                 *     * `ANULADO` - Anulado
+                 *     * `OBSERVADO` - Observado
+                 *     * `VALIDADO` - Validado
+                 */
+                estado?: "ACTIVO" | "ANULADO" | "OBSERVADO" | "REEMPLAZADO" | "VALIDADO";
+                id_objeto?: number;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+                tipo_contenido?: number;
+                tipo_documento?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedDocumentList"];
+                };
+            };
+        };
+    };
+    documents_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["DocumentWrite"];
+                "multipart/form-data": components["schemas"]["DocumentWrite"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentWrite"];
+                };
+            };
+        };
+    };
+    documents_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este documento. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Document"];
+                };
+            };
+        };
+    };
+    documents_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este documento. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    documents_url_descarga_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este documento. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Document"];
+                };
+            };
+        };
+    };
     executing_unit_types_list: {
         parameters: {
             query?: {
@@ -5820,6 +6664,156 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FacultyAuto"];
+                };
+            };
+        };
+    };
+    groups_list: {
+        parameters: {
+            query?: {
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedGroupList"];
+                };
+            };
+        };
+    };
+    groups_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Group"];
+                "application/x-www-form-urlencoded": components["schemas"]["Group"];
+                "multipart/form-data": components["schemas"]["Group"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Group"];
+                };
+            };
+        };
+    };
+    groups_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este grupo. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Group"];
+                };
+            };
+        };
+    };
+    groups_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este grupo. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Group"];
+                "application/x-www-form-urlencoded": components["schemas"]["Group"];
+                "multipart/form-data": components["schemas"]["Group"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Group"];
+                };
+            };
+        };
+    };
+    groups_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este grupo. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    groups_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este grupo. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedGroup"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedGroup"];
+                "multipart/form-data": components["schemas"]["PatchedGroup"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Group"];
                 };
             };
         };
@@ -6785,6 +7779,56 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ObservationReasonAuto"];
+                };
+            };
+        };
+    };
+    permissions_list: {
+        parameters: {
+            query?: {
+                content_type?: number;
+                content_type__app_label?: string;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedPermissionList"];
+                };
+            };
+        };
+    };
+    permissions_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este permiso. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Permission"];
                 };
             };
         };
@@ -7841,6 +8885,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SigningAuthorityTypeAuto"];
+                };
+            };
+        };
+    };
+    solicitante_content_types_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SolicitanteContentType"][];
                 };
             };
         };
@@ -9054,6 +10117,188 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserEntityProfileAuto"];
+                };
+            };
+        };
+    };
+    users_list: {
+        parameters: {
+            query?: {
+                groups?: number[];
+                is_active?: boolean;
+                is_staff?: boolean;
+                is_superuser?: boolean;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedUserReadList"];
+                };
+            };
+        };
+    };
+    users_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserCreate"];
+                "application/x-www-form-urlencoded": components["schemas"]["UserCreate"];
+                "multipart/form-data": components["schemas"]["UserCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserCreate"];
+                };
+            };
+        };
+    };
+    users_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este usuario. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRead"];
+                };
+            };
+        };
+    };
+    users_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este usuario. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserUpdate"];
+                "application/x-www-form-urlencoded": components["schemas"]["UserUpdate"];
+                "multipart/form-data": components["schemas"]["UserUpdate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserUpdate"];
+                };
+            };
+        };
+    };
+    users_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este usuario. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    users_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este usuario. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedUserUpdate"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedUserUpdate"];
+                "multipart/form-data": components["schemas"]["PatchedUserUpdate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserUpdate"];
+                };
+            };
+        };
+    };
+    users_set_password_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este usuario. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetPassword"];
+                "application/x-www-form-urlencoded": components["schemas"]["SetPassword"];
+                "multipart/form-data": components["schemas"]["SetPassword"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetPassword"];
                 };
             };
         };

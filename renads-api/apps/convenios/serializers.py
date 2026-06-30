@@ -31,12 +31,24 @@ class ConventionReadSerializer(serializers.ModelSerializer):
     estado_actual = serializers.CharField(source="estado_actual.nombre", read_only=True)
     estado_codigo = serializers.CharField(source="estado_actual.codigo", read_only=True)
     solicitante = serializers.SerializerMethodField()
+    # Universidad y órgano regional: id + nombre legible; el "tipo" se deriva de la entidad
+    # (no se almacena en `convenio`), evitando redundancia en el esquema.
+    organo_regional_nombre = serializers.CharField(source="organo_regional.nombre", read_only=True)
+    tipo_organo_regional = serializers.CharField(
+        source="organo_regional.tipo_organo_regional.nombre", read_only=True
+    )
+    universidad_nombre = serializers.CharField(source="universidad.nombre", read_only=True)
+    tipo_entidad_universidad = serializers.CharField(
+        source="universidad.tipo_entidad.nombre", read_only=True
+    )
 
     class Meta:
         model = Convention
         fields = [
             "id", "tipo_convenio", "convenio_marco", "plantilla", "codigo", "titulo",
             "solicitante_tipo_contenido", "solicitante_id_objeto", "solicitante",
+            "organo_regional", "organo_regional_nombre", "tipo_organo_regional",
+            "universidad", "universidad_nombre", "tipo_entidad_universidad",
             "estado_actual", "estado_codigo", "fecha_solicitud", "fecha_inicio", "fecha_fin",
             "max_campos_clinicos", "creado_por", "creado_en", "actualizado_en",
         ]
@@ -51,8 +63,21 @@ class ConventionWriteSerializer(serializers.ModelSerializer):
         fields = [
             "tipo_convenio", "convenio_marco", "plantilla", "codigo", "titulo",
             "solicitante_tipo_contenido", "solicitante_id_objeto",
+            "organo_regional", "universidad",
             "fecha_solicitud", "fecha_inicio", "fecha_fin", "max_campos_clinicos",
         ]
+
+
+class SolicitanteContentTypeSerializer(serializers.Serializer):
+    """Tipo de entidad elegible como solicitante de un convenio (`ContentType`).
+
+    `id` es el valor que espera `solicitante_tipo_contenido`; `model` permite al cliente
+    resolver el endpoint de la entidad concreta. Los ids dependen de la base de datos.
+    """
+
+    id = serializers.IntegerField(help_text="ID del ContentType (valor de solicitante_tipo_contenido)")
+    app_label = serializers.CharField(help_text="App de Django (p. ej. convenios)")
+    model = serializers.CharField(help_text="Modelo de Django (p. ej. university, conapres)")
 
 
 class ConventionTemplateSerializer(serializers.ModelSerializer):

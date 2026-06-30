@@ -4,10 +4,9 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { conventionHooks, type ConventionWrite } from "@/lib/convenios/hooks";
-import { CONVENTION_FIELDS } from "@/lib/convenios/convention-fields";
 import { extractApiError } from "@/lib/api/errors";
 import { PageHeader } from "@/components/data/page-header";
-import { ResourceForm } from "@/components/crud/resource-form";
+import { ConvenioCreateForm } from "@/components/convenios/convenio-create-form";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default function NuevoConvenioPage() {
@@ -15,13 +14,11 @@ export default function NuevoConvenioPage() {
   const createM = conventionHooks.useCreate();
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-3xl">
       <PageHeader title="Nuevo convenio" />
       <Card>
         <CardContent className="pt-6">
-          <ResourceForm
-            fields={CONVENTION_FIELDS}
-            initial={null}
+          <ConvenioCreateForm
             submitting={createM.isPending}
             onCancel={() => router.push("/convenios")}
             onSubmit={(payload) =>

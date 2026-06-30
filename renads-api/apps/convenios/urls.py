@@ -1,5 +1,6 @@
 """Router del módulo Convenios (núcleo + catálogos + entidades)."""
 
+from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from apps.convenios import views
@@ -22,4 +23,11 @@ for basename, viewset in views.CATALOG_VIEWSETS.items():
 for basename, viewset in views.ENTITY_VIEWSETS.items():
     router.register(basename, viewset, basename=basename)
 
-urlpatterns = router.urls
+urlpatterns = [
+    path(
+        "solicitante-content-types/",
+        views.SolicitanteContentTypeView.as_view(),
+        name="solicitante-content-types",
+    ),
+    *router.urls,
+]

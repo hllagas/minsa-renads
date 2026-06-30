@@ -22,12 +22,21 @@ export default function EditarConvenioPage() {
     return <p className="text-sm text-muted-foreground">Cargando convenio…</p>;
   }
 
+  // La nomenclatura (`codigo`) solo es editable cuando el convenio está en ENVIADO_VICEPAS.
+  const nomenclaturaEditable = c.estado_codigo === "ENVIADO_VICEPAS";
+  const fields = CONVENTION_EDIT_FIELDS.map((f) =>
+    f.name === "codigo" ? { ...f, disabled: !nomenclaturaEditable } : f,
+  );
+
   const initial = {
     titulo: c.titulo,
     codigo: c.codigo ?? "",
+    plantilla: c.plantilla ?? null,
     convenio_marco: c.convenio_marco ?? null,
     solicitante_tipo_contenido: c.solicitante_tipo_contenido,
     solicitante_id_objeto: c.solicitante_id_objeto,
+    organo_regional: c.organo_regional,
+    universidad: c.universidad,
     fecha_solicitud: c.fecha_solicitud,
     fecha_inicio: c.fecha_inicio ?? "",
     max_campos_clinicos: c.max_campos_clinicos ?? null,
@@ -39,7 +48,7 @@ export default function EditarConvenioPage() {
       <Card>
         <CardContent className="pt-6">
           <ResourceForm
-            fields={CONVENTION_EDIT_FIELDS}
+            fields={fields}
             initial={initial}
             submitting={updateM.isPending}
             onCancel={() => router.push(`/convenios/${id}`)}

@@ -272,7 +272,12 @@ Los roles son `auth_group` y los permisos `auth_permission`. Como la entidad del
 
 ### `convenio`
 
-La entidad solicitante es polimórfica (universidad, órgano regional, etc.).
+La entidad solicitante es polimórfica (universidad, órgano regional, etc.). Adicionalmente,
+las dos partes concretas de la articulación docencia-servicio se modelan con FK explícitas:
+`organo_regional_id` (lado prestador) y `universidad_id` (lado académico). Los "tipos"
+(tipo de órgano regional, tipo de entidad universitaria) **no se almacenan**: se derivan de la
+entidad referenciada (`organo_regional → tipo_organo_regional`, `universidad → tipo_entidad`),
+evitando redundancia. En el formulario son selectores en cascada que filtran la lista de entidades.
 
 | Columna | Tipo | Null | Descripción |
 |---------|------|------|-------------|
@@ -284,6 +289,8 @@ La entidad solicitante es polimórfica (universidad, órgano regional, etc.).
 | `titulo` | varchar(255) | No | Título / denominación |
 | `solicitante_tipo_contenido_id` | FK → `django_content_type` | No | Tipo de entidad solicitante |
 | `solicitante_id_objeto` | int | No | Identificador de la entidad solicitante |
+| `organo_regional_id` | FK → `organo_regional` | No | Órgano regional (GERESA/DIRESA/DIRIS) parte del convenio. Su tipo se deriva de la entidad |
+| `universidad_id` | FK → `universidad` | No | Universidad parte del convenio. Su tipo de entidad se deriva de la entidad |
 | `estado_actual_id` | FK → `estado_convenio` | No | Estado actual |
 | `fecha_solicitud` | date | No | Fecha de solicitud |
 | `fecha_inicio` | date | Sí | Inicio de vigencia |

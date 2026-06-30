@@ -1,8 +1,11 @@
 "use client";
 
 import { useForm, Controller, type Control } from "react-hook-form";
+import { useQuery } from "@tanstack/react-query";
 
 import type { FieldConfig } from "@/lib/crud/types";
+import type { WithId } from "@/lib/api/query";
+import { searchResource } from "@/lib/api/lookup";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,7 +32,8 @@ function defaultFor(field: FieldConfig, initial: FormValues | null): unknown {
   if (v !== undefined && v !== null) return v;
   if (field.defaultValue !== undefined) return field.defaultValue;
   if (field.type === "boolean") return false;
-  if (field.type === "number" || field.type === "select") return null;
+  if (field.type === "number" || field.type === "select" || field.type === "custom")
+    return null;
   return "";
 }
 
@@ -50,6 +54,19 @@ function buildPayload(fields: FieldConfig[], values: FormValues): FormValues {
     if (f.type === "password") {
       // Contraseña write-only: solo se incluye si hay valor; nunca se imprime ni se cachea.
       if (typeof v === "string" && v !== "") out[f.name] = v;
+      continue;
+    }
+    if (f.type === "custom") {
+      // Un control compuesto puede aportar varias claves (p. ej. tipo + id de entidad).
+      for (const key of f.payloadKeys ?? [f.name]) {
+        const kv = values[key];
+        const vacioKey = kv === "" || kv === null || kv === undefined;
+        if (vacioKey) {
+          if (f.required) out[key] = kv;
+          continue;
+        }
+        out[key] = Number(kv);
+      }
       continue;
     }
     const vacio = v === "" || v === null || v === undefined;
@@ -87,7 +104,9 @@ export function ResourceForm({
       className="grid max-h-[60vh] gap-4 overflow-y-auto px-1"
     >
       {fields.map((field) =>
-        field.type === "select" ? (
+        field.type === "custom" ? (
+          <div key={field.name}>{field.render?.(control)}</div>
+        ) : field.type === "select" ? (
           <SelectFieldRow key={field.name} field={field} control={control} />
         ) : field.type === "multiselect" ? (
           <MultiSelectFieldRow key={field.name} field={field} control={control} />
@@ -150,6 +169,7 @@ function InputFieldRow({
             <Input
               id={field.name}
               type={inputType}
+              disabled={field.disabled}
               autoComplete={field.type === "password" ? "new-password" : undefined}
               value={(f.value as string | number | null) ?? ""}
               onChange={(e) =>
@@ -273,6 +293,15 @@ function SelectFieldRow({
                 ))}
               </SelectContent>
             </Select>
+          ) : field.optionsValueKey ? (
+            <CodeSelect
+              endpoint={field.optionsEndpoint!}
+              params={field.optionsParams}
+              valueKey={field.optionsValueKey}
+              toLabel={field.optionsToLabel}
+              value={(f.value as string | null) ?? null}
+              onChange={(v) => f.onChange(v)}
+            />
           ) : (
             <EntityCombobox
               endpoint={field.optionsEndpoint!}
@@ -288,5 +317,56 @@ function SelectFieldRow({
         </div>
       )}
     />
+  );
+}
+
+/**
+ * Select por **código**: opciones traídas de un endpoint, pero el valor enviado es una clave de
+ * cadena (`valueKey`, p. ej. `codigo`) en vez del id. Muestra `toLabel`/`nombre` como descripción.
+ */
+function CodeSelect({
+  endpoint,
+  params,
+  valueKey,
+  toLabel,
+  value,
+  onChange,
+}: {
+  endpoint: string;
+  params?: Record<string, string>;
+  valueKey: string;
+  toLabel?: (row: WithId) => string;
+  value: string | null;
+  onChange: (value: string | null) => void;
+}) {
+  const query = useQuery({
+    queryKey: [endpoint, "code-select", params ?? null],
+    queryFn: () => searchResource(endpoint, { params }),
+    staleTime: 60_000,
+  });
+  const items = (query.data ?? [])
+    .map((row) => ({
+      value: String(row[valueKey] ?? ""),
+      label: toLabel ? toLabel(row) : String(row.nombre ?? row[valueKey] ?? row.id),
+    }))
+    .filter((i) => i.value !== "");
+
+  return (
+    <Select
+      items={items}
+      value={value}
+      onValueChange={(v: string | null) => onChange(v)}
+    >
+      <SelectTrigger className="w-full">
+        <SelectValue placeholder="Seleccionar…" />
+      </SelectTrigger>
+      <SelectContent>
+        {items.map((i) => (
+          <SelectItem key={i.value} value={i.value}>
+            {i.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }

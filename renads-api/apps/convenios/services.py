@@ -112,6 +112,8 @@ def crear_convenio(*, datos: dict, usuario) -> Convention:
         titulo=datos["titulo"],
         solicitante_tipo_contenido=datos["solicitante_tipo_contenido"],
         solicitante_id_objeto=datos["solicitante_id_objeto"],
+        organo_regional=datos["organo_regional"],
+        universidad=datos["universidad"],
         estado_actual=estado_inicial,
         fecha_solicitud=datos["fecha_solicitud"],
         fecha_inicio=fecha_inicio,
@@ -129,7 +131,10 @@ def crear_convenio(*, datos: dict, usuario) -> Convention:
 @transaction.atomic
 def actualizar_convenio(*, convenio: Convention, datos: dict, usuario) -> Convention:
     """Actualiza campos editables del convenio (no el estado: usar `cambiar_estado`)."""
-    editables = ["codigo", "titulo", "plantilla", "fecha_inicio", "fecha_fin", "max_campos_clinicos"]
+    editables = [
+        "codigo", "titulo", "plantilla", "organo_regional", "universidad",
+        "fecha_inicio", "fecha_fin", "max_campos_clinicos",
+    ]
     for campo in editables:
         if campo in datos:
             setattr(convenio, campo, datos[campo])

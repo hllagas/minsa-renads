@@ -117,10 +117,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Navbar full width, siempre visible (sticky) sobre toda la app */}
       <header
           className={cn(
-            "sticky top-0 z-40 flex h-14 items-center gap-2 px-4 text-white transition-colors",
+            "sticky top-0 z-40 flex h-14 items-center gap-2 border-b bg-card px-4 text-foreground transition-colors",
             scrolled
-              ? "border-b border-white/10 bg-navy/75 backdrop-blur-sm supports-[backdrop-filter]:bg-navy/65"
-              : "border-b border-transparent bg-navy",
+              ? "bg-card/80 backdrop-blur-sm supports-[backdrop-filter]:bg-card/70"
+              : "bg-card",
           )}
         >
           {/* Hamburguesa + drawer solo en móvil */}
@@ -156,27 +156,27 @@ export function AppShell({ children }: { children: ReactNode }) {
             </SheetContent>
           </Sheet>
 
-          {/* Logo visible en móvil (en desktop ya está en la barra lateral) */}
+          {/* Logo MINSA, arriba a la izquierda, a la altura del título */}
           <Image
             src="/logo-minsa.png"
             alt="Ministerio de Salud del Perú"
             width={2000}
             height={408}
             priority
-            className="h-7 w-auto md:hidden"
+            className="h-8 w-auto"
           />
 
           {/* Título del proyecto, centrado. Completo en web; en móvil solo "RENADS". */}
           <span
             title="Registro Nacional de Articulación Docencia-Servicio en Salud - RENADS"
-            className="absolute left-1/2 max-w-[60%] -translate-x-1/2 truncate text-center font-bold text-white"
+            className="absolute left-1/2 max-w-[55%] -translate-x-1/2 truncate text-center font-bold text-foreground"
           >
             <span className="text-base lg:hidden">RENADS</span>
             <span className="hidden text-lg lg:inline">
               Registro Nacional de Articulación Docencia-Servicio en Salud - RENADS
             </span>
           </span>
-          <div className="ml-auto flex items-center gap-1 [&_button:hover]:bg-white/10">
+          <div className="ml-auto flex items-center gap-1">
             <ThemeToggle />
             <DropdownMenu>
               <DropdownMenuTrigger render={<Button variant="ghost" className="gap-2 px-2" />}>
@@ -212,16 +212,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex flex-1">
         {/* Barra lateral siempre visible (sticky bajo el navbar) en desktop */}
         <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-60 shrink-0 self-start overflow-y-auto border-r bg-muted/30 p-4 md:block">
-          <div className="mb-6 px-2">
-            <Image
-              src="/logo-minsa.png"
-              alt="Ministerio de Salud del Perú"
-              width={2000}
-              height={408}
-              priority
-              className="h-8 w-auto"
-            />
-          </div>
           <NavLinks items={items} pathname={pathname} />
         </aside>
 
