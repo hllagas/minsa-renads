@@ -119,7 +119,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           className={cn(
             "sticky top-0 z-40 flex h-14 items-center gap-2 px-4 text-white transition-colors",
             scrolled
-              ? "border-b border-white/10 bg-navy/75 backdrop-blur-md supports-[backdrop-filter]:bg-navy/65"
+              ? "border-b border-white/10 bg-navy/75 backdrop-blur-sm supports-[backdrop-filter]:bg-navy/65"
               : "border-b border-transparent bg-navy",
           )}
         >

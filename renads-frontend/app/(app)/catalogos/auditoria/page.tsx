@@ -16,6 +16,7 @@ import { DataTablePagination } from "@/components/data/data-table-pagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/form/date-picker";
 
 const EMPTY: AuditLogFilters = {};
 
@@ -113,10 +114,20 @@ export default function AuditoriaPage() {
           <Input value={filters.id_objeto ?? ""} onChange={(e) => setF("id_objeto", e.target.value)} className="h-8 w-28" placeholder="id" />
         </Field>
         <Field label="Desde">
-          <Input type="date" value={filters.creado_en_desde ?? ""} onChange={(e) => setF("creado_en_desde", e.target.value)} className="h-8 w-40" />
+          <DatePicker
+            value={filters.creado_en_desde}
+            onChange={(iso) => setF("creado_en_desde", iso)}
+            className="h-8 w-40 justify-start gap-2 font-normal"
+            placeholder="Desde"
+          />
         </Field>
         <Field label="Hasta">
-          <Input type="date" value={filters.creado_en_hasta ?? ""} onChange={(e) => setF("creado_en_hasta", e.target.value)} className="h-8 w-40" />
+          <DatePicker
+            value={filters.creado_en_hasta}
+            onChange={(iso) => setF("creado_en_hasta", iso)}
+            className="h-8 w-40 justify-start gap-2 font-normal"
+            placeholder="Hasta"
+          />
         </Field>
         {Object.values(filters).some((v) => v) ? (
           <Button variant="ghost" size="sm" className="h-8" onClick={() => { setFilters(EMPTY); setPage(1); }}>

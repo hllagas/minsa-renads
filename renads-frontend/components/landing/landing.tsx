@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, type ReactNode } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
   motion,
@@ -314,7 +315,7 @@ const FOOTER_COLS = [
 
 export function Landing() {
   return (
-    <div className="relative min-h-dvh overflow-x-hidden bg-[var(--ld-bg)] text-[var(--ld-text)] [font-family:var(--font-source),system-ui,sans-serif]">
+    <div className="relative min-h-dvh overflow-x-clip bg-[var(--ld-bg)] text-[var(--ld-text)] [font-family:var(--font-source),system-ui,sans-serif]">
       {/* Fondo: mesh gradients + grid + noise */}
       <BackgroundFx />
 
@@ -382,38 +383,42 @@ function Nav() {
       initial={{ y: -80, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="sticky top-0 z-50 mx-auto mt-3 flex w-[min(72rem,94%)] items-center justify-between rounded-2xl border border-[var(--ld-glass-border)] bg-[var(--ld-surface)] px-4 py-2.5 backdrop-blur-xl"
+      className="sticky top-0 z-50 w-full border-b border-[var(--ld-glass-border)] bg-[var(--ld-surface)] backdrop-blur-xl"
     >
-      <a href="#top" className="flex items-center gap-2">
-        <span
-          className="grid size-8 place-items-center rounded-lg bg-gradient-to-br from-[var(--ld-primary)] to-[var(--ld-cta)] text-sm font-bold text-white"
-          aria-hidden
-        >
-          R
-        </span>
-        <span className="font-bold [font-family:var(--font-lexend)]">RENADS</span>
-      </a>
+      {/* Barra full width; el contenido se centra con un contenedor interno. */}
+      <div className="mx-auto flex w-[min(72rem,94%)] items-center justify-between px-4 py-2.5">
+        <a href="#top" className="flex items-center" aria-label="RENADS — inicio">
+          <Image
+            src="/logo-minsa.png"
+            alt="Ministerio de Salud del Perú"
+            width={2000}
+            height={408}
+            priority
+            className="h-8 w-auto"
+          />
+        </a>
 
-      <nav className="hidden items-center gap-6 text-sm md:flex">
-        {NAV_LINKS.map((l) => (
-          <a
-            key={l.href}
-            href={l.href}
-            className="cursor-pointer text-[var(--ld-text)]/70 transition-colors hover:text-[var(--ld-text)]"
+        <nav className="hidden items-center gap-6 text-sm md:flex">
+          {NAV_LINKS.map((l) => (
+            <a
+              key={l.href}
+              href={l.href}
+              className="cursor-pointer text-[var(--ld-text)]/70 transition-colors hover:text-[var(--ld-text)]"
+            >
+              {l.label}
+            </a>
+          ))}
+        </nav>
+
+        <div className="flex items-center gap-1.5 text-[var(--ld-text)]">
+          <ThemeToggle />
+          <Link
+            href="/login"
+            className="cursor-pointer rounded-lg bg-[var(--ld-cta)] px-4 py-2 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-px hover:opacity-90"
           >
-            {l.label}
-          </a>
-        ))}
-      </nav>
-
-      <div className="flex items-center gap-1.5 text-[var(--ld-text)]">
-        <ThemeToggle />
-        <Link
-          href="/login"
-          className="cursor-pointer rounded-lg bg-[var(--ld-cta)] px-4 py-2 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-px hover:opacity-90"
-        >
-          Iniciar sesión
-        </Link>
+            Iniciar sesión
+          </Link>
+        </div>
       </div>
     </motion.header>
   );

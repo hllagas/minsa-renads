@@ -27,6 +27,11 @@ export interface FieldConfig {
   choices?: { value: string; label: string }[];
   /** Valor por defecto al crear. */
   defaultValue?: string | number | boolean | null;
+  /**
+   * Para `type: "text"`: fuerza el valor a MAYÚSCULAS (por defecto activo en texto).
+   * Poner `false` para excluir (p. ej. `username`, que es sensible a may/min en el login).
+   */
+  uppercase?: boolean;
 }
 
 export interface ColumnConfig<T extends WithId = WithId> {

@@ -134,3 +134,35 @@ Ruta `/usuarios`. Administración de usuarios y su alcance institucional.
 | 5 | Dashboard | Transversal (analítica) | Convenios/Internados/Actividades | `docs/dashboard-graficos.md` · `spec/dashboard.md` | v1 hecho |
 | 6 | Catálogos | CRUD maestros | Auth | `docs/api-convenios.md` (catálogos/entidades) | Ruta habilitada |
 | 7 | Gestión de Usuarios | Administración | Auth | `docs/api-auth.md` | Ruta habilitada |
+
+---
+
+## Requerimientos pendientes al backend (bloquean features v2)
+
+> Funcionalidad de front bloqueada por endpoints inexistentes en `renads-api`. Registrar y priorizar.
+
+### REQ-BACK-01 — Endpoint `content-types` (solo lectura)
+
+**Bloquea (alta polimórfica):** solicitante de convenios (`solicitante_tipo_contenido`/`_id_objeto`),
+representantes (`representatives`), documentos (`documents`) y perfiles institucionales
+(`user-entity-profiles`). Hoy el front captura estos campos como **ids numéricos crudos** porque no
+puede resolver el PK de `ContentType` (específico de BD) a una etiqueta.
+
+- **Solicitud:** endpoint read-only `content-types` que devuelva `{ id, app_label, model, label }`
+  para los tipos de entidad permitidos (p. ej. `university`, `ipress`, `minsaorgan`,
+  `regionalgovernment`, `conapres`, …), con filtro por `app_label`/`model`.
+- **Habilita en el front:** select de «tipo de entidad» (muestra texto) + combobox dependiente de
+  `id_objeto` (entidad por nombre). Desbloquea el **alta** de representantes/documentos/perfiles y un
+  selector amigable del solicitante en convenios.
+- **Refs:** `lib/convenios/convention-fields.ts`, `spec/catalogos.md` §5 R2, `spec/usuarios.md` §6 R-Q4.
+
+### REQ-BACK-02 — Manejar `ProtectedError` en `DELETE`
+
+Al borrar una entidad referenciada por FK `PROTECT` (p. ej. `universities/{id}` con `Faculty`/
+`ClinicalField` asociados), el backend lanza `ProtectedError` y responde **500 (HTML)** en vez de un
+error de cliente manejado.
+
+- **Solicitud:** capturar `ProtectedError` y devolver **409** (o 400) con `{ "detail": "…" }`
+  explicando que el registro está referenciado.
+- **Paliativo front (ya aplicado):** `extractApiError` detecta el HTML/ProtectedError y muestra
+  «No se puede eliminar: el registro está referenciado por otros datos.» en vez de volcar el HTML.

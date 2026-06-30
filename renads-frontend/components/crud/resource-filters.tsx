@@ -50,6 +50,11 @@ export function ResourceFilters({
             />
           ) : filter.type === "boolean" ? (
             <Select
+              items={[
+                { value: ALL, label: "Todos" },
+                { value: "true", label: "Sí" },
+                { value: "false", label: "No" },
+              ]}
               value={values[filter.name] || ALL}
               onValueChange={(v: string | null) =>
                 onChange(filter.name, v === ALL || v === null ? "" : v)
@@ -66,6 +71,10 @@ export function ResourceFilters({
             </Select>
           ) : filter.choices ? (
             <Select
+              items={[
+                { value: ALL, label: "Todos" },
+                ...filter.choices.map((c) => ({ value: c.value, label: c.label })),
+              ]}
               value={values[filter.name] || ALL}
               onValueChange={(v: string | null) =>
                 onChange(filter.name, v === ALL || v === null ? "" : v)

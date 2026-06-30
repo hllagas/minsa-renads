@@ -7,7 +7,16 @@ import { AxiosError } from "axios";
 export function extractApiError(error: unknown): string {
   if (error instanceof AxiosError) {
     const data = error.response?.data;
-    if (typeof data === "string") return data;
+    if (typeof data === "string") {
+      // El backend puede devolver una página HTML de error (p. ej. 500 sin manejar).
+      if (/^\s*</.test(data)) {
+        if (/ProtectedError|protected foreign keys/i.test(data)) {
+          return "No se puede eliminar: el registro está referenciado por otros datos.";
+        }
+        return "Error del servidor. Inténtalo de nuevo o contacta al administrador.";
+      }
+      return data;
+    }
     if (data && typeof data === "object") {
       const obj = data as Record<string, unknown>;
       if (typeof obj.detail === "string") return obj.detail;

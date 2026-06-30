@@ -89,6 +89,11 @@ export function DashboardFilters() {
         <div className="grid gap-1.5">
           <Label className="text-xs text-muted-foreground">Granularidad</Label>
           <Select
+            items={[
+              { value: "dia", label: "Día" },
+              { value: "mes", label: "Mes" },
+              { value: "anio", label: "Año" },
+            ]}
             value={filters.granularidad}
             onValueChange={(v) => setFilters({ granularidad: v as Granularity })}
           >

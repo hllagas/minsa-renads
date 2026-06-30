@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { EntityCombobox } from "@/components/form/entity-combobox";
 import { MultiEntityCombobox } from "@/components/form/multi-entity-combobox";
+import { DatePicker } from "@/components/form/date-picker";
 import {
   Select,
   SelectContent,
@@ -125,6 +126,8 @@ function InputFieldRow({
           : field.type === "password"
             ? "password"
             : "text";
+  // Texto en MAYÚSCULAS por defecto; se excluye con `uppercase: false` (p. ej. `username`).
+  const toUpper = field.type === "text" && field.uppercase !== false;
   return (
     <Controller
       control={control}
@@ -136,15 +139,27 @@ function InputFieldRow({
             {field.label}
             {field.required ? " *" : ""}
           </Label>
-          <Input
-            id={field.name}
-            type={inputType}
-            autoComplete={field.type === "password" ? "new-password" : undefined}
-            value={(f.value as string | number | null) ?? ""}
-            onChange={(e) => f.onChange(e.target.value)}
-            onBlur={f.onBlur}
-            aria-invalid={!!fieldState.error}
-          />
+          {field.type === "date" ? (
+            <DatePicker
+              id={field.name}
+              value={(f.value as string | null) ?? ""}
+              onChange={(iso) => f.onChange(iso)}
+              ariaInvalid={!!fieldState.error}
+            />
+          ) : (
+            <Input
+              id={field.name}
+              type={inputType}
+              autoComplete={field.type === "password" ? "new-password" : undefined}
+              value={(f.value as string | number | null) ?? ""}
+              onChange={(e) =>
+                f.onChange(toUpper ? e.target.value.toUpperCase() : e.target.value)
+              }
+              onBlur={f.onBlur}
+              aria-invalid={!!fieldState.error}
+              className={toUpper ? "uppercase" : undefined}
+            />
+          )}
           {fieldState.error ? (
             <p className="text-sm text-destructive">{fieldState.error.message}</p>
           ) : null}
@@ -243,15 +258,12 @@ function SelectFieldRow({
           </Label>
           {field.choices ? (
             <Select
+              items={field.choices.map((c) => ({ value: c.value, label: c.label }))}
               value={(f.value as string | null) ?? null}
               onValueChange={(v: string | null) => f.onChange(v)}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Seleccionar…">
-                  {() =>
-                    field.choices?.find((c) => c.value === f.value)?.label ?? ""
-                  }
-                </SelectValue>
+                <SelectValue placeholder="Seleccionar…" />
               </SelectTrigger>
               <SelectContent>
                 {field.choices.map((c) => (

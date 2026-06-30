@@ -79,7 +79,7 @@ export const usersConfig: ResourceConfig<User> = {
   ],
   // Alta: incluye `password` write-only.
   createFields: [
-    { name: "username", label: "Usuario", type: "text", required: true },
+    { name: "username", label: "Usuario", type: "text", required: true, uppercase: false },
     { name: "email", label: "Correo", type: "email", required: true },
     { name: "first_name", label: "Nombres", type: "text" },
     { name: "last_name", label: "Apellidos", type: "text" },
@@ -97,7 +97,7 @@ export const usersConfig: ResourceConfig<User> = {
   ],
   // Edición: igual que el alta pero SIN `password` (se cambia con la acción `set-password`).
   editFields: [
-    { name: "username", label: "Usuario", type: "text", required: true },
+    { name: "username", label: "Usuario", type: "text", required: true, uppercase: false },
     { name: "email", label: "Correo", type: "email", required: true },
     { name: "first_name", label: "Nombres", type: "text" },
     { name: "last_name", label: "Apellidos", type: "text" },

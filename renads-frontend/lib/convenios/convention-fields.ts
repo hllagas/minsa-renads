@@ -28,13 +28,13 @@ export const CONVENTION_FIELDS: FieldConfig[] = [
   },
   {
     name: "solicitante_tipo_contenido",
-    label: "Tipo de entidad solicitante (ContentType id)",
+    label: "Tipo de entidad solicitante",
     type: "number",
     required: true,
   },
   {
     name: "solicitante_id_objeto",
-    label: "Id de la entidad solicitante",
+    label: "La fec",
     type: "number",
     required: true,
   },
