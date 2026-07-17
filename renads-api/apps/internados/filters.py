@@ -19,7 +19,7 @@ class InternshipFilter(filters.FilterSet):
             "tutor": ["exact"],
             "estado_actual": ["exact"],
             "ambito_geografico_sanitario": ["exact"],
-            "interno": ["exact"],
+            "estudiante": ["exact"],
         }
 
 
@@ -27,7 +27,7 @@ class RotationFilter(filters.FilterSet):
     class Meta:
         model = Rotation
         fields = {
-            "internado": ["exact"],
+            "interno": ["exact"],
             "estado_actual": ["exact"],
             "ipress_origen": ["exact"],
             "ipress_destino": ["exact"],

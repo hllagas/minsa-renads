@@ -17,7 +17,7 @@ Entregar un API REST funcional que permita gestionar los tres módulos de RENADS
 | Módulo | App | Alcance MVP |
 |--------|-----|-------------|
 | Gestionar Convenios | `apps.convenios` | CRUD de convenios, plantillas, participantes, campos clínicos, evaluaciones/opiniones/firmas/publicaciones, catálogos |
-| Registrar Internados | `apps.internados` | CRUD de internos, tutores, internados, rotaciones, autorizaciones |
+| Registrar Internados | `apps.internados` | CRUD de estudiantes, tutores, internados, rotaciones, autorizaciones |
 | Registrar Actividades | `apps.actividades` | CRUD de actividades docente-asistenciales y validaciones |
 
 ### CRUD por entidad

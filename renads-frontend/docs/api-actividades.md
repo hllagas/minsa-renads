@@ -1,17 +1,20 @@
 # API — Módulo 3: Registrar Actividades (`apps/actividades`)
 
-Registro, validación y consulta de actividades docente-asistenciales de internos en sedes.
+Registro, validación y consulta de actividades docente-asistenciales de estudiantes en sedes.
 Módulo pequeño: 2 catálogos + `TeachingActivity`. Reutiliza módulos 1 y 2
-(`Intern`, `Internship`, `Rotation`, `Tutor`, `Ipress`, `ServiceArea`). Base: `/api/v1/`. JWT requerido.
+(`Student`, `Internship`, `Rotation`, `Tutor`, `Ipress`, `ServiceArea`). Base: `/api/v1/`. JWT requerido.
+
+> **Terminología (contrato vigente):** `estudiante` = la persona; `interno` = el registro del
+> proceso de internado. (Antes: `interno` / `internado` respectivamente.)
 
 ## Reglas de negocio clave
 
-- **RN-1:** el `internado` debe estar **activo** para registrar actividad.
-- **RN-2:** `fecha_actividad` dentro de `[internado.fecha_inicio, internado.fecha_fin]`.
-- **RN-3/4:** si se envía `rotacion`, debe pertenecer al internado y estar `AUTORIZADA`/`EN_CURSO`.
+- **RN-1:** el `interno` (internado) debe estar **activo** para registrar actividad.
+- **RN-2:** `fecha_actividad` dentro de `[interno.fecha_inicio, interno.fecha_fin]`.
+- **RN-3/4:** si se envía `rotacion`, debe pertenecer al interno y estar `AUTORIZADA`/`EN_CURSO`.
 - **RN-7:** subsanar solo si la actividad está `OBSERVADA` → pasa a `SUBSANADA`.
 - **RN-8:** una actividad `VALIDADA` no se modifica sin trazabilidad.
-- **RN-9:** no duplicar por (`interno`, `fecha_actividad`, `ipress`, `servicio_area`).
+- **RN-9:** no duplicar por (`estudiante`, `fecha_actividad`, `ipress`, `servicio_area`).
 
 ## `teaching-activities`
 
@@ -27,19 +30,19 @@ Módulo pequeño: 2 catálogos + `TeachingActivity`. Reutiliza módulos 1 y 2
 
 `validar.resultado` ∈ `VALIDADA` | `OBSERVADA` | `RECHAZADA`.
 
-**Filtros** (`TeachingActivityFilter`): `interno`, `internado`, `ipress`, `tutor`, `rotacion`,
+**Filtros** (`TeachingActivityFilter`): `estudiante`, `interno`, `ipress`, `tutor`, `rotacion`,
 `tipo_actividad`, `estado_actual`, rango de `fecha_actividad`. **Search:** `descripcion`.
 **Ordering:** `fecha_actividad`, `id`.
 
 ### TeachingActivity — lectura
 ```
-id, interno, internado, ipress, rotacion, tutor, servicio_area, tipo_actividad,
+id, estudiante, interno, ipress, rotacion, tutor, servicio_area, tipo_actividad,
 estado_actual, estado_codigo, fecha_actividad, descripcion, carga_horaria,
 creado_por, creado_en, actualizado_en
 ```
 ### TeachingActivity — escritura (POST)
 ```
-interno, internado, ipress, rotacion, tutor, servicio_area,
+estudiante, interno, ipress, rotacion, tutor, servicio_area,
 tipo_actividad, fecha_actividad, descripcion, carga_horaria
 ```
 
@@ -50,5 +53,5 @@ tipo_actividad, fecha_actividad, descripcion, carga_horaria
 
 ## Alcance
 
-Visible/editable si el interno pertenece a la **universidad** del usuario o la actividad ocurre
-en una **IPRESS (sede)** de su ámbito. Superusuario y `Administrador RENADS` ven todo.
+Visible/editable si el estudiante pertenece a la **universidad** del usuario o la actividad
+ocurre en una **IPRESS (sede)** de su ámbito. Superusuario y `Administrador RENADS` ven todo.

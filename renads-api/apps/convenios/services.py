@@ -18,6 +18,7 @@ from apps.convenios.models import (
     ConventionParticipant,
     ConventionStatus,
     ConventionStatusHistory,
+    Ipress,
     LegalOpinion,
     Publication,
     Signature,
@@ -81,6 +82,11 @@ def _exigir_especifico(convenio: Convention, actividad: str) -> None:
         raise ValidationError(f"{actividad} solo aplica a Convenios Específicos.")
 
 
+def _exigir_marco(convenio: Convention, actividad: str) -> None:
+    if convenio.tipo_convenio.codigo != "MARCO":
+        raise ValidationError(f"{actividad} solo aplica a Convenios Marco.")
+
+
 # ---------------------------------------------------------------------------
 # Casos de uso
 # ---------------------------------------------------------------------------
@@ -89,14 +95,29 @@ def crear_convenio(*, datos: dict, usuario) -> Convention:
     """Registra un convenio. RN-3: el Específico requiere un Marco vigente."""
     tipo = datos["tipo_convenio"]
     marco = datos.get("convenio_marco")
+    organo = datos["organo_regional"]
+    tipo_organo = organo.tipo_organo_regional.codigo  # GERESA / DIRESA / DIRIS
 
-    if tipo.codigo == "ESPECIFICO":
-        if marco is None:
-            raise ValidationError({"convenio_marco": "Requerido para un Convenio Específico."})
-        if not marco.estado_actual_id or marco.estado_actual.codigo not in ESTADOS_VIGENTES:
-            raise ValidationError({"convenio_marco": "El Convenio Marco debe estar vigente."})
-    elif marco is not None:
-        raise ValidationError({"convenio_marco": "Un Convenio Marco no depende de otro convenio."})
+    if tipo.codigo == "MARCO":
+        # Solo GERESA o DIRESA pueden solicitar un Convenio Marco.
+        if tipo_organo not in {"GERESA", "DIRESA"}:
+            raise ValidationError(
+                {"organo_regional": "Solo una GERESA o DIRESA puede solicitar un Convenio Marco."}
+            )
+        if marco is not None:
+            raise ValidationError({"convenio_marco": "Un Convenio Marco no depende de otro convenio."})
+    elif tipo.codigo == "ESPECIFICO":
+        # RN-3: requiere Convenio Marco vigente, salvo DIRIS (no requiere Marco).
+        if tipo_organo == "DIRIS":
+            if marco is not None and (
+                not marco.estado_actual_id or marco.estado_actual.codigo not in ESTADOS_VIGENTES
+            ):
+                raise ValidationError({"convenio_marco": "El Convenio Marco debe estar vigente."})
+        else:
+            if marco is None:
+                raise ValidationError({"convenio_marco": "Requerido para un Convenio Específico."})
+            if not marco.estado_actual_id or marco.estado_actual.codigo not in ESTADOS_VIGENTES:
+                raise ValidationError({"convenio_marco": "El Convenio Marco debe estar vigente."})
 
     fecha_inicio = datos.get("fecha_inicio")
     fecha_fin = datos.get("fecha_fin")
@@ -176,6 +197,11 @@ def registrar_opinion_conapres(*, convenio: Convention, datos: dict, usuario) ->
 @transaction.atomic
 def definir_campo_clinico(*, convenio: Convention, datos: dict, usuario) -> ClinicalField:
     _exigir_especifico(convenio, "La definición de campos clínicos")
+    ipress = datos["ipress"]
+    if not ipress.es_sede_docente:
+        raise ValidationError(
+            {"ipress": "La IPRESS debe estar autorizada como sede docente por CONAPRES."}
+        )
     if convenio.max_campos_clinicos is not None and datos["cantidad_maxima"] > convenio.max_campos_clinicos:
         raise ValidationError(
             {"cantidad_maxima": "Excede el máximo de campos clínicos del convenio."}
@@ -188,6 +214,7 @@ def definir_campo_clinico(*, convenio: Convention, datos: dict, usuario) -> Clin
 
 @transaction.atomic
 def registrar_opinion_juridica(*, convenio: Convention, datos: dict, usuario) -> LegalOpinion:
+    _exigir_marco(convenio, "La opinión jurídica de OGAJ")
     opinion = LegalOpinion.objects.create(convenio=convenio, **datos)
     registrar_auditoria(usuario, "CREAR", opinion)
     if opinion.resultado_opinion == "FAVORABLE":
@@ -226,3 +253,21 @@ def agregar_participante(*, convenio: Convention, datos: dict, usuario) -> Conve
     participante = ConventionParticipant.objects.create(convenio=convenio, **datos)
     registrar_auditoria(usuario, "CREAR", participante)
     return participante
+
+
+@transaction.atomic
+def autorizar_sede_docente(*, ipress: Ipress, usuario, autorizar: bool = True) -> Ipress:
+    """CONAPRES autoriza/registra una IPRESS como sede docente.
+
+    CONAPRES verifica los criterios (establecimiento asistencial, del MINSA o de la
+    sanidad de las FF.AA./FF.PP., de gestión pública) antes de autorizar. Aquí se
+    registra la decisión; solo una sede autorizada puede recibir campos clínicos.
+    """
+    anterior = ipress.es_sede_docente
+    ipress.es_sede_docente = autorizar
+    ipress.save(update_fields=["es_sede_docente"])
+    registrar_auditoria(
+        usuario, "ACTUALIZAR", ipress,
+        nombre_campo="es_sede_docente", valor_anterior=anterior, valor_nuevo=autorizar,
+    )
+    return ipress

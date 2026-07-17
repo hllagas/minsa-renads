@@ -40,8 +40,8 @@
 
 ### 1.3 Internados y rotaciones
 
-1. Interno.
-2. Datos académicos del interno.
+1. Estudiante.
+2. Datos académicos del estudiante.
 3. Tutor o docente.
 4. Internado.
 5. Sede docente principal.
@@ -109,19 +109,19 @@
 
 ### 3.2 Internados
 
-1. Internos por universidad.
-2. Internos por sede docente.
-3. Internos por Convenio Específico.
-4. Internos por tutor.
-5. Internos por región o ámbito geográfico sanitario.
-6. Rotaciones por interno.
+1. Estudiantes por universidad.
+2. Estudiantes por sede docente.
+3. Estudiantes por Convenio Específico.
+4. Estudiantes por tutor.
+5. Estudiantes por región o ámbito geográfico sanitario.
+6. Rotaciones por estudiante.
 7. Rotaciones pendientes de autorización.
 8. Rotaciones rechazadas u observadas.
 9. Uso de campos clínicos por sede.
 
 ### 3.3 Actividades
 
-1. Actividades por interno.
+1. Actividades por estudiante.
 2. Actividades por sede docente.
 3. Actividades por tutor.
 4. Actividades por periodo.

@@ -158,7 +158,7 @@ export function useConveniosEnTiempo(filters: DashboardFilters): ChartData<TimeB
   );
 }
 
-// === Internados (endpoint `internships`, fecha = fecha_inicio) ==============
+// === Internados (endpoint `interns`, fecha = fecha_inicio) ==================
 
 function internadoApiParams(filters: DashboardFilters): ApiParams {
   return {
@@ -179,7 +179,7 @@ export function useInternadosPorEstado(filters: DashboardFilters): ChartData<Cou
     [desde, hasta],
   );
   return useAggregated<InternshipRead, CountBucket[]>(
-    "internships",
+    "interns",
     internadoApiParams(filters),
     aggregate,
   );
@@ -198,7 +198,7 @@ export function useInternadosEnTiempo(filters: DashboardFilters): ChartData<Time
     [desde, hasta, granularidad],
   );
   return useAggregated<InternshipRead, TimeBucket[]>(
-    "internships",
+    "interns",
     internadoApiParams(filters),
     aggregate,
   );
@@ -339,8 +339,8 @@ export function useKpis(filters: DashboardFilters): {
         staleTime: RAW_STALE,
       },
       {
-        queryKey: rawQueryKey("internships", {}),
-        queryFn: () => fetchAllPages<InternshipRead>("internships", {}),
+        queryKey: rawQueryKey("interns", {}),
+        queryFn: () => fetchAllPages<InternshipRead>("interns", {}),
         staleTime: RAW_STALE,
       },
       {
@@ -359,7 +359,7 @@ export function useKpis(filters: DashboardFilters): {
 
   const [convQ, interQ, actsQ] = results;
   const conventions = convQ.data?.results ?? [];
-  const internships = interQ.data?.results ?? [];
+  const interns = interQ.data?.results ?? [];
   const activities = actsQ.data?.results ?? [];
 
   // TODO(contrato): el código exacto de "internado activo/en curso" no está fijado. Se deriva del
@@ -387,11 +387,11 @@ export function useKpis(filters: DashboardFilters): {
     : null;
 
   // 2. Internados activos (estado en activeCodes) por fecha_inicio.
-  const activosCur = internships.filter(
+  const activosCur = interns.filter(
     (i) => activeCodes.has(i.estado_codigo) && inCurrent(i.fecha_inicio),
   ).length;
   const activosPrev = prev
-    ? internships.filter(
+    ? interns.filter(
         (i) => activeCodes.has(i.estado_codigo) && inPrev(i.fecha_inicio),
       ).length
     : null;

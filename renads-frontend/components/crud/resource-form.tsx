@@ -169,6 +169,8 @@ function InputFieldRow({
             <Input
               id={field.name}
               type={inputType}
+              // Permite decimales en campos numéricos (p. ej. nota 0–20, carga horaria).
+              step={inputType === "number" ? "any" : undefined}
               disabled={field.disabled}
               autoComplete={field.type === "password" ? "new-password" : undefined}
               value={(f.value as string | number | null) ?? ""}

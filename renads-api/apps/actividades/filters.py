@@ -12,8 +12,8 @@ class TeachingActivityFilter(filters.FilterSet):
     class Meta:
         model = TeachingActivity
         fields = {
+            "estudiante": ["exact"],
             "interno": ["exact"],
-            "internado": ["exact"],
             "ipress": ["exact"],
             "tutor": ["exact"],
             "rotacion": ["exact"],

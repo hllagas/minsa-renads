@@ -31,7 +31,7 @@ export default function InternadoDetallePage() {
   const user = useAuthStore((s) => s.user);
 
   const { data: it, isLoading, isError } = internshipHooks.useDetail(id);
-  const historial = useResourceSubList("internships", id, "historial");
+  const historial = useResourceSubList("interns", id, "historial");
 
   if (isLoading) {
     return <p className="text-sm text-muted-foreground">Cargando internado…</p>;
@@ -53,7 +53,7 @@ export default function InternadoDetallePage() {
         </Link>
       </div>
       <PageHeader
-        title={`Internado de ${it.interno}`}
+        title={`Internado de ${it.estudiante}`}
         description={it.convenio}
         actions={
           <Button
@@ -68,7 +68,7 @@ export default function InternadoDetallePage() {
           {acciones.map((a) => (
             <FlowActionDialog
               key={a.key}
-              endpoint="internships"
+              endpoint="interns"
               resourceId={it.id}
               action={a}
             />
@@ -93,7 +93,7 @@ export default function InternadoDetallePage() {
             </CardHeader>
             <CardContent>
               <dl className="grid grid-cols-2 gap-4 md:grid-cols-3">
-                <Dato label="Interno" value={it.interno} />
+                <Dato label="Estudiante" value={it.estudiante} />
                 <Dato label="Convenio" value={it.convenio} />
                 <Dato label="Sede (IPRESS)" value={it.ipress} />
                 <Dato label="Tutor" value={it.tutor} />
@@ -107,7 +107,7 @@ export default function InternadoDetallePage() {
         </TabsContent>
 
         <TabsContent value="rotaciones">
-          <RotationsPanel internshipId={it.id} />
+          <RotationsPanel internId={it.id} />
         </TabsContent>
 
         <TabsContent value="historial">

@@ -249,6 +249,27 @@ def _entity_viewset(model, *, filterset_fields=None, search_fields=None, permiss
     )
 
 
+class IpressViewSet(
+    _entity_viewset(
+        m.Ipress,
+        filterset_fields=["unidad_ejecutora", "ambito_geografico_sanitario", "es_sede_docente", "activo"],
+        search_fields=["nombre", "codigo_renipress"],
+    )
+):
+    """CRUD de IPRESS + autorización como sede docente por CONAPRES."""
+
+    @action(detail=True, methods=["post"], url_path="autorizar-sede-docente")
+    def autorizar_sede_docente(self, request, pk=None):
+        """CONAPRES autoriza/registra la IPRESS como sede docente. Body: `{autorizar: bool}` (default True)."""
+        ipress = self.get_object()
+        exigir_roles(request, "CONAPRES")
+        autorizar = request.data.get("autorizar", True)
+        if isinstance(autorizar, str):
+            autorizar = autorizar.strip().lower() not in ("false", "0", "no", "")
+        services.autorizar_sede_docente(ipress=ipress, usuario=request.user, autorizar=bool(autorizar))
+        return Response(self.get_serializer(ipress).data)
+
+
 # Catálogos (solo lectura): basename -> ViewSet
 CATALOG_VIEWSETS = {
     "regions": _catalog_viewset(m.Region),
@@ -286,11 +307,7 @@ ENTITY_VIEWSETS = {
         filterset_fields=["organo_regional", "tipo_unidad_ejecutora", "activo"],
         search_fields=["nombre", "codigo"],
     ),
-    "ipress": _entity_viewset(
-        m.Ipress,
-        filterset_fields=["unidad_ejecutora", "ambito_geografico_sanitario", "activo"],
-        search_fields=["nombre", "codigo_renipress"],
-    ),
+    "ipress": IpressViewSet,
     "minsa-organs": _entity_viewset(
         m.MinsaOrgan, filterset_fields=["tipo_organo_minsa", "activo"], search_fields=["nombre", "siglas"]
     ),

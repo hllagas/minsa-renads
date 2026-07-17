@@ -9,7 +9,7 @@ export type RotationRead = components["schemas"]["RotationRead"];
 
 /** Hooks CRUD de internados (read = InternshipRead, write = InternshipWrite). */
 export const internshipHooks = createResourceHooks<InternshipRead, InternshipWrite>(
-  "internships",
+  "interns",
 );
 
 /** Hooks de lectura de rotaciones (la escritura va por acciones de flujo). */

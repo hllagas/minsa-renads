@@ -30,7 +30,7 @@ export default function InternadosPage() {
 
   const columns = useMemo<ColumnDef<InternshipRead>[]>(
     () => [
-      { accessorKey: "interno", header: "Interno" },
+      { accessorKey: "estudiante", header: "Estudiante" },
       { accessorKey: "convenio", header: "Convenio" },
       { accessorKey: "ipress", header: "Sede" },
       { accessorKey: "tutor", header: "Tutor" },
@@ -75,7 +75,7 @@ export default function InternadosPage() {
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <Input
-          placeholder="Buscar por interno…"
+          placeholder="Buscar por estudiante…"
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);

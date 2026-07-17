@@ -2,30 +2,30 @@
 
 ## 1. Definición
 
-El módulo **Registrar Actividades Docente-Asistenciales** permite registrar el desarrollo de las actividades realizadas por los internos en una sede docente o establecimiento de salud, como evidencia del cumplimiento de sus servicios, prácticas, rotaciones o actividades formativas supervisadas.
+El módulo **Registrar Actividades Docente-Asistenciales** permite registrar el desarrollo de las actividades realizadas por los estudiantes en una sede docente o establecimiento de salud, como evidencia del cumplimiento de sus servicios, prácticas, rotaciones o actividades formativas supervisadas.
 
-Las actividades deben estar vinculadas a un interno, un internado activo, una sede docente, un periodo, un tutor o docente responsable y, cuando corresponda, una rotación autorizada.
+Las actividades deben estar vinculadas a un estudiante, un internado activo, una sede docente, un periodo, un tutor o docente responsable y, cuando corresponda, una rotación autorizada.
 
 ## 2. Objetivos del módulo
 
-1. Registrar actividades realizadas por internos.
+1. Registrar actividades realizadas por estudiantes.
 2. Asociar cada actividad a una sede docente y rotación.
 3. Registrar fecha, servicio, área, unidad y tipo de actividad.
 4. Registrar carga horaria o duración.
 5. Permitir validación por tutor o docente.
 6. Permitir observación o rechazo de actividades.
-7. Generar historial de actividades por interno.
+7. Generar historial de actividades por estudiante.
 8. Generar reportes para universidades, sedes docentes, DIGEP y supervisores.
 
 ## 3. Procesos del módulo
 
 ### 3.1 Registro de actividad
 
-El interno, tutor, universidad o sede docente registra las actividades desarrolladas en el marco del internado.
+El estudiante, tutor, universidad o sede docente registra las actividades desarrolladas en el marco del internado.
 
 El sistema debe permitir:
 
-1. Seleccionar interno.
+1. Seleccionar estudiante.
 2. Seleccionar internado activo.
 3. Asociar sede docente.
 4. Asociar rotación autorizada, si corresponde.
@@ -50,7 +50,7 @@ El sistema debe permitir:
 
 ### 3.3 Consulta y reporte
 
-El sistema permite consultar el historial de actividades por interno, sede, universidad, tutor, convenio, rotación y periodo.
+El sistema permite consultar el historial de actividades por estudiante, sede, universidad, tutor, convenio, rotación y periodo.
 
 El sistema debe permitir:
 
@@ -80,12 +80,12 @@ El sistema debe permitir:
 6. Toda actividad debe tener un tutor o docente responsable.
 7. Las actividades observadas pueden ser subsanadas.
 8. Las actividades validadas no deben modificarse sin registrar trazabilidad.
-9. El sistema debe impedir duplicidades evidentes según interno, fecha, sede, servicio y horario, si se define control horario.
+9. El sistema debe impedir duplicidades evidentes según estudiante, fecha, sede, servicio y horario, si se define control horario.
 10. Las evidencias documentales, si se usan, deben adjuntarse en PDF.
 
 ## 6. Actores del módulo
 
-1. Interno.
+1. Estudiante.
 2. Tutor o docente.
 3. Universidad.
 4. Sede docente o establecimiento de salud.
@@ -98,12 +98,12 @@ El sistema debe permitir:
 
 ### CU-DA-01: Registrar actividad docente-asistencial
 
-**Actor principal:** Interno, tutor, universidad o sede docente.  
+**Actor principal:** Estudiante, tutor, universidad o sede docente.  
 **Resultado:** Actividad registrada y pendiente de validación.
 
 ### CU-DA-02: Adjuntar evidencia de actividad
 
-**Actor principal:** Interno, tutor o universidad.  
+**Actor principal:** Estudiante, tutor o universidad.  
 **Resultado:** Evidencia PDF asociada a la actividad.
 
 ### CU-DA-03: Validar actividad
@@ -134,7 +134,7 @@ El sistema debe permitir:
 ## 8. Requerimientos funcionales
 
 - RF-DA-01: Registrar actividad docente-asistencial.
-- RF-DA-02: Asociar actividad a interno.
+- RF-DA-02: Asociar actividad a estudiante.
 - RF-DA-03: Asociar actividad a internado activo.
 - RF-DA-04: Asociar actividad a sede docente.
 - RF-DA-05: Asociar actividad a rotación autorizada, si corresponde.
@@ -149,7 +149,7 @@ El sistema debe permitir:
 - RF-DA-14: Observar actividad.
 - RF-DA-15: Rechazar actividad.
 - RF-DA-16: Subsanar actividad observada.
-- RF-DA-17: Consultar actividades por interno, sede, tutor, universidad, convenio, rotación y periodo.
+- RF-DA-17: Consultar actividades por estudiante, sede, tutor, universidad, convenio, rotación y periodo.
 - RF-DA-18: Generar reporte consolidado de actividades.
 - RF-DA-19: Exportar reporte a PDF o Excel.
 - RF-DA-20: Registrar trazabilidad de cambios.
@@ -160,5 +160,5 @@ El sistema debe permitir:
 2. El sistema debe responder eficientemente a consultas por periodo y sede.
 3. La información de actividades debe mantenerse íntegra y auditable.
 4. Los cambios sobre actividades validadas deben requerir permisos especiales.
-5. El sistema debe proteger datos personales del interno.
+5. El sistema debe proteger datos personales del estudiante.
 

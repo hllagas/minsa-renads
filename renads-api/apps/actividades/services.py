@@ -40,34 +40,34 @@ def _set_estado(actividad: TeachingActivity, codigo: str, usuario, observacion: 
 
 @transaction.atomic
 def registrar_actividad(*, datos: dict, usuario) -> TeachingActivity:
-    internado = datos["internado"]
+    internado = datos["interno"]
     fecha = datos["fecha_actividad"]
     rotacion = datos.get("rotacion")
 
     # RN-1: solo internados activos.
     if not internado.estado_actual_id or internado.estado_actual.codigo != "ACTIVO":
-        raise ValidationError({"internado": "El internado debe estar activo."})
+        raise ValidationError({"interno": "El internado debe estar activo."})
     # RN-2: la actividad debe estar dentro del periodo del internado.
     if fecha < internado.fecha_inicio or fecha > internado.fecha_fin:
         raise ValidationError({"fecha_actividad": "Fuera del periodo del internado."})
     # RN-3/4: si hay rotación, debe pertenecer al internado y estar autorizada/en curso.
     if rotacion is not None:
-        if rotacion.internado_id != internado.id:
+        if rotacion.interno_id != internado.id:
             raise ValidationError({"rotacion": "La rotación no pertenece al internado."})
         if rotacion.estado_actual.codigo not in ROTACION_HABILITADA:
             raise ValidationError({"rotacion": "La rotación debe estar autorizada o en curso."})
     # RN-9: evitar duplicados evidentes.
     duplicado = TeachingActivity.objects.filter(
-        interno=datos["interno"], fecha_actividad=fecha,
+        estudiante=datos["estudiante"], fecha_actividad=fecha,
         ipress=datos["ipress"], servicio_area=datos["servicio_area"],
     ).exists()
     if duplicado:
-        raise ValidationError("Ya existe una actividad para ese interno, fecha, sede y servicio.")
+        raise ValidationError("Ya existe una actividad para ese estudiante, fecha, sede y servicio.")
 
     estado_inicial = _estado("REGISTRADA")
     actividad = TeachingActivity.objects.create(
-        interno=datos["interno"],
-        internado=internado,
+        estudiante=datos["estudiante"],
+        interno=internado,
         ipress=datos["ipress"],
         rotacion=rotacion,
         tutor=datos["tutor"],

@@ -8,7 +8,7 @@ from django.conf import settings
 from django.db import models
 
 from apps.convenios.models import Catalog, Ipress
-from apps.internados.models import Internship, Intern, Rotation, ServiceArea, Tutor
+from apps.internados.models import Internship, Student, Rotation, ServiceArea, Tutor
 
 
 # ---------------------------------------------------------------------------
@@ -32,11 +32,11 @@ class ActivityStatus(Catalog):
 # Actividad docente-asistencial
 # ---------------------------------------------------------------------------
 class TeachingActivity(models.Model):
-    interno = models.ForeignKey(
-        Intern, on_delete=models.PROTECT, db_column="interno_id", related_name="actividades", help_text="Interno",
+    estudiante = models.ForeignKey(
+        Student, on_delete=models.PROTECT, db_column="estudiante_id", related_name="actividades", help_text="Estudiante",
     )
-    internado = models.ForeignKey(
-        Internship, on_delete=models.PROTECT, db_column="internado_id", related_name="actividades", help_text="Internado activo",
+    interno = models.ForeignKey(
+        Internship, on_delete=models.PROTECT, db_column="interno_id", related_name="actividades", help_text="Interno activo",
     )
     ipress = models.ForeignKey(
         Ipress, on_delete=models.PROTECT, db_column="ipress_id", related_name="actividades", help_text="Sede docente",

@@ -2,7 +2,7 @@
 
 ## Contexto y alcance
 
-El módulo **Registrar Actividades Docente-Asistenciales** registra las actividades realizadas por los internos en una sede docente, como evidencia del cumplimiento de servicios, prácticas, rotaciones o actividades formativas supervisadas. Cada actividad se vincula a un **interno**, un **internado activo** (módulo 2), una **sede docente** (`ipress`), un **tutor** responsable, un periodo y —cuando corresponda— una **rotación autorizada** (módulo 2). El tutor valida, observa o rechaza cada actividad.
+El módulo **Registrar Actividades Docente-Asistenciales** registra las actividades realizadas por los estudiantes en una sede docente, como evidencia del cumplimiento de servicios, prácticas, rotaciones o actividades formativas supervisadas. Cada actividad se vincula a un **estudiante**, un **internado activo** (módulo 2), una **sede docente** (`ipress`), un **tutor** responsable, un periodo y —cuando corresponda— una **rotación autorizada** (módulo 2). El tutor valida, observa o rechaza cada actividad.
 
 ### Reglas de negocio clave (validación a nivel de aplicación)
 
@@ -12,7 +12,7 @@ El módulo **Registrar Actividades Docente-Asistenciales** registra las activida
 - Toda actividad se asocia a una **sede docente** (RN-5) y a un **tutor** responsable (RN-6).
 - Las actividades **observadas** pueden ser **subsanadas** (RN-7).
 - Las actividades **validadas** no se modifican sin registrar trazabilidad (RN-8); requieren permisos especiales (RNF-4).
-- Control de **duplicidad** por interno, fecha, sede, servicio y horario (RN-9).
+- Control de **duplicidad** por estudiante, fecha, sede, servicio y horario (RN-9).
 - Evidencias documentales en **PDF** en repositorio externo (RN-10).
 
 > **Convenciones (heredadas):** tablas/columnas/descripciones en **español**; adjuntos en **repositorio externo** (solo `referencia_externa`); se reutilizan tablas nativas de Django y tablas de los **módulos 1 y 2**.
@@ -27,8 +27,8 @@ El módulo **Registrar Actividades Docente-Asistenciales** registra las activida
 ### De módulos 1 y 2
 | Tabla | Origen | Uso en el módulo 3 |
 |-------|--------|--------------------|
-| `interno` | Módulo 2 | Interno que realiza la actividad |
-| `internado` | Módulo 2 | Internado activo al que pertenece |
+| `estudiante` | Módulo 2 | Estudiante que realiza la actividad |
+| `interno` | Módulo 2 | Interno (registro de internado) activo al que pertenece |
 | `rotacion` | Módulo 2 | Rotación autorizada asociada (opcional) |
 | `tutor` | Módulo 2 | Tutor / docente supervisor |
 | `ipress` | Módulo 1 | Sede docente |
@@ -59,8 +59,8 @@ Patrón común: `id` (PK), `codigo` (varchar, único), `nombre` (varchar), `acti
 | Columna | Tipo | Null | Descripción |
 |---------|------|------|-------------|
 | `id` | PK | No | |
-| `interno_id` | FK → `interno` | No | Interno |
-| `internado_id` | FK → `internado` | No | Internado activo |
+| `estudiante_id` | FK → `estudiante` | No | Estudiante |
+| `interno_id` | FK → `interno` | No | Interno (internado) activo |
 | `ipress_id` | FK → `ipress` | No | Sede docente |
 | `rotacion_id` | FK → `rotacion` | Sí | Rotación autorizada asociada (si corresponde) |
 | `tutor_id` | FK → `tutor` | No | Tutor / docente responsable |
@@ -108,8 +108,8 @@ Se reutiliza la tabla `documento` (módulo 1, relación genérica vía `django_c
 ## 5. Mapa de relaciones
 
 ```
-actividad_docente_asistencial >── interno (módulo 2)
-actividad_docente_asistencial >── internado (módulo 2, activo)
+actividad_docente_asistencial >── estudiante (módulo 2)
+actividad_docente_asistencial >── interno (módulo 2, activo)
 actividad_docente_asistencial >── ipress (módulo 1, sede docente)
 actividad_docente_asistencial >── rotacion (módulo 2, opcional)
 actividad_docente_asistencial >── tutor (módulo 2)
@@ -127,13 +127,13 @@ bitacora_auditoria >── django_content_type  (genérico)
 
 ## 6. Trazabilidad de requerimientos
 
-- **RN-1 (solo internados activos):** validación sobre `internado.estado_actual_id = ACTIVO`.
-- **RN-2 (periodo vigente):** validación de `fecha_actividad` contra fechas del `internado`.
+- **RN-1 (solo internados activos):** validación sobre `interno.estado_actual_id = ACTIVO`.
+- **RN-2 (periodo vigente):** validación de `fecha_actividad` contra fechas del `interno`.
 - **RN-3/4 (rotación autorizada):** `actividad.rotacion_id` debe referir una `rotacion` en estado `AUTORIZADA`/`EN_CURSO`.
 - **RN-5/6 (sede y tutor):** `ipress_id` y `tutor_id` no nulos.
 - **RN-7 (subsanación):** estado `OBSERVADA` → `SUBSANADA` en `historial_estado_actividad`.
 - **RN-8 (validadas no se modifican sin trazabilidad):** `historial_estado_actividad` + `bitacora_auditoria`; permisos vía `auth_permission`.
-- **RN-9 (duplicidad):** validación por (`interno_id`, `fecha_actividad`, `ipress_id`, `servicio_area_id`).
+- **RN-9 (duplicidad):** validación por (`estudiante_id`, `fecha_actividad`, `ipress_id`, `servicio_area_id`).
 - **RN-10 (evidencia PDF):** `documento` con `referencia_externa`.
 - **RF-DA-13/14/15/16 (validar/observar/rechazar/subsanar):** `validacion_actividad` + `estado_actividad`.
 - **RF-DA-17/18/19 (consultas, consolidado, exportación PDF/Excel):** lectura sobre `actividad_docente_asistencial` con joins a módulos 1 y 2.

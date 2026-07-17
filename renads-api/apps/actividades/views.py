@@ -49,14 +49,14 @@ class TeachingActivityViewSet(viewsets.ModelViewSet):
     def _read(self, actividad) -> Response:
         return Response(TeachingActivityReadSerializer(actividad).data)
 
-    def _verificar_ambito(self, interno, ipress):
+    def _verificar_ambito(self, estudiante, ipress):
         user = self.request.user
         if user.is_superuser or user.groups.filter(name="Administrador RENADS").exists():
             return
         ct_uni = ContentType.objects.get_for_model(University).id
         ct_ip = ContentType.objects.get_for_model(Ipress).id
         if not (
-            usuario_pertenece_a_entidad(user, ct_uni, interno.universidad_id)
+            usuario_pertenece_a_entidad(user, ct_uni, estudiante.universidad_id)
             or usuario_pertenece_a_entidad(user, ct_ip, ipress.id)
         ):
             raise PermissionDenied("La actividad está fuera de tu ámbito institucional.")
@@ -65,7 +65,7 @@ class TeachingActivityViewSet(viewsets.ModelViewSet):
         exigir_roles(request, "Universidad", "Tutor", "Sede docente")
         ser = TeachingActivityWriteSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        self._verificar_ambito(ser.validated_data["interno"], ser.validated_data["ipress"])
+        self._verificar_ambito(ser.validated_data["estudiante"], ser.validated_data["ipress"])
         actividad = services.registrar_actividad(datos=ser.validated_data, usuario=request.user)
         return Response(TeachingActivityReadSerializer(actividad).data, status=201)
 

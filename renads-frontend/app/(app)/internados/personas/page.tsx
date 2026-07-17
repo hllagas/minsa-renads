@@ -11,11 +11,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-/** Índice de personas del módulo Internados (internos, tutores). */
+/** Índice de personas del módulo Internados (estudiantes, tutores). */
 export default function PersonasPage() {
   return (
     <div>
-      <PageHeader title="Personas" description="Internos y tutores." />
+      <PageHeader title="Personas" description="Estudiantes y tutores." />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {PERSON_MENU.map((e) => (
           <Link key={e.slug} href={`/internados/personas/${e.slug}`}>

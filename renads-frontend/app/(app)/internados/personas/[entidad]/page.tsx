@@ -7,7 +7,7 @@ import { PERSON_CONFIGS } from "@/lib/internados/persons";
 import { ResourceCrud } from "@/components/crud/resource-crud";
 import { Button } from "@/components/ui/button";
 
-/** CRUD de una persona (interno/tutor), resuelta por el slug de la ruta. */
+/** CRUD de una persona (estudiante/tutor), resuelta por el slug de la ruta. */
 export default function PersonaPage() {
   const params = useParams<{ entidad: string }>();
   const config = PERSON_CONFIGS[params.entidad];

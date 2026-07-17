@@ -52,7 +52,7 @@ export default function ActividadDetallePage() {
         </Link>
       </div>
       <PageHeader
-        title={`Actividad de ${a.interno}`}
+        title={`Actividad de ${a.estudiante}`}
         description={a.tipo_actividad}
         actions={
           <Button
@@ -91,7 +91,7 @@ export default function ActividadDetallePage() {
             </CardHeader>
             <CardContent>
               <dl className="grid grid-cols-2 gap-4 md:grid-cols-3">
-                <Dato label="Interno" value={a.interno} />
+                <Dato label="Estudiante" value={a.estudiante} />
                 <Dato label="Sede (IPRESS)" value={a.ipress} />
                 <Dato label="Tutor" value={a.tutor} />
                 <Dato label="Tipo" value={a.tipo_actividad} />

@@ -268,6 +268,10 @@ class Ipress(models.Model):
         HealthGeographicScope, on_delete=models.PROTECT, db_column="ambito_geografico_sanitario_id",
         help_text="Ámbito geográfico sanitario",
     )
+    es_sede_docente = models.BooleanField(
+        "es sede docente", default=False,
+        help_text="Autorizada por CONAPRES como sede docente (asistencial, MINSA/FF.AA.-FF.PP., pública)",
+    )
     activo = models.BooleanField("activo", default=True)
 
     class Meta:

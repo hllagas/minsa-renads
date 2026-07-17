@@ -10,13 +10,13 @@ const personColumns = [
   { key: "activo", header: "Activo", render: (r: Record<string, unknown>) => siNo(r.activo) },
 ];
 
-/** Configuración de personas del módulo Internados (interns, tutors). */
+/** Configuración de personas del módulo Internados (students, tutors). */
 export const PERSON_CONFIGS: Record<string, ResourceConfig> = {
-  interns: {
-    endpoint: "interns",
-    title: "Internos",
-    singular: "interno",
-    description: "Estudiantes en internado.",
+  students: {
+    endpoint: "students",
+    title: "Estudiantes",
+    singular: "estudiante",
+    description: "Estudiantes en proceso de internado.",
     searchPlaceholder: "Buscar por documento o nombres…",
     writeRoles: WRITE,
     columns: personColumns,
@@ -64,9 +64,30 @@ export const PERSON_CONFIGS: Record<string, ResourceConfig> = {
       },
       { name: "codigo_universitario", label: "Código universitario", type: "text" },
       { name: "anio_academico", label: "Año académico", type: "number" },
+      {
+        name: "nota_promedio_ponderado",
+        label: "Nota promedio ponderado (0–20)",
+        type: "number",
+      },
       { name: "correo", label: "Correo", type: "email" },
       { name: "telefono", label: "Teléfono", type: "text" },
       { name: "direccion", label: "Dirección", type: "text" },
+      {
+        name: "contacto_emergencia_nombre",
+        label: "Contacto de emergencia — nombre",
+        type: "text",
+      },
+      {
+        name: "contacto_emergencia_telefono",
+        label: "Contacto de emergencia — teléfono",
+        type: "text",
+      },
+      {
+        name: "contacto_emergencia_parentesco",
+        label: "Contacto de emergencia — parentesco",
+        type: "select",
+        optionsEndpoint: "relationship-types",
+      },
       { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
     ],
   },
@@ -108,6 +129,6 @@ export const PERSON_CONFIGS: Record<string, ResourceConfig> = {
 };
 
 export const PERSON_MENU: { slug: string; title: string }[] = [
-  { slug: "interns", title: "Internos" },
+  { slug: "students", title: "Estudiantes" },
   { slug: "tutors", title: "Tutores" },
 ];

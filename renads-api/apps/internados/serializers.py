@@ -3,7 +3,7 @@
 from rest_framework import serializers
 
 from apps.internados.models import (
-    Intern,
+    Student,
     Internship,
     InternshipStatusHistory,
     Rotation,
@@ -14,11 +14,17 @@ from apps.internados.models import (
 )
 
 
-class InternSerializer(serializers.ModelSerializer):
+class StudentSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Intern
+        model = Student
         fields = "__all__"
         read_only_fields = ["creado_por", "creado_en"]
+
+
+class StudentBulkUploadSerializer(serializers.Serializer):
+    """Entrada de la carga masiva de estudiantes (RN-16): archivo Excel `.xlsx`."""
+
+    archivo = serializers.FileField(help_text="Archivo Excel (.xlsx) con los estudiantes a registrar")
 
 
 class TutorSerializer(serializers.ModelSerializer):
@@ -31,7 +37,7 @@ class TutorSerializer(serializers.ModelSerializer):
 # Internado
 # ---------------------------------------------------------------------------
 class InternshipReadSerializer(serializers.ModelSerializer):
-    interno = serializers.StringRelatedField(read_only=True)
+    estudiante = serializers.StringRelatedField(read_only=True)
     convenio = serializers.CharField(source="convenio.titulo", read_only=True)
     ipress = serializers.CharField(source="ipress.nombre", read_only=True)
     tutor = serializers.StringRelatedField(read_only=True)
@@ -41,7 +47,7 @@ class InternshipReadSerializer(serializers.ModelSerializer):
     class Meta:
         model = Internship
         fields = [
-            "id", "interno", "convenio", "campo_clinico", "ipress", "tutor",
+            "id", "estudiante", "convenio", "campo_clinico", "ipress", "tutor",
             "ambito_geografico_sanitario", "estado_actual", "estado_codigo",
             "fecha_inicio", "fecha_fin", "observaciones",
             "creado_por", "creado_en", "actualizado_en",
@@ -52,7 +58,7 @@ class InternshipWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Internship
         fields = [
-            "interno", "convenio", "campo_clinico", "ipress", "tutor",
+            "estudiante", "convenio", "campo_clinico", "ipress", "tutor",
             "ambito_geografico_sanitario", "fecha_inicio", "fecha_fin", "observaciones",
         ]
 
@@ -96,7 +102,7 @@ class RotationReadSerializer(serializers.ModelSerializer):
     class Meta:
         model = Rotation
         fields = [
-            "id", "internado", "numero_rotacion", "ipress_origen", "ipress_destino",
+            "id", "interno", "numero_rotacion", "ipress_origen", "ipress_destino",
             "servicio_area", "estado_actual", "estado_codigo",
             "fecha_inicio", "fecha_fin", "observaciones", "creado_por", "creado_en",
         ]

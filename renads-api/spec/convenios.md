@@ -48,17 +48,21 @@ Exponer vía DRF (bajo `/api/v1/`) los recursos del módulo: catálogos (solo le
 Toda escritura corre en `transaction.atomic()`, registra en `bitacora_auditoria` (helper común) y, si cambia estado, en `historial_estado_convenio`.
 
 - **T3.1** `crear_convenio(datos, usuario)`:
-  - **RN-3:** si `tipo_convenio == ESPECIFICO`, exige `convenio_marco` existente y **vigente** (estado en {`VIGENTE`,`PUBLICADO`,`SUSCRITO`}); si no, error de validación.
+  - **Solicitante de Marco:** solo **GERESA** o **DIRESA** pueden solicitar `tipo_convenio == MARCO` (derivar de `organo_regional → tipo_organo_regional`); rechazar si es DIRIS u otra entidad.
+  - **RN-3:** si `tipo_convenio == ESPECIFICO`, exige `convenio_marco` existente y **vigente** (estado en {`VIGENTE`,`PUBLICADO`,`SUSCRITO`}). **Excepción DIRIS:** si la solicitante es una **DIRIS**, `convenio_marco` es opcional (no se exige Marco).
   - Calcular `fecha_fin = fecha_inicio + anios_vigencia` del tipo (4 Marco / 3 Específico) cuando haya `fecha_inicio`.
   - Estado inicial `SOLICITUD_REGISTRADA`; `creado_por = usuario`.
 - **T3.2** `cambiar_estado(convenio, nuevo_estado_codigo, usuario, observacion="")`: valida que el estado exista; respeta `aplica_a` (estados `ESPECIFICO` solo para específicos); actualiza `estado_actual` y registra historial + auditoría.
 - **T3.3** `registrar_evaluacion_tecnica(convenio, datos, usuario)`: crea `TechnicalEvaluation`; si `resultado=VALIDADO` mueve a `VALIDADO_TECNICAMENTE`, si `OBSERVADO` a `OBSERVADO_DIGEP`.
 - **T3.4** `registrar_opinion_conapres(convenio, datos, usuario)`: **solo Específico**; crea `ConapresOpinion`; ajusta estado (`PENDIENTE_CONAPRES`/`CONAPRES_FAVORABLE`/`CONAPRES_OBSERVADO`).
 - **T3.5** `definir_campo_clinico(convenio, datos, usuario)`: **solo Específico**; crea `ClinicalField`; al menos uno → estado `CAMPOS_CLINICOS_DEFINIDOS`. Validar que `cantidad_maxima ≤ convenio.max_campos_clinicos` si está definido.
-- **T3.6** `registrar_opinion_juridica(convenio, datos, usuario)`: crea `LegalOpinion`; ajusta estado (`OGAJ_FAVORABLE`/`OGAJ_OBSERVADO`).
+  - **Total por sede/carrera (CONAPRES):** el tope global de campos clínicos por `ipress` + `carrera_profesional` lo autoriza CONAPRES; la suma de `cantidad_maxima` asignada por universidad no debe excederlo.
+  - **Asignación por universidad (GERESA/DIRESA/DIRIS):** `cantidad_maxima` de cada `ClinicalField` corresponde a la cantidad asignada a la universidad para esa sede/carrera, en el mismo ámbito geográfico sanitario.
+- **T3.6** `registrar_opinion_juridica(convenio, datos, usuario)`: **solo Marco** (rechazar si `tipo_convenio != MARCO`); crea `LegalOpinion`; ajusta estado (`OGAJ_FAVORABLE`/`OGAJ_OBSERVADO`).
 - **T3.7** `registrar_firma(convenio, datos, usuario)`: **bloquea si hay observaciones pendientes** (evaluación técnica `OBSERVADO`, opinión CONAPRES/OGAJ `OBSERVADO` sin subsanar); crea `Signature` y avanza estado según firmante (`FIRMADO_MINSA`/`FIRMADO_EXTERNOS`).
 - **T3.8** `publicar_convenio(convenio, datos, usuario)`: crea `Publication`; estado `PUBLICADO`→`VIGENTE`.
 - **T3.9** `agregar_participante(convenio, datos)` / `quitar_participante`.
+- **T3.10** `autorizar_sede_docente(ipress, usuario, autorizar=True)` (rol **CONAPRES**): registra la IPRESS como sede docente (flag `ipress.es_sede_docente`) tras verificar los criterios (establecimiento **asistencial**, del **MINSA** o **sanidad de FF.AA./FF.PP.**, gestión **pública**). Solo una `ipress` con `es_sede_docente=True` puede usarse en `ClinicalField` (validado en T3.5). **Endpoint:** `POST /api/v1/ipress/{id}/autorizar-sede-docente/` (body `{autorizar: bool}`).
 
 **Criterio:** cada RN del §6 del módulo está cubierta por un service; ningún cambio de estado ocurre fuera de services; auditoría e historial siempre registrados.
 
@@ -110,7 +114,7 @@ Toda escritura corre en `transaction.atomic()`, registra en `bitacora_auditoria`
 
 ## Referencias
 
-- **Reglas de negocio (§6 del módulo 1):** RN-3 (Específico→Marco vigente) → T3.1; CONAPRES/campos clínicos solo Específico → T3.4/T3.5; no firmar con observaciones pendientes → T3.7; trazabilidad de estados → T3.2 + `ConventionStatusHistory`; versionado documental → T4.5/`Document`.
+- **Reglas de negocio (§6 del módulo 1):** RN-3 (Específico→Marco vigente, **excepción DIRIS**) → T3.1; solicitud de Marco solo GERESA/DIRESA → T3.1; CONAPRES/campos clínicos solo Específico → T3.4/T3.5; **OGAJ solo Marco** → T3.6; **autorización de sede docente por CONAPRES** → T3.10; **asignación de campos clínicos** (total CONAPRES por sede/carrera; cantidad por universidad GERESA/DIRESA/DIRIS) → T3.5; no firmar con observaciones pendientes → T3.7; trazabilidad de estados → T3.2 + `ConventionStatusHistory`; versionado documental → T4.5/`Document`.
 - **Requerimientos funcionales:** RF-CV-01..26 (registro, evaluación, opiniones, campos clínicos, firmas, publicación, vigencia, trazabilidad, reportes/consulta).
 - **Schema:** tablas y columnas exactas en `docs/db_schema_modulo_01_convenios.md`. No inventar campos.
 - **Auth/permisos base:** `apps/common/permissions.py`, `apps/common/selectors.py`.

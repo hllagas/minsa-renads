@@ -4,7 +4,7 @@ import type { WithId } from "@/lib/api/query";
 const tutorLabel = (row: WithId) =>
   `${row.nombres ?? ""} ${row.apellido_paterno ?? ""} (${row.numero_documento ?? row.id})`.trim();
 
-/** Acciones de flujo del internado (`internships/{id}/{key}/`). */
+/** Acciones de flujo del internado (`interns/{id}/{key}/`). */
 export const INTERNSHIP_ACTIONS: FlowAction[] = [
   {
     key: "cambiar-estado",

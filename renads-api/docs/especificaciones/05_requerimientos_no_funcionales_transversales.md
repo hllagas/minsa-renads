@@ -5,7 +5,7 @@
 - RNF-SEG-01: El sistema debe implementar autenticación de usuarios.
 - RNF-SEG-02: El sistema debe implementar autorización basada en roles y perfiles institucionales.
 - RNF-SEG-03: El sistema debe restringir el acceso a información según entidad, rol y ámbito de competencia.
-- RNF-SEG-04: El sistema debe proteger datos personales de internos, tutores y representantes institucionales.
+- RNF-SEG-04: El sistema debe proteger datos personales de estudiantes, tutores y representantes institucionales.
 - RNF-SEG-05: El sistema debe usar comunicación segura mediante HTTPS.
 - RNF-SEG-06: El sistema debe registrar intentos fallidos de autenticación.
 - RNF-SEG-07: El sistema debe permitir expiración automática de sesión.
@@ -36,7 +36,7 @@
 ## 5. Rendimiento
 
 - RNF-REN-01: Las consultas frecuentes deben responder en tiempos adecuados para uso operativo.
-- RNF-REN-02: Los filtros por convenio, universidad, región, sede, interno y periodo deben ser eficientes.
+- RNF-REN-02: Los filtros por convenio, universidad, región, sede, estudiante y periodo deben ser eficientes.
 - RNF-REN-03: La carga y descarga de documentos PDF debe manejar archivos de tamaño definido por política del sistema.
 - RNF-REN-04: El sistema debe soportar concurrencia de múltiples entidades a nivel nacional.
 

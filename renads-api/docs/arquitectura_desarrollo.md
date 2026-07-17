@@ -117,7 +117,7 @@ ORM Django  →  PostgreSQL / SQLite
 ```
 
 - **Service:** recibe datos ya validados de forma, aplica **reglas de negocio**, persiste en transacción, registra auditoría y cambia estado/historial. Ejemplo: `crear_rotacion(internado, datos, usuario)`.
-- **Selector:** encapsula lecturas reutilizables con alcance/filtros. Ejemplo: `listar_internos_por_universidad(usuario)`.
+- **Selector:** encapsula lecturas reutilizables con alcance/filtros. Ejemplo: `listar_estudiantes_por_universidad(usuario)`.
 
 ---
 
@@ -163,7 +163,7 @@ Baseline: `IsAuthenticated` + `DjangoModelPermissions` + permiso de alcance por 
 - **Versionado:** prefijo `/api/v1/`. Routers DRF por app.
 - **Recursos (ejemplos):**
   - `/api/v1/convenios/convenios/`, `/api/v1/convenios/campos-clinicos/`
-  - `/api/v1/internados/internos/`, `/api/v1/internados/rotaciones/`
+  - `/api/v1/internados/students/`, `/api/v1/internados/rotaciones/`
   - `/api/v1/actividades/actividades/`
 - **Serializers:** `ModelSerializer`; separar lectura/escritura cuando difieran (p. ej. `ConvenioReadSerializer` / `ConvenioWriteSerializer`).
 - **Acciones de flujo:** endpoints de acción para transiciones de estado (p. ej. `POST /convenios/{id}/validar-tecnica/`, `POST /rotaciones/{id}/autorizar/`), que invocan un service.
@@ -184,10 +184,10 @@ Baseline: `IsAuthenticated` + `DjangoModelPermissions` + permiso de alcance por 
 |-------|--------|---------|
 | Específico requiere Marco vigente (RN-3, M1) | convenios | `convenios.services.crear_convenio` |
 | No firmar con observaciones pendientes | convenios | `convenios.services.registrar_firma` |
-| Interno sobre Convenio Específico vigente | internados | `internados.services.crear_internado` |
+| Estudiante sobre Convenio Específico vigente | internados | `internados.services.crear_internado` |
 | Duración internado ≤ 1 año | internados | `internados.services.crear_internado` |
 | Rotación mismo ámbito geográfico sanitario | internados | `internados.services.crear_rotacion` |
-| Máximo 4 rotaciones por interno | internados | `internados.services.crear_rotacion` |
+| Máximo 4 rotaciones por estudiante | internados | `internados.services.crear_rotacion` |
 | Rotación no inicia sin autorización | internados | `internados.services.autorizar_rotacion` / `iniciar_rotacion` |
 | No exceder campos clínicos autorizados | internados | `internados.services.crear_internado` |
 | Cambio de tutor con fecha/motivo/responsable | internados | `internados.services.cambiar_tutor` |
@@ -246,7 +246,7 @@ class DocumentStorage(Protocol):
 1. **Base técnica:** dependencias nuevas, `config/settings/` por entorno, `.env`/`.env.example`, migrar `SECRET_KEY`, registrar DRF/JWT/spectacular en `INSTALLED_APPS`, configurar `DATABASE_URL` Postgres, montar `/api/v1/` y OpenAPI.
 2. **Autenticación y usuarios:** JWT, grupos/roles, `perfil_usuario_entidad`, permisos de alcance institucional.
 3. **Módulo `convenios` end-to-end:** serializers, services (flujo + RN), selectors, permisos, filtros, endpoints de acción de estado, pruebas.
-4. **Módulo `internados`:** internos, internados, rotaciones, autorizaciones (RN críticas), pruebas.
+4. **Módulo `internados`:** estudiantes, internados, rotaciones, autorizaciones (RN críticas), pruebas.
 5. **Módulo `actividades`:** registro y validación de actividades, pruebas.
 6. **Adjuntos:** integrar el repositorio externo real vía `DocumentStorage`.
 

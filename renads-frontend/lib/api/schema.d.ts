@@ -944,10 +944,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de internos. Escritura por rol Universidad/Administrador; alcance por universidad. */
+        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
         get: operations["interns_list"];
         put?: never;
-        /** @description CRUD de internos. Escritura por rol Universidad/Administrador; alcance por universidad. */
+        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
         post: operations["interns_create"];
         delete?: never;
         options?: never;
@@ -962,17 +962,86 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de internos. Escritura por rol Universidad/Administrador; alcance por universidad. */
+        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
         get: operations["interns_retrieve"];
-        /** @description CRUD de internos. Escritura por rol Universidad/Administrador; alcance por universidad. */
+        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
         put: operations["interns_update"];
         post?: never;
-        /** @description CRUD de internos. Escritura por rol Universidad/Administrador; alcance por universidad. */
+        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
         delete: operations["interns_destroy"];
         options?: never;
         head?: never;
-        /** @description CRUD de internos. Escritura por rol Universidad/Administrador; alcance por universidad. */
+        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
         patch: operations["interns_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/interns/{id}/cambiar-estado/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        post: operations["interns_cambiar_estado_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interns/{id}/cambiar-tutor/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        post: operations["interns_cambiar_tutor_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interns/{id}/historial/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        get: operations["interns_historial_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interns/{id}/rotaciones/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        get: operations["interns_rotaciones_retrieve"];
+        put?: never;
+        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        post: operations["interns_rotaciones_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/internship-statuses/": {
@@ -1001,113 +1070,6 @@ export interface paths {
         get: operations["internship_statuses_retrieve"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/internships/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
-        get: operations["internships_list"];
-        put?: never;
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
-        post: operations["internships_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/internships/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
-        get: operations["internships_retrieve"];
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
-        put: operations["internships_update"];
-        post?: never;
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
-        delete: operations["internships_destroy"];
-        options?: never;
-        head?: never;
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
-        patch: operations["internships_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/internships/{id}/cambiar-estado/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
-        post: operations["internships_cambiar_estado_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/internships/{id}/cambiar-tutor/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
-        post: operations["internships_cambiar_tutor_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/internships/{id}/historial/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
-        get: operations["internships_historial_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/internships/{id}/rotaciones/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
-        get: operations["internships_rotaciones_retrieve"];
-        put?: never;
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
-        post: operations["internships_rotaciones_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1498,6 +1460,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/relationship-types/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["relationship_types_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/relationship-types/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["relationship_types_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/representatives/": {
         parameters: {
             query?: never;
@@ -1784,6 +1778,44 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/students/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad. */
+        get: operations["students_list"];
+        put?: never;
+        /** @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad. */
+        post: operations["students_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/students/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad. */
+        get: operations["students_retrieve"];
+        /** @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad. */
+        put: operations["students_update"];
+        post?: never;
+        /** @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad. */
+        delete: operations["students_destroy"];
+        options?: never;
+        head?: never;
+        /** @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad. */
+        patch: operations["students_partial_update"];
         trace?: never;
     };
     "/api/v1/teaching-activities/": {
@@ -2733,73 +2765,9 @@ export interface components {
             /** @description Indica si está activo */
             activo?: boolean;
         };
-        Intern: {
-            readonly id: number;
-            /**
-             * Número de documento
-             * @description Número de documento de identidad
-             */
-            numero_documento: string;
-            /** @description Nombres */
-            nombres: string;
-            /** @description Apellido paterno */
-            apellido_paterno: string;
-            /** @description Apellido materno */
-            apellido_materno?: string;
-            /**
-             * Fecha de nacimiento
-             * Format: date
-             * @description Fecha de nacimiento
-             */
-            fecha_nacimiento?: string | null;
-            /**
-             * @description M / F
-             *
-             *     * `M` - Masculino
-             *     * `F` - Femenino
-             */
-            sexo?: components["schemas"]["SexoEnum"] | components["schemas"]["BlankEnum"];
-            /** @description Correo electrónico */
-            correo?: string;
-            /**
-             * Teléfono
-             * @description Teléfono
-             */
-            telefono?: string;
-            /**
-             * Dirección
-             * @description Dirección
-             */
-            direccion?: string;
-            /**
-             * Código universitario
-             * @description Código universitario / matrícula
-             */
-            codigo_universitario?: string;
-            /**
-             * Año académico
-             * Format: int64
-             * @description Año académico
-             */
-            anio_academico?: number | null;
-            activo?: boolean;
-            /** Format: date-time */
-            readonly creado_en: string;
-            /** @description Tipo de documento */
-            tipo_documento_identidad: number;
-            /** @description Ubicación geográfica (UBIGEO) */
-            ubigeo?: number | null;
-            /** @description Universidad de procedencia */
-            universidad: number;
-            /** @description Carrera / programa */
-            carrera_profesional: number;
-            /** @description Especialidad (segunda especialidad) */
-            especialidad?: number | null;
-            readonly creado_por: number;
-        };
         InternshipRead: {
             readonly id: number;
-            readonly interno: string;
+            readonly estudiante: string;
             readonly convenio: string;
             /** @description Campo clínico autorizado asignado */
             campo_clinico: number;
@@ -2847,8 +2815,8 @@ export interface components {
             orden?: number;
         };
         InternshipWrite: {
-            /** @description Interno */
-            interno: number;
+            /** @description Estudiante */
+            estudiante: number;
             /** @description Convenio Específico vigente que lo respalda */
             convenio: number;
             /** @description Campo clínico autorizado asignado */
@@ -3250,21 +3218,6 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["IdentityDocumentTypeAuto"][];
         };
-        PaginatedInternList: {
-            /** @example 123 */
-            count: number;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=4
-             */
-            next?: string | null;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=2
-             */
-            previous?: string | null;
-            results: components["schemas"]["Intern"][];
-        };
         PaginatedInternshipReadList: {
             /** @example 123 */
             count: number;
@@ -3460,6 +3413,21 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["RejectionReasonAuto"][];
         };
+        PaginatedRelationshipTypeAutoList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["RelationshipTypeAuto"][];
+        };
         PaginatedRepresentativeList: {
             /** @example 123 */
             count: number;
@@ -3549,6 +3517,21 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["SpecialtyAuto"][];
+        };
+        PaginatedStudentList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Student"][];
         };
         PaginatedTeachingActivityReadList: {
             /** @example 123 */
@@ -3826,73 +3809,9 @@ export interface components {
             permissions?: number[];
             readonly permissions_detalle?: components["schemas"]["Permission"][];
         };
-        PatchedIntern: {
-            readonly id?: number;
-            /**
-             * Número de documento
-             * @description Número de documento de identidad
-             */
-            numero_documento?: string;
-            /** @description Nombres */
-            nombres?: string;
-            /** @description Apellido paterno */
-            apellido_paterno?: string;
-            /** @description Apellido materno */
-            apellido_materno?: string;
-            /**
-             * Fecha de nacimiento
-             * Format: date
-             * @description Fecha de nacimiento
-             */
-            fecha_nacimiento?: string | null;
-            /**
-             * @description M / F
-             *
-             *     * `M` - Masculino
-             *     * `F` - Femenino
-             */
-            sexo?: components["schemas"]["SexoEnum"] | components["schemas"]["BlankEnum"];
-            /** @description Correo electrónico */
-            correo?: string;
-            /**
-             * Teléfono
-             * @description Teléfono
-             */
-            telefono?: string;
-            /**
-             * Dirección
-             * @description Dirección
-             */
-            direccion?: string;
-            /**
-             * Código universitario
-             * @description Código universitario / matrícula
-             */
-            codigo_universitario?: string;
-            /**
-             * Año académico
-             * Format: int64
-             * @description Año académico
-             */
-            anio_academico?: number | null;
-            activo?: boolean;
-            /** Format: date-time */
-            readonly creado_en?: string;
-            /** @description Tipo de documento */
-            tipo_documento_identidad?: number;
-            /** @description Ubicación geográfica (UBIGEO) */
-            ubigeo?: number | null;
-            /** @description Universidad de procedencia */
-            universidad?: number;
-            /** @description Carrera / programa */
-            carrera_profesional?: number;
-            /** @description Especialidad (segunda especialidad) */
-            especialidad?: number | null;
-            readonly creado_por?: number;
-        };
         PatchedInternshipWrite: {
-            /** @description Interno */
-            interno?: number;
+            /** @description Estudiante */
+            estudiante?: number;
             /** @description Convenio Específico vigente que lo respalda */
             convenio?: number;
             /** @description Campo clínico autorizado asignado */
@@ -4034,6 +3953,87 @@ export interface components {
             tipo_contenido?: number;
             /** @description Cargo (catálogo) */
             cargo_ejecutivo?: number;
+        };
+        PatchedStudent: {
+            readonly id?: number;
+            /**
+             * Número de documento
+             * @description Número de documento de identidad
+             */
+            numero_documento?: string;
+            /** @description Nombres */
+            nombres?: string;
+            /** @description Apellido paterno */
+            apellido_paterno?: string;
+            /** @description Apellido materno */
+            apellido_materno?: string;
+            /**
+             * Fecha de nacimiento
+             * Format: date
+             * @description Fecha de nacimiento
+             */
+            fecha_nacimiento?: string | null;
+            /**
+             * @description M / F
+             *
+             *     * `M` - Masculino
+             *     * `F` - Femenino
+             */
+            sexo?: components["schemas"]["SexoEnum"] | components["schemas"]["BlankEnum"];
+            /** @description Correo electrónico */
+            correo?: string;
+            /**
+             * Teléfono
+             * @description Teléfono
+             */
+            telefono?: string;
+            /**
+             * Dirección
+             * @description Dirección
+             */
+            direccion?: string;
+            /**
+             * Código universitario
+             * @description Código universitario / matrícula
+             */
+            codigo_universitario?: string;
+            /**
+             * Año académico
+             * Format: int64
+             * @description Año académico
+             */
+            anio_academico?: number | null;
+            /**
+             * Format: decimal
+             * @description Nota promedio ponderado (escala 0–20)
+             */
+            nota_promedio_ponderado?: string | null;
+            /**
+             * Contacto de emergencia - nombre
+             * @description Nombre del contacto de emergencia
+             */
+            contacto_emergencia_nombre?: string;
+            /**
+             * Contacto de emergencia - teléfono
+             * @description Teléfono del contacto de emergencia
+             */
+            contacto_emergencia_telefono?: string;
+            activo?: boolean;
+            /** Format: date-time */
+            readonly creado_en?: string;
+            /** @description Tipo de documento */
+            tipo_documento_identidad?: number;
+            /** @description Ubicación geográfica (UBIGEO) */
+            ubigeo?: number | null;
+            /** @description Universidad de procedencia */
+            universidad?: number;
+            /** @description Carrera / programa */
+            carrera_profesional?: number;
+            /** @description Especialidad (segunda especialidad) */
+            especialidad?: number | null;
+            /** @description Parentesco del contacto de emergencia */
+            contacto_emergencia_parentesco?: number | null;
+            readonly creado_por?: number;
         };
         PatchedTeachingActivityUpdate: {
             /**
@@ -4338,6 +4338,18 @@ export interface components {
             /** @description Indica si está activo */
             activo?: boolean;
         };
+        RelationshipTypeAuto: {
+            readonly id: number;
+            /**
+             * Código
+             * @description Código único
+             */
+            codigo: string;
+            /** @description Nombre */
+            nombre: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+        };
         /** @description Representante polimórfico; valida que apunte a una entidad permitida. */
         Representative: {
             readonly id: number;
@@ -4376,8 +4388,8 @@ export interface components {
         };
         RotationRead: {
             readonly id: number;
-            /** @description Internado */
-            internado: number;
+            /** @description Interno */
+            interno: number;
             /**
              * Número de rotación
              * Format: int64
@@ -4487,11 +4499,92 @@ export interface components {
             /** @description Indica si está activo */
             activo?: boolean;
         };
+        Student: {
+            readonly id: number;
+            /**
+             * Número de documento
+             * @description Número de documento de identidad
+             */
+            numero_documento: string;
+            /** @description Nombres */
+            nombres: string;
+            /** @description Apellido paterno */
+            apellido_paterno: string;
+            /** @description Apellido materno */
+            apellido_materno?: string;
+            /**
+             * Fecha de nacimiento
+             * Format: date
+             * @description Fecha de nacimiento
+             */
+            fecha_nacimiento?: string | null;
+            /**
+             * @description M / F
+             *
+             *     * `M` - Masculino
+             *     * `F` - Femenino
+             */
+            sexo?: components["schemas"]["SexoEnum"] | components["schemas"]["BlankEnum"];
+            /** @description Correo electrónico */
+            correo?: string;
+            /**
+             * Teléfono
+             * @description Teléfono
+             */
+            telefono?: string;
+            /**
+             * Dirección
+             * @description Dirección
+             */
+            direccion?: string;
+            /**
+             * Código universitario
+             * @description Código universitario / matrícula
+             */
+            codigo_universitario?: string;
+            /**
+             * Año académico
+             * Format: int64
+             * @description Año académico
+             */
+            anio_academico?: number | null;
+            /**
+             * Format: decimal
+             * @description Nota promedio ponderado (escala 0–20)
+             */
+            nota_promedio_ponderado?: string | null;
+            /**
+             * Contacto de emergencia - nombre
+             * @description Nombre del contacto de emergencia
+             */
+            contacto_emergencia_nombre?: string;
+            /**
+             * Contacto de emergencia - teléfono
+             * @description Teléfono del contacto de emergencia
+             */
+            contacto_emergencia_telefono?: string;
+            activo?: boolean;
+            /** Format: date-time */
+            readonly creado_en: string;
+            /** @description Tipo de documento */
+            tipo_documento_identidad: number;
+            /** @description Ubicación geográfica (UBIGEO) */
+            ubigeo?: number | null;
+            /** @description Universidad de procedencia */
+            universidad: number;
+            /** @description Carrera / programa */
+            carrera_profesional: number;
+            /** @description Especialidad (segunda especialidad) */
+            especialidad?: number | null;
+            /** @description Parentesco del contacto de emergencia */
+            contacto_emergencia_parentesco?: number | null;
+            readonly creado_por: number;
+        };
         TeachingActivityRead: {
             readonly id: number;
-            readonly interno: string;
-            /** @description Internado activo */
-            internado: number;
+            readonly estudiante: string;
+            /** @description Interno activo */
+            interno: number;
             readonly ipress: string;
             /** @description Rotación autorizada asociada (si corresponde) */
             rotacion?: number | null;
@@ -4540,10 +4633,10 @@ export interface components {
             servicio_area?: number;
         };
         TeachingActivityWrite: {
-            /** @description Interno */
+            /** @description Estudiante */
+            estudiante: number;
+            /** @description Interno activo */
             interno: number;
-            /** @description Internado activo */
-            internado: number;
             /** @description Sede docente */
             ipress: number;
             /** @description Rotación autorizada asociada (si corresponde) */
@@ -6937,7 +7030,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PaginatedInternList"];
+                    "application/json": components["schemas"]["PaginatedInternshipReadList"];
                 };
             };
         };
@@ -6951,9 +7044,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Intern"];
-                "application/x-www-form-urlencoded": components["schemas"]["Intern"];
-                "multipart/form-data": components["schemas"]["Intern"];
+                "application/json": components["schemas"]["InternshipWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["InternshipWrite"];
+                "multipart/form-data": components["schemas"]["InternshipWrite"];
             };
         };
         responses: {
@@ -6962,7 +7055,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Intern"];
+                    "application/json": components["schemas"]["InternshipWrite"];
                 };
             };
         };
@@ -6983,7 +7076,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Intern"];
+                    "application/json": components["schemas"]["InternshipRead"];
                 };
             };
         };
@@ -6999,9 +7092,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Intern"];
-                "application/x-www-form-urlencoded": components["schemas"]["Intern"];
-                "multipart/form-data": components["schemas"]["Intern"];
+                "application/json": components["schemas"]["InternshipWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["InternshipWrite"];
+                "multipart/form-data": components["schemas"]["InternshipWrite"];
             };
         };
         responses: {
@@ -7010,7 +7103,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Intern"];
+                    "application/json": components["schemas"]["InternshipWrite"];
                 };
             };
         };
@@ -7046,9 +7139,9 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["PatchedIntern"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedIntern"];
-                "multipart/form-data": components["schemas"]["PatchedIntern"];
+                "application/json": components["schemas"]["PatchedInternshipWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedInternshipWrite"];
+                "multipart/form-data": components["schemas"]["PatchedInternshipWrite"];
             };
         };
         responses: {
@@ -7057,7 +7150,130 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Intern"];
+                    "application/json": components["schemas"]["InternshipWrite"];
+                };
+            };
+        };
+    };
+    interns_cambiar_estado_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InternshipWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["InternshipWrite"];
+                "multipart/form-data": components["schemas"]["InternshipWrite"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternshipWrite"];
+                };
+            };
+        };
+    };
+    interns_cambiar_tutor_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InternshipWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["InternshipWrite"];
+                "multipart/form-data": components["schemas"]["InternshipWrite"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternshipWrite"];
+                };
+            };
+        };
+    };
+    interns_historial_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternshipWrite"];
+                };
+            };
+        };
+    };
+    interns_rotaciones_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternshipWrite"];
+                };
+            };
+        };
+    };
+    interns_rotaciones_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InternshipWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["InternshipWrite"];
+                "multipart/form-data": components["schemas"]["InternshipWrite"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternshipWrite"];
                 };
             };
         };
@@ -7107,275 +7323,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InternshipStatusAuto"];
-                };
-            };
-        };
-    };
-    internships_list: {
-        parameters: {
-            query?: {
-                /** @description Qué campo usar para ordenar los resultados. */
-                ordering?: string;
-                /** @description Un número de página dentro del conjunto de resultados paginado. */
-                page?: number;
-                /** @description Un término de búsqueda. */
-                search?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedInternshipReadList"];
-                };
-            };
-        };
-    };
-    internships_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["InternshipWrite"];
-                "application/x-www-form-urlencoded": components["schemas"]["InternshipWrite"];
-                "multipart/form-data": components["schemas"]["InternshipWrite"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InternshipWrite"];
-                };
-            };
-        };
-    };
-    internships_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InternshipRead"];
-                };
-            };
-        };
-    };
-    internships_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["InternshipWrite"];
-                "application/x-www-form-urlencoded": components["schemas"]["InternshipWrite"];
-                "multipart/form-data": components["schemas"]["InternshipWrite"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InternshipWrite"];
-                };
-            };
-        };
-    };
-    internships_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    internships_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedInternshipWrite"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedInternshipWrite"];
-                "multipart/form-data": components["schemas"]["PatchedInternshipWrite"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InternshipWrite"];
-                };
-            };
-        };
-    };
-    internships_cambiar_estado_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["InternshipWrite"];
-                "application/x-www-form-urlencoded": components["schemas"]["InternshipWrite"];
-                "multipart/form-data": components["schemas"]["InternshipWrite"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InternshipWrite"];
-                };
-            };
-        };
-    };
-    internships_cambiar_tutor_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["InternshipWrite"];
-                "application/x-www-form-urlencoded": components["schemas"]["InternshipWrite"];
-                "multipart/form-data": components["schemas"]["InternshipWrite"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InternshipWrite"];
-                };
-            };
-        };
-    };
-    internships_historial_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InternshipWrite"];
-                };
-            };
-        };
-    };
-    internships_rotaciones_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InternshipWrite"];
-                };
-            };
-        };
-    };
-    internships_rotaciones_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["InternshipWrite"];
-                "application/x-www-form-urlencoded": components["schemas"]["InternshipWrite"];
-                "multipart/form-data": components["schemas"]["InternshipWrite"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InternshipWrite"];
                 };
             };
         };
@@ -8439,6 +8386,55 @@ export interface operations {
             };
         };
     };
+    relationship_types_list: {
+        parameters: {
+            query?: {
+                activo?: boolean;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedRelationshipTypeAutoList"];
+                };
+            };
+        };
+    };
+    relationship_types_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de parentesco. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RelationshipTypeAuto"];
+                };
+            };
+        };
+    };
     representatives_list: {
         parameters: {
             query?: {
@@ -8953,6 +8949,152 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SpecialtyAuto"];
+                };
+            };
+        };
+    };
+    students_list: {
+        parameters: {
+            query?: {
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedStudentList"];
+                };
+            };
+        };
+    };
+    students_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Student"];
+                "application/x-www-form-urlencoded": components["schemas"]["Student"];
+                "multipart/form-data": components["schemas"]["Student"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Student"];
+                };
+            };
+        };
+    };
+    students_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Student"];
+                };
+            };
+        };
+    };
+    students_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Student"];
+                "application/x-www-form-urlencoded": components["schemas"]["Student"];
+                "multipart/form-data": components["schemas"]["Student"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Student"];
+                };
+            };
+        };
+    };
+    students_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    students_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedStudent"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedStudent"];
+                "multipart/form-data": components["schemas"]["PatchedStudent"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Student"];
                 };
             };
         };

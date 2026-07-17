@@ -178,7 +178,7 @@ const SCHEMA = [
       ["id","PK",false,"","pk",""],["unidad_ejecutora_id","FK",false,"Unidad ejecutora","fk","unidad_ejecutora"],
       ["nombre","varchar(255)",false,"Nombre del establecimiento","",""],["codigo_renipress","varchar(20)",true,"Código RENIPRESS","",""],
       ["direccion","varchar(500)",true,"Dirección","",""],["ubigeo_id","FK",true,"UBIGEO","fk","ubigeo"],
-      ["ambito_geografico_sanitario_id","FK",false,"Ámbito sanitario","fk","ambito_geografico_sanitario"],["activo","bool",false,"","",""]]},
+      ["ambito_geografico_sanitario_id","FK",false,"Ámbito sanitario","fk","ambito_geografico_sanitario"],["es_sede_docente","bool",false,"Autorizada por CONAPRES","",""],["activo","bool",false,"","",""]]},
   ]},
   { titulo:"Entidades — MINSA / CONAPRES", tablas:[
     {n:"organo_minsa", d:"DIGEP / OGAJ / SG / VICEPAS", cols:[
@@ -285,15 +285,19 @@ const SCHEMA = [
     {n:"estado_rotacion", d:"Estados de la rotación (8)", cols:[["orden","int",false,"SOLICITADA…CANCELADA","",""]]},
     {n:"servicio_area", d:"Servicio, área o unidad", cols:[]},
     {n:"tipo_documento_identidad", d:"DNI / CE / PASAPORTE", cols:[]},
+    {n:"parentesco", d:"Parentesco del contacto de emergencia (PADRE/MADRE/…)", cols:[]},
   ]},
   { titulo:"Personas", tablas:[
-    {n:"interno", cols:[
+    {n:"estudiante", cols:[
       ["id","PK",false,"","pk",""],["tipo_documento_identidad_id","FK",false,"Tipo doc.","fk","tipo_documento_identidad"],["numero_documento","varchar(20)",false,"","",""],
       ["nombres","varchar(150)",false,"","",""],["apellido_paterno","varchar(100)",false,"","",""],["apellido_materno","varchar(100)",true,"","",""],
       ["fecha_nacimiento","date",true,"","",""],["sexo","varchar(1)",true,"M/F","",""],["correo","varchar(255)",true,"","",""],["telefono","varchar(30)",true,"","",""],
       ["direccion","varchar(500)",true,"Dirección","",""],["ubigeo_id","FK",true,"UBIGEO","fk","ubigeo"],
-      ["universidad_id","FK",false,"Universidad","fk","universidad"],["carrera_profesional_id","FK",false,"Carrera","fk","carrera_profesional"],["especialidad_id","FK",true,"2da especialidad","fk","especialidad"],
-      ["codigo_universitario","varchar(50)",true,"","",""],["anio_academico","int",true,"","",""],["activo","bool",false,"","",""],["creado_por","FK",false,"","fk","auth_user"],["creado_en","datetime",false,"","",""],
+      ["universidad_id","FK",false,"Universidad","fk","universidad"],["carrera_profesional_id","FK",false,"Carrera","fk","carrera_profesional"],
+      ["codigo_universitario","varchar(50)",true,"","",""],["anio_academico","int",true,"","",""],
+      ["nota_promedio_ponderado","decimal(4,2)",true,"Escala 0–20","",""],
+      ["contacto_emergencia_nombre","varchar(255)",true,"Contacto de emergencia","",""],["contacto_emergencia_telefono","varchar(30)",true,"Contacto de emergencia","",""],["contacto_emergencia_parentesco_id","FK",true,"Parentesco","fk","parentesco"],
+      ["activo","bool",false,"","",""],["creado_por","FK",false,"","fk","auth_user"],["creado_en","datetime",false,"","",""],
       ["(tipo_documento_identidad_id, numero_documento)","unique",false,"Restricción de unicidad","uq",""]]},
     {n:"tutor", cols:[
       ["id","PK",false,"","pk",""],["tipo_documento_identidad_id","FK",false,"Tipo doc.","fk","tipo_documento_identidad"],["numero_documento","varchar(20)",false,"","",""],
@@ -303,21 +307,21 @@ const SCHEMA = [
       ["especialidad_id","FK",true,"Especialidad del tutor","fk","especialidad"],["ipress_id","FK",true,"Establecimiento","fk","ipress"],["activo","bool",false,"","",""]]},
   ]},
   { titulo:"Internado", tablas:[
-    {n:"internado", cols:[
-      ["id","PK",false,"","pk",""],["interno_id","FK",false,"Interno","fk","interno"],["convenio_id","FK",false,"Convenio Específico vigente","fk","convenio"],
+    {n:"interno", cols:[
+      ["id","PK",false,"","pk",""],["estudiante_id","FK",false,"Estudiante","fk","estudiante"],["convenio_id","FK",false,"Convenio Específico vigente","fk","convenio"],
       ["campo_clinico_id","FK",false,"Campo clínico asignado","fk","campo_clinico"],["ipress_id","FK",false,"Sede docente principal","fk","ipress"],["tutor_id","FK",false,"Tutor responsable","fk","tutor"],
       ["ambito_geografico_sanitario_id","FK",false,"Ámbito","fk","ambito_geografico_sanitario"],["estado_actual_id","FK",false,"Estado actual","fk","estado_internado"],
       ["fecha_inicio","date",false,"","",""],["fecha_fin","date",false,"Máx. 1 año","",""],["observaciones","text",true,"","",""],["creado_por","FK",false,"","fk","auth_user"],["creado_en","datetime",false,"","",""],["actualizado_en","datetime",false,"","",""]]},
     {n:"historial_estado_internado", d:"Trazabilidad (RN-15)", cols:[
-      ["id","PK",false,"","pk",""],["internado_id","FK",false,"","fk","internado"],["estado_id","FK",false,"","fk","estado_internado"],
+      ["id","PK",false,"","pk",""],["interno_id","FK",false,"","fk","interno"],["estado_id","FK",false,"","fk","estado_internado"],
       ["cambiado_por","FK",false,"Responsable","fk","auth_user"],["cambiado_en","datetime",false,"","",""],["observacion","text",true,"","",""]]},
     {n:"historial_tutor", d:"Cambio de tutor (RN-14)", cols:[
-      ["id","PK",false,"","pk",""],["internado_id","FK",false,"","fk","internado"],["tutor_id","FK",false,"Tutor asignado","fk","tutor"],
+      ["id","PK",false,"","pk",""],["interno_id","FK",false,"","fk","interno"],["tutor_id","FK",false,"Tutor asignado","fk","tutor"],
       ["fecha_cambio","date",false,"","",""],["motivo","text",false,"","",""],["responsable_id","FK",false,"Responsable","fk","auth_user"],["creado_en","datetime",false,"","",""]]},
   ]},
   { titulo:"Rotaciones", tablas:[
     {n:"rotacion", cols:[
-      ["id","PK",false,"","pk",""],["internado_id","FK",false,"","fk","internado"],["numero_rotacion","int",false,"1–4 (RN-9)","",""],
+      ["id","PK",false,"","pk",""],["interno_id","FK",false,"","fk","interno"],["numero_rotacion","int",false,"1–4 (RN-9)","",""],
       ["ipress_origen_id","FK",false,"Sede origen","fk","ipress"],["ipress_destino_id","FK",false,"Sede destino","fk","ipress"],["servicio_area_id","FK",false,"Servicio/área","fk","servicio_area"],
       ["estado_actual_id","FK",false,"Estado actual","fk","estado_rotacion"],["fecha_inicio","date",false,"","",""],["fecha_fin","date",false,"","",""],
       ["observaciones","text",true,"","",""],["creado_por","FK",false,"","fk","auth_user"],["creado_en","datetime",false,"","",""]]},
@@ -337,7 +341,7 @@ const SCHEMA = [
   ]},
   { titulo:"Actividad", tablas:[
     {n:"actividad_docente_asistencial", cols:[
-      ["id","PK",false,"","pk",""],["interno_id","FK",false,"Interno","fk","interno"],["internado_id","FK",false,"Internado activo","fk","internado"],
+      ["id","PK",false,"","pk",""],["estudiante_id","FK",false,"Estudiante","fk","estudiante"],["interno_id","FK",false,"Interno (internado) activo","fk","interno"],
       ["ipress_id","FK",false,"Sede docente","fk","ipress"],["rotacion_id","FK",true,"Rotación autorizada (opc.)","fk","rotacion"],["tutor_id","FK",false,"Tutor responsable","fk","tutor"],
       ["servicio_area_id","FK",false,"Servicio/área","fk","servicio_area"],["tipo_actividad_id","FK",false,"Tipo","fk","tipo_actividad"],["estado_actual_id","FK",false,"Estado actual","fk","estado_actividad"],
       ["fecha_actividad","date",false,"","",""],["descripcion","text",true,"","",""],["carga_horaria","decimal(5,2)",true,"Horas","",""],
@@ -352,7 +356,7 @@ const SCHEMA = [
 ]},
 ];
 
-const RELATIONS = `ubigeo (INEI distrital) >──< organo_regional / unidad_ejecutora / ipress / universidad / local_universidad / interno / tutor
+const RELATIONS = `ubigeo (INEI distrital) >──< organo_regional / unidad_ejecutora / ipress / universidad / local_universidad / estudiante / tutor
 gobierno_regional ──< organo_regional ──< unidad_ejecutora ──< ipress
 ipress >── ambito_geografico_sanitario
 representante >── django_content_type (organo_minsa/organo_regional/unidad_ejecutora/ipress/conapres) ; >── cargo_ejecutivo
@@ -367,14 +371,14 @@ convenio ──< participante_convenio / historial_estado_convenio
 convenio ──< evaluacion_tecnica / opinion_conapres* / campo_clinico* / opinion_juridica / firma / publicacion   (* solo Específico)
 campo_clinico >── ipress / carrera_profesional / especialidad / ambito_geografico_sanitario
 
-interno >── universidad / carrera_profesional / especialidad
-internado >── interno / convenio / campo_clinico / ipress / tutor / ambito_geografico_sanitario / estado_internado
-internado ──< historial_estado_internado / historial_tutor / rotacion
+estudiante >── universidad / carrera_profesional / especialidad / parentesco (contacto de emergencia)
+interno >── estudiante / convenio / campo_clinico / ipress / tutor / ambito_geografico_sanitario / estado_internado
+interno ──< historial_estado_internado / historial_tutor / rotacion
 rotacion >── ipress(origen) / ipress(destino) / servicio_area / estado_rotacion
 rotacion ──< autorizacion_rotacion >── participante_convenio
 rotacion ──< historial_estado_rotacion
 
-actividad_docente_asistencial >── interno / internado / ipress / rotacion(opc) / tutor / servicio_area / tipo_actividad / estado_actividad
+actividad_docente_asistencial >── estudiante / interno / ipress / rotacion(opc) / tutor / servicio_area / tipo_actividad / estado_actividad
 actividad_docente_asistencial ──< validacion_actividad / historial_estado_actividad
 
 documento          >── django_content_type  (genérico → cualquier tabla del flujo)

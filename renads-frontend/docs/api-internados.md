@@ -1,47 +1,51 @@
 # API — Módulo 2: Registrar Internados (`apps/internados`)
 
-Internos, tutores, internados, rotaciones y autorizaciones. Reutiliza modelos del módulo 1
-(`Convention`, `ClinicalField`, `Ipress`, `University`, `ConventionParticipant`).
-Base: `/api/v1/`. JWT requerido.
+Estudiantes, tutores, internos (proceso de internado), rotaciones y autorizaciones.
+Reutiliza modelos del módulo 1 (`Convention`, `ClinicalField`, `Ipress`, `University`,
+`ConventionParticipant`). Base: `/api/v1/`. JWT requerido.
+
+> **Terminología (contrato vigente):** `estudiante` = la persona (antes "interno");
+> `interno` = el registro del proceso de internado (antes "internado").
+> Rutas renombradas: `/internships/` → `/interns/` y `/interns/` → `/students/`.
 
 ## Reglas de negocio clave
 
-- **RN-2/3/4:** un internado solo se registra sobre **Convenio Específico vigente**
+- **RN-2/3/4:** un interno solo se registra sobre **Convenio Específico vigente**
   (`VIGENTE`/`PUBLICADO`/`SUSCRITO`); nunca sobre Marco.
 - **RN-5:** `tutor` obligatorio al crear.
 - **RN-6:** duración del internado ≤ 1 año.
-- **RN-8:** una rotación va entre IPRESS del **mismo ámbito geográfico sanitario** del internado.
+- **RN-8:** una rotación va entre IPRESS del **mismo ámbito geográfico sanitario** del interno.
 - **RN-9:** máximo **4 rotaciones** por interno.
 - **RN-10:** autorizar rotación solo una **autoridad firmante** del Convenio Específico.
 - **RN-11:** una rotación no inicia sin autorización aprobada.
 - **RN-14:** cambio de tutor queda registrado en historial (`TutorHistory`).
 
-## `internships`
+## `interns` (proceso de internado)
 
 | Método | Ruta | Rol | Notas |
 |--------|------|-----|-------|
-| GET | `/internships/` | autenticado (alcance) | filtros abajo |
-| GET | `/internships/{id}/` | autenticado (alcance) | |
-| POST | `/internships/` | `Universidad` | estado inicial `REGISTRADO` |
-| PUT/PATCH | `/internships/{id}/` | alcance | solo `ipress, observaciones, fecha_inicio, fecha_fin` |
-| POST | `/internships/{id}/cambiar-estado/` | `Administrador RENADS` | `{ estado_codigo, observacion? }` |
-| POST | `/internships/{id}/cambiar-tutor/` | `Universidad` | `{ tutor, fecha_cambio, motivo }` |
-| GET | `/internships/{id}/historial/` | autenticado | historial de estados |
-| GET·POST | `/internships/{id}/rotaciones/` | POST: `Universidad` | GET lista / POST crea rotación |
+| GET | `/interns/` | autenticado (alcance) | filtros abajo |
+| GET | `/interns/{id}/` | autenticado (alcance) | |
+| POST | `/interns/` | `Universidad` | estado inicial `REGISTRADO` |
+| PUT/PATCH | `/interns/{id}/` | alcance | solo `ipress, observaciones, fecha_inicio, fecha_fin` |
+| POST | `/interns/{id}/cambiar-estado/` | `Administrador RENADS` | `{ estado_codigo, observacion? }` |
+| POST | `/interns/{id}/cambiar-tutor/` | `Universidad` | `{ tutor, fecha_cambio, motivo }` |
+| GET | `/interns/{id}/historial/` | autenticado | historial de estados |
+| GET·POST | `/interns/{id}/rotaciones/` | POST: `Universidad` | GET lista / POST crea rotación |
 
 **Filtros** (`InternshipFilter`): `convenio`, `ipress`, `tutor`, `estado_actual`,
-`ambito_geografico_sanitario`, rangos de fecha. **Search:** documento/nombres del interno.
-**Ordering:** `fecha_inicio`, `fecha_fin`, `id`.
+`ambito_geografico_sanitario`, `estudiante`, rangos de fecha. **Search:** documento/nombres
+del estudiante. **Ordering:** `fecha_inicio`, `fecha_fin`, `id`.
 
-### Internship — lectura
+### Intern (internado) — lectura
 ```
-id, interno, convenio, campo_clinico, ipress, tutor, ambito_geografico_sanitario,
+id, estudiante, convenio, campo_clinico, ipress, tutor, ambito_geografico_sanitario,
 estado_actual, estado_codigo, fecha_inicio, fecha_fin, observaciones,
 creado_por, creado_en, actualizado_en
 ```
-### Internship — escritura (POST)
+### Intern (internado) — escritura (POST)
 ```
-interno, convenio, campo_clinico, ipress, tutor,
+estudiante, convenio, campo_clinico, ipress, tutor,
 ambito_geografico_sanitario, fecha_inicio, fecha_fin, observaciones
 ```
 ### Crear rotación (POST `/rotaciones/`)
@@ -53,7 +57,7 @@ ipress_origen, ipress_destino, servicio_area, fecha_inicio, fecha_fin, observaci
 
 | Método | Ruta | Rol | Notas |
 |--------|------|-----|-------|
-| GET | `/rotations/` , `/rotations/{id}/` | autenticado (alcance) | filtros: `internado`, `estado_actual`, `ipress_origen`, `ipress_destino`, `servicio_area` |
+| GET | `/rotations/` , `/rotations/{id}/` | autenticado (alcance) | filtros: `interno`, `estado_actual`, `ipress_origen`, `ipress_destino`, `servicio_area` |
 | POST | `/rotations/{id}/autorizar/` | `Autoridad de convenio` | `{ participante_convenio, resultado, fecha_autorizacion, observaciones }` |
 | POST | `/rotations/{id}/iniciar/` | `Universidad` | requiere autorización aprobada → `EN_CURSO` |
 | POST | `/rotations/{id}/cambiar-estado/` | `Administrador RENADS` | `{ estado_codigo, observacion? }` |
@@ -61,16 +65,21 @@ ipress_origen, ipress_destino, servicio_area, fecha_inicio, fecha_fin, observaci
 
 ### Rotation — lectura
 ```
-id, internado, numero_rotacion, ipress_origen, ipress_destino, servicio_area,
+id, interno, numero_rotacion, ipress_origen, ipress_destino, servicio_area,
 estado_actual, estado_codigo, fecha_inicio, fecha_fin, observaciones, creado_por, creado_en
 ```
 Estados de rotación: `SOLICITADA`, `AUTORIZADA`, `OBSERVADA`, `RECHAZADA`, `EN_CURSO`, ... (catálogo `rotation-statuses`).
 
 ## Personas (CRUD) — escritura `Universidad` / `Administrador RENADS`
 
-- `interns` — filtros `universidad`, `carrera_profesional`, `especialidad`, `numero_documento`, `activo`; search documento/nombres. Alcance por universidad.
+- `students` (estudiantes) — filtros `universidad`, `carrera_profesional`, `especialidad`,
+  `numero_documento`, `activo`; search documento/nombres. Alcance por universidad.
+  Campos adicionales: `nota_promedio_ponderado` (decimal 0–20), `contacto_emergencia_nombre`,
+  `contacto_emergencia_telefono`, `contacto_emergencia_parentesco` (FK a catálogo
+  `relationship-types`).
 - `tutors` — filtros `especialidad`, `ipress`, `numero_documento`, `activo`.
 
 ## Catálogos (solo lectura)
 
-`internship-statuses`, `rotation-statuses`, `service-areas`, `identity-document-types`.
+`internship-statuses`, `rotation-statuses`, `service-areas`, `identity-document-types`,
+`relationship-types` (parentesco del contacto de emergencia).

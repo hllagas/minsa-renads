@@ -28,22 +28,37 @@ Sistema de información del MINSA (Perú) para registrar, controlar y dar seguim
 | Módulo | Responsabilidad |
 |--------|----------------|
 | **Gestionar Convenios** | Ciclo de vida de Convenios Marco y Específicos: documentos PDF, evaluaciones, opiniones (DIGEP, CONAPRES, OGAJ), firmas, publicación, vigencia y cierre |
-| **Registrar Internados** | Internos, tutores, sedes docentes, periodos, rotaciones y autorizaciones |
-| **Registrar Actividades** | Registro, validación y consulta de actividades docente-asistenciales de internos en sedes |
+| **Registrar Internados** | Estudiantes, tutores, sedes docentes, periodos, rotaciones y autorizaciones |
+| **Registrar Actividades** | Registro, validación y consulta de actividades docente-asistenciales de estudiantes en sedes |
 
 ### Actores principales
 
 - **Institucionales:** MINSA, DIGEP, CONAPRES, OGAJ, Secretaría General, VICEPAS, GORE/GERESA/DIRESA/DIRIS, Universidades, Sedes docentes
-- **Operativos:** Autoridad suscrita en Convenio Específico, Tutor/Docente, Interno, Administrador RENADS, Auditor/Supervisor
+- **Operativos:** Autoridad suscrita en Convenio Específico, Tutor/Docente, Estudiante, Administrador RENADS, Auditor/Supervisor
 
 ### Reglas de negocio críticas
 
-1. Convenio Específico requiere Convenio Marco vigente.
+1. Convenio Específico requiere Convenio Marco vigente — **excepto las DIRIS** (Lima Metropolitana), que no requieren Convenio Marco.
 2. Internado solo se registra sobre Convenio Específico vigente y autorizado.
 3. Rotaciones solo dentro del mismo ámbito geográfico sanitario.
 4. Rotaciones requieren autorización de autoridades suscritas en el Convenio Específico.
-5. Actividad docente-asistencial debe asociarse a: interno + sede + rotación/periodo + tutor.
+5. Actividad docente-asistencial debe asociarse a: estudiante + sede + rotación/periodo + tutor.
 6. Todo convenio, internado, rotación y actividad debe ser auditable con trazabilidad completa.
+
+#### Reglas del módulo Gestionar Convenios
+
+- Solo la **GERESA** o la **DIRESA** pueden solicitar un **Convenio Marco**. Las **DIRIS** no requieren Convenio Marco para solicitar un **Convenio Específico**.
+- La **opinión jurídica (OGAJ)** se solicita **solo para Convenios Marco**.
+- La **opinión favorable (CONAPRES)** se solicita **solo para Convenios Específicos**.
+- **CONAPRES autoriza y registra las IPRESS como sedes docentes** que cumplan los criterios de evaluación: establecimiento **asistencial**, que **pertenezca al MINSA o a la sanidad de las Fuerzas Armadas/Policiales**, y de gestión **pública**.
+- **CONAPRES autoriza y registra el total de campos clínicos por cada sede docente según carrera profesional.**
+- La **GERESA, DIRESA o DIRIS** asigna la **cantidad de campos clínicos por universidad y carrera profesional**, para las universidades con Convenios Específicos aprobados en el **mismo ámbito geográfico sanitario**.
+
+#### Reglas del módulo Registrar Internados
+
+- El **registro de estudiantes** tiene **doble modalidad**: **individual** (contemplada) y **masiva** mediante un **archivo Excel** con la estructura de carga definida (ver `docs/db_schema_modulo_02_internados.md` §carga masiva y `spec/internados.md`).
+- La **universidad** registra internos en los **campos clínicos disponibles** de cada sede docente y carrera profesional definidos previamente en los Convenios Específicos.
+- **Orden de prelación** para la asignación de internos: por **orden de mérito** según `nota_promedio_ponderado`, de **mayor a menor**.
 
 ### Requerimientos no funcionales clave para el API
 
@@ -52,7 +67,7 @@ Sistema de información del MINSA (Perú) para registrar, controlar y dar seguim
 - **Gestión documental PDF** adjunta a convenios, actividades y procesos (RNF-DOC-01/02/03).
 - **Restricción de acceso** por entidad, rol y ámbito de competencia.
 - **Expiración automática de sesión** (RNF-SEG-07).
-- **Filtros eficientes** por convenio, universidad, región, sede, interno y periodo (RNF-REN-02).
+- **Filtros eficientes** por convenio, universidad, región, sede, estudiante y periodo (RNF-REN-02).
 - **Exportación** de reportes en PDF y Excel (RNF-INT-03).
 - **Catálogos parametrizables** sin cambios de código (RNF-MAN-01/02/03).
 

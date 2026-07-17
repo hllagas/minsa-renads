@@ -34,3 +34,31 @@ Revisado contra `spec/actividades.md`, contrato `docs/api-actividades.md` y conv
 - `npm run lint` → 0 errores, 1 warning (DataTable/React Compiler, ajeno).
 - `npm run build` → 18 rutas OK (3 nuevas de actividades).
 - Smoke API: 3 listas paginadas; POST validación → 400.
+
+---
+
+## Validación — Actualización de contrato (2026-07-17)
+
+### ✅ APROBADO (sin errores altos/medios). Delta D1–D6 completo; el módulo sigue cerrado.
+
+Revisado contra `spec/actividades.md` §«Actualización de contrato (2026-07-17)», `docs/api-actividades.md`
+(sincronizado) y `lib/api/schema.d.ts` (regenerado).
+
+### Cobertura del delta
+| Tarea | Estado | Evidencia |
+|-------|--------|-----------|
+| D1 campos del alta | ✅ | `lib/actividades/activity-fields.ts:13-27`: `estudiante` (select `students`, `personaLabel`) e `interno` (select `interns`, label «Interno (proceso de internado)»); `internadoLabel` lee `row.estudiante` (`:6-7`); `ACTIVITY_EDIT_FIELDS` sin cambios |
+| D2 lista | ✅ | `app/(app)/actividades/page.tsx:36` (`accessorKey: "estudiante"`, header «Estudiante»), `:66` («…de los estudiantes.»); filtros `tipo_actividad`/`estado_actual`/búsqueda intactos |
+| D3 detalle | ✅ | `app/(app)/actividades/[id]/page.tsx:55` (`Actividad de ${a.estudiante}`), `:94` (`<Dato label="Estudiante" value={a.estudiante} />`); sin usos de `a.interno` como texto |
+| D4 hooks/flow sin cambios | ✅ | `lib/actividades/hooks.ts` (`teaching-activities`) y `flow-actions.ts` (`validar`/`subsanar`/`cambiar-estado`) intactos; compilan con el schema regenerado (tsc limpio) |
+| D5 dashboard sin cambios | ✅ | grep de `internado`/`.interno` en `lib/dashboard/` y `components/dashboard/` sin resultados referidos a campos de `TeachingActivity` (solo módulo «internados» y proceso) |
+| D6 verificación | ✅ | `npx tsc --noEmit` → 0 errores; `npm run lint` → 0 errores, 1 warning preexistente (`data-table.tsx`, react-hooks/incompatible-library) |
+
+### Conformidad de contrato
+- `TeachingActivityRead.estudiante` (etiqueta legible) y `Write.estudiante`/`interno` (ids) verificados
+  en `schema.d.ts` (`:4585-4587`, `:4637-4639`); el endpoint `/teaching-activities/` y sus acciones no
+  cambiaron.
+
+### Nota
+- El smoke manual (alta con selects `students`/`interns` → validar/subsanar contra el backend) queda
+  reportado por Implement; este validador verificó contrato, código estático, tsc y lint.

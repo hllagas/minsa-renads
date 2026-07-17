@@ -211,13 +211,13 @@ const FEATURES = [
   {
     icon: UsersIcon,
     title: "Registro de Internados",
-    desc: "Internos, tutores, internados y rotaciones autorizadas entre IPRESS del mismo ámbito geográfico sanitario.",
+    desc: "Estudiantes, tutores, internados y rotaciones autorizadas entre IPRESS del mismo ámbito geográfico sanitario.",
     featured: false,
   },
   {
     icon: ActivityIcon,
     title: "Actividades docente-asistenciales",
-    desc: "Registro y validación de actividades de los internos en sedes, con trazabilidad y subsanación.",
+    desc: "Registro y validación de actividades de los estudiantes en sedes, con trazabilidad y subsanación.",
     featured: false,
   },
   {
@@ -237,7 +237,7 @@ const STEPS = [
   {
     n: "02",
     title: "Registra el internado",
-    desc: "Sobre un convenio Específico vigente, registra al interno y su tutor, dentro de tu ámbito institucional.",
+    desc: "Sobre un convenio Específico vigente, registra al estudiante y su tutor, dentro de tu ámbito institucional.",
   },
   {
     n: "03",
@@ -266,7 +266,7 @@ const TESTIMONIALS = [
   },
   {
     quote:
-      "Validar las actividades de los internos en la sede docente toma minutos y queda todo auditado.",
+      "Validar las actividades de los estudiantes en la sede docente toma minutos y queda todo auditado.",
     name: "Tutor de sede",
     role: "IPRESS",
   },

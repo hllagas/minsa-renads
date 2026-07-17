@@ -49,16 +49,17 @@ erDiagram
     carrera_profesional ||--o{ campo_clinico : ""
 
     %% ===== M2: Internado =====
-    interno ||--o{ internado : ""
-    convenio ||--o{ internado : ""
-    campo_clinico ||--o{ internado : ""
-    ipress ||--o{ internado : "sede principal"
-    tutor ||--o{ internado : ""
-    universidad ||--o{ interno : ""
-    carrera_profesional ||--o{ interno : ""
-    internado ||--o{ historial_estado_internado : ""
-    internado ||--o{ historial_tutor : ""
-    internado ||--o{ rotacion : ""
+    estudiante ||--o{ interno : ""
+    convenio ||--o{ interno : ""
+    campo_clinico ||--o{ interno : ""
+    ipress ||--o{ interno : "sede principal"
+    tutor ||--o{ interno : ""
+    universidad ||--o{ estudiante : ""
+    carrera_profesional ||--o{ estudiante : ""
+    parentesco ||--o{ estudiante : "contacto emergencia"
+    interno ||--o{ historial_estado_internado : ""
+    interno ||--o{ historial_tutor : ""
+    interno ||--o{ rotacion : ""
     ipress ||--o{ rotacion : "origen/destino"
     servicio_area ||--o{ rotacion : ""
     rotacion ||--o{ autorizacion_rotacion : ""
@@ -66,8 +67,8 @@ erDiagram
     rotacion ||--o{ historial_estado_rotacion : ""
 
     %% ===== M3: Actividad =====
+    estudiante ||--o{ actividad_docente_asistencial : ""
     interno ||--o{ actividad_docente_asistencial : ""
-    internado ||--o{ actividad_docente_asistencial : ""
     ipress ||--o{ actividad_docente_asistencial : ""
     rotacion ||--o{ actividad_docente_asistencial : "opcional"
     tutor ||--o{ actividad_docente_asistencial : ""
@@ -104,14 +105,14 @@ erDiagram
 ```
 M1 (conventions)                M2 (internships)              M3 (activities)
 ────────────────                ────────────────              ───────────────
-convenio ───────────────────────> internado
-campo_clinico ──────────────────> internado
-ipress ─────────────────────────> internado / rotacion ─────> actividad_docente_asistencial
-universidad ────────────────────> interno
-carrera_profesional ────────────> interno
+convenio ───────────────────────> interno
+campo_clinico ──────────────────> interno
+ipress ─────────────────────────> interno / rotacion ─────> actividad_docente_asistencial
+universidad ────────────────────> estudiante
+carrera_profesional ────────────> estudiante
 participante_convenio ──────────> autorizacion_rotacion
-                                  interno ────────────────────> actividad_docente_asistencial
-                                  internado ──────────────────> actividad_docente_asistencial
+                                  estudiante ─────────────────> actividad_docente_asistencial
+                                  interno ─────────────────────> actividad_docente_asistencial
                                   tutor / rotacion / servicio_area ──> actividad_docente_asistencial
 documento (M1) ─ genérico ──────> [cualquier tabla de M1/M2/M3]
 bitacora_auditoria (M1) ─ genérico ─> [cualquier tabla]
@@ -124,5 +125,5 @@ bitacora_auditoria (M1) ─ genérico ─> [cualquier tabla]
 | App | Tablas (db_table) |
 |-----|-------------------|
 | **Gestionar Convenios** (`convenios`, M1) | `ubigeo`, `region`, `ambito_geografico_sanitario`, `tipo_convenio`, `estado_convenio`, `tipo_documento`, `tipo_gestion_universidad`, `tipo_entidad_universidad`, `tipo_autorizacion`, `nivel_academico`, `especialidad`, `tipo_autoridad_firmante`, `tipo_organo_regional`, `tipo_unidad_ejecutora`, `tipo_organo_minsa`, `cargo_ejecutivo`, `motivo_observacion`, `motivo_rechazo`, `motivo_cierre`, `gobierno_regional`, `organo_regional`, `unidad_ejecutora`, `ipress`, `organo_minsa`, `conapres`, `representante`, `universidad`, `autoridad_universidad`, `facultad`, `carrera_profesional`, `local_universidad`, `perfil_usuario_entidad`, `plantilla_convenio`, `convenio`, `participante_convenio`, `historial_estado_convenio`, `evaluacion_tecnica`, `opinion_conapres`, `campo_clinico`, `opinion_juridica`, `firma`, `publicacion`, `documento`, `bitacora_auditoria` |
-| **Registrar Internados** (`internados`, M2) | `estado_internado`, `estado_rotacion`, `servicio_area`, `tipo_documento_identidad`, `interno`, `tutor`, `internado`, `historial_estado_internado`, `historial_tutor`, `rotacion`, `autorizacion_rotacion`, `historial_estado_rotacion` |
+| **Registrar Internados** (`internados`, M2) | `estado_internado`, `estado_rotacion`, `servicio_area`, `tipo_documento_identidad`, `parentesco`, `estudiante`, `tutor`, `interno`, `historial_estado_internado`, `historial_tutor`, `rotacion`, `autorizacion_rotacion`, `historial_estado_rotacion` |
 | **Registrar Actividades** (`actividades`, M3) | `tipo_actividad`, `estado_actividad`, `actividad_docente_asistencial`, `validacion_actividad`, `historial_estado_actividad` |

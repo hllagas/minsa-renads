@@ -5,9 +5,9 @@ from rest_framework.routers import DefaultRouter
 from apps.internados import views
 
 router = DefaultRouter()
-router.register("internships", views.InternshipViewSet, basename="internship")
+router.register("interns", views.InternshipViewSet, basename="intern")
 router.register("rotations", views.RotationViewSet, basename="rotation")
-router.register("interns", views.InternViewSet, basename="intern")
+router.register("students", views.StudentViewSet, basename="student")
 router.register("tutors", views.TutorViewSet, basename="tutor")
 
 # Catálogos (solo lectura)

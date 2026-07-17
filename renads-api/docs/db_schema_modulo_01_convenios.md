@@ -110,9 +110,12 @@ Jerarquía: **GORE → Órgano Regional (GERESA/DIRESA/DIRIS) → Unidad Ejecuto
 | `direccion` | varchar(500) | Sí | Dirección |
 | `ubigeo_id` | FK → `ubigeo` | Sí | Ubicación geográfica (UBIGEO) |
 | `ambito_geografico_sanitario_id` | FK → `ambito_geografico_sanitario` | No | Ámbito geográfico sanitario |
+| `es_sede_docente` | bool | No | Autorizada por CONAPRES como sede docente (default `false`) |
 | `activo` | bool | No | |
 
 > La **sede docente** del módulo de convenios es una `ipress`.
+>
+> **Autorización de sede docente (CONAPRES):** una `ipress` solo actúa como sede docente si **CONAPRES** la autoriza y registra tras verificar los criterios de evaluación: establecimiento **asistencial**, perteneciente al **MINSA** o a la **sanidad de las Fuerzas Armadas/Policiales**, y de gestión **pública**.
 
 ---
 
@@ -279,11 +282,16 @@ las dos partes concretas de la articulación docencia-servicio se modelan con FK
 entidad referenciada (`organo_regional → tipo_organo_regional`, `universidad → tipo_entidad`),
 evitando redundancia. En el formulario son selectores en cascada que filtran la lista de entidades.
 
+> **Reglas de solicitud (validación a nivel de aplicación):**
+> - Solo **GERESA** o **DIRESA** pueden solicitar un **Convenio Marco** (`tipo_convenio = MARCO`).
+> - Las **DIRIS** solicitan directamente **Convenio Específico** sin requerir Convenio Marco (`convenio_marco_id` nulo).
+> - **Opinión jurídica (OGAJ):** solo para **Marco**. **Opinión favorable (CONAPRES):** solo para **Específico**.
+
 | Columna | Tipo | Null | Descripción |
 |---------|------|------|-------------|
 | `id` | PK | No | |
 | `tipo_convenio_id` | FK → `tipo_convenio` | No | Marco / Específico |
-| `convenio_marco_id` | FK → `convenio` (self) | Sí | Convenio Marco vigente del que depende el Específico (RN-3) |
+| `convenio_marco_id` | FK → `convenio` (self) | Sí | Convenio Marco vigente del que depende el Específico (RN-3). **Obligatorio** salvo cuando la solicitante es una **DIRIS** (no requiere Marco) |
 | `plantilla_id` | FK → `plantilla_convenio` | Sí | Plantilla utilizada |
 | `codigo` | varchar(50) | Sí | Código oficial |
 | `titulo` | varchar(255) | No | Título / denominación |
@@ -358,14 +366,18 @@ Cada actividad soporta documentos PDF mediante la tabla `documento` (sección 10
 
 ### `campo_clinico` (proceso 4.4 — solo Específico)
 
+> **Reglas de asignación de campos clínicos:**
+> - **CONAPRES** autoriza y registra el **total** de campos clínicos por **sede docente (`ipress`) y carrera profesional** (tope global de la sede).
+> - La **GERESA/DIRESA/DIRIS** asigna la **cantidad por universidad y carrera profesional** (`cantidad_maxima` de este registro) para universidades con Convenios Específicos aprobados en el **mismo ámbito geográfico sanitario**; la suma por sede/carrera no debe exceder el total autorizado por CONAPRES.
+
 | Columna | Tipo | Null | Descripción |
 |---------|------|------|-------------|
 | `id` | PK | No | |
 | `convenio_id` | FK → `convenio` | No | |
-| `ipress_id` | FK → `ipress` | No | Sede docente (establecimiento de salud) |
+| `ipress_id` | FK → `ipress` | No | Sede docente (establecimiento de salud) autorizada por CONAPRES |
 | `carrera_profesional_id` | FK → `carrera_profesional` | No | Carrera / programa académico |
 | `especialidad_id` | FK → `especialidad` | Sí | Especialidad |
-| `cantidad_maxima` | int | No | Cantidad máxima de campos clínicos autorizados |
+| `cantidad_maxima` | int | No | Cantidad máxima asignada a la universidad para esta sede/carrera (GERESA/DIRESA/DIRIS) |
 | `vigencia_inicio` | date | No | Inicio de vigencia |
 | `vigencia_fin` | date | No | Fin de vigencia |
 | `ambito_geografico_sanitario_id` | FK → `ambito_geografico_sanitario` | No | Ámbito |
@@ -373,6 +385,8 @@ Cada actividad soporta documentos PDF mediante la tabla `documento` (sección 10
 | `creado_en` | datetime | No | |
 
 ### `opinion_juridica` (OGAJ — proceso 4.5)
+
+> **Regla:** la opinión jurídica de **OGAJ se solicita solo para Convenios Marco** (`convenio.tipo_convenio = MARCO`).
 
 | Columna | Tipo | Null | Descripción |
 |---------|------|------|-------------|
@@ -462,7 +476,7 @@ Se adjunta a: `convenio`, `evaluacion_tecnica`, `opinion_conapres`, `campo_clini
 ## 12. Mapa de relaciones
 
 ```
-ubigeo (distrito INEI) >──< organo_regional / unidad_ejecutora / ipress / universidad / local_universidad   (también interno / tutor del módulo 2)
+ubigeo (distrito INEI) >──< organo_regional / unidad_ejecutora / ipress / universidad / local_universidad   (también estudiante / tutor del módulo 2)
 gobierno_regional ──< organo_regional ──< unidad_ejecutora ──< ipress
 gobierno_regional >── region
 organo_regional >── tipo_organo_regional
@@ -505,8 +519,13 @@ bitacora_auditoria >── django_content_type   (genérico → cualquier entida
 
 ## 13. Trazabilidad de requerimientos
 
-- **RN-3 (Específico requiere Marco vigente):** `convenio.convenio_marco_id`.
+- **RN-3 (Específico requiere Marco vigente):** `convenio.convenio_marco_id`. **Excepción DIRIS:** solicitan Específico sin Marco (`convenio_marco_id` nulo).
+- **Solicitud de Convenio Marco (solo GERESA/DIRESA):** validación sobre la entidad solicitante (`organo_regional → tipo_organo_regional`).
 - **CONAPRES y campos clínicos solo en Específico:** tablas `opinion_conapres` y `campo_clinico`; estados con `aplica_a = ESPECIFICO`.
+- **Opinión jurídica (OGAJ) solo para Marco:** `opinion_juridica` se registra únicamente cuando `convenio.tipo_convenio = MARCO`.
+- **Opinión favorable (CONAPRES) solo para Específico:** `opinion_conapres`.
+- **Autorización de sede docente (CONAPRES):** `ipress` autorizada bajo criterios (asistencial, MINSA/FF.AA.-FF.PP., pública).
+- **Campos clínicos:** total por sede/carrera lo registra **CONAPRES**; la cantidad por universidad/carrera la asigna **GERESA/DIRESA/DIRIS** (`campo_clinico.cantidad_maxima`), sin exceder el total autorizado, en el mismo ámbito geográfico sanitario.
 - **Versionado documental (RNF-DOC-04 / AUD-04):** `documento.version_anterior_id` + `estado`.
 - **Adjuntos en repositorio externo:** columnas `referencia_externa` (en `documento`, `plantilla_convenio`, `universidad.referencia_logo`, `autoridad_universidad.referencia_documento_resolucion`).
 - **Trazabilidad de estados (RNF-AUD-03):** `historial_estado_convenio`.

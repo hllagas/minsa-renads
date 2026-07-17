@@ -11,11 +11,11 @@ const convenioLabel = (row: WithId) => String(row.titulo ?? row.codigo ?? row.id
  */
 export const INTERNSHIP_FIELDS: FieldConfig[] = [
   {
-    name: "interno",
-    label: "Interno",
+    name: "estudiante",
+    label: "Estudiante",
     type: "select",
     required: true,
-    optionsEndpoint: "interns",
+    optionsEndpoint: "students",
     optionsToLabel: personaLabel,
   },
   {

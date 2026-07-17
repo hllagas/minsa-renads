@@ -9,11 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 
 /** Lista de rotaciones de un internado con sus acciones de flujo (gateadas por rol). */
-export function RotationsPanel({ internshipId }: { internshipId: number }) {
+export function RotationsPanel({ internId }: { internId: number }) {
   const user = useAuthStore((s) => s.user);
   const { data, isLoading, isError } = useResourceSubList<RotationRead>(
-    "internships",
-    internshipId,
+    "interns",
+    internId,
     "rotaciones",
   );
 

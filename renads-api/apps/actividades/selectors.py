@@ -9,9 +9,9 @@ from apps.actividades.models import ActivityStatusHistory, TeachingActivity
 
 
 def actividades_visibles(usuario) -> QuerySet[TeachingActivity]:
-    """Actividades dentro del ámbito del usuario: universidad del interno o sede (IPRESS)."""
+    """Actividades dentro del ámbito del usuario: universidad del estudiante o sede (IPRESS)."""
     qs = TeachingActivity.objects.select_related(
-        "interno", "internado", "ipress", "tutor", "tipo_actividad", "estado_actual", "rotacion"
+        "estudiante", "interno", "ipress", "tutor", "tipo_actividad", "estado_actual", "rotacion"
     )
     if usuario.is_superuser:
         return qs
@@ -26,7 +26,7 @@ def actividades_visibles(usuario) -> QuerySet[TeachingActivity]:
         return qs.none()
     condicion = Q()
     if universidades:
-        condicion |= Q(interno__universidad_id__in=universidades)
+        condicion |= Q(estudiante__universidad_id__in=universidades)
     if sedes:
         condicion |= Q(ipress_id__in=sedes)
     return qs.filter(condicion)

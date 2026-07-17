@@ -14,7 +14,7 @@
 
 ## 0. Origen de los datos agregados (vía A → B)
 
-El backend **solo expone endpoints de lista** (`/conventions/`, `/internships/`, `/rotations/`,
+El backend **solo expone endpoints de lista** (`/conventions/`, `/interns/`, `/rotations/`,
 `/teaching-activities/`) con filtros + paginación DRF. **No hay endpoints de agregación**.
 
 - **v1 — Vía A (cliente):** TanStack Query pide la lista filtrada y se agrupa en el front

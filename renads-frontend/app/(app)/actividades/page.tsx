@@ -33,7 +33,7 @@ export default function ActividadesPage() {
 
   const columns = useMemo<ColumnDef<TeachingActivityRead>[]>(
     () => [
-      { accessorKey: "interno", header: "Interno" },
+      { accessorKey: "estudiante", header: "Estudiante" },
       { accessorKey: "ipress", header: "Sede" },
       { accessorKey: "tipo_actividad", header: "Tipo" },
       { accessorKey: "estado_actual", header: "Estado" },
@@ -63,7 +63,7 @@ export default function ActividadesPage() {
     <div>
       <PageHeader
         title="Actividades"
-        description="Actividades docente-asistenciales de los internos."
+        description="Actividades docente-asistenciales de los estudiantes."
         actions={
           <Button render={<Link href="/actividades/nueva">Nueva actividad</Link>} />
         }

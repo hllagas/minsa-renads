@@ -2,7 +2,7 @@
 
 Revisión del agente **validator** contra `spec/internados.md`, `docs/arquitectura_desarrollo.md` y `docs/db_schema_modulo_02_internados.md`.
 
-**Alcance revisado:** T2 (selectors), T3 (services, RN), y el núcleo de T1/T4/T5/T6/T7 (`Internship`, `Rotation` y acciones de flujo). Catálogos y CRUD de `Intern`/`Tutor` son del bloque 2 (no evaluados aquí).
+**Alcance revisado:** T2 (selectors), T3 (services, RN), y el núcleo de T1/T4/T5/T6/T7 (`Internship`, `Rotation` y acciones de flujo). Catálogos y CRUD de `Student`/`Tutor` son del bloque 2 (no evaluados aquí).
 
 ## Sanidad técnica
 - `manage.py check` → sin issues.
@@ -26,8 +26,8 @@ Revisión del agente **validator** contra `spec/internados.md`, `docs/arquitectu
 
 | # | Sev | Ubicación | Problema | Corrección sugerida |
 |---|-----|-----------|----------|---------------------|
-| 1 | 🟠 media | `views.InternshipViewSet.create` (y análogo en `apps/convenios` `ConventionViewSet.create`) | El `create` valida el rol (`Universidad`) pero **no** que la universidad del `interno` esté dentro del ámbito institucional del usuario. Un usuario de la Universidad A podría registrar internados de la Universidad B (escritura cross-tenant). | Validar en el service/permiso que `interno.universidad` (o el solicitante, en convenios) pertenezca a las entidades del usuario; superusuario exento. |
-| 2 | 🟡 baja | `selectors.internados_visibles` | El alcance de visibilidad es solo por **universidad** del interno; roles como `Sede docente`/`Tutor` no verían internados de su sede. | Para MVP es aceptable; si se requiere, ampliar el alcance para incluir la `ipress` (sede) en las entidades del usuario. |
+| 1 | 🟠 media | `views.InternshipViewSet.create` (y análogo en `apps/convenios` `ConventionViewSet.create`) | El `create` valida el rol (`Universidad`) pero **no** que la universidad del `estudiante` esté dentro del ámbito institucional del usuario. Un usuario de la Universidad A podría registrar internados de la Universidad B (escritura cross-tenant). | Validar en el service/permiso que `estudiante.universidad` (o el solicitante, en convenios) pertenezca a las entidades del usuario; superusuario exento. |
+| 2 | 🟡 baja | `selectors.internados_visibles` | El alcance de visibilidad es solo por **universidad** del estudiante; roles como `Sede docente`/`Tutor` no verían internados de su sede. | Para MVP es aceptable; si se requiere, ampliar el alcance para incluir la `ipress` (sede) en las entidades del usuario. |
 | 3 | 🟡 baja | `services.actualizar_internado` | Al cambiar `ipress` no se revalida que pertenezca al ámbito geográfico del internado. | Revalidar `ipress.ambito_geografico_sanitario` contra `internado.ambito_geografico_sanitario` en la actualización. |
 | 4 | 🟡 baja | `serializers.InternshipWriteSerializer` | `PUT` exige reenviar campos no editables por `actualizar_internado`. | Documentar edición vía `PATCH` o serializer de actualización con solo campos editables (mismo criterio que convenios #4). |
 
@@ -43,22 +43,22 @@ Las 11 reglas de negocio funcionan y se auditan. Módulo `internados` (núcleo) 
 
 ---
 
-# Validación — bloque Catálogos + Personas (Intern/Tutor)
+# Validación — bloque Catálogos + Personas (Student/Tutor)
 
 ## Sanidad técnica
 - `check` sin issues; `makemigrations --check` sin cambios; OpenAPI 0 errores (102 paths).
-- Verificado: catálogos read-only (estado_internado 12, identity-doc 3); crear interno propio → 201 (`creado_por` auto); cross-tenant → 403; lista con scope (solo del ámbito); crear tutor (rol Universidad) → 201.
+- Verificado: catálogos read-only (estado_internado 12, identity-doc 3); crear estudiante propio → 201 (`creado_por` auto); cross-tenant → 403; lista con scope (solo del ámbito); crear tutor (rol Universidad) → 201.
 
 ## Conformidad
-- Catálogos solo lectura; `Intern`/`Tutor` con auditoría (`AuditedModelViewSet`) y escritura por rol `Universidad`/`Administrador RENADS`.
-- `Intern` con alcance por universidad (RNF-SEG-04: datos personales solo visibles en el ámbito) y `exigir_ambito` en `create`. ✓
+- Catálogos solo lectura; `Student`/`Tutor` con auditoría (`AuditedModelViewSet`) y escritura por rol `Universidad`/`Administrador RENADS`.
+- `Student` con alcance por universidad (RNF-SEG-04: datos personales solo visibles en el ámbito) y `exigir_ambito` en `create`. ✓
 
 ## Hallazgos
 
 | # | Sev | Ubicación | Problema | Sugerencia |
 |---|-----|-----------|----------|------------|
 | 5 | 🟡 baja | `TutorViewSet` | Sin alcance institucional (cualquier rol Universidad edita cualquier tutor). | Aceptable MVP (los tutores son staff compartido); si se requiere, acotar por `ipress`. |
-| 6 | 🟡 baja | `InternViewSet.update` | No revalida `exigir_ambito` si se cambia `universidad` del interno. | Revalidar ámbito en update cuando cambia `universidad`. |
+| 6 | 🟡 baja | `StudentViewSet.update` | No revalida `exigir_ambito` si se cambia `universidad` del estudiante. | Revalidar ámbito en update cuando cambia `universidad`. |
 
 ## Resultado (módulo completo)
 

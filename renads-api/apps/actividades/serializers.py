@@ -6,7 +6,7 @@ from apps.actividades.models import ActivityStatusHistory, TeachingActivity
 
 
 class TeachingActivityReadSerializer(serializers.ModelSerializer):
-    interno = serializers.StringRelatedField(read_only=True)
+    estudiante = serializers.StringRelatedField(read_only=True)
     tutor = serializers.StringRelatedField(read_only=True)
     ipress = serializers.CharField(source="ipress.nombre", read_only=True)
     tipo_actividad = serializers.CharField(source="tipo_actividad.nombre", read_only=True)
@@ -16,7 +16,7 @@ class TeachingActivityReadSerializer(serializers.ModelSerializer):
     class Meta:
         model = TeachingActivity
         fields = [
-            "id", "interno", "internado", "ipress", "rotacion", "tutor", "servicio_area",
+            "id", "estudiante", "interno", "ipress", "rotacion", "tutor", "servicio_area",
             "tipo_actividad", "estado_actual", "estado_codigo", "fecha_actividad",
             "descripcion", "carga_horaria", "creado_por", "creado_en", "actualizado_en",
         ]
@@ -26,7 +26,7 @@ class TeachingActivityWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = TeachingActivity
         fields = [
-            "interno", "internado", "ipress", "rotacion", "tutor", "servicio_area",
+            "estudiante", "interno", "ipress", "rotacion", "tutor", "servicio_area",
             "tipo_actividad", "fecha_actividad", "descripcion", "carga_horaria",
         ]
 

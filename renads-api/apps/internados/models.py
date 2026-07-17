@@ -52,13 +52,19 @@ class IdentityDocumentType(Catalog):
         verbose_name = "tipo de documento de identidad"
 
 
+class RelationshipType(Catalog):
+    class Meta:
+        db_table = "parentesco"
+        verbose_name = "tipo de parentesco"
+
+
 # ---------------------------------------------------------------------------
-# Interno y tutor
+# Estudiante y tutor
 # ---------------------------------------------------------------------------
 SEX = [("M", "Masculino"), ("F", "Femenino")]
 
 
-class Intern(models.Model):
+class Student(models.Model):
     tipo_documento_identidad = models.ForeignKey(
         IdentityDocumentType, on_delete=models.PROTECT, db_column="tipo_documento_identidad_id",
         related_name="+", help_text="Tipo de documento",
@@ -78,18 +84,28 @@ class Intern(models.Model):
     )
     universidad = models.ForeignKey(
         University, on_delete=models.PROTECT, db_column="universidad_id",
-        related_name="internos", help_text="Universidad de procedencia",
+        related_name="estudiantes", help_text="Universidad de procedencia",
     )
     carrera_profesional = models.ForeignKey(
         ProfessionalCareer, on_delete=models.PROTECT, db_column="carrera_profesional_id",
         related_name="+", help_text="Carrera / programa",
     )
-    especialidad = models.ForeignKey(
-        Specialty, on_delete=models.SET_NULL, db_column="especialidad_id", null=True, blank=True,
-        related_name="+", help_text="Especialidad (segunda especialidad)",
-    )
     codigo_universitario = models.CharField("código universitario", max_length=50, blank=True, help_text="Código universitario / matrícula")
     anio_academico = models.PositiveSmallIntegerField("año académico", null=True, blank=True, help_text="Año académico")
+    nota_promedio_ponderado = models.DecimalField(
+        "nota promedio ponderado", max_digits=4, decimal_places=2, null=True, blank=True,
+        help_text="Nota promedio ponderado (escala 0–20)",
+    )
+    contacto_emergencia_nombre = models.CharField(
+        "contacto de emergencia - nombre", max_length=255, blank=True, help_text="Nombre del contacto de emergencia",
+    )
+    contacto_emergencia_telefono = models.CharField(
+        "contacto de emergencia - teléfono", max_length=30, blank=True, help_text="Teléfono del contacto de emergencia",
+    )
+    contacto_emergencia_parentesco = models.ForeignKey(
+        RelationshipType, on_delete=models.PROTECT, db_column="contacto_emergencia_parentesco_id",
+        null=True, blank=True, related_name="+", help_text="Parentesco del contacto de emergencia",
+    )
     activo = models.BooleanField("activo", default=True)
     creado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, db_column="creado_por", related_name="+",
@@ -97,8 +113,8 @@ class Intern(models.Model):
     creado_en = models.DateTimeField("creado en", auto_now_add=True)
 
     class Meta:
-        db_table = "interno"
-        verbose_name = "interno"
+        db_table = "estudiante"
+        verbose_name = "estudiante"
         unique_together = [("tipo_documento_identidad", "numero_documento")]
 
     def __str__(self):
@@ -144,23 +160,23 @@ class Tutor(models.Model):
 # Internado
 # ---------------------------------------------------------------------------
 class Internship(models.Model):
-    interno = models.ForeignKey(
-        Intern, on_delete=models.PROTECT, db_column="interno_id", related_name="internados", help_text="Interno",
+    estudiante = models.ForeignKey(
+        Student, on_delete=models.PROTECT, db_column="estudiante_id", related_name="internos", help_text="Estudiante",
     )
     convenio = models.ForeignKey(
-        Convention, on_delete=models.PROTECT, db_column="convenio_id", related_name="internados",
+        Convention, on_delete=models.PROTECT, db_column="convenio_id", related_name="internos",
         help_text="Convenio Específico vigente que lo respalda",
     )
     campo_clinico = models.ForeignKey(
-        ClinicalField, on_delete=models.PROTECT, db_column="campo_clinico_id", related_name="internados",
+        ClinicalField, on_delete=models.PROTECT, db_column="campo_clinico_id", related_name="internos",
         help_text="Campo clínico autorizado asignado",
     )
     ipress = models.ForeignKey(
-        Ipress, on_delete=models.PROTECT, db_column="ipress_id", related_name="internados_principales",
+        Ipress, on_delete=models.PROTECT, db_column="ipress_id", related_name="internos_principales",
         help_text="Sede docente principal",
     )
     tutor = models.ForeignKey(
-        Tutor, on_delete=models.PROTECT, db_column="tutor_id", related_name="internados", help_text="Tutor responsable actual",
+        Tutor, on_delete=models.PROTECT, db_column="tutor_id", related_name="internos", help_text="Tutor responsable actual",
     )
     ambito_geografico_sanitario = models.ForeignKey(
         HealthGeographicScope, on_delete=models.PROTECT, db_column="ambito_geografico_sanitario_id",
@@ -179,13 +195,13 @@ class Internship(models.Model):
     actualizado_en = models.DateTimeField("actualizado en", auto_now=True)
 
     class Meta:
-        db_table = "internado"
-        verbose_name = "internado"
+        db_table = "interno"
+        verbose_name = "interno"
 
 
 class InternshipStatusHistory(models.Model):
-    internado = models.ForeignKey(
-        Internship, on_delete=models.CASCADE, db_column="internado_id", related_name="historial_estados", help_text="Internado",
+    interno = models.ForeignKey(
+        Internship, on_delete=models.CASCADE, db_column="interno_id", related_name="historial_estados", help_text="Interno",
     )
     estado = models.ForeignKey(
         InternshipStatus, on_delete=models.PROTECT, db_column="estado_id", help_text="Estado registrado",
@@ -202,8 +218,8 @@ class InternshipStatusHistory(models.Model):
 
 
 class TutorHistory(models.Model):
-    internado = models.ForeignKey(
-        Internship, on_delete=models.CASCADE, db_column="internado_id", related_name="historial_tutores", help_text="Internado",
+    interno = models.ForeignKey(
+        Internship, on_delete=models.CASCADE, db_column="interno_id", related_name="historial_tutores", help_text="Interno",
     )
     tutor = models.ForeignKey(
         Tutor, on_delete=models.PROTECT, db_column="tutor_id", related_name="+", help_text="Tutor asignado en este registro",
@@ -227,8 +243,8 @@ AUTHORIZATION_RESULT = [("APROBADO", "Aprobado"), ("OBSERVADO", "Observado"), ("
 
 
 class Rotation(models.Model):
-    internado = models.ForeignKey(
-        Internship, on_delete=models.CASCADE, db_column="internado_id", related_name="rotaciones", help_text="Internado",
+    interno = models.ForeignKey(
+        Internship, on_delete=models.CASCADE, db_column="interno_id", related_name="rotaciones", help_text="Interno",
     )
     numero_rotacion = models.PositiveSmallIntegerField("número de rotación", help_text="Número de rotación (1–4, RN-9)")
     ipress_origen = models.ForeignKey(

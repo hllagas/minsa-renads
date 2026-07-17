@@ -7,6 +7,7 @@ de los módulos previos (CRUD genérico, `EntityCombobox`, `ResourceForm`, `Flow
 
 > **Estado:** ✅ **MÓDULO CERRADO.** Implementado y validado sin errores. Ver
 > `spec/actividades.validacion.md` y `spec/actividades.guia_pruebas.md`.
+> ⚠️ **Pendiente:** aplicar la sección «Actualización de contrato (2026-07-17)» (abajo).
 
 ## Resumen / pantallas
 - **Actividades** `/actividades`: lista (DataTable + filtros + paginación), detalle con pestaña
@@ -73,3 +74,73 @@ de los módulos previos (CRUD genérico, `EntityCombobox`, `ResourceForm`, `Flow
 ## Referencias
 - Endpoints/campos/roles: `docs/api-actividades.md`; roles/alcance: `docs/backend-overview.md`.
 - Patrones y stack: `CLAUDE.md`, `docs/frontend-conventions.md`; reutilización de Convenios/Internados.
+
+---
+
+## Actualización de contrato (2026-07-17)
+
+Mantenimiento del módulo (ya validado) por cambio de contrato del backend. Fuentes de verdad:
+`docs/api-actividades.md` (ya sincronizado) y `lib/api/schema.d.ts` (ya regenerado — los nombres de
+tipos `TeachingActivityRead/Write/Update` no cambian; cambian **campos y recursos relacionados**).
+
+**Resumen del cambio (afecta a este módulo):**
+- En `TeachingActivity`: el campo `interno` (persona) → **`estudiante`**; el campo `internado`
+  (proceso) → **`interno`**. Filtros: `estudiante`, `interno` (resto igual). El endpoint
+  `/teaching-activities/` y sus acciones **no cambian**.
+- Recursos relacionados renombrados (módulo internados): personas ahora en **`/students/`** (antes
+  `/interns/`) y el proceso de internado en **`/interns/`** (antes `/internships/`).
+- Terminología UI: **«estudiante»** = la persona; **«interno»** = el registro del proceso de
+  internado. La RN-9 de duplicados ahora se enuncia por (`estudiante`, `fecha_actividad`, `ipress`,
+  `servicio_area`).
+
+> Los cambios en archivos compartidos (`components/landing/landing.tsx`, dashboard de internados,
+> CRUD de `students`) están especificados en `spec/internados.md` §«Actualización de contrato» —
+> no duplicar aquí.
+
+### Tareas
+
+- [x] **D1** `lib/actividades/activity-fields.ts` — renombrar campos del alta (`ACTIVITY_FIELDS`,
+  payload de `TeachingActivityWrite`):
+  - `interno` (persona) → `estudiante`, `label: "Estudiante"`, `optionsEndpoint: "students"`
+    (antes `interns`), mismo `personaLabel`.
+  - `internado` (proceso) → `interno`, `label: "Interno (proceso de internado)"`,
+    `optionsEndpoint: "interns"` (antes `internships`).
+  - `internadoLabel`: leer `row.estudiante` en lugar de `row.interno` (el read de `/interns/`
+    ahora expone `estudiante` como etiqueta legible).
+  - `ACTIVITY_EDIT_FIELDS` no cambia (`descripcion`, `carga_horaria`, `tipo_actividad`,
+    `servicio_area` — igual que `TeachingActivityUpdate`).
+  - **Criterio:** el POST a `/teaching-activities/` envía `estudiante` e `interno` (ids) y es
+    aceptado; los selects cargan de `/students/` y `/interns/`; las opciones de interno muestran
+    el nombre del estudiante.
+- [x] **D2** `app/(app)/actividades/page.tsx` — lista:
+  - Columna `accessorKey: "interno"` → `"estudiante"` con header «Estudiante» (en el read,
+    `estudiante` es la etiqueta legible; `interno` ahora es un id numérico).
+  - Descripción del header: «Actividades docente-asistenciales de los internos.» →
+    «…de los estudiantes.».
+  - Los filtros actuales (`tipo_actividad`, `estado_actual`, búsqueda) no cambian de nombre; si en
+    el futuro se agregan filtros por persona/proceso, usar `estudiante` / `interno`.
+  - **Criterio:** la columna muestra el nombre del estudiante (sin celdas vacías); textos coherentes.
+- [x] **D3** `app/(app)/actividades/[id]/page.tsx` — detalle:
+  - Título: `` `Actividad de ${a.interno}` `` → `` `Actividad de ${a.estudiante}` `` (línea ~55).
+  - `<Dato label="Interno" value={a.interno} />` → `<Dato label="Estudiante" value={a.estudiante} />`
+    (línea ~94).
+  - **Criterio:** el detalle muestra el nombre del estudiante; sin usos de `a.interno` como texto
+    (si se quisiera mostrar el proceso, sería el id `a.interno` con etiqueta «Interno (id)» —
+    opcional, no requerido).
+- [x] **D4** `lib/actividades/hooks.ts` y `lib/actividades/flow-actions.ts` — verificación sin
+  cambios de código: el endpoint `teaching-activities` y las acciones `validar` / `subsanar` /
+  `cambiar-estado` no cambiaron en el contrato. Confirmar que compilan con el schema regenerado.
+  - **Criterio:** cero errores TS en `lib/actividades/`; ningún cambio funcional necesario.
+- [x] **D5** Dashboard de actividades — verificación sin cambios: `lib/dashboard/hooks.ts` (sección
+  actividades) usa solo `estado_codigo`, `fecha_actividad`, `carga_horaria` y `tipo_actividad`,
+  que no fueron renombrados; el endpoint `teaching-activities` tampoco. Confirmar que no queda
+  ninguna referencia a los campos viejos `interno`/`internado` de actividades en `lib/dashboard/`
+  ni en `components/dashboard/`.
+  - **Criterio:** `grep` de `internado`/`.interno` en `lib/dashboard/` y `components/dashboard/`
+    sin resultados referidos a campos de `TeachingActivity`.
+- [x] **D6** Verificación final del módulo: `npx tsc --noEmit` y `npm run lint` limpios; smoke
+  manual: lista → detalle → alta de actividad (selects `students`/`interns`) → validar/subsanar.
+  - **Criterio:** cero errores de TypeScript y ESLint; alta y acciones responden 2xx.
+
+> **Aprobación humana requerida:** esta lista de tareas delta debe ser aprobada antes de pasar al
+> agente Implement.

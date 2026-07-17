@@ -6,7 +6,7 @@ from django.db.models import Q, QuerySet
 from apps.common.selectors import entidades_del_usuario
 from apps.convenios.models import Ipress, University
 from apps.internados.models import (
-    Intern,
+    Student,
     Internship,
     InternshipStatusHistory,
     Rotation,
@@ -15,9 +15,9 @@ from apps.internados.models import (
 )
 
 
-def interns_visibles(usuario) -> QuerySet[Intern]:
-    """Internos de las universidades dentro del ámbito del usuario (RNF-SEG-04)."""
-    qs = Intern.objects.select_related("universidad", "carrera_profesional", "especialidad")
+def estudiantes_visibles(usuario) -> QuerySet[Student]:
+    """Estudiantes de las universidades dentro del ámbito del usuario (RNF-SEG-04)."""
+    qs = Student.objects.select_related("universidad", "carrera_profesional")
     if usuario.is_superuser:
         return qs
     refs = entidades_del_usuario(usuario)
@@ -27,12 +27,12 @@ def interns_visibles(usuario) -> QuerySet[Intern]:
 
 
 def internados_visibles(usuario) -> QuerySet[Internship]:
-    """Internados dentro del alcance institucional: universidad del interno o sede (IPRESS).
+    """Internados dentro del alcance institucional: universidad del estudiante o sede (IPRESS).
 
     Superusuario ve todo. Sin perfiles relevantes → ninguno.
     """
     qs = Internship.objects.select_related(
-        "interno", "convenio", "campo_clinico", "ipress", "tutor", "estado_actual"
+        "estudiante", "convenio", "campo_clinico", "ipress", "tutor", "estado_actual"
     )
     if usuario.is_superuser:
         return qs
@@ -47,7 +47,7 @@ def internados_visibles(usuario) -> QuerySet[Internship]:
         return qs.none()
     condicion = Q()
     if universidades:
-        condicion |= Q(interno__universidad_id__in=universidades)
+        condicion |= Q(estudiante__universidad_id__in=universidades)
     if sedes:
         condicion |= Q(ipress_id__in=sedes)
     return qs.filter(condicion)

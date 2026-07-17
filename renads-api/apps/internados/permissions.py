@@ -1,4 +1,4 @@
-"""Permisos del módulo Internados: alcance institucional por universidad del interno."""
+"""Permisos del módulo Internados: alcance institucional por universidad del estudiante."""
 
 from django.contrib.contenttypes.models import ContentType
 from rest_framework.permissions import SAFE_METHODS, BasePermission
@@ -25,7 +25,7 @@ class IsUniversityOrReadOnly(BasePermission):
 
 
 class InternshipScope(BasePermission):
-    """Alcance a nivel de objeto: la universidad del interno debe estar en el ámbito del usuario.
+    """Alcance a nivel de objeto: la universidad del estudiante debe estar en el ámbito del usuario.
 
     Aplica tanto a `Internship` como a `Rotation` (resuelve el internado). Superusuario pasa.
     """
@@ -36,10 +36,10 @@ class InternshipScope(BasePermission):
         user = request.user
         if user.is_superuser:
             return True
-        internado = obj if isinstance(obj, Internship) else obj.internado
+        internado = obj if isinstance(obj, Internship) else obj.interno
         refs = entidades_del_usuario(user)
         if not refs:
             return False
         ct_uni = ContentType.objects.get_for_model(University).id
         ct_ip = ContentType.objects.get_for_model(Ipress).id
-        return (ct_uni, internado.interno.universidad_id) in refs or (ct_ip, internado.ipress_id) in refs
+        return (ct_uni, internado.estudiante.universidad_id) in refs or (ct_ip, internado.ipress_id) in refs

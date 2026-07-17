@@ -2,6 +2,7 @@
 
 from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -17,7 +18,7 @@ from apps.internados import selectors, services
 from apps.internados.filters import InternshipFilter, RotationFilter
 from apps.internados.models import Rotation
 from apps.internados.permissions import InternshipScope, IsUniversityOrReadOnly
-from apps.internados.serializers import InternSerializer, TutorSerializer
+from apps.internados.serializers import StudentBulkUploadSerializer, StudentSerializer, TutorSerializer
 from apps.internados.serializers import (
     CambiarEstadoInternadoSerializer,
     CambiarEstadoRotacionSerializer,
@@ -38,7 +39,7 @@ class InternshipViewSet(viewsets.ModelViewSet):
 
     permission_classes = [IsAuthenticated, IsInstitutionalMember, InternshipScope]
     filterset_class = InternshipFilter
-    search_fields = ["interno__numero_documento", "interno__nombres", "interno__apellido_paterno"]
+    search_fields = ["estudiante__numero_documento", "estudiante__nombres", "estudiante__apellido_paterno"]
     ordering_fields = ["fecha_inicio", "fecha_fin", "id"]
     ordering = ["-id"]
 
@@ -57,9 +58,9 @@ class InternshipViewSet(viewsets.ModelViewSet):
         exigir_roles(request, "Universidad")
         ser = InternshipWriteSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        interno = ser.validated_data["interno"]
+        estudiante = ser.validated_data["estudiante"]
         ct_uni = ContentType.objects.get_for_model(University).id
-        exigir_ambito(request.user, ct_uni, interno.universidad_id)
+        exigir_ambito(request.user, ct_uni, estudiante.universidad_id)
         internado = services.crear_internado(datos=ser.validated_data, usuario=request.user)
         return Response(InternshipReadSerializer(internado).data, status=201)
 
@@ -128,7 +129,7 @@ class RotationViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         internados = selectors.internados_visibles(self.request.user)
-        return Rotation.objects.filter(internado__in=internados).select_related(
+        return Rotation.objects.filter(interno__in=internados).select_related(
             "ipress_origen", "ipress_destino", "servicio_area", "estado_actual"
         )
 
@@ -174,19 +175,19 @@ class RotationViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 # ---------------------------------------------------------------------------
-# Bloque 2 — Catálogos (solo lectura) y personas (Intern / Tutor)
+# Bloque 2 — Catálogos (solo lectura) y personas (Student / Tutor)
 # ---------------------------------------------------------------------------
-class InternViewSet(AuditedModelViewSet):
-    """CRUD de internos. Escritura por rol Universidad/Administrador; alcance por universidad."""
+class StudentViewSet(AuditedModelViewSet):
+    """CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad."""
 
-    serializer_class = InternSerializer
+    serializer_class = StudentSerializer
     permission_classes = [IsAuthenticated, IsInstitutionalMember, IsUniversityOrReadOnly]
-    filterset_fields = ["universidad", "carrera_profesional", "especialidad", "numero_documento", "activo"]
+    filterset_fields = ["universidad", "carrera_profesional", "numero_documento", "activo"]
     search_fields = ["numero_documento", "nombres", "apellido_paterno"]
     ordering = ["id"]
 
     def get_queryset(self):
-        return selectors.interns_visibles(self.request.user)
+        return selectors.estudiantes_visibles(self.request.user)
 
     def perform_create(self, serializer):
         objeto = serializer.save(creado_por=self.request.user)
@@ -199,6 +200,24 @@ class InternViewSet(AuditedModelViewSet):
         exigir_ambito(request.user, ct_uni, ser.validated_data["universidad"].id)
         self.perform_create(ser)
         return Response(ser.data, status=201)
+
+    @action(
+        detail=False, methods=["post"], url_path="bulk-upload",
+        parser_classes=[MultiPartParser, FormParser],
+        serializer_class=StudentBulkUploadSerializer,
+    )
+    def bulk_upload(self, request):
+        """Carga masiva de estudiantes desde un Excel (.xlsx) — RN-16.
+
+        Escritura por rol Universidad/Administrador (misma política que el CRUD).
+        El alcance institucional se valida por fila. Devuelve el resumen de la carga.
+        """
+        ser = StudentBulkUploadSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        resumen = services.registrar_estudiantes_masivo(
+            archivo=ser.validated_data["archivo"], usuario=request.user
+        )
+        return Response(resumen, status=200)
 
 
 class TutorViewSet(AuditedModelViewSet):
@@ -218,4 +237,5 @@ CATALOG_VIEWSETS = {
     "rotation-statuses": _catalog_viewset(im.RotationStatus),
     "service-areas": _catalog_viewset(im.ServiceArea),
     "identity-document-types": _catalog_viewset(im.IdentityDocumentType),
+    "relationship-types": _catalog_viewset(im.RelationshipType),
 }
