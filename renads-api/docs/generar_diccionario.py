@@ -25,6 +25,8 @@ MODULOS = [
     (3, "Módulo 3 — Registrar Actividades", DOCS / "db_schema_modulo_03_actividades.md"),
 ]
 
+ER_GLOBAL = DOCS / "db_schema_er_global.md"
+
 SALIDA = DOCS / "diccionario_datos.docx"
 
 # --------------------------------------------------------------------------- #
@@ -237,6 +239,96 @@ def add_mapa(doc: Document, mapa: str) -> None:
     doc.add_paragraph()
 
 
+def add_generic_table(doc: Document, header: list[str], filas: list[list[str]]) -> None:
+    if not header:
+        return
+    tabla = doc.add_table(rows=1, cols=len(header))
+    try:
+        tabla.style = "Light Grid Accent 1"
+    except KeyError:
+        tabla.style = "Table Grid"
+    for cell, texto in zip(tabla.rows[0].cells, header):
+        set_cell_bold(cell, texto)
+    for fila in filas:
+        celdas = tabla.add_row().cells
+        for i, val in enumerate(fila):
+            if i < len(celdas):
+                celdas[i].text = val
+                for p in celdas[i].paragraphs:
+                    for run in p.runs:
+                        run.font.size = Pt(9)
+    doc.add_paragraph()
+
+
+def agregar_er_global(doc: Document, ruta) -> bool:
+    """Renderiza `db_schema_er_global.md` como un capítulo: encabezados, tablas y
+    bloques de código (incluye el diagrama ER en Mermaid y los mapas ASCII)."""
+    if not ruta.exists():
+        print(f"[AVISO] No se encontró {ruta.name}, se omite el ER global.")
+        return False
+
+    doc.add_page_break()
+    doc.add_heading("Diagrama Entidad-Relación (global)", level=1)
+
+    lineas = ruta.read_text(encoding="utf-8").splitlines()
+    i, n = 0, len(lineas)
+    while i < n:
+        linea = lineas[i]
+        s = linea.strip()
+
+        if s.startswith("# "):  # H1 (título del archivo) → ya tenemos el capítulo
+            i += 1
+            continue
+
+        m = re.match(r"^(#{2,4})\s+(.*)", s)
+        if m:
+            nivel = min(len(m.group(1)), 4)
+            doc.add_heading(limpiar(m.group(2)), level=nivel)
+            i += 1
+            continue
+
+        if s.startswith("```"):
+            etiqueta = s[3:].strip().lower()
+            j = i + 1
+            bloque = []
+            while j < n and not lineas[j].strip().startswith("```"):
+                bloque.append(lineas[j])
+                j += 1
+            if etiqueta == "mermaid":
+                cap = doc.add_paragraph()
+                rc = cap.add_run("Diagrama ER (fuente Mermaid — renderizable en visores Mermaid):")
+                rc.italic = True
+                rc.font.size = Pt(9)
+            p = doc.add_paragraph()
+            run = p.add_run("\n".join(bloque))
+            run.font.name = "Consolas"
+            run.font.size = Pt(7.5)
+            doc.add_paragraph()
+            i = j + 1
+            continue
+
+        if s.startswith("|") and i + 1 < n and es_separador(lineas[i + 1]):
+            header = [limpiar(c) for c in parse_row(s)]
+            filas = []
+            j = i + 2
+            while j < n and lineas[j].strip().startswith("|"):
+                filas.append([limpiar(c) for c in parse_row(lineas[j])])
+                j += 1
+            add_generic_table(doc, header, filas)
+            i = j
+            continue
+
+        if s:
+            texto = s[1:].strip() if s.startswith(">") else s
+            p = doc.add_paragraph(texto)
+            for run in p.runs:
+                run.font.size = Pt(9.5)
+        i += 1
+
+    print("[OK] Diagrama Entidad-Relación (global) agregado.")
+    return True
+
+
 def construir_documento() -> None:
     doc = Document()
 
@@ -264,7 +356,8 @@ def construir_documento() -> None:
     nota = doc.add_paragraph()
     nota.alignment = WD_ALIGN_PARAGRAPH.CENTER
     rn = nota.add_run(
-        "Fuente: esquemas de base de datos de los módulos 1, 2 y 3 (docs/db_schema_*.md)."
+        "Fuente: esquemas de base de datos de los módulos 1, 2 y 3 y el diagrama ER global "
+        "(docs/db_schema_*.md)."
     )
     rn.italic = True
     rn.font.size = Pt(9)
@@ -314,6 +407,8 @@ def construir_documento() -> None:
 
         if num != MODULOS[-1][0]:
             doc.add_page_break()
+
+    agregar_er_global(doc, ER_GLOBAL)
 
     doc.save(SALIDA)
     print("-" * 60)

@@ -6,9 +6,15 @@ Base: `/api/v1/`. Todos los endpoints requieren JWT.
 
 ## Reglas de negocio clave (para validación/UX)
 
+- Un Convenio **Marco** solo lo solicita una **GERESA o DIRESA** (`organo_regional` de ese tipo)
+  y no lleva `convenio_marco`.
 - **RN-3:** un Convenio **Específico** requiere un **Convenio Marco vigente**
-  (estado en `VIGENTE` / `PUBLICADO` / `SUSCRITO`).
+  (estado en `VIGENTE` / `PUBLICADO` / `SUSCRITO`) — **salvo si el órgano es DIRIS**, que puede
+  crear Específico sin Marco (si lo envía, igual debe estar vigente).
 - CONAPRES y campos clínicos **solo aplican a convenios Específicos**.
+- Un **campo clínico** solo acepta una IPRESS con **`es_sede_docente = true`** (autorizada por
+  CONAPRES vía `POST /ipress/{id}/autorizar-sede-docente/` — ver `docs/api-catalogos.md`);
+  si no, el backend responde error en el campo `ipress`.
 - No se puede **firmar** con observaciones pendientes (evaluación técnica / CONAPRES / OGAJ `OBSERVADO` sin subsanar).
 - `fecha_fin` la calcula el backend (vigencia del tipo: 4 años Marco / 3 años Específico). No enviarla.
 

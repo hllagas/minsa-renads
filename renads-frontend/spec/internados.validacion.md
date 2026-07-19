@@ -80,3 +80,25 @@ Revisado contra `spec/internados.md` §«Actualización de contrato (2026-07-17)
 - El smoke manual contra el backend en ejecución (lista → detalle → historial → rotaciones → alta →
   CRUD estudiante) queda reportado por Implement; este validador verificó contrato, código estático,
   tsc y lint (no ejecuta `npm run dev`).
+
+---
+
+## Validación — Actualización de contrato 2 (2026-07-17)
+
+Delta backend commit `fdd5770`. Verificado contra `docs/api-internados.md` y `lib/api/schema.d.ts`.
+**Resultado: CERRADO — sin hallazgos altos/medios. U1–U8 marcadas.**
+
+| Tarea | Estado | Verificación |
+|-------|--------|--------------|
+| U1 Student sin `especialidad` | OK | `lib/internados/persons.ts`: config `students` no incluye `especialidad`; `tutors` la conserva (línea 128). Payload de estudiante no envía el campo. |
+| U2 Filtros de students | OK | `studentFilters` con `universidad` (FK `universities`), `carrera_profesional` (FK `professional-careers`), `activo` (boolean); `numero_documento` cubierto por search. |
+| U3 Multipart | OK | `lib/api/upload.ts`: `postMultipart<T>` usa la instancia `api` de `lib/api/client` y sobrescribe `Content-Type: multipart/form-data` por petición (Axios calcula boundary). Axios permanece solo en `lib/api/`. |
+| U4 Tipo + hook | OK | `StudentBulkUploadResult = { creados; omitidos; errores[{fila,motivo}] }` coincide con el contrato (§Carga masiva); `useStudentsBulkUpload` arma `FormData` campo `archivo`, POST `students/bulk-upload/`, invalida `resourceKeys.all("students")` en onSuccess. |
+| U5 `headerActions` en ResourceCrud | OK | Prop `headerActions?: ReactNode` renderizada en `PageHeader` junto a «Nuevo»; sin cambio de comportamiento al omitirse. |
+| U6 Diálogo carga masiva | OK | `components/internados/students-bulk-upload-dialog.tsx`: input `.xlsx`, ayuda de columnas del contrato, submit deshabilitado sin archivo, estado «Subiendo…», resumen creados/omitidos + tabla Fila/Motivo, errores vía `extractApiError`. |
+| U7 Wiring página estudiantes | OK | `personas/[entidad]/page.tsx`: `headerActions` solo cuando `entidad==="students"` y `userHasRole(user,"Universidad","Administrador RENADS")`. No aparece en tutors. |
+| U8 Verificación | OK | `npx tsc --noEmit` limpio (exit 0); `npm run lint` limpio salvo warning preexistente de TanStack Table en `components/ui/data-table.tsx`. |
+
+Nota de infra compartida (`resource-crud.tsx`): la columna de acciones ahora aparece con
+`canWrite || rowActions` y Editar/Eliminar quedan bajo `canWrite`. Verificado que no hay regresión en
+pantallas existentes (ver `catalogos.validacion.md`/`convenios.validacion.md`).

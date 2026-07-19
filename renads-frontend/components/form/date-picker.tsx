@@ -5,6 +5,7 @@ import { CalendarIcon } from "lucide-react";
 import { format, parse } from "date-fns";
 import { es } from "date-fns/locale";
 
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -52,7 +53,10 @@ export function DatePicker({
             id={id}
             variant="outline"
             aria-invalid={ariaInvalid}
-            className={className ?? "w-full justify-start gap-2 font-normal"}
+            className={cn(
+              "bg-field",
+              className ?? "w-full justify-start gap-2 font-normal",
+            )}
           />
         }
       >

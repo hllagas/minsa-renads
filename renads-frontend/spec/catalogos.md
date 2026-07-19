@@ -6,6 +6,7 @@
 > Fuente de verdad del contrato: `docs/api-catalogos.md` (+ `docs/api-convenios.md`,
 > `docs/api-auth.md`). **§5 (Resoluciones) es autoritativa y prevalece sobre el texto de las tareas
 > donde haya diferencia.**
+> ⚠️ **Pendiente:** aplicar la sección «Actualización de contrato 2 (2026-07-17)» (al final).
 
 ## 1. Resumen del módulo
 
@@ -427,3 +428,60 @@ el Auditor las ve en solo lectura). Catálogos siempre solo lectura.
 
 > **Aprobado para Implement.** El ALTA de representantes/documentos queda fuera de v1 (depende del
 > endpoint `content-types`); registrar ese requerimiento al backend. Todo lo demás es v1.
+
+---
+
+## Actualización de contrato 2 (2026-07-17)
+
+Segundo delta del backend (commit `fdd5770`). Fuente de verdad: `docs/api-catalogos.md` §2
+(**ya sincronizado**) y `lib/api/schema.d.ts` (**ya regenerado**). Cambio: **`ipress`** gana el
+booleano **`es_sede_docente`** (default `false`), el filtro homónimo y la acción
+**`POST /ipress/{id}/autorizar-sede-docente/`** — body `{ "autorizar": true|false }` (default
+`true`), **solo rol `CONAPRES`**; devuelve la IPRESS actualizada. `es_sede_docente=true` es
+requisito para que la IPRESS pueda usarse en campos clínicos de convenios (regla cubierta en
+`spec/convenios.md`, «Actualización de contrato 2»).
+
+- [x] **U1 Config `ipress` — columna + filtro.** `lib/convenios/entities.ts` (config compartida por
+  `/catalogos/entidades/ipress` y `/convenios/maestros/ipress`):
+  - Columna nueva «Sede docente» con render Sí/No sobre `es_sede_docente` (mismo patrón `siNo` de
+    `activo`).
+  - Filtro nuevo `{ name: "es_sede_docente", label: "Sede docente", type: "boolean" }` junto a los
+    existentes (`unidad_ejecutora`, `ambito_geografico_sanitario`, `activo`).
+  - **Decisión (aprobar):** **NO** exponer `es_sede_docente` en los `fields` del formulario — la
+    autorización/revocación se hace exclusivamente con la acción CONAPRES (U2), aunque el
+    serializer lo admita nominalmente. Así la UI refleja el flujo de negocio del contrato.
+  - **Criterio:** la columna y el filtro aparecen en ambos índices; el filtro emite
+    `?es_sede_docente=true|false` (verificable en Network); alta/edición de IPRESS no envía
+    `es_sede_docente`.
+- [x] **U2 Acción «sede docente» (CONAPRES).** Nuevo
+  `components/catalogos/ipress-sede-docente-action.tsx`: diálogo de confirmación (shadcn `Dialog` o
+  `AlertDialog`) que llama `useResourceAction("ipress", row.id, "autorizar-sede-docente")` con body
+  `{ autorizar }`:
+  - Fila con `es_sede_docente: false` → acción «Autorizar sede docente» (`{ autorizar: true }`).
+  - Fila con `es_sede_docente: true` → acción «Revocar sede docente» (`{ autorizar: false }`).
+  - Al éxito: toast + invalidar **además** `resourceKeys.all("ipress")` (nota: `useResourceAction`
+    solo invalida el detalle y las keys de flujo — la invalidación de la lista se añade en el
+    `onSuccess` del `mutate` en el componente). Errores con `extractApiError`.
+  - **Criterio:** el POST va a `/api/v1/ipress/{id}/autorizar-sede-docente/` con el body exacto;
+    tras autorizar/revocar la tabla refresca y la columna «Sede docente» cambia; ambos sentidos
+    funcionan.
+- [x] **U3 Inyección de la acción por fila + navegación.**
+  - `app/(app)/catalogos/entidades/[entidad]/page.tsx`: cuando `params.entidad === "ipress"` y
+    `userHasRole(user, "CONAPRES")`, pasar `rowActions` (prop ya soportada por `ResourceCrud`) con
+    la acción U2. Para el resto de slugs/roles no se pasa nada.
+  - **Decisión (aprobar):** la acción vive **solo** en `/catalogos/entidades/ipress`;
+    `/convenios/maestros/ipress` muestra columna/filtro (U1) pero no la acción.
+  - **Decisión (aprobar):** `components/layout/app-shell.tsx` — añadir `"CONAPRES"` a los roles del
+    ítem de menú `/catalogos` (política R4 ampliada: hoy `["Administrador RENADS", "Auditor"]`; sin
+    esto un usuario CONAPRES no puede llegar a la acción por navegación). El índice `/catalogos`
+    sigue gateando Auditoría a Admin/Auditor.
+  - **Criterio:** un usuario `CONAPRES` ve el ítem `/catalogos`, entra a IPRESS y ve la acción por
+    fila; un Admin/Auditor **no** ve la acción (solo CONAPRES); en otros slugs de entidad no
+    aparece ninguna acción extra. El gating es UX; el backend (rol `CONAPRES`) es la autoridad.
+- [x] **U4 Verificación.** `npx tsc --noEmit` y `npm run lint` limpios. Smoke: con rol CONAPRES
+  autorizar y revocar una IPRESS (columna cambia, lista refresca); filtro `es_sede_docente` en
+  ambos índices; con rol no-CONAPRES la acción no aparece.
+  - **Criterio:** cero errores de TypeScript/ESLint; los flujos del smoke responden 2xx.
+
+> **Aprobación humana requerida:** esta lista de tareas delta (U1–U4, con las 3 decisiones
+> marcadas) debe ser aprobada antes de pasar al agente Implement.

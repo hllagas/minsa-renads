@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 
@@ -40,10 +40,13 @@ const WRITE_ROLES = ["Administrador RENADS"];
 export function ResourceCrud<TRead extends WithId>({
   config,
   rowActions,
+  headerActions,
 }: {
   config: ResourceConfig<TRead>;
   /** Acciones por fila inyectadas por la página (p. ej. abrir el diálogo de contraseña). */
   rowActions?: RowAction<TRead>[];
+  /** Acciones extra en la cabecera, junto al botón «Nuevo» (p. ej. carga masiva). */
+  headerActions?: ReactNode;
 }) {
   const hooks = useMemo(
     () => createResourceHooks<TRead, Record<string, unknown>>(config.endpoint),
@@ -96,22 +99,26 @@ export function ResourceCrud<TRead extends WithId>({
       cell: ({ row }) =>
         c.render ? c.render(row.original) : String(row.original[c.key] ?? "—"),
     }));
-    if (canWrite) {
+    // La columna de acciones aparece si hay escritura (editar/eliminar) o acciones por fila
+    // inyectadas por la página (p. ej. la acción CONAPRES de sede docente, sin escritura CRUD).
+    if (canWrite || (rowActions?.length ?? 0) > 0) {
       base.push({
         id: "acciones",
         header: "",
         cell: ({ row }) => (
           <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setEditing(row.original);
-                setDialogOpen(true);
-              }}
-            >
-              Editar
-            </Button>
+            {canWrite ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setEditing(row.original);
+                  setDialogOpen(true);
+                }}
+              >
+                Editar
+              </Button>
+            ) : null}
             {(rowActions ?? []).map((action) =>
               action.visible && !action.visible(row.original) ? null : action.render ? (
                 <span key={action.key}>{action.render(row.original)}</span>
@@ -126,13 +133,15 @@ export function ResourceCrud<TRead extends WithId>({
                 </Button>
               ),
             )}
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => setDeleting(row.original)}
-            >
-              {config.deleteActionLabel ?? "Eliminar"}
-            </Button>
+            {canWrite ? (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setDeleting(row.original)}
+              >
+                {config.deleteActionLabel ?? "Eliminar"}
+              </Button>
+            ) : null}
           </div>
         ),
       });
@@ -178,7 +187,14 @@ export function ResourceCrud<TRead extends WithId>({
       <PageHeader
         title={config.title}
         description={config.description}
-        actions={canCreate ? <Button onClick={onCreate}>Nuevo</Button> : null}
+        actions={
+          headerActions || canCreate ? (
+            <div className="flex items-center gap-2">
+              {headerActions}
+              {canCreate ? <Button onClick={onCreate}>Nuevo</Button> : null}
+            </div>
+          ) : null
+        }
       />
 
       <div className="mb-4 flex items-center gap-2">

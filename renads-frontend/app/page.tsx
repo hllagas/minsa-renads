@@ -6,7 +6,7 @@ import { Landing } from "@/components/landing/landing";
 export const metadata: Metadata = {
   title: "RENADS — Registro Nacional de Articulación Docencia-Servicio en Salud",
   description:
-    "Plataforma del MINSA para gestionar convenios, internados y actividades docente-asistenciales con trazabilidad total.",
+    "Plataforma del MINSA para gestionar convenios, internos y actividades docente-asistenciales con trazabilidad total.",
 };
 
 // Tipografía del MASTER (design-system/renadsweb): Lexend (títulos) + Source Sans 3 (cuerpo).

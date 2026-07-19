@@ -9,7 +9,8 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  /* Títulos en Lexend (MASTER); cuerpo en Source Sans 3 (--font-sans). */
+  --font-heading: var(--font-lexend);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -44,6 +45,8 @@
   --color-navy-foreground: var(--navy-foreground);
   --color-cta: var(--cta);
   --color-cta-foreground: var(--cta-foreground);
+  /* Relleno de campos de formulario (input/select/textarea/date) — distinto del panel. */
+  --color-field: var(--field);
   --color-teal: var(--teal);
   --color-teal-foreground: var(--teal-foreground);
   --radius-sm: calc(var(--radius) * 0.6);
@@ -56,33 +59,38 @@
 }
 
 :root {
-  /* Fondo general slate-50 (#F8FAFC); tarjetas/forms/modals en blanco. */
-  --background: oklch(0.984 0.003 248);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  /* Primary = sky-500 */
-  --primary: oklch(0.685 0.17 237);
-  --primary-foreground: oklch(0.985 0 0);
-  /* Marca (constantes; válidas en claro y oscuro) */
+  /* Paleta MASTER (design-system/renadsweb) — fuente de verdad de color.
+     Fondo #EFF6FF, texto #1E40AF, primary #2563EB, secondary #3B82F6, CTA #F97316.
+     Tarjetas/forms/modals en blanco para separarse del fondo azul (necesario para
+     legibilidad; el resto de neutros —muted/border— se mantiene gris). */
+  --background: #eff6ff;
+  --foreground: #1e40af;
+  --card: #ffffff;
+  --card-foreground: #1e40af;
+  --popover: #ffffff;
+  --popover-foreground: #1e40af;
+  /* Primary MASTER */
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  /* Marca (navy/teal para el shell; CTA = naranja MASTER) */
   --navy: oklch(0.25 0.05 255);
   --navy-foreground: oklch(0.985 0 0);
-  --cta: oklch(0.69 0.15 162); /* verde esmeralda */
-  --cta-foreground: oklch(0.985 0 0);
+  --cta: #f97316;
+  --cta-foreground: #ffffff;
   --teal: oklch(0.70 0.13 180);
   --teal-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  /* Secondary MASTER (azul de marca): botones/badges secundarios con texto blanco */
+  --secondary: #3b82f6;
+  --secondary-foreground: #ffffff;
+  --muted: oklch(0.968 0.007 247); /* gris azulado muy claro, hover/zonas suaves */
+  --muted-foreground: oklch(0.45 0.03 250); /* azul-gris legible */
+  --accent: oklch(0.968 0.007 247);
+  --accent-foreground: #1e40af;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: oklch(0.9 0.02 247); /* borde gris-azulado (divisores/cards) */
+  --input: #cbd5e1; /* borde de campos (slate-300), más visible que los divisores */
+  --field: #f1f5f9; /* relleno de campos: gris-azul muy claro sobre panel blanco */
+  --ring: #2563eb;
   /* Paleta categórica accesible (base Okabe-Ito, colorblind-safe). Azul/naranja
      primero para evitar el par rojo-verde. Valores para fondo claro (contraste ≥3:1). */
   --chart-1: oklch(0.55 0.14 245); /* azul */
@@ -91,50 +99,54 @@
   --chart-4: oklch(0.72 0.14 78);  /* ámbar */
   --chart-5: oklch(0.62 0.12 350); /* púrpura */
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1e40af;
+  --sidebar-primary: #2563eb;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: oklch(0.968 0.007 247);
+  --sidebar-accent-foreground: #1e40af;
+  --sidebar-border: oklch(0.9 0.02 247);
+  --sidebar-ring: #2563eb;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  /* Primary = sky (más claro para fondo oscuro) */
-  --primary: oklch(0.72 0.15 237);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  /* MASTER en oscuro: navy profundo + azul de marca aclarado, CTA naranja aclarado. */
+  --background: #0b1220;
+  --foreground: #dbeafe;
+  --card: #0f172a;
+  --card-foreground: #dbeafe;
+  --popover: #0f172a;
+  --popover-foreground: #dbeafe;
+  /* Primary = azul de marca; texto navy para contraste sobre el azul claro */
+  --primary: #3b82f6;
+  --primary-foreground: #0b1220;
+  --secondary: #60a5fa;
+  --secondary-foreground: #0b1220;
+  --cta: #fb923c;
+  --cta-foreground: #0b1220;
+  --muted: oklch(0.28 0.03 255);
+  --muted-foreground: oklch(0.75 0.04 250);
+  --accent: oklch(0.28 0.03 255);
+  --accent-foreground: #dbeafe;
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 22%); /* borde de campos, algo más visible en oscuro */
+  --field: #172033; /* relleno de campos: un paso más claro que la card (#0f172a) */
+  --ring: #60a5fa;
   /* Mismas tonalidades, más claras y algo desaturadas para fondo oscuro (no invertir). */
   --chart-1: oklch(0.70 0.13 245); /* azul */
   --chart-2: oklch(0.72 0.15 45);  /* naranja */
   --chart-3: oklch(0.72 0.12 165); /* verde */
   --chart-4: oklch(0.80 0.13 80);  /* ámbar */
   --chart-5: oklch(0.72 0.11 350); /* púrpura */
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar: #0f172a;
+  --sidebar-foreground: #dbeafe;
+  --sidebar-primary: #3b82f6;
+  --sidebar-primary-foreground: #0b1220;
+  --sidebar-accent: oklch(0.28 0.03 255);
+  --sidebar-accent-foreground: #dbeafe;
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: #60a5fa;
 }
 
 /* Landing: paleta del MASTER (renadsweb) con soporte claro/oscuro.
@@ -157,10 +169,11 @@
   --ld-cta: #fb923c;
   --ld-bg: #0b1220; /* navy profundo */
   --ld-text: #dbeafe; /* azul muy claro, contraste AA sobre el fondo */
-  --ld-surface: rgba(255, 255, 255, 0.06);
+  --ld-surface: rgba(255, 255, 255, 0.05);
   --ld-surface-strong: rgba(15, 23, 42, 0.82);
-  --ld-glass-bg: rgba(255, 255, 255, 0.05);
-  --ld-glass-border: rgba(255, 255, 255, 0.1);
+  /* Glassmorphism (spec): superficie muy tenue + borde sutil sobre fondo oscuro. */
+  --ld-glass-bg: rgba(255, 255, 255, 0.04);
+  --ld-glass-border: rgba(255, 255, 255, 0.08);
   --ld-input: rgba(255, 255, 255, 0.06);
 }
 
@@ -183,5 +196,9 @@
   }
   html {
     @apply font-sans;
+  }
+  /* MASTER: títulos en Lexend, cuerpo en Source Sans 3. */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
   }
 }

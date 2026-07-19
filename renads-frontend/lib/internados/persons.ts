@@ -1,7 +1,24 @@
-import type { ResourceConfig } from "@/lib/crud/types";
+import type { FilterConfig, ResourceConfig } from "@/lib/crud/types";
 
 const siNo = (v: unknown) => (v ? "Sí" : "No");
 const WRITE = ["Universidad", "Administrador RENADS"];
+
+/** Filtros declarativos de estudiantes (django-filter). `numero_documento` ya lo cubre el search. */
+const studentFilters: FilterConfig[] = [
+  {
+    name: "universidad",
+    label: "Universidad",
+    type: "select",
+    optionsEndpoint: "universities",
+  },
+  {
+    name: "carrera_profesional",
+    label: "Carrera profesional",
+    type: "select",
+    optionsEndpoint: "professional-careers",
+  },
+  { name: "activo", label: "Activo", type: "boolean" },
+];
 
 const personColumns = [
   { key: "numero_documento", header: "Documento" },
@@ -20,6 +37,7 @@ export const PERSON_CONFIGS: Record<string, ResourceConfig> = {
     searchPlaceholder: "Buscar por documento o nombres…",
     writeRoles: WRITE,
     columns: personColumns,
+    filters: studentFilters,
     fields: [
       { name: "numero_documento", label: "Número de documento", type: "text", required: true },
       {
@@ -55,12 +73,6 @@ export const PERSON_CONFIGS: Record<string, ResourceConfig> = {
         type: "select",
         required: true,
         optionsEndpoint: "professional-careers",
-      },
-      {
-        name: "especialidad",
-        label: "Especialidad",
-        type: "select",
-        optionsEndpoint: "specialties",
       },
       { name: "codigo_universitario", label: "Código universitario", type: "text" },
       { name: "anio_academico", label: "Año académico", type: "number" },

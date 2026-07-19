@@ -1083,10 +1083,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES. */
         get: operations["ipress_list"];
         put?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES. */
         post: operations["ipress_create"];
         delete?: never;
         options?: never;
@@ -1101,17 +1101,34 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES. */
         get: operations["ipress_retrieve"];
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES. */
         put: operations["ipress_update"];
         post?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES. */
         delete: operations["ipress_destroy"];
         options?: never;
         head?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES. */
         patch: operations["ipress_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/ipress/{id}/autorizar-sede-docente/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description CONAPRES autoriza/registra la IPRESS como sede docente. Body: `{autorizar: bool}` (default True). */
+        post: operations["ipress_autorizar_sede_docente_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/minsa-organ-types/": {
@@ -1816,6 +1833,28 @@ export interface paths {
         head?: never;
         /** @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad. */
         patch: operations["students_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/students/bulk-upload/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Carga masiva de estudiantes desde un Excel (.xlsx) — RN-16.
+         *
+         *     Escritura por rol Universidad/Administrador (misma política que el CRUD).
+         *     El alcance institucional se valida por fila. Devuelve el resumen de la carga.
+         */
+        post: operations["students_bulk_upload_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/teaching-activities/": {
@@ -2856,6 +2895,8 @@ export interface components {
              * @description Dirección
              */
             direccion?: string;
+            /** @description Autorizada por CONAPRES como sede docente (asistencial, MINSA/FF.AA.-FF.PP., pública) */
+            es_sede_docente?: boolean;
             activo?: boolean;
             /** @description Unidad ejecutora a la que pertenece */
             unidad_ejecutora: number;
@@ -3851,6 +3892,8 @@ export interface components {
              * @description Dirección
              */
             direccion?: string;
+            /** @description Autorizada por CONAPRES como sede docente (asistencial, MINSA/FF.AA.-FF.PP., pública) */
+            es_sede_docente?: boolean;
             activo?: boolean;
             /** @description Unidad ejecutora a la que pertenece */
             unidad_ejecutora?: number;
@@ -4029,8 +4072,6 @@ export interface components {
             universidad?: number;
             /** @description Carrera / programa */
             carrera_profesional?: number;
-            /** @description Especialidad (segunda especialidad) */
-            especialidad?: number | null;
             /** @description Parentesco del contacto de emergencia */
             contacto_emergencia_parentesco?: number | null;
             readonly creado_por?: number;
@@ -4574,11 +4615,17 @@ export interface components {
             universidad: number;
             /** @description Carrera / programa */
             carrera_profesional: number;
-            /** @description Especialidad (segunda especialidad) */
-            especialidad?: number | null;
             /** @description Parentesco del contacto de emergencia */
             contacto_emergencia_parentesco?: number | null;
             readonly creado_por: number;
+        };
+        /** @description Entrada de la carga masiva de estudiantes (RN-16): archivo Excel `.xlsx`. */
+        StudentBulkUpload: {
+            /**
+             * Format: uri
+             * @description Archivo Excel (.xlsx) con los estudiantes a registrar
+             */
+            archivo: string;
         };
         TeachingActivityRead: {
             readonly id: number;
@@ -7332,6 +7379,7 @@ export interface operations {
             query?: {
                 activo?: boolean;
                 ambito_geografico_sanitario?: number;
+                es_sede_docente?: boolean;
                 /** @description Qué campo usar para ordenar los resultados. */
                 ordering?: string;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
@@ -7467,6 +7515,34 @@ export interface operations {
                 "application/json": components["schemas"]["PatchedIpressAuto"];
                 "application/x-www-form-urlencoded": components["schemas"]["PatchedIpressAuto"];
                 "multipart/form-data": components["schemas"]["PatchedIpressAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IpressAuto"];
+                };
+            };
+        };
+    };
+    ipress_autorizar_sede_docente_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este IPRESS. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IpressAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["IpressAuto"];
+                "multipart/form-data": components["schemas"]["IpressAuto"];
             };
         };
         responses: {
@@ -9095,6 +9171,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Student"];
+                };
+            };
+        };
+    };
+    students_bulk_upload_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["StudentBulkUpload"];
+                "application/x-www-form-urlencoded": components["schemas"]["StudentBulkUpload"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentBulkUpload"];
                 };
             };
         };

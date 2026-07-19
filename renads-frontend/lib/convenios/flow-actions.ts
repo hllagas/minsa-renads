@@ -63,7 +63,15 @@ export const FLOW_ACTIONS: FlowAction[] = [
     roles: ["CONAPRES"],
     onlyEspecifico: true,
     fields: [
-      { name: "ipress", label: "IPRESS", type: "select", required: true, optionsEndpoint: "ipress" },
+      {
+        name: "ipress",
+        label: "IPRESS",
+        type: "select",
+        required: true,
+        optionsEndpoint: "ipress",
+        // Solo IPRESS autorizadas como sede docente (RN: campo clínico exige sede docente).
+        optionsParams: { es_sede_docente: "true" },
+      },
       {
         name: "carrera_profesional",
         label: "Carrera profesional",

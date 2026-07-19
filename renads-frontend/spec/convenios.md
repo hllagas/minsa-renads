@@ -124,3 +124,46 @@ acción, catálogos). Estructura/convenios de stack: `docs/frontend-conventions.
 - Roles y alcance institucional: `docs/backend-overview.md`, `docs/api-auth.md`.
 - Stack y patrones (DataTable, Query, Axios, Zustand): `CLAUDE.md`, `docs/frontend-conventions.md`.
 - Reutilizar del módulo Auth: `lib/api/client.ts`, hooks/patrón de `lib/auth/`, `<DataTable>`, `userHasRole`.
+
+## Actualización de contrato 2 (2026-07-17)
+
+Segundo delta del backend (commit `fdd5770`). Fuente de verdad: `docs/api-convenios.md` y
+`docs/api-catalogos.md` (**ya sincronizados**) y `lib/api/schema.d.ts` (**ya regenerado**). Dos
+reglas nuevas afectan este módulo; ningún campo nuevo en `conventions`.
+
+1. **Campo clínico exige IPRESS sede docente:** el backend rechaza `POST
+   /conventions/{id}/campos-clinicos/` si la `ipress` no tiene `es_sede_docente=true` (error en el
+   campo `ipress`). La autorización se gestiona en `/catalogos` (ver `spec/catalogos.md` delta 2).
+2. **Reglas de creación de convenio** (solo validación de backend, sin campos nuevos): Marco solo lo
+   solicita GERESA/DIRESA y sin `convenio_marco`; Específico requiere Marco vigente **salvo** órgano
+   DIRIS. El backend devuelve errores de campo claros (`organo_regional`, `convenio_marco`).
+
+- [x] **U1 Filtrar select de IPRESS en campos clínicos.** `lib/convenios/flow-actions.ts`, acción
+  `campos-clinicos` (campo `ipress`, ~línea 66): añadir `optionsParams: { es_sede_docente: "true" }`
+  para que el combobox solo ofrezca IPRESS autorizadas como sede docente. Reduce el error de backend
+  a un caso de borde (IPRESS revocada tras cargar el form).
+  - **Criterio:** el combobox de IPRESS en «Agregar campo clínico» solo lista sedes docentes
+    (`?es_sede_docente=true` en Network); una IPRESS no autorizada no aparece.
+- [x] **U2 Mostrar error de backend en campos clínicos (verificación, sin código nuevo si ya
+  funciona).** Confirmar que el `FlowActionDialog` de `campos-clinicos` renderiza el error de campo
+  `ipress` (y `organo_regional`/`convenio_marco` en el alta) vía `extractApiError`/errores por
+  campo. Si el diálogo hoy solo muestra toast genérico, **decisión (aprobar)**: dejar como está
+  (toast) — la regla RN queda cubierta por U1 y por los mensajes del backend.
+  - **Criterio:** al forzar el rechazo (IPRESS no autorizada), la UI muestra el mensaje del backend
+    de forma legible (toast o error de campo), sin romper el diálogo.
+- [x] **U3 Alta de convenio — reglas Marco/DIRIS (decisión).** El form de creación
+  (`lib/convenios/convention-fields.ts` + selector de solicitante) delega la validación al backend.
+  **Decisión (aprobar):** **no** replicar en el front la lógica GERESA/DIRESA/DIRIS ni hacer
+  `convenio_marco` condicional — basta mostrar el error del backend (evita divergencia de reglas y
+  duplicación). Documentar la decisión; sin cambios de código salvo confirmar que los errores de
+  campo `organo_regional`/`convenio_marco` se muestran.
+  - **Criterio:** crear Marco desde un órgano no GERESA/DIRESA, o Específico sin Marco (no DIRIS),
+    muestra el error del backend en el campo correspondiente.
+- [x] **U4 Verificación.** `npx tsc --noEmit` y `npm run lint` limpios. Smoke: agregar campo clínico
+  a un Específico (solo aparecen sedes docentes en el select); intento con IPRESS no autorizada
+  (borde) muestra el error del backend.
+  - **Criterio:** cero errores de TypeScript/ESLint; los flujos del smoke responden 2xx o muestran
+    el error legible.
+
+> **Aprobación humana requerida:** esta lista (U1–U4, con las decisiones de U2 y U3) debe ser
+> aprobada antes de pasar al agente Implement.

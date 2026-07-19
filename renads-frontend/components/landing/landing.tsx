@@ -24,9 +24,9 @@ import { ThemeToggle } from "@/components/layout/theme-toggle";
 
 /* ───────────────────────── helpers de estilo ───────────────────────── */
 
-/** Tarjeta glass adaptada a fondo claro (glassmorphism sutil). */
+/** Tarjeta glass (glassmorphism): blur fuerte + borde sutil + highlight superior tipo cristal. */
 const GLASS =
-  "rounded-2xl border border-[var(--ld-glass-border)] bg-[var(--ld-glass-bg)] backdrop-blur-xl shadow-[0_8px_30px_rgba(2,6,23,0.06)]";
+  "rounded-2xl border border-[var(--ld-glass-border)] bg-[var(--ld-glass-bg)] backdrop-blur-xl shadow-[0_8px_30px_rgba(2,6,23,0.06),inset_0_1px_0_rgba(255,255,255,0.18)]";
 
 /* ───────────────────────── animaciones ───────────────────────── */
 
@@ -236,13 +236,13 @@ const STEPS = [
   },
   {
     n: "02",
-    title: "Registra el internado",
+    title: "Registra el interno",
     desc: "Sobre un convenio Específico vigente, registra al estudiante y su tutor, dentro de tu ámbito institucional.",
   },
   {
     n: "03",
     title: "Autoriza rotaciones",
-    desc: "Gestiona rotaciones entre IPRESS del mismo ámbito geográfico sanitario, con autorización de la autoridad del convenio.",
+    desc: "Gestiona rotaciones entre Sedes docentes (IPRESS) del mismo ámbito geográfico sanitario, con autorización de la autoridad del convenio.",
   },
   {
     n: "04",
@@ -297,7 +297,7 @@ const FOOTER_COLS = [
     title: "Módulos",
     links: [
       { label: "Convenios", href: "/login" },
-      { label: "Internados", href: "/login" },
+      { label: "Internos", href: "/login" },
       { label: "Actividades", href: "/login" },
     ],
   },
@@ -354,6 +354,17 @@ function BackgroundFx() {
         }}
         animate={reduced ? undefined : { x: [0, -50, 0], y: [0, 40, 0] }}
         transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="absolute bottom-[-10rem] left-1/3 h-[34rem] w-[34rem] rounded-full opacity-25 blur-3xl"
+        style={{
+          background:
+            "radial-gradient(circle at center, var(--ld-primary), transparent 60%)",
+        }}
+        animate={
+          reduced ? undefined : { x: [0, 60, 0], y: [0, -30, 0], scale: [1, 1.12, 1] }
+        }
+        transition={{ duration: 26, repeat: Infinity, ease: "easeInOut" }}
       />
       {/* Grid sutil */}
       <div
@@ -432,9 +443,9 @@ function Hero() {
       id="top"
       className="relative mx-auto grid min-h-[100dvh] w-[min(72rem,94%)] place-items-center py-20"
     >
-      <ParticlesCanvas className="absolute inset-0 -z-10 h-full w-full" />
+      <ParticlesCanvas className="pointer-events-none absolute inset-0 z-0 h-full w-full" />
 
-      <div className="grid w-full items-center gap-12 lg:grid-cols-2">
+      <div className="relative z-10 grid w-full items-center gap-12 lg:grid-cols-2">
         {/* Texto */}
         <div className="text-center lg:text-left">
           <motion.span
@@ -458,7 +469,7 @@ function Hero() {
             transition={{ delay: 0.8, duration: 0.6 }}
             className="mx-auto mt-6 max-w-xl text-lg text-[var(--ld-text)]/70 lg:mx-0"
           >
-            Plataforma del MINSA para gestionar convenios, internados y actividades
+            Plataforma del MINSA para gestionar convenios, internos y actividades
             docente-asistenciales con trazabilidad total y alcance por institución.
           </motion.p>
 
@@ -489,7 +500,7 @@ function Hero() {
             transition={{ delay: 1.2 }}
             className="mt-8 text-sm text-[var(--ld-text)]/55"
           >
-            Usado por DIGEP, CONAPRES, OGAJ, universidades e IPRESS.
+            Usado por DIGEP, GORES/DIRIS, CONAPRES, Universidades, Sedes docentes e Internos.
           </motion.p>
         </div>
 
@@ -518,7 +529,7 @@ function Hero() {
 
           {[
             { label: "Convenios", top: "6%", left: "-6%", delay: 0 },
-            { label: "Internados", top: "44%", left: "78%", delay: 0.6 },
+            { label: "Internos", top: "44%", left: "78%", delay: 0.6 },
             { label: "Actividades", top: "82%", left: "8%", delay: 1.2 },
           ].map((b) => (
             <motion.span

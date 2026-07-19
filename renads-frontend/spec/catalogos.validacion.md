@@ -73,3 +73,23 @@
    UI; se usa `accion_contiene` (icontains), más útil. Sin impacto funcional. (Informativo.)
 4. La bitácora no envía `ordering` explícito; depende del default backend (`creado_en` desc), que el
    contrato garantiza. Aceptable; podría enviarse explícito para robustez. (Informativo.)
+
+---
+
+## Validación — Actualización de contrato 2 (2026-07-17)
+
+Delta backend commit `fdd5770`. Verificado contra `docs/api-catalogos.md` §2 y `lib/api/schema.d.ts`.
+**Resultado: CERRADO — sin hallazgos altos/medios. U1–U4 marcadas.**
+
+| Tarea | Estado | Verificación |
+|-------|--------|--------------|
+| U1 Config `ipress` columna+filtro | OK | `lib/convenios/entities.ts` (compartida): columna «Sede docente» con render `siNo(es_sede_docente)`; filtro boolean `es_sede_docente`; `es_sede_docente` NO expuesto en `fields` (autorización solo por acción). Aplica a `/catalogos/entidades/ipress` y `/convenios/maestros/ipress` vía `CATALOGO_ENTITY_CONFIGS`. |
+| U2 Acción sede docente | OK | `components/catalogos/ipress-sede-docente-action.tsx`: `useResourceAction("ipress", row.id, "autorizar-sede-docente")` con body `{ autorizar }` (autorizar=`!es_sede_docente`); onSuccess invalida además `resourceKeys.all("ipress")`; errores con `extractApiError`. Endpoint y body coinciden con `schema.d.ts` (`ipress_autorizar_sede_docente_create`). |
+| U3 Inyección + navegación | OK | `catalogos/entidades/[entidad]/page.tsx`: `rowActions` solo si `entidad==="ipress"` y `userHasRole(user,"CONAPRES")`; en otros slugs/roles no se pasa. `app-shell.tsx` línea 46: ítem `/catalogos` incluye `"CONAPRES"`. Admin/Auditor no ven la acción (solo CONAPRES). |
+| U4 Verificación | OK | `npx tsc --noEmit` limpio (exit 0); `npm run lint` limpio salvo warning preexistente de TanStack Table en `data-table.tsx`. |
+
+Sanidad del cambio compartido (`resource-crud.tsx`): la columna de acciones aparece con
+`canWrite || rowActions`. En `/catalogos/entidades/ipress`, CONAPRES no tiene escritura CRUD
+(`writeRoles` default `Administrador RENADS`), por lo que Editar/Eliminar no se muestran y solo aparece
+la acción «Sede docente» — comportamiento deseado. Sin regresión en el resto de entidades (sin
+`rowActions` la columna solo aparece bajo `canWrite`, como antes).

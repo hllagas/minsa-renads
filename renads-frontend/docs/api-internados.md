@@ -72,12 +72,24 @@ Estados de rotación: `SOLICITADA`, `AUTORIZADA`, `OBSERVADA`, `RECHAZADA`, `EN_
 
 ## Personas (CRUD) — escritura `Universidad` / `Administrador RENADS`
 
-- `students` (estudiantes) — filtros `universidad`, `carrera_profesional`, `especialidad`,
-  `numero_documento`, `activo`; search documento/nombres. Alcance por universidad.
-  Campos adicionales: `nota_promedio_ponderado` (decimal 0–20), `contacto_emergencia_nombre`,
+- `students` (estudiantes) — filtros `universidad`, `carrera_profesional`, `numero_documento`,
+  `activo`; search documento/nombres. Alcance por universidad. **Sin campo `especialidad`**
+  (eliminado del contrato; solo Tutor lo conserva).
+  Campos adicionales: `nota_promedio_ponderado` (decimal 0–20, usado por el backend para la
+  prelación RN-18 — sin endpoint propio), `contacto_emergencia_nombre`,
   `contacto_emergencia_telefono`, `contacto_emergencia_parentesco` (FK a catálogo
   `relationship-types`).
 - `tutors` — filtros `especialidad`, `ipress`, `numero_documento`, `activo`.
+
+### Carga masiva de estudiantes — RN-16
+
+- **`POST /students/bulk-upload/`** — rol `Universidad` / `Administrador RENADS`.
+  `multipart/form-data` con campo **`archivo`** (Excel `.xlsx`). Alcance validado por fila.
+- Columnas requeridas (cabecera de la hoja): `tipo_documento` (código, p. ej. `DNI`),
+  `numero_documento`, `nombres`, `apellido_paterno`, `universidad` (id o `codigo_inei`),
+  `carrera_profesional` (id o nombre, de la universidad indicada). Filas inválidas se
+  reportan sin abortar el lote.
+- Respuesta 200: `{ "creados": n, "omitidos": n, "errores": [{ "fila": n, "motivo": "..." }] }`.
 
 ## Catálogos (solo lectura)
 

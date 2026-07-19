@@ -1,10 +1,16 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
+import { Lexend, Source_Sans_3, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 
-const jakartaSans = Plus_Jakarta_Sans({
+// Tipografía del MASTER (design-system/renadsweb): Lexend (títulos) + Source Sans 3 (cuerpo).
+const sourceSans = Source_Sans_3({
   variable: "--font-sans",
+  subsets: ["latin"],
+});
+
+const lexend = Lexend({
+  variable: "--font-lexend",
   subsets: ["latin"],
 });
 
@@ -27,7 +33,7 @@ export default function RootLayout({
     <html
       lang="es"
       suppressHydrationWarning
-      className={`${jakartaSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${sourceSans.variable} ${lexend.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <Providers>{children}</Providers>

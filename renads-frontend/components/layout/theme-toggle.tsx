@@ -24,7 +24,9 @@ export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
   const mounted = useMounted();
 
-  const isDark = resolvedTheme === "dark";
+  // Antes de montar el tema real se desconoce: usar valores neutros para que
+  // los atributos (aria-label/title) coincidan entre SSR y cliente.
+  const isDark = mounted && resolvedTheme === "dark";
 
   return (
     <Button

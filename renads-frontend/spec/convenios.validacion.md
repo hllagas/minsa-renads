@@ -84,3 +84,20 @@ Revisado contra `spec/convenios.md`, contrato `docs/api-convenios.md` y convenci
 - **T4.2:** guía de pruebas manuales (`spec/convenios.guia_pruebas.md`) al cerrar el módulo.
 - Deuda `CatalogSelect`/combobox server-side → **saldada** (`EntityCombobox`). Queda pendiente el
   selector de solicitante (polimórfico, requiere endpoint de ContentTypes inexistente).
+
+---
+
+## Validación — Actualización de contrato 2 (2026-07-17)
+
+Delta backend commit `fdd5770`. Verificado contra `docs/api-convenios.md`/`docs/api-catalogos.md` y
+`lib/api/schema.d.ts`. **Resultado: CERRADO — sin hallazgos altos/medios. U1–U4 marcadas.**
+
+| Tarea | Estado | Verificación |
+|-------|--------|--------------|
+| U1 Filtrar select IPRESS (campos clínicos) | OK | `lib/convenios/flow-actions.ts` acción `campos-clinicos`, campo `ipress`: `optionsParams: { es_sede_docente: "true" }`. `resource-form.tsx` propaga `field.optionsParams` al combobox (`params=`), por lo que el select solo lista sedes docentes (`?es_sede_docente=true`). |
+| U2 Error de backend (verificación) | OK | Decisión aprobada: se mantiene el manejo actual (`extractApiError`); el error de campo `ipress` del backend se muestra al usuario. Sin código nuevo. U1 reduce el caso a borde (IPRESS revocada tras cargar el form). |
+| U3 Reglas Marco/DIRIS (decisión) | OK | Decisión aprobada: no se replica en el front la lógica GERESA/DIRESA/DIRIS ni `convenio_marco` condicional; la validación se delega al backend y se muestra el error de campo. Sin cambios de código. |
+| U4 Verificación | OK | `npx tsc --noEmit` limpio (exit 0); `npm run lint` limpio salvo warning preexistente de TanStack Table en `data-table.tsx`. |
+
+Dependencia con `catalogos` delta 2: la autorización de IPRESS como sede docente (requisito del campo
+clínico) se gestiona en `/catalogos/entidades/ipress` (acción CONAPRES) — verificado allí.

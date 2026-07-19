@@ -7,7 +7,8 @@ patrón de detalle con pestañas + acciones gateadas).
 
 > **Estado:** ✅ **MÓDULO CERRADO.** Implementado en un pase, validado sin errores. Ver
 > `spec/internados.validacion.md` y `spec/internados.guia_pruebas.md`.
-> ⚠️ **Pendiente:** aplicar la sección «Actualización de contrato (2026-07-17)» (abajo).
+> ✅ «Actualización de contrato (2026-07-17)» (delta 1) aplicada y validada.
+> ⚠️ **Pendiente:** aplicar la sección «Actualización de contrato 2 (2026-07-17)» (abajo).
 
 ## Resumen / pantallas
 - **Internados** `/internados`: lista (DataTable + filtros + paginación), detalle con pestañas
@@ -204,3 +205,96 @@ tipos `InternshipRead/Write`, `RotationRead`, `Student` no cambian; cambian **ru
 
 > **Aprobación humana requerida:** esta lista de tareas delta debe ser aprobada antes de pasar al
 > agente Implement.
+
+---
+
+## Actualización de contrato 2 (2026-07-17)
+
+Segundo delta del backend (commit `fdd5770`). Fuentes de verdad: `docs/api-internados.md`
+(**ya sincronizado**) y `lib/api/schema.d.ts` (**ya regenerado**). Dos cambios afectan este módulo:
+
+1. **`Student` pierde `especialidad`** (campo y filtro eliminados del contrato; **Tutor SÍ lo
+   conserva**). Filtros vigentes de `students`: `universidad`, `carrera_profesional`,
+   `numero_documento`, `activo`.
+2. **Carga masiva de estudiantes (RN-16):** nuevo `POST /students/bulk-upload/` —
+   `multipart/form-data`, campo **`archivo`** (`.xlsx`), rol `Universidad`/`Administrador RENADS`.
+   Columnas requeridas: `tipo_documento` (código, p. ej. `DNI`), `numero_documento`, `nombres`,
+   `apellido_paterno`, `universidad` (id o `codigo_inei`), `carrera_profesional` (id o nombre).
+   Respuesta 200: `{ creados, omitidos, errores: [{ fila, motivo }] }` (las filas inválidas **no
+   abortan** el lote). La prelación RN-18 es servicio interno del backend (sin endpoint) — **sin
+   trabajo de frontend**.
+
+### A. Student sin `especialidad`
+
+- [x] **U1** `lib/internados/persons.ts`: eliminar del form de `students` el campo `especialidad`
+  (select con `optionsEndpoint: "specialties"`, líneas ~59–64). La config de `tutors` **no cambia**
+  (conserva `especialidad`). Nota: la config de `students` no define `filters`, así que no hay
+  filtro de UI que retirar.
+  - **Criterio:** el form de estudiante (alta y edición) no muestra «Especialidad» y el payload
+    nunca envía `especialidad`; `grep especialidad lib/internados/` solo encuentra la config de
+    `tutors`.
+- [x] **U2** *(recomendado — decidir en aprobación)* `lib/internados/persons.ts`: añadir `filters`
+  declarativos a `students` según el contrato: `universidad` (select FK `universities`),
+  `carrera_profesional` (select FK `professional-careers`), `activo` (boolean).
+  `numero_documento` queda cubierto por el search existente (documento/nombres).
+  - **Criterio:** cada filtro emite el query param exacto (`?universidad=…`,
+    `?carrera_profesional=…`, `?activo=true|false`) verificable en Network; limpiar filtros
+    restablece la lista.
+
+### B. Carga masiva de estudiantes (RN-16)
+
+- [x] **U3 Infra HTTP — multipart.** No existe soporte multipart en `lib/api/` (el cliente Axios
+  fija `Content-Type: application/json` por defecto). Crear `lib/api/upload.ts` con un helper
+  `postMultipart<T>(path: string, form: FormData): Promise<T>` que use la instancia `api` y
+  sobrescriba la cabecera por petición (`"Content-Type": "multipart/form-data"`, dejando que Axios
+  añada el `boundary`). Axios sigue viviendo solo en `lib/api/`.
+  - **Criterio:** helper tipado y reutilizable; ninguna importación de Axios fuera de `lib/api/`;
+    la petición sale con `multipart/form-data; boundary=…`.
+- [x] **U4 Tipo + hook de carga masiva.** En `lib/internados/hooks.ts` (o `types.ts` del módulo):
+  - Tipo **a mano** `StudentBulkUploadResult = { creados: number; omitidos: number; errores:
+    { fila: number; motivo: string }[] }`. *Nota de contrato:* el OpenAPI declara la respuesta como
+    `StudentBulkUpload` (que solo modela el request `{ archivo }`) — es impreciso; la forma real de
+    la respuesta es la de `docs/api-internados.md` §Carga masiva. No inventar campos adicionales.
+  - Hook `useStudentsBulkUpload()`: `useMutation` que recibe un `File`, arma `FormData` con el
+    campo **`archivo`** y llama `postMultipart<StudentBulkUploadResult>("students/bulk-upload/", …)`;
+    en `onSuccess` invalida `resourceKeys.all("students")` (la lista del CRUD refresca).
+  - **Criterio:** un `.xlsx` válido devuelve 200 con el resumen tipado; tras el éxito la lista de
+    estudiantes se refresca sin recargar la página.
+- [x] **U5 Infra UI — slot de acciones en `ResourceCrud`.** `components/crud/resource-crud.tsx`:
+  añadir prop opcional `headerActions?: ReactNode` que se renderice en el `actions` del
+  `PageHeader` junto al botón «Nuevo» (antes o después, consistente). Sin cambios de comportamiento
+  cuando se omite.
+  - **Criterio:** ninguna pantalla existente que usa `ResourceCrud` cambia (no regresión); una
+    página puede inyectar botones adicionales en la cabecera.
+- [x] **U6 Diálogo de carga masiva.** Nuevo `components/internados/students-bulk-upload-dialog.tsx`
+  (botón «Carga masiva» + `Dialog` shadcn):
+  - Input de archivo (`<Input type="file" accept=".xlsx">`), obligatorio; texto de ayuda con las
+    **columnas requeridas** del contrato (`tipo_documento` código p. ej. DNI, `numero_documento`,
+    `nombres`, `apellido_paterno`, `universidad` id o `codigo_inei`, `carrera_profesional` id o
+    nombre).
+  - Submit deshabilitado sin archivo; estado «Subiendo…» durante la mutación (U4).
+  - Al éxito: resumen **`creados` / `omitidos`** (badges o similar) y, si `errores.length > 0`,
+    tabla con columnas **Fila** (`fila`) y **Motivo** (`motivo`). Aclarar en la UI que las filas con
+    error se omiten sin abortar el lote. Permitir cerrar o subir otro archivo.
+  - Error HTTP (400/403/500): toast con `extractApiError`; el diálogo permanece abierto.
+  - **Criterio:** la UI refleja exactamente la respuesta `{ creados, omitidos, errores[] }`; un
+    archivo con filas válidas e inválidas muestra resumen + tabla de errores por fila.
+- [x] **U7 Wiring en la página de estudiantes.**
+  `app/(app)/internados/personas/[entidad]/page.tsx`: cuando `params.entidad === "students"` y el
+  usuario cumple `userHasRole(user, "Universidad", "Administrador RENADS")` (mismos `writeRoles` de
+  la config), pasar `headerActions` (U5) con el diálogo U6. El gating es UX; la autoridad final es
+  el backend.
+  - **Criterio:** el botón «Carga masiva» aparece solo en `/internados/personas/students` y solo
+    para esos roles; no aparece en `tutors`; tras una carga exitosa la tabla refresca.
+
+### C. Verificación
+
+- [x] **U8** `npx tsc --noEmit` y `npm run lint` limpios. Smoke manual: alta/edición de estudiante
+  sin campo «Especialidad» (U1); (si se aprueba U2) filtros de estudiantes; carga masiva con un
+  `.xlsx` mixto (filas válidas e inválidas) → resumen `creados`/`omitidos` + tabla de errores; rol
+  sin permiso no ve el botón.
+  - **Criterio:** cero errores de TypeScript/ESLint; los flujos del smoke responden 2xx (o muestran
+    el error del backend de forma legible).
+
+> **Aprobación humana requerida:** esta lista de tareas delta (U1–U8, con decisión sobre U2) debe
+> ser aprobada antes de pasar al agente Implement.

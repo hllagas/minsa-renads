@@ -102,6 +102,11 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     columns: [
       { key: "nombre", header: "Nombre" },
       { key: "codigo_renipress", header: "RENIPRESS" },
+      {
+        key: "es_sede_docente",
+        header: "Sede docente",
+        render: (r) => siNo(r.es_sede_docente),
+      },
       { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
     ],
     filters: [
@@ -117,6 +122,7 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         type: "select",
         optionsEndpoint: "health-geographic-scopes",
       },
+      { name: "es_sede_docente", label: "Sede docente", type: "boolean" },
       activoFilter,
     ],
     fields: [

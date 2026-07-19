@@ -43,7 +43,7 @@ Cada recurso expone `id` + todos los campos del modelo, con estos filtros/búsqu
 | `regional-governments` | `region`, `activo` | `nombre` |
 | `regional-organs` | `gobierno_regional`, `tipo_organo_regional`, `activo` | `nombre`, `siglas` |
 | `executing-units` | `organo_regional`, `tipo_unidad_ejecutora`, `activo` | `nombre`, `codigo` |
-| `ipress` | `unidad_ejecutora`, `ambito_geografico_sanitario`, `activo` | `nombre`, `codigo_renipress` |
+| `ipress` | `unidad_ejecutora`, `ambito_geografico_sanitario`, `es_sede_docente`, `activo` | `nombre`, `codigo_renipress` |
 | `minsa-organs` | `tipo_organo_minsa`, `activo` | `nombre`, `siglas` |
 | `conapres` | `activo` | `nombre` |
 | `universities` | `tipo_gestion`, `tipo_entidad`, `tipo_autorizacion`, `activo` | `nombre`, `siglas` |
@@ -52,6 +52,14 @@ Cada recurso expone `id` + todos los campos del modelo, con estos filtros/búsqu
 | `professional-careers` | `facultad`, `nivel_academico`, `especialidad`, `activo` | `nombre` |
 | `university-campuses` | `universidad`, `region`, `activo` | `nombre` |
 | `user-entity-profiles` | `usuario`, `grupo`, `activo` | (sin lectura abierta — solo Admin) → ver `/usuarios` |
+
+### `ipress` — sede docente (CONAPRES)
+
+- Campo booleano **`es_sede_docente`** (default `false`): IPRESS autorizada por CONAPRES como
+  sede docente. Requisito para registrar **campos clínicos** de un convenio (el backend rechaza
+  la IPRESS no autorizada con error en `ipress`).
+- Acción **`POST /ipress/{id}/autorizar-sede-docente/`** — rol **`CONAPRES`**.
+  Body: `{ "autorizar": true|false }` (default `true`). Devuelve la IPRESS actualizada.
 
 ## 3. Representantes — `representatives`
 

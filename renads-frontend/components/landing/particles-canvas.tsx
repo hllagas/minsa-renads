@@ -17,7 +17,7 @@ interface Point {
 export function ParticlesCanvas({
   className,
   color = "37, 99, 235", // --color-primary (#2563EB) en RGB
-  density = 100,
+  density = 120,
 }: {
   className?: string;
   color?: string;
@@ -39,6 +39,20 @@ export function ParticlesCanvas({
     const points: Point[] = [];
     const mouse = { x: -9999, y: -9999 };
     const LINK_DIST = 130;
+    const MOUSE_LINK_DIST = 200; // radio de conexión cursor→puntos
+
+    // Color de la red: sigue a `--ld-primary` (cambia con claro/oscuro); cae al prop.
+    let colorRGB = color;
+    function hexToRgb(hex: string): string | null {
+      const m = hex.trim().match(/^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i);
+      if (!m) return null;
+      return `${parseInt(m[1], 16)}, ${parseInt(m[2], 16)}, ${parseInt(m[3], 16)}`;
+    }
+    function resolveColor() {
+      const v = getComputedStyle(canvas!).getPropertyValue("--ld-primary");
+      colorRGB = (v && hexToRgb(v)) || color;
+    }
+    resolveColor();
 
     function resize() {
       const parent = canvas!.parentElement;
@@ -53,10 +67,10 @@ export function ParticlesCanvas({
 
     function seed() {
       points.length = 0;
-      // Densidad acotada según área (entre ~60 y `density`).
+      // Densidad acotada según área (entre 80 y `density`).
       const count = Math.min(
         density,
-        Math.max(40, Math.round((width * height) / 16000)),
+        Math.max(80, Math.round((width * height) / 14000)),
       );
       for (let i = 0; i < count; i++) {
         points.push({
@@ -88,7 +102,7 @@ export function ParticlesCanvas({
         }
       }
 
-      // Líneas de conexión.
+      // Líneas de conexión entre puntos.
       for (let i = 0; i < points.length; i++) {
         for (let j = i + 1; j < points.length; j++) {
           const a = points[i];
@@ -98,7 +112,7 @@ export function ParticlesCanvas({
           const dist = Math.hypot(dx, dy);
           if (dist < LINK_DIST) {
             const alpha = (1 - dist / LINK_DIST) * 0.35;
-            ctx!.strokeStyle = `rgba(${color}, ${alpha})`;
+            ctx!.strokeStyle = `rgba(${colorRGB}, ${alpha})`;
             ctx!.lineWidth = 1;
             ctx!.beginPath();
             ctx!.moveTo(a.x, a.y);
@@ -108,13 +122,34 @@ export function ParticlesCanvas({
         }
       }
 
-      // Puntos.
+      // Líneas cursor→puntos cercanos: la red "responde" al mouse.
+      if (mouse.x > -9998) {
+        for (const p of points) {
+          const dx = p.x - mouse.x;
+          const dy = p.y - mouse.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist < MOUSE_LINK_DIST) {
+            const alpha = (1 - dist / MOUSE_LINK_DIST) * 0.5;
+            ctx!.strokeStyle = `rgba(${colorRGB}, ${alpha})`;
+            ctx!.lineWidth = 1.1;
+            ctx!.beginPath();
+            ctx!.moveTo(mouse.x, mouse.y);
+            ctx!.lineTo(p.x, p.y);
+            ctx!.stroke();
+          }
+        }
+      }
+
+      // Puntos con glow suave.
+      ctx!.shadowColor = `rgba(${colorRGB}, 0.8)`;
+      ctx!.shadowBlur = 6;
       for (const p of points) {
-        ctx!.fillStyle = `rgba(${color}, 0.6)`;
+        ctx!.fillStyle = `rgba(${colorRGB}, 0.6)`;
         ctx!.beginPath();
         ctx!.arc(p.x, p.y, 1.6, 0, Math.PI * 2);
         ctx!.fill();
       }
+      ctx!.shadowBlur = 0;
 
       raf = requestAnimationFrame(draw);
     }
@@ -148,8 +183,16 @@ export function ParticlesCanvas({
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseleave", onMouseLeave);
 
+    // Recolorear al alternar claro/oscuro (cambia la clase .dark en <html>).
+    const themeObserver = new MutationObserver(resolveColor);
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+
     return () => {
       cancelAnimationFrame(raf);
+      themeObserver.disconnect();
       window.removeEventListener("resize", onResize);
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseleave", onMouseLeave);
