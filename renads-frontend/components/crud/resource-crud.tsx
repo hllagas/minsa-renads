@@ -41,12 +41,19 @@ export function ResourceCrud<TRead extends WithId>({
   config,
   rowActions,
   headerActions,
+  fixedValues,
 }: {
   config: ResourceConfig<TRead>;
   /** Acciones por fila inyectadas por la página (p. ej. abrir el diálogo de contraseña). */
   rowActions?: RowAction<TRead>[];
   /** Acciones extra en la cabecera, junto al botón «Nuevo» (p. ej. carga masiva). */
   headerActions?: ReactNode;
+  /**
+   * Valores fijos por alcance (p. ej. `{ universidad: 12 }` cuando el usuario tiene una sola
+   * universidad): se aplican al listado (filtro) y a cada alta, y ocultan su campo/filtro en la UI
+   * (no se pide lo que ya se conoce). El backend sigue siendo la autoridad del alcance.
+   */
+  fixedValues?: Record<string, number | string>;
 }) {
   const hooks = useMemo(
     () => createResourceHooks<TRead, Record<string, unknown>>(config.endpoint),
@@ -82,11 +89,22 @@ export function ResourceCrud<TRead extends WithId>({
     setPage(1);
   }
 
+  // Nombres con valor fijo por alcance: se ocultan de filtros/formulario y se inyectan.
+  const fixedNames = fixedValues ? Object.keys(fixedValues) : [];
+  const fixedAsStrings = fixedValues
+    ? Object.fromEntries(Object.entries(fixedValues).map(([k, v]) => [k, String(v)]))
+    : {};
+  const visibleFilters = fixedNames.length
+    ? config.filters?.filter((f) => !fixedNames.includes(f.name))
+    : config.filters;
+  const dropFixed = (fields: typeof config.fields) =>
+    fixedNames.length ? fields.filter((f) => !fixedNames.includes(f.name)) : fields;
+
   const list = hooks.useList({
     page,
     search: debouncedSearch,
     ordering: config.defaultOrdering ?? "id",
-    filters: filterValues,
+    filters: { ...filterValues, ...fixedAsStrings },
   });
   const createM = hooks.useCreate();
   const updateM = hooks.useUpdate();
@@ -168,6 +186,7 @@ export function ResourceCrud<TRead extends WithId>({
   }
 
   function onSubmit(payload: Record<string, unknown>) {
+    const finalPayload = fixedValues ? { ...payload, ...fixedValues } : payload;
     const opts = {
       onSuccess: () => {
         toast.success(editing ? "Cambios guardados." : `${config.singular} creada.`);
@@ -176,8 +195,8 @@ export function ResourceCrud<TRead extends WithId>({
       },
       onError: (e: unknown) => toast.error(extractApiError(e)),
     };
-    if (editing) updateM.mutate({ id: editing.id, payload }, opts);
-    else createM.mutate(payload, opts);
+    if (editing) updateM.mutate({ id: editing.id, payload: finalPayload }, opts);
+    else createM.mutate(finalPayload, opts);
   }
 
   const data = list.data?.results ?? [];
@@ -212,9 +231,9 @@ export function ResourceCrud<TRead extends WithId>({
         ) : null}
       </div>
 
-      {config.filters?.length ? (
+      {visibleFilters?.length ? (
         <ResourceFilters
-          filters={config.filters}
+          filters={visibleFilters}
           values={filterValues}
           onChange={onFilterChange}
           onClear={onClearFilters}
@@ -264,11 +283,11 @@ export function ResourceCrud<TRead extends WithId>({
             </div>
           ) : null}
           <ResourceForm
-            fields={
+            fields={dropFixed(
               editing
                 ? config.editFields ?? config.fields
-                : config.createFields ?? config.fields
-            }
+                : config.createFields ?? config.fields,
+            )}
             initial={editing as Record<string, unknown> | null}
             submitting={createM.isPending || updateM.isPending}
             onSubmit={onSubmit}

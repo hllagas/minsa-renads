@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { PERSON_CONFIGS } from "@/lib/internados/persons";
 import { useAuthStore, userHasRole } from "@/lib/auth/store";
+import { useUniversityScope } from "@/lib/auth/scope";
 import { hasAnnexes } from "@/lib/api/storage";
 import type { RowAction } from "@/lib/crud/types";
 import type { WithId } from "@/lib/api/query";
@@ -18,6 +19,7 @@ export default function PersonaPage() {
   const params = useParams<{ entidad: string }>();
   const config = PERSON_CONFIGS[params.entidad];
   const user = useAuthStore((s) => s.user);
+  const { singleId } = useUniversityScope();
 
   if (!config) {
     return (
@@ -50,6 +52,11 @@ export default function PersonaPage() {
         ]
       : undefined;
 
+  // Alcance: si el usuario tiene una sola universidad, se autocompleta y se oculta el selector
+  // (en el alta y en el filtro) para estudiantes — no se pide lo que ya se conoce.
+  const fixedValues =
+    entidad === "students" && singleId != null ? { universidad: singleId } : undefined;
+
   return (
     <div>
       <div className="mb-4">
@@ -64,6 +71,7 @@ export default function PersonaPage() {
         config={config}
         rowActions={rowActions}
         headerActions={canBulkUpload ? <StudentsBulkUploadDialog /> : undefined}
+        fixedValues={fixedValues}
       />
     </div>
   );

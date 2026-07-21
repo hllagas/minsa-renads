@@ -23,7 +23,7 @@ export default function NuevoInternadoPage() {
             fields={INTERNSHIP_FIELDS}
             initial={null}
             submitting={createM.isPending}
-            onCancel={() => router.push("/internados")}
+            onCancel={() => router.push("/internados/internos")}
             onSubmit={(payload) =>
               createM.mutate(payload as InternshipWrite, {
                 onSuccess: (it) => {

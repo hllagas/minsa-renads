@@ -46,10 +46,10 @@ export default function InternadoDetallePage() {
     <div>
       <div className="mb-4">
         <Link
-          href="/internados"
+          href="/internados/internos"
           className="text-sm text-muted-foreground hover:text-foreground"
         >
-          ← Internados
+          ← Internos
         </Link>
       </div>
       <PageHeader
