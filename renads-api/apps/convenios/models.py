@@ -272,6 +272,10 @@ class Ipress(models.Model):
         "es sede docente", default=False,
         help_text="Autorizada por CONAPRES como sede docente (asistencial, MINSA/FF.AA.-FF.PP., pública)",
     )
+    referencia_logo = models.CharField(
+        "referencia del logo", max_length=500, blank=True,
+        help_text="Referencia externa del logo (repositorio externo)",
+    )
     activo = models.BooleanField("activo", default=True)
 
     class Meta:
@@ -440,18 +444,10 @@ class Faculty(models.Model):
 
 
 class ProfessionalCareer(models.Model):
-    facultad = models.ForeignKey(
-        Faculty, on_delete=models.CASCADE, db_column="facultad_id",
-        related_name="carreras", help_text="Facultad",
-    )
     nombre = models.CharField("nombre", max_length=255, help_text="Nombre de la carrera o programa")
     nivel_academico = models.ForeignKey(
         AcademicLevel, on_delete=models.PROTECT, db_column="nivel_academico_id",
         help_text="Carrera profesional / segunda especialidad / maestría / doctorado",
-    )
-    especialidad = models.ForeignKey(
-        Specialty, on_delete=models.SET_NULL, db_column="especialidad_id",
-        null=True, blank=True, related_name="+", help_text="Especialidad asociada",
     )
     activo = models.BooleanField("activo", default=True)
 
@@ -818,6 +814,11 @@ class Document(models.Model):
     version_anterior = models.ForeignKey(
         "self", on_delete=models.SET_NULL, db_column="version_anterior_id", null=True, blank=True,
         related_name="versiones_siguientes", help_text="Versión previa reemplazada",
+    )
+    documento_anexo = models.ForeignKey(
+        "internados.AnnexDocument", on_delete=models.SET_NULL,
+        db_column="documento_anexo_id", null=True, blank=True, related_name="+",
+        help_text="Anexo (declaración jurada) al que corresponde este documento; nulo para documentos que no son anexos",
     )
     cargado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, db_column="cargado_por", related_name="+",

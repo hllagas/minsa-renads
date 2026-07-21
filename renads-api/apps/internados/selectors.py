@@ -16,14 +16,25 @@ from apps.internados.models import (
 
 
 def estudiantes_visibles(usuario) -> QuerySet[Student]:
-    """Estudiantes de las universidades dentro del ámbito del usuario (RNF-SEG-04)."""
+    """Estudiantes dentro del ámbito del usuario (RNF-SEG-04).
+
+    - Universidad/Administrador: los estudiantes de sus universidades.
+    - Interno (RN-22): únicamente su propio ``Student`` (perfil sobre ``Student``).
+    """
     qs = Student.objects.select_related("universidad", "carrera_profesional")
     if usuario.is_superuser:
         return qs
     refs = entidades_del_usuario(usuario)
     ct_uni = ContentType.objects.get_for_model(University).id
+    ct_student = ContentType.objects.get_for_model(Student).id
     universidades = [oid for (tc, oid) in refs if tc == ct_uni]
-    return qs.filter(universidad_id__in=universidades) if universidades else qs.none()
+    propios = [oid for (tc, oid) in refs if tc == ct_student]
+    if universidades:
+        return qs.filter(universidad_id__in=universidades)
+    if propios:
+        # Interno: solo su propio estudiante (lectura de sus datos).
+        return qs.filter(id__in=propios)
+    return qs.none()
 
 
 def internados_visibles(usuario) -> QuerySet[Internship]:

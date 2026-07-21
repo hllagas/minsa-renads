@@ -14,4 +14,8 @@ router.register("tutors", views.TutorViewSet, basename="tutor")
 for basename, viewset in views.CATALOG_VIEWSETS.items():
     router.register(basename, viewset, basename=basename)
 
+# Catálogos maestros con CRUD (academic-periods, annex-documents)
+for basename, viewset in views.ENTITY_VIEWSETS.items():
+    router.register(basename, viewset, basename=basename)
+
 urlpatterns = router.urls

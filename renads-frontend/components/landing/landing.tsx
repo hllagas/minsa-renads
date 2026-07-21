@@ -194,11 +194,12 @@ const NAV_LINKS = [
 const ENTIDADES = [
   "MINSA",
   "DIGEP",
+  "GORES/DIRIS",
   "CONAPRES",
   "OGAJ",
   "Secretaría General",
   "Universidades",
-  "IPRESS",
+  "Sedes docentes (IPRESS)",
 ];
 
 const FEATURES = [
@@ -210,8 +211,8 @@ const FEATURES = [
   },
   {
     icon: UsersIcon,
-    title: "Registro de Internados",
-    desc: "Estudiantes, tutores, internados y rotaciones autorizadas entre IPRESS del mismo ámbito geográfico sanitario.",
+    title: "Registro de Internos",
+    desc: "Estudiantes, tutores, internos y rotaciones autorizadas entre sedes docentes del mismo ámbito geográfico sanitario.",
     featured: false,
   },
   {

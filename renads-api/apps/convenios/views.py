@@ -5,14 +5,16 @@ from drf_spectacular.utils import extend_schema
 from rest_framework import serializers as drf_serializers
 from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.common.permissions import IsInstitutionalMember, exigir_ambito
 from apps.common.services import adjuntar_documento, registrar_auditoria
-from apps.common.storage import storage_por_defecto
+from apps.common.storage import get_document_storage
 from apps.convenios import models as m
+from apps.convenios.mixins import AnnexAttachmentMixin, LogoStorageMixin
 from apps.convenios import selectors, services
 from apps.convenios.filters import AuditLogFilter, ConventionFilter
 from apps.convenios.models import ConventionTemplate
@@ -34,6 +36,7 @@ from apps.convenios.serializers import (
     ConventionTemplateSerializer,
     ConventionWriteSerializer,
     DocumentSerializer,
+    DocumentUploadSerializer,
     DocumentWriteSerializer,
     LegalOpinionSerializer,
     PublicationSerializer,
@@ -233,30 +236,52 @@ def _catalog_viewset(model):
     )
 
 
-def _entity_viewset(model, *, filterset_fields=None, search_fields=None, permission_classes=None):
-    """ModelViewSet (CRUD) para una entidad. Escritura solo Administrador RENADS; con auditoría."""
-    return type(
-        f"{model.__name__}ViewSet",
-        (AuditedModelViewSet,),
-        {
-            "queryset": model._default_manager.all(),
-            "serializer_class": _auto_serializer(model),
-            "permission_classes": permission_classes or [IsAuthenticated, IsAdminRoleOrReadOnly],
-            "filterset_fields": filterset_fields or [],
-            "search_fields": search_fields or [],
-            "ordering": ["id"],
-        },
-    )
+def _entity_viewset(
+    model,
+    *,
+    filterset_fields=None,
+    search_fields=None,
+    permission_classes=None,
+    logo=False,
+    annex_actor=None,
+):
+    """ModelViewSet (CRUD) para una entidad. Escritura solo Administrador RENADS; con auditoría.
+
+    Parámetros de adjunto real (Etapa 2 de `spec/almacenamiento.md`):
+    - `logo=True` incluye `LogoStorageMixin` (acciones `upload-logo`/`logo-url`);
+      requiere que el modelo tenga columna `referencia_logo`.
+    - `annex_actor` (uno de `ANNEX_ACTOR`) incluye `AnnexAttachmentMixin`
+      (acciones `annex-upload`/`annex-checklist`) fijando ese actor.
+    """
+    bases = []
+    if logo:
+        bases.append(LogoStorageMixin)
+    if annex_actor:
+        bases.append(AnnexAttachmentMixin)
+    bases.append(AuditedModelViewSet)
+
+    atributos = {
+        "queryset": model._default_manager.all(),
+        "serializer_class": _auto_serializer(model),
+        "permission_classes": permission_classes or [IsAuthenticated, IsAdminRoleOrReadOnly],
+        "filterset_fields": filterset_fields or [],
+        "search_fields": search_fields or [],
+        "ordering": ["id"],
+    }
+    if annex_actor:
+        atributos["annex_actor"] = annex_actor
+    return type(f"{model.__name__}ViewSet", tuple(bases), atributos)
 
 
 class IpressViewSet(
+    LogoStorageMixin,
     _entity_viewset(
         m.Ipress,
         filterset_fields=["unidad_ejecutora", "ambito_geografico_sanitario", "es_sede_docente", "activo"],
         search_fields=["nombre", "codigo_renipress"],
-    )
+    ),
 ):
-    """CRUD de IPRESS + autorización como sede docente por CONAPRES."""
+    """CRUD de IPRESS + autorización como sede docente por CONAPRES + logo."""
 
     @action(detail=True, methods=["post"], url_path="autorizar-sede-docente")
     def autorizar_sede_docente(self, request, pk=None):
@@ -295,17 +320,19 @@ CATALOG_VIEWSETS = {
 # Entidades (CRUD): basename -> ViewSet
 ENTITY_VIEWSETS = {
     "regional-governments": _entity_viewset(
-        m.RegionalGovernment, filterset_fields=["region", "activo"], search_fields=["nombre"]
+        m.RegionalGovernment, filterset_fields=["region", "activo"], search_fields=["nombre"], logo=True
     ),
     "regional-organs": _entity_viewset(
         m.RegionalOrgan,
         filterset_fields=["gobierno_regional", "tipo_organo_regional", "activo"],
         search_fields=["nombre", "siglas"],
+        logo=True,
     ),
     "executing-units": _entity_viewset(
         m.ExecutingUnit,
         filterset_fields=["organo_regional", "tipo_unidad_ejecutora", "activo"],
         search_fields=["nombre", "codigo"],
+        logo=True,
     ),
     "ipress": IpressViewSet,
     "minsa-organs": _entity_viewset(
@@ -316,16 +343,20 @@ ENTITY_VIEWSETS = {
         m.University,
         filterset_fields=["tipo_gestion", "tipo_entidad", "tipo_autorizacion", "activo"],
         search_fields=["nombre", "siglas"],
+        logo=True,
     ),
     "university-authorities": _entity_viewset(
-        m.UniversityAuthority, filterset_fields=["universidad", "activo"], search_fields=["nombre", "cargo"]
+        m.UniversityAuthority,
+        filterset_fields=["universidad", "activo"],
+        search_fields=["nombre", "cargo"],
+        annex_actor="AUTORIDAD_UNIVERSIDAD",
     ),
     "faculties": _entity_viewset(
         m.Faculty, filterset_fields=["universidad", "activo"], search_fields=["nombre"]
     ),
     "professional-careers": _entity_viewset(
         m.ProfessionalCareer,
-        filterset_fields=["facultad", "nivel_academico", "especialidad", "activo"],
+        filterset_fields=["nivel_academico", "activo"],
         search_fields=["nombre"],
     ),
     "university-campuses": _entity_viewset(
@@ -351,14 +382,20 @@ class UbigeoViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ["codigo"]
 
 
-class RepresentativeViewSet(AuditedModelViewSet):
-    """CRUD de representantes (relación polimórfica validada). Escritura solo Administrador RENADS."""
+class RepresentativeViewSet(AnnexAttachmentMixin, AuditedModelViewSet):
+    """CRUD de representantes (relación polimórfica validada) + adjunto real de anexos.
+
+    Escritura solo Administrador RENADS. Adjunta PDFs de anexos del actor
+    `REPRESENTANTE` (resolución del cargo, documento de identidad) vía
+    `annex-upload`/`annex-checklist`.
+    """
 
     queryset = m.Representative.objects.select_related("tipo_contenido", "cargo_ejecutivo")
     serializer_class = RepresentativeSerializer
     permission_classes = [IsAuthenticated, IsAdminRoleOrReadOnly]
     filterset_fields = ["tipo_contenido", "id_objeto", "cargo_ejecutivo", "activo"]
     ordering = ["id"]
+    annex_actor = "REPRESENTANTE"
 
 
 # ---------------------------------------------------------------------------
@@ -378,11 +415,17 @@ class DocumentViewSet(AuditedModelViewSet):
     filterset_fields = ["tipo_contenido", "id_objeto", "tipo_documento", "estado"]
     ordering = ["-id"]
     http_method_names = ["get", "post", "delete", "head", "options"]
-    storage = storage_por_defecto
+
+    @property
+    def storage(self):
+        """Backend de almacenamiento seleccionado por settings (GCS o stub)."""
+        return get_document_storage()
 
     def get_serializer_class(self):
         if self.action == "create":
             return DocumentWriteSerializer
+        if self.action == "upload":
+            return DocumentUploadSerializer
         return DocumentSerializer
 
     def create(self, request, *args, **kwargs):
@@ -399,8 +442,38 @@ class DocumentViewSet(AuditedModelViewSet):
         )
         return Response(DocumentSerializer(documento).data, status=201)
 
+    @extend_schema(request=DocumentUploadSerializer, responses=DocumentSerializer)
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path="upload",
+        parser_classes=[MultiPartParser, FormParser],
+    )
+    def upload(self, request):
+        """Sube el binario al backend y adjunta el documento versionado.
+
+        Flujo: valida tipo/tamaño → sube vía `storage.subir(...)` (obtiene la key
+        como `referencia_externa`) → `adjuntar_documento(...)` (versionado +
+        auditoría, ya cubiertos por el service). Ruta: `POST /api/v1/documents/upload/`
+        (multipart/form-data).
+        """
+        ser = DocumentUploadSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        datos = ser.validated_data
+        tipo_contenido = datos["tipo_contenido"]
+        objeto = tipo_contenido.get_object_for_this_type(pk=datos["id_objeto"])
+        referencia = self.storage.subir(datos["archivo"], ruta=datos["nombre_archivo"])
+        documento = adjuntar_documento(
+            objeto,
+            tipo_documento=datos["tipo_documento"],
+            nombre_archivo=datos["nombre_archivo"],
+            referencia_externa=referencia,
+            usuario=request.user,
+        )
+        return Response(DocumentSerializer(documento).data, status=201)
+
     def perform_destroy(self, instance):
-        # Punto de integración del repositorio externo (stub no-op por ahora).
+        # Elimina el binario en el backend seleccionado (GCS o no-op en el stub).
         self.storage.eliminar(instance.referencia_externa)
         super().perform_destroy(instance)
 

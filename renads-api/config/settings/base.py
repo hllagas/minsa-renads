@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "django_filters",
     # RENADS
+    "apps.common",
     "apps.convenios",
     "apps.internados",
     "apps.actividades",
@@ -117,6 +118,56 @@ SIMPLE_JWT = {
     ),
     "ROTATE_REFRESH_TOKENS": True,
 }
+
+
+# ---------------------------------------------------------------------------
+# Almacenamiento documental — Google Cloud Storage (RNF-DOC-01/02/03)
+# ---------------------------------------------------------------------------
+# Autenticación KEYLESS: ADC (Application Default Credentials) + impersonación de
+# la service account de firma vía IAM SignBlob. NO se usan claves JSON de SA (la
+# política de organización bloquea su creación). El principal ADC debe tener
+# `roles/iam.serviceAccountTokenCreator` sobre `GCS_SIGNING_SA`.
+#
+# Con `GCS_ENABLED=False` (default) el sistema usa el stub por referencia externa
+# (`ReferenciaExternaStorage`), sin contactar ningún backend.
+GCS_ENABLED = config("GCS_ENABLED", default=False, cast=bool)
+GCS_PROJECT_ID = config("GCS_PROJECT_ID", default="renads-cloud")
+# Bucket del entorno (obligatorio si GCS_ENABLED). dev: renads-cloud-media-dev,
+# prod: renads-cloud-media-prod. Se define por .env, nunca se hardcodea aquí.
+GCS_BUCKET_NAME = config("GCS_BUCKET_NAME", default="")
+# SA objetivo de la impersonación: firma los signed URLs V4 vía IAM SignBlob.
+GCS_SIGNING_SA = config(
+    "GCS_SIGNING_SA",
+    default="renads-storage@renads-cloud.iam.gserviceaccount.com",
+)
+# Prefijo/carpeta opcional para organizar las keys de los objetos.
+GCS_OBJECT_PREFIX = config("GCS_OBJECT_PREFIX", default="")
+# Vigencia del signed URL de descarga, en segundos (default 15 minutos).
+GCS_SIGNED_URL_EXPIRATION = config("GCS_SIGNED_URL_EXPIRATION", default=900, cast=int)
+# Tamaño máximo de subida, en bytes (default 25 MiB).
+GCS_MAX_UPLOAD_BYTES = config("GCS_MAX_UPLOAD_BYTES", default=26214400, cast=int)
+# Content-types permitidos para subida (PDF e imágenes). Lista fija, no parametrizable.
+GCS_ALLOWED_CONTENT_TYPES = [
+    "application/pdf",
+    "image/png",
+    "image/jpeg",
+    "image/webp",
+]
+
+
+# ---------------------------------------------------------------------------
+# Correo electrónico (notificaciones — RN-22 onboarding del interno)
+# ---------------------------------------------------------------------------
+# Backend por defecto: consola (dev lo confirma; prod lo sobreescribe con SMTP).
+EMAIL_BACKEND = config(
+    "EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"
+)
+EMAIL_HOST = config("EMAIL_HOST", default="")
+EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="no-reply@renads.minsa.gob.pe")
 
 
 # OpenAPI (drf-spectacular)

@@ -15,6 +15,9 @@ python-docx==1.2.0
 # Carga masiva de estudiantes desde Excel (.xlsx)
 openpyxl==3.1.5
 
+# Almacenamiento documental en Google Cloud Storage (auth keyless: ADC + impersonación de SA)
+google-cloud-storage==3.13.0
+
 # Base de datos / despliegue (Railway)
 psycopg2-binary==2.9.12
 dj-database-url==3.1.2

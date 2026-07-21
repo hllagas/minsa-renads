@@ -58,6 +58,41 @@ class RelationshipType(Catalog):
         verbose_name = "tipo de parentesco"
 
 
+class AcademicPeriod(Catalog):
+    """Periodo académico (semestre) del estudiante — aplica al nivel Pregrado (RN-19)."""
+
+    class Meta:
+        db_table = "periodo_academico"
+        verbose_name = "periodo académico"
+
+
+ANNEX_ACTOR = [
+    ("INTERNO", "Interno / estudiante"),
+    ("AUTORIDAD_UNIVERSIDAD", "Autoridad de universidad"),
+    ("REPRESENTANTE", "Representante / autoridad (incluye CONAPRES)"),
+]
+
+
+class AnnexDocument(Catalog):
+    """Catálogo maestro de documentos requeridos por actor (declaraciones juradas,
+    resolución del cargo, documento de identidad) a adjuntar tras el registro."""
+
+    tipo_actor = models.CharField(
+        "tipo de actor", max_length=30, choices=ANNEX_ACTOR, default="INTERNO",
+        help_text="Actor que debe presentar el documento",
+    )
+    descripcion = models.TextField(
+        "descripción", blank=True, help_text="Descripción del documento / declaración jurada",
+    )
+    obligatorio = models.BooleanField(
+        "obligatorio", default=True, help_text="Indica si el documento es de presentación obligatoria",
+    )
+
+    class Meta:
+        db_table = "documentos_anexos"
+        verbose_name = "documento anexo"
+
+
 # ---------------------------------------------------------------------------
 # Estudiante y tutor
 # ---------------------------------------------------------------------------
@@ -89,6 +124,16 @@ class Student(models.Model):
     carrera_profesional = models.ForeignKey(
         ProfessionalCareer, on_delete=models.PROTECT, db_column="carrera_profesional_id",
         related_name="+", help_text="Carrera / programa",
+    )
+    periodo_academico = models.ForeignKey(
+        AcademicPeriod, on_delete=models.PROTECT, db_column="periodo_academico_id",
+        null=True, blank=True, related_name="+",
+        help_text="Periodo académico (obligatorio para Pregrado — RN-19)",
+    )
+    especialidad = models.ForeignKey(
+        Specialty, on_delete=models.SET_NULL, db_column="especialidad_id",
+        null=True, blank=True, related_name="+",
+        help_text="Especialidad (obligatoria para niveles distintos de Pregrado — RN-19)",
     )
     codigo_universitario = models.CharField("código universitario", max_length=50, blank=True, help_text="Código universitario / matrícula")
     anio_academico = models.PositiveSmallIntegerField("año académico", null=True, blank=True, help_text="Año académico")
@@ -159,6 +204,16 @@ class Tutor(models.Model):
 # ---------------------------------------------------------------------------
 # Internado
 # ---------------------------------------------------------------------------
+# Estado de las declaraciones juradas del interno (RN-23), independiente del
+# estado del internado (`estado_actual`).
+ANNEX_STATUS = [
+    ("PENDIENTE", "Pendiente"),
+    ("COMPLETAS", "Completas"),
+    ("OBSERVADAS", "Observadas"),
+    ("VALIDADAS", "Validadas"),
+]
+
+
 class Internship(models.Model):
     estudiante = models.ForeignKey(
         Student, on_delete=models.PROTECT, db_column="estudiante_id", related_name="internos", help_text="Estudiante",
@@ -184,6 +239,10 @@ class Internship(models.Model):
     )
     estado_actual = models.ForeignKey(
         InternshipStatus, on_delete=models.PROTECT, db_column="estado_actual_id", help_text="Estado actual",
+    )
+    estado_declaraciones = models.CharField(
+        "estado de declaraciones juradas", max_length=20, choices=ANNEX_STATUS, default="PENDIENTE",
+        help_text="Estado de las declaraciones juradas del interno (RN-23)",
     )
     fecha_inicio = models.DateField("fecha de inicio", help_text="Fecha de inicio")
     fecha_fin = models.DateField("fecha de fin", help_text="Fecha de fin (máx. 1 año)")

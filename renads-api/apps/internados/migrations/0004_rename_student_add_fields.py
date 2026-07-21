@@ -9,6 +9,11 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("internados", "0003_intern_direccion_intern_ubigeo_tutor_direccion_and_more"),
+        # Debe aplicarse DESPUÉS de que actividades agregue sus FKs a `internados.intern`,
+        # para que este RenameModel (Intern→Student) actualice también esas referencias en
+        # el estado histórico; de lo contrario, en una BD nueva `internados.intern` no existe
+        # al aplicar `actividades.0002_initial` y falla ("Related model ... cannot be resolved").
+        ("actividades", "0002_initial"),
     ]
 
     operations = [

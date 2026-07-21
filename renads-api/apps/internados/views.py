@@ -10,14 +10,18 @@ from django.contrib.contenttypes.models import ContentType
 
 from apps.common.permissions import IsInstitutionalMember, exigir_ambito
 from apps.common.services import registrar_auditoria
+from apps.convenios.mixins import AnnexAttachmentMixin
 from apps.convenios.models import University
+from apps.convenios.serializers import AnnexUploadSerializer, DocumentSerializer
 from apps.convenios.permissions import exigir_roles
-from apps.convenios.views import AuditedModelViewSet, _catalog_viewset
+from apps.convenios.views import AuditedModelViewSet, _catalog_viewset, _entity_viewset
 from apps.internados import models as im
 from apps.internados import selectors, services
 from apps.internados.filters import InternshipFilter, RotationFilter
 from apps.internados.models import Rotation
 from apps.internados.permissions import InternshipScope, IsUniversityOrReadOnly
+from drf_spectacular.utils import extend_schema
+
 from apps.internados.serializers import StudentBulkUploadSerializer, StudentSerializer, TutorSerializer
 from apps.internados.serializers import (
     CambiarEstadoInternadoSerializer,
@@ -27,6 +31,7 @@ from apps.internados.serializers import (
     InternshipStatusHistorySerializer,
     InternshipUpdateSerializer,
     InternshipWriteSerializer,
+    RevisarDeclaracionesSerializer,
     RotationAuthorizationSerializer,
     RotationReadSerializer,
     RotationStatusHistorySerializer,
@@ -96,6 +101,25 @@ class InternshipViewSet(viewsets.ModelViewSet):
         ser.is_valid(raise_exception=True)
         internado = services.cambiar_tutor(
             internado=internado, datos=ser.validated_data, usuario=request.user
+        )
+        return self._read(internado)
+
+    @extend_schema(request=RevisarDeclaracionesSerializer, responses=InternshipReadSerializer)
+    @action(detail=True, methods=["post"], url_path="revisar-declaraciones")
+    def revisar_declaraciones(self, request, pk=None):
+        """Revisión humana de las declaraciones juradas del interno (RN-23).
+
+        Rol `Universidad`/`Administrador RENADS`. `resultado` ∈ {VALIDADAS, OBSERVADAS}.
+        """
+        internado = self.get_object()
+        exigir_roles(request, "Universidad", "Administrador RENADS")
+        ser = RevisarDeclaracionesSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        internado = services.revisar_declaraciones(
+            internado=internado,
+            resultado=ser.validated_data["resultado"],
+            usuario=request.user,
+            observacion=ser.validated_data.get("observacion", ""),
         )
         return self._read(internado)
 
@@ -177,12 +201,21 @@ class RotationViewSet(viewsets.ReadOnlyModelViewSet):
 # ---------------------------------------------------------------------------
 # Bloque 2 — Catálogos (solo lectura) y personas (Student / Tutor)
 # ---------------------------------------------------------------------------
-class StudentViewSet(AuditedModelViewSet):
-    """CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad."""
+class StudentViewSet(AnnexAttachmentMixin, AuditedModelViewSet):
+    """CRUD de estudiantes + adjunto real de anexos (declaraciones juradas) del interno.
+
+    Escritura por rol Universidad/Administrador; alcance por universidad. Las
+    acciones `annex-upload`/`annex-checklist` (actor `INTERNO`) las aporta el mixin
+    transversal `AnnexAttachmentMixin` (T-F2.2).
+    """
 
     serializer_class = StudentSerializer
     permission_classes = [IsAuthenticated, IsInstitutionalMember, IsUniversityOrReadOnly]
-    filterset_fields = ["universidad", "carrera_profesional", "numero_documento", "activo"]
+    annex_actor = "INTERNO"
+    filterset_fields = [
+        "universidad", "carrera_profesional", "periodo_academico", "especialidad",
+        "numero_documento", "activo",
+    ]
     search_fields = ["numero_documento", "nombres", "apellido_paterno"]
     ordering = ["id"]
 
@@ -200,6 +233,28 @@ class StudentViewSet(AuditedModelViewSet):
         exigir_ambito(request.user, ct_uni, ser.validated_data["universidad"].id)
         self.perform_create(ser)
         return Response(ser.data, status=201)
+
+    @extend_schema(request=AnnexUploadSerializer, responses=DocumentSerializer)
+    @action(
+        detail=True, methods=["post"], url_path="annex-upload",
+        parser_classes=[MultiPartParser, FormParser],
+    )
+    def annex_upload(self, request, pk=None):
+        """Adjunta el PDF de un anexo del interno y recalcula el estado de sus DJ (RN-23).
+
+        Reutiliza la lógica del `AnnexAttachmentMixin` y, tras adjuntar, recalcula
+        `estado_declaraciones` de los internados vigentes del estudiante.
+        """
+        respuesta = AnnexAttachmentMixin.annex_upload(self, request, pk=pk)
+        if respuesta.status_code == 201:
+            estudiante = self.get_object()
+            internados = im.Internship.objects.filter(
+                estudiante=estudiante,
+                estado_actual__codigo__in=services.ESTADOS_INTERNADO_BLOQUEANTES,
+            )
+            for internado in internados:
+                services.recalcular_estado_declaraciones(internado, usuario=request.user)
+        return respuesta
 
     @action(
         detail=False, methods=["post"], url_path="bulk-upload",
@@ -238,4 +293,16 @@ CATALOG_VIEWSETS = {
     "service-areas": _catalog_viewset(im.ServiceArea),
     "identity-document-types": _catalog_viewset(im.IdentityDocumentType),
     "relationship-types": _catalog_viewset(im.RelationshipType),
+}
+
+# Catálogos maestros con CRUD (escritura solo Administrador RENADS): basename -> ViewSet
+ENTITY_VIEWSETS = {
+    "academic-periods": _entity_viewset(
+        im.AcademicPeriod, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
+    ),
+    "annex-documents": _entity_viewset(
+        im.AnnexDocument,
+        filterset_fields=["tipo_actor", "obligatorio", "activo"],
+        search_fields=["codigo", "nombre"],
+    ),
 }

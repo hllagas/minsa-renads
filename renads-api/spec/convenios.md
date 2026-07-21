@@ -13,6 +13,7 @@ Exponer vía DRF (bajo `/api/v1/`) los recursos del módulo: catálogos (solo le
 **Entidades del módulo** (modelos en `apps/convenios/models.py`):
 - Catálogos (18): `Region`, `HealthGeographicScope`, `ConventionType`, `ConventionStatus`, `DocumentType`, `UniversityManagementType`, `UniversityEntityType`, `AuthorizationType`, `AcademicLevel`, `Specialty`, `SigningAuthorityType`, `RegionalOrganType`, `ExecutingUnitType`, `MinsaOrganType`, `ExecutivePosition`, `ObservationReason`, `RejectionReason`, `ClosureReason`.
 - Entidades: `RegionalGovernment`, `RegionalOrgan`, `ExecutingUnit`, `Ipress`, `MinsaOrgan`, `Conapres`, `Representative`, `University`, `UniversityAuthority`, `Faculty`, `ProfessionalCareer`, `UniversityCampus`, `UserEntityProfile`.
+  - `ProfessionalCareer` se simplificó: **sin** relación a `Faculty` ni a `Specialty` (solo `nombre`, `nivel_academico`, `activo`). Filtro del endpoint `professional-careers` por `nivel_academico`/`activo`.
 - Núcleo: `ConventionTemplate`, `Convention`, `ConventionParticipant`, `ConventionStatusHistory`.
 - Flujo: `TechnicalEvaluation`, `ConapresOpinion`, `ClinicalField`, `LegalOpinion`, `Signature`, `Publication`.
 - Transversal: `Document`, `AuditLog`.

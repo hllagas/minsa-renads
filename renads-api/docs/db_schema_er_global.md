@@ -28,8 +28,6 @@ erDiagram
     universidad ||--o{ autoridad_universidad : ""
     universidad ||--o{ facultad : ""
     universidad ||--o{ local_universidad : ""
-    facultad ||--o{ carrera_profesional : ""
-    especialidad ||--o{ carrera_profesional : ""
     nivel_academico ||--o{ carrera_profesional : ""
 
     %% ===== M1: Convenio =====
@@ -57,6 +55,8 @@ erDiagram
     universidad ||--o{ estudiante : ""
     carrera_profesional ||--o{ estudiante : ""
     parentesco ||--o{ estudiante : "contacto emergencia"
+    periodo_academico ||--o{ estudiante : "Pregrado (RN-19)"
+    especialidad ||--o{ estudiante : "otro nivel (RN-19)"
     interno ||--o{ historial_estado_internado : ""
     interno ||--o{ historial_tutor : ""
     interno ||--o{ rotacion : ""
@@ -65,6 +65,11 @@ erDiagram
     rotacion ||--o{ autorizacion_rotacion : ""
     participante_convenio ||--o{ autorizacion_rotacion : ""
     rotacion ||--o{ historial_estado_rotacion : ""
+    %% Catálogo maestro de documentos requeridos por actor (interno / autoridad universidad /
+    %% representante-CONAPRES) vía tipo_actor; el adjunto real por entidad se guarda en `documento`
+    %% (FK documento_anexo_id, versionado por (objeto, documento_anexo)).
+    documentos_anexos {
+    }
 
     %% ===== M3: Actividad =====
     estudiante ||--o{ actividad_docente_asistencial : ""
@@ -78,6 +83,7 @@ erDiagram
     actividad_docente_asistencial ||--o{ historial_estado_actividad : ""
 
     %% ===== Transversales (polimórficas) =====
+    documento }o--o| documentos_anexos : "anexo (nulo salvo anexos por actor)"
     documento }o--|| django_content_type : "genérico"
     bitacora_auditoria }o--|| django_content_type : "genérico"
     representante }o--|| django_content_type : "genérico"
@@ -110,6 +116,7 @@ campo_clinico ──────────────────> interno
 ipress ─────────────────────────> interno / rotacion ─────> actividad_docente_asistencial
 universidad ────────────────────> estudiante
 carrera_profesional ────────────> estudiante
+                                  estudiante >── periodo_academico / especialidad (RN-19)
 participante_convenio ──────────> autorizacion_rotacion
                                   estudiante ─────────────────> actividad_docente_asistencial
                                   interno ─────────────────────> actividad_docente_asistencial
@@ -125,5 +132,5 @@ bitacora_auditoria (M1) ─ genérico ─> [cualquier tabla]
 | App | Tablas (db_table) |
 |-----|-------------------|
 | **Gestionar Convenios** (`convenios`, M1) | `ubigeo`, `region`, `ambito_geografico_sanitario`, `tipo_convenio`, `estado_convenio`, `tipo_documento`, `tipo_gestion_universidad`, `tipo_entidad_universidad`, `tipo_autorizacion`, `nivel_academico`, `especialidad`, `tipo_autoridad_firmante`, `tipo_organo_regional`, `tipo_unidad_ejecutora`, `tipo_organo_minsa`, `cargo_ejecutivo`, `motivo_observacion`, `motivo_rechazo`, `motivo_cierre`, `gobierno_regional`, `organo_regional`, `unidad_ejecutora`, `ipress`, `organo_minsa`, `conapres`, `representante`, `universidad`, `autoridad_universidad`, `facultad`, `carrera_profesional`, `local_universidad`, `perfil_usuario_entidad`, `plantilla_convenio`, `convenio`, `participante_convenio`, `historial_estado_convenio`, `evaluacion_tecnica`, `opinion_conapres`, `campo_clinico`, `opinion_juridica`, `firma`, `publicacion`, `documento`, `bitacora_auditoria` |
-| **Registrar Internados** (`internados`, M2) | `estado_internado`, `estado_rotacion`, `servicio_area`, `tipo_documento_identidad`, `parentesco`, `estudiante`, `tutor`, `interno`, `historial_estado_internado`, `historial_tutor`, `rotacion`, `autorizacion_rotacion`, `historial_estado_rotacion` |
+| **Registrar Internados** (`internados`, M2) | `estado_internado`, `estado_rotacion`, `servicio_area`, `tipo_documento_identidad`, `parentesco`, `periodo_academico`, `documentos_anexos`, `estudiante`, `tutor`, `interno`, `historial_estado_internado`, `historial_tutor`, `rotacion`, `autorizacion_rotacion`, `historial_estado_rotacion` |
 | **Registrar Actividades** (`actividades`, M3) | `tipo_actividad`, `estado_actividad`, `actividad_docente_asistencial`, `validacion_actividad`, `historial_estado_actividad` |

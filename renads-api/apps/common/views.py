@@ -11,8 +11,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+from apps.common.models import UserSecurity
 from apps.common.permissions import IsSuperUser
 from apps.common.serializers import (
+    ChangeOwnPasswordSerializer,
     CustomTokenObtainPairSerializer,
     GroupSerializer,
     MeSerializer,
@@ -39,6 +41,32 @@ class MeView(APIView):
     @extend_schema(responses=MeSerializer)
     def get(self, request):
         return Response(MeSerializer(request.user).data)
+
+
+class MeChangePasswordView(APIView):
+    """Cambio de la propia contraseña (RN-22): limpia `debe_cambiar_password`."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(request=ChangeOwnPasswordSerializer, responses=MeSerializer)
+    def post(self, request):
+        ser = ChangeOwnPasswordSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        usuario = request.user
+        if not usuario.check_password(ser.validated_data["password_actual"]):
+            return Response(
+                {"password_actual": ["La contraseña actual no es correcta."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        with transaction.atomic():
+            usuario.set_password(ser.validated_data["password_nueva"])
+            usuario.save(update_fields=["password"])
+            seguridad, _ = UserSecurity.objects.get_or_create(usuario=usuario)
+            if seguridad.debe_cambiar_password:
+                seguridad.debe_cambiar_password = False
+                seguridad.save(update_fields=["debe_cambiar_password", "actualizado_en"])
+            registrar_auditoria(usuario, "ACTUALIZAR", usuario, nombre_campo="password")
+        return Response(MeSerializer(usuario).data)
 
 
 class UserViewSet(viewsets.ModelViewSet):

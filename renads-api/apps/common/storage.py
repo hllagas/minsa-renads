@@ -7,7 +7,14 @@ referencia. Sirve como punto de integración hasta conectar el repositorio real.
 Ver `docs/arquitectura_desarrollo.md` §9.
 """
 
+import logging
+import re
+from datetime import timedelta
+from functools import lru_cache
 from typing import Protocol
+from uuid import uuid4
+
+logger = logging.getLogger(__name__)
 
 
 class DocumentStorage(Protocol):
@@ -55,5 +62,163 @@ class ReferenciaExternaStorage:
         return None
 
 
+def _nombre_seguro(nombre: str) -> str:
+    """Sanea un nombre de archivo para usarlo como parte de una key de objeto.
+
+    Elimina separadores de ruta y caracteres problemáticos, evitando que el
+    cliente pueda inyectar rutas (`../`) o prefijos arbitrarios en el bucket.
+    """
+    base = (nombre or "").strip().replace("\\", "/").split("/")[-1]
+    base = re.sub(r"[^A-Za-z0-9._-]", "_", base)
+    base = base.strip("._") or "archivo"
+    return base[:120]
+
+
+class GoogleCloudStorage:
+    """Backend de almacenamiento documental sobre Google Cloud Storage (GCS).
+
+    Cumple estructuralmente el `Protocol` `DocumentStorage`. Los objetos se
+    guardan en un bucket privado (UBLA + Public Access Prevention enforced): la
+    única vía de lectura es un signed URL V4 de corta duración.
+
+    Autenticación KEYLESS (sin claves de service account):
+    - Se parte de las credenciales ADC (`google.auth.default`).
+    - Se derivan credenciales impersonadas de la SA de firma
+      (`settings.GCS_SIGNING_SA`) con `impersonated_credentials.Credentials`.
+      Estas credenciales obtienen tokens efímeros y firman los signed URLs V4
+      vía el endpoint IAM SignBlob, sin necesidad de una clave JSON.
+
+    El cliente y las credenciales se construyen una sola vez por instancia; el
+    factory `get_document_storage()` cachea la instancia por proceso.
+    """
+
+    def __init__(self) -> None:
+        from django.conf import settings
+
+        if not settings.GCS_BUCKET_NAME:
+            raise RuntimeError(
+                "GCS está habilitado (GCS_ENABLED=True) pero falta GCS_BUCKET_NAME. "
+                "Defina el bucket del entorno en el archivo .env."
+            )
+        self._settings = settings
+        self._client = None
+        self._bucket = None
+
+    def _get_bucket(self):
+        """Construye (perezosamente) el cliente GCS con credenciales impersonadas.
+
+        Se difiere hasta el primer uso para no exigir credenciales ADC en el
+        arranque/import; los errores de credenciales se traducen a un mensaje en
+        español para el operador.
+        """
+        if self._bucket is not None:
+            return self._bucket
+
+        try:
+            import google.auth
+            from google.auth import impersonated_credentials
+            from google.cloud import storage
+        except ImportError as exc:  # pragma: no cover - dependencia obligatoria
+            raise RuntimeError(
+                "La librería google-cloud-storage no está instalada; "
+                "no es posible usar el almacenamiento en Google Cloud Storage."
+            ) from exc
+
+        try:
+            credenciales_base, _ = google.auth.default()
+        except Exception as exc:
+            raise RuntimeError(
+                "No se encontraron credenciales de Google Cloud (ADC). "
+                "Ejecute `gcloud auth application-default login` o configure el "
+                "runtime con una identidad autorizada."
+            ) from exc
+
+        # Credenciales impersonadas de la SA de firma (keyless, IAM SignBlob).
+        credenciales = impersonated_credentials.Credentials(
+            source_credentials=credenciales_base,
+            target_principal=self._settings.GCS_SIGNING_SA,
+            target_scopes=["https://www.googleapis.com/auth/devstorage.read_write"],
+        )
+        self._client = storage.Client(
+            project=self._settings.GCS_PROJECT_ID,
+            credentials=credenciales,
+        )
+        self._bucket = self._client.bucket(self._settings.GCS_BUCKET_NAME)
+        return self._bucket
+
+    def subir(self, archivo, ruta: str) -> str:
+        """Sube el binario a GCS y devuelve la key del objeto (`referencia_externa`).
+
+        `ruta` se usa como nombre base propuesto (típicamente el nombre del
+        archivo original); la key final se organiza como
+        `{prefijo}/{uuid4}-{nombre_seguro}` para evitar colisiones y garantizar
+        unicidad. Devuelve la key del objeto, nunca una URL.
+        """
+        bucket = self._get_bucket()
+        nombre = _nombre_seguro(ruta)
+        prefijo = (self._settings.GCS_OBJECT_PREFIX or "").strip("/")
+        partes = [p for p in (prefijo, f"{uuid4()}-{nombre}") if p]
+        key = "/".join(partes)
+
+        content_type = getattr(archivo, "content_type", None)
+        blob = bucket.blob(key)
+        # Rebobina el archivo por si ya fue leído durante la validación.
+        if hasattr(archivo, "seek"):
+            archivo.seek(0)
+        blob.upload_from_file(archivo, content_type=content_type)
+        return key
+
+    def url_firmada(self, referencia: str) -> str:
+        """Devuelve un signed URL V4 de descarga (GET) de corta duración.
+
+        Firma con las credenciales impersonadas (IAM SignBlob), sin clave de SA.
+        Nunca devuelve una URL pública ni la key en crudo.
+        """
+        bucket = self._get_bucket()
+        blob = bucket.blob(referencia)
+        return blob.generate_signed_url(
+            version="v4",
+            expiration=timedelta(seconds=self._settings.GCS_SIGNED_URL_EXPIRATION),
+            method="GET",
+        )
+
+    def eliminar(self, referencia: str) -> None:
+        """Elimina el objeto del bucket; tolera que el binario ya no exista.
+
+        Si el objeto no está (por ejemplo, ya fue borrado), se registra un aviso
+        y no se propaga el error, de modo que el borrado del `Document` no falle.
+        """
+        from google.api_core import exceptions as gcloud_exceptions
+
+        bucket = self._get_bucket()
+        try:
+            bucket.blob(referencia).delete()
+        except gcloud_exceptions.NotFound:
+            logger.warning(
+                "El objeto '%s' no existe en el bucket '%s'; se omite el borrado.",
+                referencia,
+                self._settings.GCS_BUCKET_NAME,
+            )
+
+
+@lru_cache(maxsize=1)
+def get_document_storage() -> DocumentStorage:
+    """Devuelve el backend de almacenamiento según la configuración del proyecto.
+
+    Retorna una instancia de `GoogleCloudStorage` cuando `GCS_ENABLED=True` y
+    `GCS_BUCKET_NAME` está definido; en cualquier otro caso devuelve el stub
+    `ReferenciaExternaStorage`. La instancia se cachea (una sola construcción del
+    cliente GCS por proceso).
+    """
+    from django.conf import settings
+
+    if getattr(settings, "GCS_ENABLED", False) and getattr(settings, "GCS_BUCKET_NAME", ""):
+        return GoogleCloudStorage()
+    return ReferenciaExternaStorage()
+
+
 # Instancia por defecto reutilizable para inyectar en services y ViewSets.
+# Se mantiene el stub como valor por defecto para compatibilidad con imports
+# existentes; los ViewSets que requieran el backend real deben resolverlo vía
+# `get_document_storage()`.
 storage_por_defecto: DocumentStorage = ReferenciaExternaStorage()

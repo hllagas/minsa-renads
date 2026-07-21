@@ -151,7 +151,7 @@ const SCHEMA = [
     {n:"tipo_gestion_universidad", d:"PUBLICA / PRIVADA", cols:[]},
     {n:"tipo_entidad_universidad", d:"UNIVERSIDAD / ESCUELA_POSGRADO / ESCUELA_SUPERIOR / INSTITUTO", cols:[]},
     {n:"tipo_autorizacion", d:"LICENCIADA / DENEGADA / PENDIENTE (SUNEDU)", cols:[]},
-    {n:"nivel_academico", d:"CARRERA_PROFESIONAL / SEGUNDA_ESPECIALIDAD / MAESTRIA / DOCTORADO", cols:[]},
+    {n:"nivel_academico", d:"PREGRADO / SEGUNDA_ESPECIALIDAD / MAESTRIA / DOCTORADO", cols:[]},
     {n:"especialidad", d:"Especialidades (seed 46, CONAREME)", cols:[]},
     {n:"tipo_autoridad_firmante", d:"Tipo de autoridad firmante", cols:[]},
     {n:"tipo_organo_regional", d:"GERESA / DIRESA / DIRIS", cols:[]},
@@ -178,7 +178,7 @@ const SCHEMA = [
       ["id","PK",false,"","pk",""],["unidad_ejecutora_id","FK",false,"Unidad ejecutora","fk","unidad_ejecutora"],
       ["nombre","varchar(255)",false,"Nombre del establecimiento","",""],["codigo_renipress","varchar(20)",true,"Código RENIPRESS","",""],
       ["direccion","varchar(500)",true,"Dirección","",""],["ubigeo_id","FK",true,"UBIGEO","fk","ubigeo"],
-      ["ambito_geografico_sanitario_id","FK",false,"Ámbito sanitario","fk","ambito_geografico_sanitario"],["es_sede_docente","bool",false,"Autorizada por CONAPRES","",""],["activo","bool",false,"","",""]]},
+      ["ambito_geografico_sanitario_id","FK",false,"Ámbito sanitario","fk","ambito_geografico_sanitario"],["es_sede_docente","bool",false,"Autorizada por CONAPRES","",""],["referencia_logo","varchar(500)",true,"Ref. externa del logo","",""],["activo","bool",false,"","",""]]},
   ]},
   { titulo:"Entidades — MINSA / CONAPRES", tablas:[
     {n:"organo_minsa", d:"DIGEP / OGAJ / SG / VICEPAS", cols:[
@@ -207,8 +207,8 @@ const SCHEMA = [
     {n:"facultad", cols:[
       ["id","PK",false,"","pk",""],["universidad_id","FK",false,"Universidad","fk","universidad"],["nombre","varchar(255)",false,"","",""],["activo","bool",false,"","",""]]},
     {n:"carrera_profesional", cols:[
-      ["id","PK",false,"","pk",""],["facultad_id","FK",false,"Facultad","fk","facultad"],["nombre","varchar(255)",false,"Carrera o programa","",""],
-      ["nivel_academico_id","FK",false,"Nivel académico","fk","nivel_academico"],["especialidad_id","FK",true,"Especialidad","fk","especialidad"],["activo","bool",false,"","",""]]},
+      ["id","PK",false,"","pk",""],["nombre","varchar(255)",false,"Carrera o programa","",""],
+      ["nivel_academico_id","FK",false,"Nivel académico","fk","nivel_academico"],["activo","bool",false,"","",""]]},
     {n:"local_universidad", cols:[
       ["id","PK",false,"","pk",""],["universidad_id","FK",false,"Universidad","fk","universidad"],["nombre","varchar(255)",false,"Nombre del local","",""],
       ["direccion","varchar(500)",true,"","",""],["region_id","FK",true,"Región","fk","region"],["ubigeo_id","FK",true,"UBIGEO","fk","ubigeo"],["activo","bool",false,"","",""]]},
@@ -272,6 +272,7 @@ const SCHEMA = [
       ["id","PK",false,"","pk",""],["tipo_documento_id","FK",false,"Tipo de documento","fk","tipo_documento"],["tipo_contenido_id","FK",false,"Tabla destino","fk","django_content_type"],
       ["id_objeto","int",false,"Registro destino","",""],["referencia_externa","varchar(500)",false,"Clave/URL externa","",""],["nombre_archivo","varchar(255)",false,"","",""],
       ["version","int",false,"","",""],["estado","varchar(20)",false,"ACTIVO/REEMPLAZADO/ANULADO/OBSERVADO/VALIDADO","",""],["version_anterior_id","FK",true,"Versión previa","fk","documento"],
+      ["documento_anexo_id","FK",true,"Anexo (declaración jurada); nulo salvo anexos por actor","fk","documentos_anexos"],
       ["cargado_por","FK",false,"Usuario","fk","auth_user"],["cargado_en","datetime",false,"","",""]]},
     {n:"bitacora_auditoria", d:"RNF-AUD-01/02 (polimórfico)", cols:[
       ["id","PK",false,"","pk",""],["usuario_id","FK",true,"Usuario","fk","auth_user"],["accion","varchar(30)",false,"CREAR/ACTUALIZAR/ELIMINAR/CAMBIO_ESTADO","",""],
@@ -286,6 +287,8 @@ const SCHEMA = [
     {n:"servicio_area", d:"Servicio, área o unidad", cols:[]},
     {n:"tipo_documento_identidad", d:"DNI / CE / PASAPORTE", cols:[]},
     {n:"parentesco", d:"Parentesco del contacto de emergencia (PADRE/MADRE/…)", cols:[]},
+    {n:"periodo_academico", d:"Periodo académico (semestre) — Pregrado (RN-19): 2025-I…2026-II", cols:[]},
+    {n:"documentos_anexos", d:"Catálogo maestro de documentos requeridos por actor (declaraciones juradas / resolución del cargo / documento de identidad)", cols:[["tipo_actor","varchar(30)",false,"Actor: INTERNO / AUTORIDAD_UNIVERSIDAD / REPRESENTANTE","",""],["descripcion","text",true,"Descripción del documento","",""],["obligatorio","bool",false,"Presentación obligatoria","",""]]},
   ]},
   { titulo:"Personas", tablas:[
     {n:"estudiante", cols:[
@@ -294,6 +297,7 @@ const SCHEMA = [
       ["fecha_nacimiento","date",true,"","",""],["sexo","varchar(1)",true,"M/F","",""],["correo","varchar(255)",true,"","",""],["telefono","varchar(30)",true,"","",""],
       ["direccion","varchar(500)",true,"Dirección","",""],["ubigeo_id","FK",true,"UBIGEO","fk","ubigeo"],
       ["universidad_id","FK",false,"Universidad","fk","universidad"],["carrera_profesional_id","FK",false,"Carrera","fk","carrera_profesional"],
+      ["periodo_academico_id","FK",true,"Periodo académico (Pregrado — RN-19)","fk","periodo_academico"],["especialidad_id","FK",true,"Especialidad (otro nivel — RN-19)","fk","especialidad"],
       ["codigo_universitario","varchar(50)",true,"","",""],["anio_academico","int",true,"","",""],
       ["nota_promedio_ponderado","decimal(4,2)",true,"Escala 0–20","",""],
       ["contacto_emergencia_nombre","varchar(255)",true,"Contacto de emergencia","",""],["contacto_emergencia_telefono","varchar(30)",true,"Contacto de emergencia","",""],["contacto_emergencia_parentesco_id","FK",true,"Parentesco","fk","parentesco"],
@@ -311,6 +315,7 @@ const SCHEMA = [
       ["id","PK",false,"","pk",""],["estudiante_id","FK",false,"Estudiante","fk","estudiante"],["convenio_id","FK",false,"Convenio Específico vigente","fk","convenio"],
       ["campo_clinico_id","FK",false,"Campo clínico asignado","fk","campo_clinico"],["ipress_id","FK",false,"Sede docente principal","fk","ipress"],["tutor_id","FK",false,"Tutor responsable","fk","tutor"],
       ["ambito_geografico_sanitario_id","FK",false,"Ámbito","fk","ambito_geografico_sanitario"],["estado_actual_id","FK",false,"Estado actual","fk","estado_internado"],
+      ["estado_declaraciones","varchar(20)",false,"Estado de las declaraciones juradas (RN-23): PENDIENTE/COMPLETAS/OBSERVADAS/VALIDADAS","",""],
       ["fecha_inicio","date",false,"","",""],["fecha_fin","date",false,"Máx. 1 año","",""],["observaciones","text",true,"","",""],["creado_por","FK",false,"","fk","auth_user"],["creado_en","datetime",false,"","",""],["actualizado_en","datetime",false,"","",""]]},
     {n:"historial_estado_internado", d:"Trazabilidad (RN-15)", cols:[
       ["id","PK",false,"","pk",""],["interno_id","FK",false,"","fk","interno"],["estado_id","FK",false,"","fk","estado_internado"],
@@ -360,7 +365,8 @@ const RELATIONS = `ubigeo (INEI distrital) >──< organo_regional / unidad_eje
 gobierno_regional ──< organo_regional ──< unidad_ejecutora ──< ipress
 ipress >── ambito_geografico_sanitario
 representante >── django_content_type (organo_minsa/organo_regional/unidad_ejecutora/ipress/conapres) ; >── cargo_ejecutivo
-universidad ──< autoridad_universidad ; ──< facultad ──< carrera_profesional >── nivel_academico/especialidad ; ──< local_universidad
+universidad ──< autoridad_universidad ; ──< facultad ; ──< local_universidad
+carrera_profesional >── nivel_academico
 auth_user ──< perfil_usuario_entidad >── django_content_type / auth_group
 
 convenio >── tipo_convenio / estado_convenio / plantilla_convenio
@@ -371,7 +377,7 @@ convenio ──< participante_convenio / historial_estado_convenio
 convenio ──< evaluacion_tecnica / opinion_conapres* / campo_clinico* / opinion_juridica / firma / publicacion   (* solo Específico)
 campo_clinico >── ipress / carrera_profesional / especialidad / ambito_geografico_sanitario
 
-estudiante >── universidad / carrera_profesional / especialidad / parentesco (contacto de emergencia)
+estudiante >── universidad / carrera_profesional / parentesco (contacto de emergencia) / periodo_academico / especialidad (RN-19)
 interno >── estudiante / convenio / campo_clinico / ipress / tutor / ambito_geografico_sanitario / estado_internado
 interno ──< historial_estado_internado / historial_tutor / rotacion
 rotacion >── ipress(origen) / ipress(destino) / servicio_area / estado_rotacion

@@ -1,7 +1,9 @@
 """Serializers del módulo Internados (bloque núcleo + entradas de flujo)."""
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
+from apps.internados import services
 from apps.internados.models import (
     Student,
     Internship,
@@ -19,6 +21,35 @@ class StudentSerializer(serializers.ModelSerializer):
         model = Student
         fields = "__all__"
         read_only_fields = ["creado_por", "creado_en"]
+
+    def validate(self, attrs):
+        """RN-19: valida periodo académico vs. especialidad según el nivel académico.
+
+        En updates parciales fusiona los valores del ``instance`` cuando no vienen
+        en ``attrs``. Delega la regla en el helper único de ``services`` (fuente
+        única de verdad, compartida con la carga masiva).
+        """
+        attrs = super().validate(attrs)
+
+        def _valor(campo):
+            if campo in attrs:
+                return attrs[campo]
+            if self.instance is not None:
+                return getattr(self.instance, campo)
+            return None
+
+        carrera = _valor("carrera_profesional")
+        if carrera is None:
+            return attrs  # sin carrera no se puede derivar el nivel; otras validaciones lo cubren
+        try:
+            services.validar_regla_periodo_especialidad(
+                carrera=carrera,
+                periodo_academico=_valor("periodo_academico"),
+                especialidad=_valor("especialidad"),
+            )
+        except (serializers.ValidationError, DjangoValidationError) as exc:
+            raise serializers.ValidationError(getattr(exc, "detail", None) or getattr(exc, "message_dict", str(exc)))
+        return attrs
 
 
 class StudentBulkUploadSerializer(serializers.Serializer):
@@ -49,6 +80,7 @@ class InternshipReadSerializer(serializers.ModelSerializer):
         fields = [
             "id", "estudiante", "convenio", "campo_clinico", "ipress", "tutor",
             "ambito_geografico_sanitario", "estado_actual", "estado_codigo",
+            "estado_declaraciones",
             "fecha_inicio", "fecha_fin", "observaciones",
             "creado_por", "creado_en", "actualizado_en",
         ]
@@ -136,6 +168,13 @@ class CambiarEstadoInternadoSerializer(serializers.Serializer):
 
 class CambiarEstadoRotacionSerializer(serializers.Serializer):
     estado_codigo = serializers.CharField()
+    observacion = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class RevisarDeclaracionesSerializer(serializers.Serializer):
+    """Entrada de la revisión de declaraciones juradas (RN-23)."""
+
+    resultado = serializers.ChoiceField(choices=["VALIDADAS", "OBSERVADAS"])
     observacion = serializers.CharField(required=False, allow_blank=True, default="")
 
 

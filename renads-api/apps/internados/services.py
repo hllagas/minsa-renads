@@ -6,16 +6,31 @@ registro en el historial de estado correspondiente. Ver §6 del módulo 2.
 
 import datetime
 import decimal
+import logging
+import secrets
 
 import openpyxl
+from django.conf import settings
+from django.contrib.auth.models import Group, User
 from django.contrib.contenttypes.models import ContentType
+from django.core.mail import send_mail
 from django.db import transaction
 from rest_framework.exceptions import ValidationError
 
+from apps.common.models import UserSecurity
 from apps.common.selectors import usuario_pertenece_a_entidad
 from apps.common.services import registrar_auditoria
-from apps.convenios.models import ProfessionalCareer, Ubigeo, University
+from apps.convenios.models import (
+    Document,
+    ProfessionalCareer,
+    Specialty,
+    Ubigeo,
+    University,
+    UserEntityProfile,
+)
 from apps.internados.models import (
+    AcademicPeriod,
+    AnnexDocument,
     IdentityDocumentType,
     Internship,
     InternshipStatus,
@@ -29,9 +44,21 @@ from apps.internados.models import (
     TutorHistory,
 )
 
+logger = logging.getLogger(__name__)
+
 # Estados del Convenio Específico que habilitan registrar internados (RN-2/3).
 ESTADOS_CONVENIO_VIGENTE = {"VIGENTE", "PUBLICADO", "SUSCRITO"}
 MAX_ROTACIONES = 4  # RN-9
+
+# RN-21 — Estados del internado que bloquean una nueva asignación (internado vigente).
+ESTADOS_INTERNADO_BLOQUEANTES = {
+    "REGISTRADO", "PENDIENTE_VALIDACION", "OBSERVADO", "VALIDADO", "ACTIVO",
+    "EN_ROTACION_SOLICITADA", "EN_ROTACION_AUTORIZADA", "EN_ROTACION_OBSERVADA",
+}
+# Estados liberadores (no bloquean un nuevo registro): SUSPENDIDO, RETIRADO, CULMINADO, ANULADO.
+
+# RN-22 — Grupo (rol) asignado al interno aprovisionado.
+GRUPO_INTERNO = "Interno"
 
 # Columnas requeridas del Excel de carga masiva de estudiantes (RN-16, §6 bis schema M2).
 CARGA_COLUMNAS_REQUERIDAS = {
@@ -103,6 +130,15 @@ def crear_internado(*, datos: dict, usuario) -> Internship:
     campo_clinico = datos["campo_clinico"]
     fecha_inicio = datos["fecha_inicio"]
     fecha_fin = datos["fecha_fin"]
+    estudiante = datos["estudiante"]
+
+    # RN-20: el acceso por universidad (alcance institucional) se valida en la vista
+    # (`InternshipViewSet.create` → `exigir_ambito(usuario, ContentType(University), universidad_del_estudiante)`).
+    # RN-21: unicidad de interno por DNI — rechazar si ya tiene un internado vigente.
+    if tiene_internado_vigente(estudiante):
+        raise ValidationError(
+            {"estudiante": "El estudiante ya tiene un internado vigente; no puede registrarse otro."}
+        )
 
     # RN-4: no se permite sobre Convenio Marco.
     if convenio.tipo_convenio.codigo != "ESPECIFICO":
@@ -130,13 +166,14 @@ def crear_internado(*, datos: dict, usuario) -> Internship:
 
     estado_inicial = _estado_internado("REGISTRADO")
     internado = Internship.objects.create(
-        estudiante=datos["estudiante"],
+        estudiante=estudiante,
         convenio=convenio,
         campo_clinico=campo_clinico,
         ipress=datos["ipress"],
         tutor=datos["tutor"],
         ambito_geografico_sanitario=datos["ambito_geografico_sanitario"],
         estado_actual=estado_inicial,
+        estado_declaraciones="PENDIENTE",
         fecha_inicio=fecha_inicio,
         fecha_fin=fecha_fin,
         observaciones=datos.get("observaciones", ""),
@@ -146,6 +183,221 @@ def crear_internado(*, datos: dict, usuario) -> Internship:
         interno=internado, estado=estado_inicial, cambiado_por=usuario
     )
     registrar_auditoria(usuario, "CREAR", internado)
+
+    # RN-22: onboarding del interno — usuario con rol `Interno` y perfil sobre su Student.
+    aprovisionar_interno(internado, usuario)
+    # Notificación por correo best-effort (post-commit; un fallo no revierte el registro).
+    transaction.on_commit(lambda: notificar_registro_interno(internado))
+    return internado
+
+
+# ---------------------------------------------------------------------------
+# RN-21 — Unicidad de interno por DNI (un internado vigente por estudiante)
+# ---------------------------------------------------------------------------
+def tiene_internado_vigente(estudiante: Student) -> bool:
+    """Indica si el estudiante tiene un `Internship` en estado bloqueante (RN-21).
+
+    Los estados **liberadores** (``SUSPENDIDO``, ``RETIRADO``, ``CULMINADO``,
+    ``ANULADO``) no bloquean una nueva asignación.
+    """
+    return Internship.objects.filter(
+        estudiante=estudiante, estado_actual__codigo__in=ESTADOS_INTERNADO_BLOQUEANTES
+    ).exists()
+
+
+# ---------------------------------------------------------------------------
+# RN-22 — Aprovisionamiento del interno (usuario + rol + perfil)
+# ---------------------------------------------------------------------------
+def aprovisionar_interno(internado: Internship, usuario) -> User:
+    """Crea (o recupera) el usuario `Interno` del estudiante del internado (RN-22).
+
+    - ``username = estudiante.numero_documento``. Si el usuario ya existe (reingreso
+      tras un estado liberador), se reutiliza sin resetear su contraseña.
+    - Al crear: contraseña temporal aleatoria, ``is_staff=False`` y
+      ``debe_cambiar_password=True`` (vía ``UserSecurity``).
+    - Asigna el grupo ``Interno`` y un ``UserEntityProfile`` idempotente sobre el
+      ``Student`` (rol ``Interno``, ``activo=True``).
+    Devuelve el ``User``.
+    """
+    estudiante = internado.estudiante
+    username = estudiante.numero_documento
+
+    interno_group, _ = Group.objects.get_or_create(name=GRUPO_INTERNO)
+    usuario_interno = User.objects.filter(username=username).first()
+    creado = usuario_interno is None
+    if creado:
+        usuario_interno = User(
+            username=username,
+            email=estudiante.correo or "",
+            first_name=estudiante.nombres[:150],
+            last_name=f"{estudiante.apellido_paterno} {estudiante.apellido_materno}".strip()[:150],
+            is_staff=False,
+            is_active=True,
+        )
+        usuario_interno.set_password(secrets.token_urlsafe(16))
+        usuario_interno.save()
+        registrar_auditoria(usuario, "CREAR", usuario_interno)
+
+    usuario_interno.groups.add(interno_group)
+
+    seguridad, _ = UserSecurity.objects.get_or_create(usuario=usuario_interno)
+    if creado and not seguridad.debe_cambiar_password:
+        seguridad.debe_cambiar_password = True
+        seguridad.save(update_fields=["debe_cambiar_password", "actualizado_en"])
+
+    ct_student = ContentType.objects.get_for_model(Student)
+    UserEntityProfile.objects.get_or_create(
+        usuario=usuario_interno,
+        tipo_contenido=ct_student,
+        id_objeto=estudiante.pk,
+        grupo=interno_group,
+        defaults={"activo": True},
+    )
+    return usuario_interno
+
+
+# ---------------------------------------------------------------------------
+# RN-22 — Notificación por correo al interno (best-effort)
+# ---------------------------------------------------------------------------
+def notificar_registro_interno(internado: Internship) -> bool:
+    """Notifica por correo al estudiante su registro como interno (RN-22).
+
+    Best-effort: si el estudiante no tiene correo, o el envío falla, se registra un
+    aviso en el log y **no** se propaga la excepción (no revierte el registro).
+    Devuelve ``True`` si se intentó el envío, ``False`` si se omitió.
+    """
+    estudiante = internado.estudiante
+    correo = (estudiante.correo or "").strip()
+    if not correo:
+        logger.warning(
+            "No se envió correo de onboarding: el estudiante %s no tiene correo registrado.",
+            estudiante.numero_documento,
+        )
+        return False
+
+    ipress = internado.ipress
+    campo = internado.campo_clinico
+    tutor = internado.tutor
+    nombre_estudiante = f"{estudiante.nombres} {estudiante.apellido_paterno}".strip()
+    sede = ipress.nombre if ipress else "(no registrada)"
+    carrera = getattr(campo.carrera_profesional, "nombre", "") if campo else ""
+    campo_txt = f"{carrera} (campo clínico #{campo.pk})".strip() if campo else "(no registrado)"
+    tutor_txt = f"{tutor.nombres} {tutor.apellido_paterno}".strip() if tutor else "(no asignado)"
+    tutor_correo = (tutor.correo or "").strip() if tutor else ""
+
+    asunto = "RENADS — Registro como interno"
+    cuerpo = (
+        f"Estimado(a) {nombre_estudiante}:\n\n"
+        f"Ha sido registrado(a) como interno(a) en el sistema RENADS con los siguientes datos:\n\n"
+        f"- Sede docente (IPRESS): {sede}\n"
+        f"- Campo clínico: {campo_txt}\n"
+        f"- Fecha de inicio: {internado.fecha_inicio}\n"
+        f"- Fecha de fin: {internado.fecha_fin}\n"
+        f"- Tutor asignado: {tutor_txt}"
+        + (f" ({tutor_correo})" if tutor_correo else "")
+        + "\n\n"
+        f"Debe adjuntar sus declaraciones juradas en el sistema. Consulte su checklist en:\n"
+        f"  /api/v1/students/{estudiante.pk}/annex-checklist/\n"
+        f"y adjunte cada anexo en:\n"
+        f"  /api/v1/students/{estudiante.pk}/annex-upload/\n\n"
+        f"Atentamente,\nRENADS — MINSA"
+    )
+    try:
+        send_mail(
+            asunto,
+            cuerpo,
+            settings.DEFAULT_FROM_EMAIL,
+            [correo],
+            fail_silently=False,
+        )
+        return True
+    except Exception:  # noqa: BLE001 — best-effort: no revertir el registro
+        logger.exception(
+            "Falló el envío del correo de onboarding al interno %s.",
+            estudiante.numero_documento,
+        )
+        return False
+
+
+# ---------------------------------------------------------------------------
+# RN-23 — Estado de las declaraciones juradas del interno
+# ---------------------------------------------------------------------------
+def _declaraciones_completas(internado: Internship) -> bool:
+    """True si todas las DJ obligatorias del interno tienen una versión ACTIVO adjunta.
+
+    Los anexos (declaraciones juradas) se adjuntan por estudiante (``Student``) vía
+    ``AnnexAttachmentMixin`` (actor ``INTERNO``); aquí se cruza el catálogo maestro
+    con los ``Document`` ``ACTIVO`` del estudiante.
+    """
+    estudiante = internado.estudiante
+    obligatorios = set(
+        AnnexDocument.objects.filter(
+            activo=True, tipo_actor="INTERNO", obligatorio=True
+        ).values_list("id", flat=True)
+    )
+    if not obligatorios:
+        return True
+    ct_student = ContentType.objects.get_for_model(Student)
+    adjuntados = set(
+        Document.objects.filter(
+            tipo_contenido=ct_student,
+            id_objeto=estudiante.pk,
+            estado="ACTIVO",
+            documento_anexo__isnull=False,
+        ).values_list("documento_anexo_id", flat=True)
+    )
+    return obligatorios.issubset(adjuntados)
+
+
+@transaction.atomic
+def recalcular_estado_declaraciones(internado: Internship, usuario=None) -> Internship:
+    """Recalcula ``estado_declaraciones`` tras un adjunto de anexo (RN-23, fuente única).
+
+    - Si el checklist obligatorio está completo ⇒ ``COMPLETAS``.
+    - Si no lo está y no está en revisión (``VALIDADAS``) ⇒ ``PENDIENTE``.
+    No degrada un estado ``VALIDADAS`` (revisión humana ya conforme). Registra
+    historial + auditoría solo si el estado cambia.
+    """
+    if internado.estado_declaraciones == "VALIDADAS":
+        return internado
+    nuevo = "COMPLETAS" if _declaraciones_completas(internado) else "PENDIENTE"
+    if nuevo != internado.estado_declaraciones:
+        _set_estado_declaraciones(internado, nuevo, usuario, observacion="Recálculo automático tras adjunto de anexo.")
+    return internado
+
+
+@transaction.atomic
+def revisar_declaraciones(*, internado: Internship, resultado: str, usuario, observacion: str = "") -> Internship:
+    """Revisión humana de las declaraciones juradas (RN-23).
+
+    ``resultado`` ∈ {``VALIDADAS``, ``OBSERVADAS``}. Requiere que las DJ estén
+    ``COMPLETAS`` (u ``OBSERVADAS`` re-revisadas). Registra historial + auditoría.
+    """
+    if resultado not in ("VALIDADAS", "OBSERVADAS"):
+        raise ValidationError({"resultado": "El resultado debe ser VALIDADAS u OBSERVADAS."})
+    if internado.estado_declaraciones not in ("COMPLETAS", "OBSERVADAS"):
+        raise ValidationError(
+            {"estado_declaraciones": "Solo se pueden revisar declaraciones juradas en estado COMPLETAS u OBSERVADAS."}
+        )
+    _set_estado_declaraciones(internado, resultado, usuario, observacion=observacion)
+    return internado
+
+
+def _set_estado_declaraciones(internado: Internship, nuevo: str, usuario, observacion: str = "") -> Internship:
+    anterior = internado.estado_declaraciones
+    internado.estado_declaraciones = nuevo
+    internado.save(update_fields=["estado_declaraciones", "actualizado_en"])
+    # Historial de estado del internado (traza la transición de las DJ).
+    InternshipStatusHistory.objects.create(
+        interno=internado,
+        estado=internado.estado_actual,
+        cambiado_por=usuario or internado.creado_por,
+        observacion=f"Declaraciones juradas: {anterior} → {nuevo}. {observacion}".strip(),
+    )
+    registrar_auditoria(
+        usuario, "CAMBIO_ESTADO", internado,
+        nombre_campo="estado_declaraciones", valor_anterior=anterior, valor_nuevo=nuevo,
+    )
     return internado
 
 
@@ -174,6 +426,11 @@ def actualizar_internado(*, internado: Internship, datos: dict, usuario) -> Inte
 
 @transaction.atomic
 def cambiar_estado_internado(*, internado: Internship, nuevo_estado_codigo: str, usuario, observacion: str = "") -> Internship:
+    # RN-23: no se puede activar el internado sin declaraciones juradas validadas.
+    if nuevo_estado_codigo == "ACTIVO" and internado.estado_declaraciones != "VALIDADAS":
+        raise ValidationError(
+            {"estado_declaraciones": "El internado no puede pasar a ACTIVO hasta que sus declaraciones juradas estén VALIDADAS."}
+        )
     return _set_estado_internado(internado, nuevo_estado_codigo, usuario, observacion)
 
 
@@ -288,6 +545,38 @@ def estudiantes_por_prelacion(queryset):
 
 
 # ---------------------------------------------------------------------------
+# RN-19 — Periodo académico vs. especialidad según nivel académico
+# ---------------------------------------------------------------------------
+def validar_regla_periodo_especialidad(*, carrera, periodo_academico, especialidad):
+    """RN-19: fuente única de verdad de la regla (compartida por serializer y bulk).
+
+    Deriva ``nivel = carrera.nivel_academico.codigo``. Si es ``PREGRADO`` exige
+    ``periodo_academico`` y prohíbe ``especialidad``; para cualquier otro nivel
+    exige ``especialidad`` y prohíbe ``periodo_academico``. Lanza
+    ``ValidationError`` con el campo faltante/sobrante y mensaje en español.
+    """
+    nivel = carrera.nivel_academico.codigo
+    if nivel == "PREGRADO":
+        if periodo_academico is None:
+            raise ValidationError(
+                {"periodo_academico": "El periodo académico es obligatorio para estudiantes de Pregrado."}
+            )
+        if especialidad is not None:
+            raise ValidationError(
+                {"especialidad": "La especialidad no aplica a estudiantes de Pregrado."}
+            )
+    else:
+        if especialidad is None:
+            raise ValidationError(
+                {"especialidad": "La especialidad es obligatoria para este nivel académico."}
+            )
+        if periodo_academico is not None:
+            raise ValidationError(
+                {"periodo_academico": "El periodo académico solo aplica al nivel Pregrado."}
+            )
+
+
+# ---------------------------------------------------------------------------
 # Carga masiva de estudiantes (RN-16) — Excel vía openpyxl
 # ---------------------------------------------------------------------------
 def _celda(valor):
@@ -325,20 +614,38 @@ def _resolver_universidad(valor):
         raise ValidationError(f"Universidad no encontrada: {texto}.") from exc
 
 
-def _resolver_carrera(valor, universidad):
+def _resolver_carrera(valor):
     if valor is None:
         raise ValidationError("`carrera_profesional` es requerida.")
     texto = str(valor).strip()
-    qs = ProfessionalCareer.objects.filter(facultad__universidad=universidad)
+    qs = ProfessionalCareer.objects.all()
     try:
         carrera = qs.get(id=int(texto)) if texto.isdigit() else qs.get(nombre__iexact=texto)
     except ProfessionalCareer.DoesNotExist as exc:
-        raise ValidationError(
-            f"Carrera no encontrada en la universidad: {texto}."
-        ) from exc
+        raise ValidationError(f"Carrera no encontrada: {texto}.") from exc
     except ProfessionalCareer.MultipleObjectsReturned as exc:
         raise ValidationError(f"Carrera ambigua (use el id): {texto}.") from exc
     return carrera
+
+
+def _resolver_periodo_academico(valor):
+    if valor is None:
+        return None
+    texto = str(valor).strip()
+    try:
+        return AcademicPeriod.objects.get(codigo=texto)
+    except AcademicPeriod.DoesNotExist as exc:
+        raise ValidationError(f"Periodo académico no encontrado: {texto}.") from exc
+
+
+def _resolver_especialidad(valor):
+    if valor is None:
+        return None
+    texto = str(valor).strip()
+    try:
+        return Specialty.objects.get(codigo=texto)
+    except Specialty.DoesNotExist as exc:
+        raise ValidationError(f"Especialidad no encontrada: {texto}.") from exc
 
 
 def _crear_estudiante_desde_fila(*, obtener, usuario, ct_uni, es_admin) -> Student:
@@ -365,7 +672,13 @@ def _crear_estudiante_desde_fila(*, obtener, usuario, ct_uni, es_admin) -> Stude
         raise ValidationError(
             f"La universidad {universidad.codigo_inei or universidad.id} está fuera de tu ámbito."
         )
-    carrera = _resolver_carrera(obtener("carrera_profesional"), universidad)
+    carrera = _resolver_carrera(obtener("carrera_profesional"))
+    periodo_academico = _resolver_periodo_academico(obtener("periodo_academico"))
+    especialidad = _resolver_especialidad(obtener("especialidad"))
+    # RN-19: coherencia entre nivel académico, periodo académico y especialidad.
+    validar_regla_periodo_especialidad(
+        carrera=carrera, periodo_academico=periodo_academico, especialidad=especialidad
+    )
 
     ubigeo = None
     ubigeo_codigo = obtener("ubigeo")
@@ -417,6 +730,8 @@ def _crear_estudiante_desde_fila(*, obtener, usuario, ct_uni, es_admin) -> Stude
         ubigeo=ubigeo,
         universidad=universidad,
         carrera_profesional=carrera,
+        periodo_academico=periodo_academico,
+        especialidad=especialidad,
         codigo_universitario=(str(obtener("codigo_universitario")).strip() if obtener("codigo_universitario") else ""),
         anio_academico=anio,
         nota_promedio_ponderado=nota,

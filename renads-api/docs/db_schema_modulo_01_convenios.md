@@ -38,7 +38,7 @@ Tablas paramétricas (RNF-MAN-01). Patrón común: `id` (PK), `codigo` (varchar,
 | `tipo_gestion_universidad` | Tipo de gestión | valores: `PUBLICA`, `PRIVADA` |
 | `tipo_entidad_universidad` | Tipo de entidad educativa | valores: `UNIVERSIDAD`, `ESCUELA_POSGRADO`, `ESCUELA_SUPERIOR`, `INSTITUTO` |
 | `tipo_autorizacion` | Estado de autorización SUNEDU | valores: `LICENCIADA`, `DENEGADA`, `PENDIENTE` |
-| `nivel_academico` | Nivel académico de la carrera | valores: `CARRERA_PROFESIONAL`, `SEGUNDA_ESPECIALIDAD`, `MAESTRIA`, `DOCTORADO` |
+| `nivel_academico` | Nivel académico de la carrera | valores: `PREGRADO`, `SEGUNDA_ESPECIALIDAD`, `MAESTRIA`, `DOCTORADO` |
 | `especialidad` | Especialidades de salud (seed: 46 especialidades médicas, nomenclatura oficial CONAREME) | — |
 | `tipo_autoridad_firmante` | Tipo de autoridad firmante | — |
 | `tipo_organo_regional` | Tipo de órgano regional | valores: `GERESA`, `DIRESA`, `DIRIS` |
@@ -111,6 +111,7 @@ Jerarquía: **GORE → Órgano Regional (GERESA/DIRESA/DIRIS) → Unidad Ejecuto
 | `ubigeo_id` | FK → `ubigeo` | Sí | Ubicación geográfica (UBIGEO) |
 | `ambito_geografico_sanitario_id` | FK → `ambito_geografico_sanitario` | No | Ámbito geográfico sanitario |
 | `es_sede_docente` | bool | No | Autorizada por CONAPRES como sede docente (default `false`) |
+| `referencia_logo` | varchar(500) | Sí | Referencia externa del logo (repositorio externo) |
 | `activo` | bool | No | |
 
 > La **sede docente** del módulo de convenios es una `ipress`.
@@ -201,10 +202,8 @@ Los miembros de CONAPRES se registran en la tabla genérica `representante` (sec
 | Columna | Tipo | Null | Descripción |
 |---------|------|------|-------------|
 | `id` | PK | No | |
-| `facultad_id` | FK → `facultad` | No | Facultad |
 | `nombre` | varchar(255) | No | Nombre de la carrera o programa |
 | `nivel_academico_id` | FK → `nivel_academico` | No | Carrera profesional / segunda especialidad / maestría / doctorado |
-| `especialidad_id` | FK → `especialidad` | Sí | Especialidad asociada |
 | `activo` | bool | No | |
 
 ### `local_universidad`
@@ -447,10 +446,11 @@ Tabla única para todo adjunto del expediente (RNF-DOC-01..05). El binario vive 
 | `version` | int | No | Versión |
 | `estado` | varchar(20) | No | `ACTIVO` / `REEMPLAZADO` / `ANULADO` / `OBSERVADO` / `VALIDADO` |
 | `version_anterior_id` | FK → `documento` (self) | Sí | Versión previa reemplazada (RNF-DOC-04 / AUD-04) |
+| `documento_anexo_id` | FK → `documentos_anexos` (módulo 2) | Sí | Anexo (declaración jurada) al que corresponde el documento; nulo para documentos que no son anexos. Cuando se define, el versionado se discrimina por `(objeto, documento_anexo)` en lugar de por `tipo_documento` |
 | `cargado_por` | FK → `auth_user` | No | Usuario que cargó |
 | `cargado_en` | datetime | No | Fecha y hora de carga |
 
-Se adjunta a: `convenio`, `evaluacion_tecnica`, `opinion_conapres`, `campo_clinico`, `opinion_juridica`, `firma`, `publicacion`.
+Se adjunta a: `convenio`, `evaluacion_tecnica`, `opinion_conapres`, `campo_clinico`, `opinion_juridica`, `firma`, `publicacion`. **Anexos (declaraciones juradas por actor):** también se adjunta a `estudiante` (interno), `autoridad_universidad` y `representante` con `documento_anexo_id` (ver módulo 2 y `docs/api_almacenamiento_frontend.md`).
 
 ---
 
@@ -491,7 +491,8 @@ representante >── cargo_ejecutivo
 
 universidad >── tipo_gestion_universidad / tipo_entidad_universidad / tipo_autorizacion
 universidad ──< autoridad_universidad
-universidad ──< facultad ──< carrera_profesional >── nivel_academico / especialidad
+universidad ──< facultad
+carrera_profesional >── nivel_academico
 universidad ──< local_universidad >── region
 
 auth_user ──< perfil_usuario_entidad >── django_content_type (entidad polimórfica)
@@ -511,7 +512,8 @@ convenio ──< opinion_juridica
 convenio ──< firma >── django_content_type (firmante polimórfico)
 convenio ──< publicacion
 
-documento          >── django_content_type   (genérico → cualquier tabla del flujo)
+documento          >── django_content_type   (genérico → cualquier tabla del flujo / anexos por actor)
+documento          >── documentos_anexos      (módulo 2; nulo salvo anexos por actor)
 bitacora_auditoria >── django_content_type   (genérico → cualquier entidad)
 ```
 
@@ -526,8 +528,8 @@ bitacora_auditoria >── django_content_type   (genérico → cualquier entida
 - **Opinión favorable (CONAPRES) solo para Específico:** `opinion_conapres`.
 - **Autorización de sede docente (CONAPRES):** `ipress` autorizada bajo criterios (asistencial, MINSA/FF.AA.-FF.PP., pública).
 - **Campos clínicos:** total por sede/carrera lo registra **CONAPRES**; la cantidad por universidad/carrera la asigna **GERESA/DIRESA/DIRIS** (`campo_clinico.cantidad_maxima`), sin exceder el total autorizado, en el mismo ámbito geográfico sanitario.
-- **Versionado documental (RNF-DOC-04 / AUD-04):** `documento.version_anterior_id` + `estado`.
-- **Adjuntos en repositorio externo:** columnas `referencia_externa` (en `documento`, `plantilla_convenio`, `universidad.referencia_logo`, `autoridad_universidad.referencia_documento_resolucion`).
+- **Versionado documental (RNF-DOC-04 / AUD-04):** `documento.version_anterior_id` + `estado`. En los **anexos por actor**, el versionado se discrimina por `documento.documento_anexo_id` (par `(objeto, documento_anexo)`).
+- **Adjuntos en repositorio externo:** columnas `referencia_externa` (en `documento`, `plantilla_convenio`) y `referencia_logo` (logos de `universidad`, `gobierno_regional`, `organo_regional`, `unidad_ejecutora`, `ipress`); `autoridad_universidad.referencia_documento_resolucion`. El **adjunto real** (logos e imágenes / PDFs de anexos) se sirve vía el backend de almacenamiento (GCS o stub); ver `docs/api_almacenamiento_frontend.md`.
 - **Trazabilidad de estados (RNF-AUD-03):** `historial_estado_convenio`.
 - **Bitácora de auditoría (RNF-AUD-01/02):** `bitacora_auditoria`.
 - **Roles y ámbito institucional (RNF-SEG-02/03):** `auth_group` + `perfil_usuario_entidad`.

@@ -57,7 +57,7 @@ AUTHORIZATION_TYPES = [
 ]
 
 ACADEMIC_LEVELS = [
-    ("CARRERA_PROFESIONAL", "Carrera profesional"),
+    ("PREGRADO", "Pregrado"),
     ("SEGUNDA_ESPECIALIDAD", "Segunda especialidad"),
     ("MAESTRIA", "Maestría"),
     ("DOCTORADO", "Doctorado"),

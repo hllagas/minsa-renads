@@ -20,6 +20,10 @@ El módulo **Registrar Internados** registra a los estudiantes (alumnos de últi
 - Registro de estudiantes en **doble modalidad**: **individual** y **masiva** vía archivo Excel (RN-16, ver §7 bis).
 - La **universidad** asigna internos a los **campos clínicos disponibles** por sede docente y carrera profesional definidos en los Convenios Específicos (RN-17).
 - **Orden de prelación** de asignación de internos: por **orden de mérito** según `nota_promedio_ponderado` (mayor a menor) (RN-18).
+- **Registro de internos por la universidad con alcance institucional** (RN-20): el usuario de universidad solo registra/ve internos de las universidades dentro de su ámbito (`perfil_usuario_entidad` con entidad `universidad`; 1..N universidades). Superusuario y `Administrador RENADS` exentos.
+- **Unicidad de interno por DNI** (RN-21): un estudiante no puede tener más de un internado **vigente**. Estados **bloqueantes**: `REGISTRADO`, `PENDIENTE_VALIDACION`, `OBSERVADO`, `VALIDADO`, `ACTIVO`, `EN_ROTACION_SOLICITADA`, `EN_ROTACION_AUTORIZADA`, `EN_ROTACION_OBSERVADA`. Estados **liberadores** (permiten un nuevo registro): `SUSPENDIDO`, `RETIRADO`, `CULMINADO`, `ANULADO`.
+- **Onboarding del interno** (RN-22): al registrar el internado se crea (o reutiliza) un `User` con `username = numero_documento`, contraseña temporal, `debe_cambiar_password=True` (tabla `seguridad_usuario`), grupo `Interno` y `perfil_usuario_entidad` sobre su `estudiante`. Solo lee sus datos y adjunta sus declaraciones juradas; no edita datos personales ni ve otros internos. Se le **notifica por correo** (sede docente, fechas, tutor, instrucción de adjuntar DJ) — best-effort post-commit.
+- **Estado de las declaraciones juradas** (RN-23): `interno.estado_declaraciones` (`PENDIENTE`/`COMPLETAS`/`OBSERVADAS`/`VALIDADAS`). `PENDIENTE→COMPLETAS` automático al completar las DJ obligatorias del actor `INTERNO`; revisión humana `COMPLETAS→VALIDADAS`/`OBSERVADAS`; `OBSERVADAS→COMPLETAS` al re-adjuntar. **Gate:** el internado no pasa a `ACTIVO` salvo `estado_declaraciones = VALIDADAS`.
 
 > **Convenciones (heredadas del módulo 1):** tablas/columnas/descripciones en **español**; adjuntos en **repositorio externo** (solo `referencia_externa`); se reutilizan tablas nativas de Django y las tablas del **módulo 1** (`convenio`, `campo_clinico`, `ipress`, `universidad`, `carrera_profesional`, `especialidad`, `ambito_geografico_sanitario`, `participante_convenio`, `documento`, `bitacora_auditoria`).
 
@@ -29,6 +33,11 @@ El módulo **Registrar Internados** registra a los estudiantes (alumnos de últi
 
 ### Nativas de Django
 `auth_user`, `auth_group`, `auth_permission`, `django_content_type` (relación genérica de `documento` y `bitacora_auditoria`).
+
+### Transversal (app `common`)
+| Tabla | Uso en el módulo 2 |
+|-------|--------------------|
+| `seguridad_usuario` | Extensión 1:1 de `auth_user`. Columna `debe_cambiar_password` (bool): fuerza el cambio de la contraseña temporal del interno (RN-22). Expuesta como claim del JWT y en `GET /api/v1/auth/me/`; se limpia en `POST /api/v1/auth/me/cambiar-password/`. |
 
 ### Del módulo 1 (Gestionar Convenios)
 | Tabla | Uso en el módulo 2 |
@@ -58,6 +67,8 @@ Patrón común: `id` (PK), `codigo` (varchar, único), `nombre` (varchar), `acti
 | `servicio_area` | Servicio, área o unidad de rotación | — |
 | `tipo_documento_identidad` | Tipo de documento de identidad | valores: `DNI`, `CE`, `PASAPORTE` |
 | `parentesco` | Tipo de parentesco del contacto de emergencia del estudiante | — |
+| `periodo_academico` | Periodo académico (semestre) del estudiante — aplica al nivel Pregrado (RN-19) | — |
+| `documentos_anexos` | Catálogo maestro de documentos requeridos **por actor** (declaraciones juradas, resolución del cargo, documento de identidad) a adjuntar tras el registro | `tipo_actor` (choices: `INTERNO` / `AUTORIDAD_UNIVERSIDAD` / `REPRESENTANTE`, default `INTERNO`), `descripcion` (text), `obligatorio` (bool, default `True`) |
 
 ### Valores de `estado_internado`
 `REGISTRADO`, `PENDIENTE_VALIDACION`, `OBSERVADO`, `VALIDADO`, `ACTIVO`, `EN_ROTACION_SOLICITADA`, `EN_ROTACION_AUTORIZADA`, `EN_ROTACION_OBSERVADA`, `SUSPENDIDO`, `RETIRADO`, `CULMINADO`, `ANULADO`.
@@ -67,6 +78,34 @@ Patrón común: `id` (PK), `codigo` (varchar, único), `nombre` (varchar), `acti
 
 ### Valores de `parentesco`
 `PADRE`, `MADRE`, `HERMANO`, `CONYUGE`, `HIJO`, `ABUELO`, `TIO`, `OTRO`.
+
+### Valores de `periodo_academico` (semilla)
+`2025-I`, `2025-II`, `2026-I`, `2026-II` (nombre `Semestre <codigo>`).
+
+### Valores de `documentos_anexos` (semilla)
+
+**`tipo_actor = INTERNO`** (declaraciones juradas del estudiante): `DJ_DATOS` (Declaración jurada de veracidad de datos), `DJ_ANTECEDENTES` (Declaración jurada de no tener antecedentes penales/policiales), `DJ_SALUD` (Declaración jurada de aptitud de salud), `DJ_CONFIDENCIALIDAD` (Compromiso de confidencialidad).
+
+**`tipo_actor = AUTORIDAD_UNIVERSIDAD`**: `RESOL_AUTUNI` (Resolución de designación del cargo), `DNI_AUTUNI` (Documento de identidad).
+
+**`tipo_actor = REPRESENTANTE`** (incluye autoridades de CONAPRES): `RESOL_REP` (Resolución de designación del cargo), `DNI_REP` (Documento de identidad).
+
+Todos con `obligatorio = True`.
+
+### Adjunto real de anexos por actor (en alcance)
+
+El **PDF real** de cada anexo de `documentos_anexos` se adjunta como un
+`documento` (módulo 1) **versionado** por el par `(entidad, documento_anexo)`,
+usando la FK `documento.documento_anexo_id`. El adjunto se hace por entidad según
+el `tipo_actor`:
+
+- `INTERNO` → `estudiante` (endpoints `students/{id}/annex-upload/` y `.../annex-checklist/`).
+- `AUTORIDAD_UNIVERSIDAD` → `autoridad_universidad`.
+- `REPRESENTANTE` → `representante`.
+
+Re-subir el mismo anexo a la misma entidad genera una nueva versión del
+`documento`. Detalle de endpoints, content-types (PDF), tamaño y errores en
+`docs/api_almacenamiento_frontend.md`.
 
 ---
 
@@ -90,6 +129,8 @@ Patrón común: `id` (PK), `codigo` (varchar, único), `nombre` (varchar), `acti
 | `ubigeo_id` | FK → `ubigeo` (módulo 1) | Sí | Ubicación geográfica (UBIGEO) |
 | `universidad_id` | FK → `universidad` | No | Universidad de procedencia |
 | `carrera_profesional_id` | FK → `carrera_profesional` | No | Carrera / programa |
+| `periodo_academico_id` | FK → `periodo_academico` | Sí | Periodo académico (obligatorio para nivel `PREGRADO` — RN-19; PROTECT) |
+| `especialidad_id` | FK → `especialidad` | Sí | Especialidad (obligatoria para niveles distintos de `PREGRADO` — RN-19; SET_NULL) |
 | `codigo_universitario` | varchar(50) | Sí | Código universitario / matrícula |
 | `anio_academico` | int | Sí | Año académico |
 | `nota_promedio_ponderado` | decimal(4,2) | Sí | Nota promedio ponderado (escala 0–20) |
@@ -100,6 +141,8 @@ Patrón común: `id` (PK), `codigo` (varchar, único), `nombre` (varchar), `acti
 | `creado_por` | FK → `auth_user` | No | |
 | `creado_en` | datetime | No | |
 | **Único** | (`tipo_documento_identidad_id`, `numero_documento`) | | |
+
+> **RN-19 (periodo académico vs. especialidad):** según el nivel académico de la carrera (`carrera_profesional.nivel_academico.codigo`), el estudiante lleva **uno u otro**: nivel `PREGRADO` ⇒ `periodo_academico_id` obligatorio y `especialidad_id` nulo; cualquier otro nivel (`SEGUNDA_ESPECIALIDAD`/`MAESTRIA`/`DOCTORADO`/…) ⇒ `especialidad_id` obligatorio y `periodo_academico_id` nulo. Ambas columnas son nullable en BD; la obligatoriedad condicional se valida a nivel de aplicación (`services.validar_regla_periodo_especialidad`).
 
 ---
 
@@ -140,12 +183,15 @@ Patrón común: `id` (PK), `codigo` (varchar, único), `nombre` (varchar), `acti
 | `tutor_id` | FK → `tutor` | No | Tutor responsable actual |
 | `ambito_geografico_sanitario_id` | FK → `ambito_geografico_sanitario` | No | Ámbito geográfico sanitario |
 | `estado_actual_id` | FK → `estado_internado` | No | Estado actual |
+| `estado_declaraciones` | varchar(20) | No | Estado de las declaraciones juradas del interno (RN-23). Valores: `PENDIENTE` (default), `COMPLETAS`, `OBSERVADAS`, `VALIDADAS` |
 | `fecha_inicio` | date | No | Fecha de inicio |
 | `fecha_fin` | date | No | Fecha de fin (máx. 1 año) |
 | `observaciones` | text | Sí | Observaciones |
 | `creado_por` | FK → `auth_user` | No | |
 | `creado_en` | datetime | No | |
 | `actualizado_en` | datetime | No | |
+
+> **`estado_declaraciones` (RN-23):** independiente de `estado_actual`. `PENDIENTE→COMPLETAS` automático (todas las `documentos_anexos` de `tipo_actor=INTERNO` `obligatorio=True` tienen versión `ACTIVO` adjunta para el estudiante); revisión humana `COMPLETAS→VALIDADAS`/`OBSERVADAS` (rol `Universidad`/`Administrador RENADS`, acción `POST /api/v1/interns/{id}/revisar-declaraciones/`); `OBSERVADAS→COMPLETAS` al re-adjuntar. El internado no pasa a `ACTIVO` sin `estado_declaraciones = VALIDADAS`.
 
 ### `historial_estado_internado` (trazabilidad — RN-15)
 
@@ -242,7 +288,9 @@ Los catálogos se referencian por **`codigo`** (no por id), para que el archivo 
 | `direccion` | O | `direccion` | texto |
 | `ubigeo` | O | `ubigeo.codigo` | 6 dígitos INEI |
 | `universidad` | R | `universidad` (id o código INEI) | debe existir y estar en el ámbito del usuario |
-| `carrera_profesional` | R | `carrera_profesional` | id / nombre de la carrera de la universidad |
+| `carrera_profesional` | R | `carrera_profesional` | id / nombre de la carrera |
+| `periodo_academico` | O | `periodo_academico.codigo` | requerido si el nivel es `PREGRADO` (RN-19); p. ej. `2026-I` |
+| `especialidad` | O | `especialidad.codigo` | requerido si el nivel no es `PREGRADO` (RN-19) |
 | `codigo_universitario` | O | `codigo_universitario` | texto |
 | `anio_academico` | O | `anio_academico` | entero |
 | `nota_promedio_ponderado` | O | `nota_promedio_ponderado` | decimal 0–20 (usado en la prelación, RN-18) |
@@ -250,7 +298,7 @@ Los catálogos se referencian por **`codigo`** (no por id), para que el archivo 
 | `contacto_emergencia_telefono` | O | `contacto_emergencia_telefono` | texto |
 | `contacto_emergencia_parentesco` | O | `parentesco.codigo` | `PADRE` / `MADRE` / … |
 
-**Validaciones de la carga:** por fila se valida unicidad (`tipo_documento` + `numero_documento`), existencia de catálogos/entidades referenciadas y alcance institucional de la `universidad`. Filas inválidas **no** detienen el lote: se reportan con número de fila y motivo. Se registra auditoría por cada creación (RNF-AUD-01/02) y se puede adjuntar el archivo origen como `documento`.
+**Validaciones de la carga:** por fila se valida unicidad (`tipo_documento` + `numero_documento`), existencia de catálogos/entidades referenciadas, alcance institucional de la `universidad` y la regla **RN-19** (coherencia entre nivel académico, `periodo_academico` y `especialidad`). Filas inválidas **no** detienen el lote: se reportan con número de fila y motivo. Se registra auditoría por cada creación (RNF-AUD-01/02) y se puede adjuntar el archivo origen como `documento`.
 
 ---
 
@@ -266,6 +314,7 @@ La tabla `bitacora_auditoria` (módulo 1) registra cambios de tutor, sede, estad
 
 ```
 estudiante >── universidad / carrera_profesional / tipo_documento_identidad / parentesco (contacto_emergencia_parentesco_id)
+estudiante >── periodo_academico / especialidad   (uno u otro según nivel — RN-19)
 tutor   >── especialidad / ipress / tipo_documento_identidad
 
 interno >── estudiante
@@ -305,3 +354,6 @@ bitacora_auditoria >── django_content_type  (genérico)
 - **RN-16 (registro individual y masivo):** `POST /students/` y `POST /students/bulk-upload/` (ver §6 bis).
 - **RN-17 (asignación a campos clínicos por sede/carrera):** validación contra `campo_clinico` del Convenio Específico (disponibilidad = `cantidad_maxima` − asignados).
 - **RN-18 (prelación por mérito):** ordenamiento por `estudiante.nota_promedio_ponderado` descendente al asignar cupos.
+- **RN-19 (periodo académico vs. especialidad según nivel):** deriva `nivel = estudiante.carrera_profesional.nivel_academico.codigo`; `PREGRADO` ⇒ `periodo_academico_id` requerido / `especialidad_id` nulo; otro nivel ⇒ `especialidad_id` requerido / `periodo_academico_id` nulo. Regla única en `services.validar_regla_periodo_especialidad`, invocada por `StudentSerializer.validate` (individual) y por `registrar_estudiantes_masivo` (carga masiva).
+
+> **Nota — `documentos_anexos`:** catálogo maestro de documentos requeridos **por actor** (`tipo_actor`): `INTERNO` → declaraciones juradas del estudiante; `AUTORIDAD_UNIVERSIDAD` y `REPRESENTANTE` (incluye autoridades de CONAPRES) → resolución del cargo y documento de identidad. Filtrable por `tipo_actor` en el endpoint. Este spec cubre solo el catálogo maestro y su CRUD (`/api/v1/annex-documents/`). El flujo de adjunto real por entidad (tabla puente entidad↔anexo, carga del PDF, estados de presentación) queda fuera de alcance.

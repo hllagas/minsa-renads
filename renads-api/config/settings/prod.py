@@ -32,6 +32,19 @@ STORAGES = {
     },
 }
 
+# Almacenamiento documental (GCS):
+# En producción se prevé GCS_ENABLED=True. El bucket y el flag se definen por
+# variables de entorno (no se hardcodean aquí):
+#   GCS_ENABLED=True
+#   GCS_BUCKET_NAME=renads-cloud-media-prod
+# Autenticación keyless: el runtime (Cloud Run / Railway) debe correr con ADC del
+# principal que tenga `roles/iam.serviceAccountTokenCreator` sobre GCS_SIGNING_SA.
+
+# Correo — SMTP en producción (credenciales por .env). Ver config/settings/base.py.
+EMAIL_BACKEND = config(
+    "EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend"
+)
+
 # Endurecimiento de seguridad
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=True, cast=bool)

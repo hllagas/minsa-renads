@@ -2,6 +2,12 @@
 .env
 .venv/
 
+# Secretos GCP (claves de service account) — NUNCA commitear
+secrets/
+*-sa-key.json
+*service-account*.json
+gcp-*.json
+
 # Python
 __pycache__/
 *.py[cod]

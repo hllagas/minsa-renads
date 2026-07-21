@@ -1,5 +1,7 @@
 """Serializers del módulo Convenios (bloque núcleo + entradas de flujo)."""
 
+from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 
@@ -12,6 +14,7 @@ from apps.convenios.models import (
     ConventionStatusHistory,
     ConventionTemplate,
     Document,
+    DocumentType,
     LegalOpinion,
     Publication,
     Representative,
@@ -226,6 +229,173 @@ class DocumentWriteSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {"id_objeto": "El objeto destino indicado no existe."}
             )
+        return attrs
+
+
+# Extensiones aceptadas por content-type, como refuerzo a la validación MIME.
+EXTENSIONES_POR_CONTENT_TYPE = {
+    "application/pdf": {".pdf"},
+    "image/png": {".png"},
+    "image/jpeg": {".jpg", ".jpeg"},
+    "image/webp": {".webp"},
+}
+
+
+class DocumentUploadSerializer(serializers.Serializer):
+    """Subida real de un documento (multipart): valida tipo y tamaño del binario.
+
+    Recibe el binario en `archivo` junto con los metadatos necesarios para
+    adjuntarlo a un objeto (relación genérica). El versionado y la auditoría los
+    resuelve el service `adjuntar_documento`; este serializer solo valida la
+    entrada. Mensajes de error en español.
+    """
+
+    archivo = serializers.FileField(help_text="Binario a subir (PDF o imagen)")
+    tipo_documento = serializers.PrimaryKeyRelatedField(
+        queryset=DocumentType.objects.all(), help_text="Tipo de documento"
+    )
+    tipo_contenido = serializers.PrimaryKeyRelatedField(
+        queryset=ContentType.objects.all(), help_text="Tabla destino"
+    )
+    id_objeto = serializers.IntegerField(min_value=1, help_text="Registro destino")
+    nombre_archivo = serializers.CharField(
+        max_length=255,
+        required=False,
+        allow_blank=True,
+        help_text="Nombre del archivo (si falta, se deriva del archivo subido)",
+    )
+
+    def validate_archivo(self, archivo):
+        content_type = getattr(archivo, "content_type", "") or ""
+        if content_type not in settings.GCS_ALLOWED_CONTENT_TYPES:
+            permitidos = ", ".join(settings.GCS_ALLOWED_CONTENT_TYPES)
+            raise serializers.ValidationError(
+                f"Tipo de archivo no permitido. Se aceptan únicamente: {permitidos}."
+            )
+        extension = ("." + archivo.name.rsplit(".", 1)[-1].lower()) if "." in archivo.name else ""
+        extensiones_validas = EXTENSIONES_POR_CONTENT_TYPE.get(content_type, set())
+        if extension not in extensiones_validas:
+            raise serializers.ValidationError(
+                "La extensión del archivo no corresponde con su tipo de contenido."
+            )
+        if archivo.size > settings.GCS_MAX_UPLOAD_BYTES:
+            maximo_mb = settings.GCS_MAX_UPLOAD_BYTES / (1024 * 1024)
+            raise serializers.ValidationError(
+                f"El archivo supera el tamaño máximo permitido ({maximo_mb:.0f} MiB)."
+            )
+        return archivo
+
+    def validate(self, attrs):
+        tipo_contenido = attrs.get("tipo_contenido")
+        id_objeto = attrs.get("id_objeto")
+        try:
+            tipo_contenido.get_object_for_this_type(pk=id_objeto)
+        except ObjectDoesNotExist:
+            raise serializers.ValidationError(
+                {"id_objeto": "El objeto destino indicado no existe."}
+            )
+        if not attrs.get("nombre_archivo"):
+            attrs["nombre_archivo"] = attrs["archivo"].name
+        return attrs
+
+
+# ---------------------------------------------------------------------------
+# Subida de logos institucionales (imágenes) — Etapa 2
+# ---------------------------------------------------------------------------
+# Content-types aceptados para logos: solo imágenes (se excluye PDF a propósito).
+LOGO_CONTENT_TYPES = ["image/png", "image/jpeg", "image/webp"]
+
+
+class LogoUploadSerializer(serializers.Serializer):
+    """Subida del logo de una entidad (multipart): valida tipo y tamaño del binario.
+
+    Solo acepta imágenes (`image/png`, `image/jpeg`, `image/webp`); rechaza PDF.
+    El logo se guarda como una única key en `referencia_logo` de la entidad (sin
+    versionado, sin `Document`). Mensajes de error en español.
+    """
+
+    archivo = serializers.FileField(help_text="Imagen del logo (PNG, JPEG o WEBP)")
+
+    def validate_archivo(self, archivo):
+        content_type = getattr(archivo, "content_type", "") or ""
+        if content_type not in LOGO_CONTENT_TYPES:
+            permitidos = ", ".join(LOGO_CONTENT_TYPES)
+            raise serializers.ValidationError(
+                f"Tipo de imagen no permitido. Se aceptan únicamente: {permitidos}."
+            )
+        extension = ("." + archivo.name.rsplit(".", 1)[-1].lower()) if "." in archivo.name else ""
+        extensiones_validas = EXTENSIONES_POR_CONTENT_TYPE.get(content_type, set())
+        if extension not in extensiones_validas:
+            raise serializers.ValidationError(
+                "La extensión del archivo no corresponde con su tipo de contenido."
+            )
+        if archivo.size > settings.GCS_MAX_UPLOAD_BYTES:
+            maximo_mb = settings.GCS_MAX_UPLOAD_BYTES / (1024 * 1024)
+            raise serializers.ValidationError(
+                f"El archivo supera el tamaño máximo permitido ({maximo_mb:.0f} MiB)."
+            )
+        return archivo
+
+
+# ---------------------------------------------------------------------------
+# Subida de anexos (PDFs de declaraciones juradas por actor) — Etapa 2
+# ---------------------------------------------------------------------------
+class ActiveAnnexDocumentField(serializers.PrimaryKeyRelatedField):
+    """PK del anexo activo (`documentos_anexos`), con queryset perezoso.
+
+    Resuelve el modelo `internados.AnnexDocument` en `get_queryset` (import
+    perezoso) para evitar el ciclo de import convenios <-> internados.
+    """
+
+    def get_queryset(self):
+        from apps.internados.models import AnnexDocument
+
+        return AnnexDocument.objects.filter(activo=True)
+
+
+class AnnexUploadSerializer(serializers.Serializer):
+    """Subida del PDF de un anexo (declaración jurada) por actor (multipart).
+
+    Solo acepta `application/pdf`. El anexo (`documento_anexo`) referencia el
+    catálogo maestro `internados.AnnexDocument`; el enforcement de que su
+    `tipo_actor` coincide con la entidad destino lo hace el mixin (necesita el
+    `annex_actor` del ViewSet). El versionado por `(objeto, documento_anexo)` lo
+    resuelve el service `adjuntar_documento`. Mensajes de error en español.
+    """
+
+    documento_anexo = ActiveAnnexDocumentField(
+        pk_field=serializers.IntegerField(),
+        help_text="Anexo del catálogo maestro (documentos_anexos) que se adjunta",
+    )
+    archivo = serializers.FileField(help_text="Archivo PDF del anexo")
+    nombre_archivo = serializers.CharField(
+        max_length=255,
+        required=False,
+        allow_blank=True,
+        help_text="Nombre del archivo (si falta, se deriva del archivo subido)",
+    )
+
+    def validate_archivo(self, archivo):
+        content_type = getattr(archivo, "content_type", "") or ""
+        if content_type != "application/pdf":
+            raise serializers.ValidationError(
+                "Tipo de archivo no permitido. El anexo debe adjuntarse en formato PDF."
+            )
+        extension = ("." + archivo.name.rsplit(".", 1)[-1].lower()) if "." in archivo.name else ""
+        if extension != ".pdf":
+            raise serializers.ValidationError(
+                "La extensión del archivo no corresponde con su tipo de contenido (se espera .pdf)."
+            )
+        if archivo.size > settings.GCS_MAX_UPLOAD_BYTES:
+            maximo_mb = settings.GCS_MAX_UPLOAD_BYTES / (1024 * 1024)
+            raise serializers.ValidationError(
+                f"El archivo supera el tamaño máximo permitido ({maximo_mb:.0f} MiB)."
+            )
+        return archivo
+
+    def validate(self, attrs):
+        if not attrs.get("nombre_archivo"):
+            attrs["nombre_archivo"] = attrs["archivo"].name
         return attrs
 
 

@@ -8,6 +8,7 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
+from apps.common.models import debe_cambiar_password as _debe_cambiar_password
 from apps.common.selectors import grupos_del_usuario, perfiles_del_usuario
 
 
@@ -24,6 +25,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token["nombre"] = user.get_full_name() or user.get_username()
         token["grupos"] = list(user.groups.values_list("name", flat=True))
         token["es_superusuario"] = user.is_superuser
+        token["debe_cambiar_password"] = _debe_cambiar_password(user)
         return token
 
     def validate(self, attrs):
@@ -32,6 +34,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data["es_superusuario"] = self.user.is_superuser
         data["nombre"] = self.user.get_full_name() or self.user.get_username()
         data["grupos"] = list(self.user.groups.values_list("name", flat=True))
+        data["debe_cambiar_password"] = _debe_cambiar_password(self.user)
         return data
 
 
@@ -55,11 +58,15 @@ class MeSerializer(serializers.Serializer):
     email = serializers.EmailField()
     nombre = serializers.SerializerMethodField()
     es_superusuario = serializers.BooleanField(source="is_superuser")
+    debe_cambiar_password = serializers.SerializerMethodField()
     grupos = serializers.SerializerMethodField()
     perfiles = serializers.SerializerMethodField()
 
     def get_nombre(self, obj) -> str:
         return obj.get_full_name() or obj.get_username()
+
+    def get_debe_cambiar_password(self, obj) -> bool:
+        return _debe_cambiar_password(obj)
 
     def get_grupos(self, obj) -> list[str]:
         return grupos_del_usuario(obj)
@@ -215,6 +222,20 @@ class SetPasswordSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True, required=True)
 
     def validate_password(self, value: str) -> str:
+        return _validar_password(value)
+
+
+class ChangeOwnPasswordSerializer(serializers.Serializer):
+    """Cambio de la propia contraseña: exige la clave actual y valida la nueva.
+
+    Usada por el interno para reemplazar su contraseña temporal (RN-22): al hacerlo
+    se limpia el flag ``debe_cambiar_password``.
+    """
+
+    password_actual = serializers.CharField(write_only=True, required=True)
+    password_nueva = serializers.CharField(write_only=True, required=True)
+
+    def validate_password_nueva(self, value: str) -> str:
         return _validar_password(value)
 
 

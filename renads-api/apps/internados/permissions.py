@@ -11,9 +11,17 @@ ROLES_ESCRITURA_PERSONAS = ("Universidad", "Administrador RENADS")
 
 
 class IsUniversityOrReadOnly(BasePermission):
-    """Lectura para autenticados; escritura solo `Universidad` o `Administrador RENADS`."""
+    """Lectura para autenticados; escritura solo `Universidad` o `Administrador RENADS`.
+
+    Excepción (RN-22): el rol `Interno` puede usar las acciones de adjunto de sus
+    declaraciones juradas (`annex-upload`/`annex-checklist`) de su propio `Student`,
+    aunque no pueda editar datos personales (CRUD).
+    """
 
     message = "La escritura requiere el rol Universidad o Administrador RENADS."
+
+    # Acciones de escritura permitidas al rol `Interno` sobre su propio estudiante.
+    ACCIONES_INTERNO = ("annex_upload", "annex_checklist")
 
     def has_permission(self, request, view) -> bool:
         user = request.user
@@ -21,7 +29,12 @@ class IsUniversityOrReadOnly(BasePermission):
             return False
         if request.method in SAFE_METHODS:
             return True
-        return user.is_superuser or user.groups.filter(name__in=ROLES_ESCRITURA_PERSONAS).exists()
+        if user.is_superuser or user.groups.filter(name__in=ROLES_ESCRITURA_PERSONAS).exists():
+            return True
+        # RN-22: el interno solo puede subir sus anexos (no editar/crear/borrar).
+        if getattr(view, "action", None) in self.ACCIONES_INTERNO and user.groups.filter(name="Interno").exists():
+            return True
+        return False
 
 
 class InternshipScope(BasePermission):

@@ -38,29 +38,43 @@ def adjuntar_documento(
     nombre_archivo,
     referencia_externa,
     usuario,
+    documento_anexo=None,
 ) -> Document:
     """Adjunta un documento versionado a `objeto` (relación genérica, RNF-DOC-04).
 
-    Versionado: si ya existe un documento `ACTIVO` para el mismo
-    `(tipo_contenido, id_objeto, tipo_documento)`, el nuevo documento toma la
-    versión siguiente, enlaza al anterior en `version_anterior` y marca al
-    anterior como `REEMPLAZADO`. Todo dentro de `transaction.atomic()` y con
-    registro de auditoría.
+    Versionado: si ya existe un documento `ACTIVO` para el mismo objeto, el nuevo
+    documento toma la versión siguiente, enlaza al anterior en `version_anterior`
+    y marca al anterior como `REEMPLAZADO`. El **discriminador** de la cadena de
+    versiones depende de si se adjunta un anexo:
 
-    Devuelve la nueva instancia `Document` creada.
+    - Si `documento_anexo` es `None` (comportamiento por defecto / retrocompatible):
+      el activo previo se busca por `(tipo_contenido, id_objeto, tipo_documento)`.
+    - Si `documento_anexo` no es `None` (flujo de anexos por actor): el activo
+      previo se busca por `(tipo_contenido, id_objeto, documento_anexo)`, de modo
+      que cada anexo mantiene su propia cadena de versiones independiente.
+
+    Todo dentro de `transaction.atomic()` y con registro de auditoría. Devuelve la
+    nueva instancia `Document` creada.
     """
     tipo_contenido = ContentType.objects.get_for_model(type(objeto))
 
-    # Documento activo previo del mismo (objeto, tipo_documento). A lo sumo uno;
-    # si hubiera varios, se toma el de mayor versión. select_for_update evita carreras.
+    # Documento activo previo del mismo objeto. A lo sumo uno; si hubiera varios,
+    # se toma el de mayor versión. select_for_update evita carreras. El
+    # discriminador es el anexo cuando se adjunta uno, o el tipo de documento en
+    # caso contrario (retrocompatible).
+    filtros = {
+        "tipo_contenido": tipo_contenido,
+        "id_objeto": objeto.pk,
+        "estado": "ACTIVO",
+    }
+    if documento_anexo is not None:
+        filtros["documento_anexo"] = documento_anexo
+    else:
+        filtros["tipo_documento"] = tipo_documento
+
     anterior = (
         Document.objects.select_for_update()
-        .filter(
-            tipo_contenido=tipo_contenido,
-            id_objeto=objeto.pk,
-            tipo_documento=tipo_documento,
-            estado="ACTIVO",
-        )
+        .filter(**filtros)
         .order_by("-version")
         .first()
     )
@@ -74,6 +88,7 @@ def adjuntar_documento(
         version=(anterior.version + 1) if anterior else 1,
         estado="ACTIVO",
         version_anterior=anterior,
+        documento_anexo=documento_anexo,
         cargado_por=usuario,
     )
 
