@@ -4,13 +4,32 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 
 import { ENTITY_CONFIGS } from "@/lib/convenios/entities";
+import { useAuthStore, userHasRole } from "@/lib/auth/store";
+import { hasLogo } from "@/lib/api/storage";
+import type { RowAction } from "@/lib/crud/types";
+import type { WithId } from "@/lib/api/query";
 import { ResourceCrud } from "@/components/crud/resource-crud";
+import { LogoUploadAction } from "@/components/catalogos/logo-upload-dialog";
 import { Button } from "@/components/ui/button";
 
 /** CRUD de una entidad maestra, resuelta por el slug de la ruta. */
 export default function EntidadMaestraPage() {
   const params = useParams<{ entidad: string }>();
   const config = ENTITY_CONFIGS[params.entidad];
+  const user = useAuthStore((s) => s.user);
+  const entidad = params.entidad;
+
+  const rowActions: RowAction<WithId>[] | undefined =
+    hasLogo(entidad) && userHasRole(user, "Administrador RENADS")
+      ? [
+          {
+            key: "logo",
+            label: "Logo",
+            render: (row) => <LogoUploadAction entidad={entidad} row={row} />,
+            onClick: () => {},
+          },
+        ]
+      : undefined;
 
   if (!config) {
     return (
@@ -34,7 +53,7 @@ export default function EntidadMaestraPage() {
           ← Maestros
         </Link>
       </div>
-      <ResourceCrud config={config} />
+      <ResourceCrud config={config} rowActions={rowActions} />
     </div>
   );
 }

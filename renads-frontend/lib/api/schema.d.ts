@@ -36,6 +36,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/academic-periods/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["academic_periods_list"];
+        put?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        post: operations["academic_periods_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic-periods/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["academic_periods_retrieve"];
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        put: operations["academic_periods_update"];
+        post?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        delete: operations["academic_periods_destroy"];
+        options?: never;
+        head?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        patch: operations["academic_periods_partial_update"];
+        trace?: never;
+    };
     "/api/v1/activity-statuses/": {
         parameters: {
             query?: never;
@@ -100,6 +138,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/annex-documents/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["annex_documents_list"];
+        put?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        post: operations["annex_documents_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/annex-documents/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["annex_documents_retrieve"];
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        put: operations["annex_documents_update"];
+        post?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        delete: operations["annex_documents_destroy"];
+        options?: never;
+        head?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        patch: operations["annex_documents_partial_update"];
+        trace?: never;
+    };
     "/api/v1/audit-logs/": {
         parameters: {
             query?: never;
@@ -145,6 +221,23 @@ export interface paths {
         get: operations["auth_me_retrieve"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/me/cambiar-password/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Cambio de la propia contraseña (RN-22): limpia `debe_cambiar_password`. */
+        post: operations["auth_me_cambiar_password_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -695,6 +788,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/documents/upload/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Sube el binario al backend y adjunta el documento versionado.
+         *
+         *     Flujo: valida tipo/tamaño → sube vía `storage.subir(...)` (obtiene la key
+         *     como `referencia_externa`) → `adjuntar_documento(...)` (versionado +
+         *     auditoría, ya cubiertos por el service). Ruta: `POST /api/v1/documents/upload/`
+         *     (multipart/form-data).
+         */
+        post: operations["documents_upload_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/executing-unit-types/": {
         parameters: {
             query?: never;
@@ -734,10 +851,22 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
+         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
+         *     borra la key anterior. No versiona ni usa `Document`.
+         */
         get: operations["executing_units_list"];
         put?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
+         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
+         *     borra la key anterior. No versiona ni usa `Document`.
+         */
         post: operations["executing_units_create"];
         delete?: never;
         options?: never;
@@ -752,17 +881,86 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
+         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
+         *     borra la key anterior. No versiona ni usa `Document`.
+         */
         get: operations["executing_units_retrieve"];
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
+         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
+         *     borra la key anterior. No versiona ni usa `Document`.
+         */
         put: operations["executing_units_update"];
         post?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
+         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
+         *     borra la key anterior. No versiona ni usa `Document`.
+         */
         delete: operations["executing_units_destroy"];
         options?: never;
         head?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
+         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
+         *     borra la key anterior. No versiona ni usa `Document`.
+         */
         patch: operations["executing_units_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/executing-units/{id}/logo-url/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obtener el signed URL del logo de la entidad
+         * @description Devuelve un signed URL efímero del logo, o 404 si no hay logo cargado.
+         */
+        get: operations["executing_units_logo_url_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/executing-units/{id}/upload-logo/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Subir/reemplazar el logo de la entidad
+         * @description Sube (o reemplaza) el logo de la entidad y devuelve un signed URL.
+         *
+         *     Sube la nueva imagen primero; si la entidad ya tenía un logo, se borra la
+         *     key anterior **después** de subir la nueva (no dejar la entidad sin logo si
+         *     la subida falla). Persiste la nueva key en `referencia_logo` y registra
+         *     auditoría. Responde `{referencia_logo, url}` (signed URL efímero).
+         */
+        post: operations["executing_units_upload_logo_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/executive-positions/": {
@@ -1026,6 +1224,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/interns/{id}/revisar-declaraciones/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Revisión humana de las declaraciones juradas del interno (RN-23).
+         *
+         *     Rol `Universidad`/`Administrador RENADS`. `resultado` ∈ {VALIDADAS, OBSERVADAS}.
+         */
+        post: operations["interns_revisar_declaraciones_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/interns/{id}/rotaciones/": {
         parameters: {
             query?: never;
@@ -1083,10 +1302,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES. */
+        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES + logo. */
         get: operations["ipress_list"];
         put?: never;
-        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES. */
+        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES + logo. */
         post: operations["ipress_create"];
         delete?: never;
         options?: never;
@@ -1101,16 +1320,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES. */
+        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES + logo. */
         get: operations["ipress_retrieve"];
-        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES. */
+        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES + logo. */
         put: operations["ipress_update"];
         post?: never;
-        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES. */
+        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES + logo. */
         delete: operations["ipress_destroy"];
         options?: never;
         head?: never;
-        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES. */
+        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES + logo. */
         patch: operations["ipress_partial_update"];
         trace?: never;
     };
@@ -1125,6 +1344,51 @@ export interface paths {
         put?: never;
         /** @description CONAPRES autoriza/registra la IPRESS como sede docente. Body: `{autorizar: bool}` (default True). */
         post: operations["ipress_autorizar_sede_docente_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ipress/{id}/logo-url/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obtener el signed URL del logo de la entidad
+         * @description Devuelve un signed URL efímero del logo, o 404 si no hay logo cargado.
+         */
+        get: operations["ipress_logo_url_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ipress/{id}/upload-logo/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Subir/reemplazar el logo de la entidad
+         * @description Sube (o reemplaza) el logo de la entidad y devuelve un signed URL.
+         *
+         *     Sube la nueva imagen primero; si la entidad ya tenía un logo, se borra la
+         *     key anterior **después** de subir la nueva (no dejar la entidad sin logo si
+         *     la subida falla). Persiste la nueva key en `referencia_logo` y registra
+         *     auditoría. Responde `{referencia_logo, url}` (signed URL efímero).
+         */
+        post: operations["ipress_upload_logo_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1312,10 +1576,22 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
+         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
+         *     borra la key anterior. No versiona ni usa `Document`.
+         */
         get: operations["regional_governments_list"];
         put?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
+         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
+         *     borra la key anterior. No versiona ni usa `Document`.
+         */
         post: operations["regional_governments_create"];
         delete?: never;
         options?: never;
@@ -1330,17 +1606,86 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
+         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
+         *     borra la key anterior. No versiona ni usa `Document`.
+         */
         get: operations["regional_governments_retrieve"];
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
+         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
+         *     borra la key anterior. No versiona ni usa `Document`.
+         */
         put: operations["regional_governments_update"];
         post?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
+         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
+         *     borra la key anterior. No versiona ni usa `Document`.
+         */
         delete: operations["regional_governments_destroy"];
         options?: never;
         head?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
+         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
+         *     borra la key anterior. No versiona ni usa `Document`.
+         */
         patch: operations["regional_governments_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/regional-governments/{id}/logo-url/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obtener el signed URL del logo de la entidad
+         * @description Devuelve un signed URL efímero del logo, o 404 si no hay logo cargado.
+         */
+        get: operations["regional_governments_logo_url_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/regional-governments/{id}/upload-logo/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Subir/reemplazar el logo de la entidad
+         * @description Sube (o reemplaza) el logo de la entidad y devuelve un signed URL.
+         *
+         *     Sube la nueva imagen primero; si la entidad ya tenía un logo, se borra la
+         *     key anterior **después** de subir la nueva (no dejar la entidad sin logo si
+         *     la subida falla). Persiste la nueva key en `referencia_logo` y registra
+         *     auditoría. Responde `{referencia_logo, url}` (signed URL efímero).
+         */
+        post: operations["regional_governments_upload_logo_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/regional-organ-types/": {
@@ -1382,10 +1727,22 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
+         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
+         *     borra la key anterior. No versiona ni usa `Document`.
+         */
         get: operations["regional_organs_list"];
         put?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
+         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
+         *     borra la key anterior. No versiona ni usa `Document`.
+         */
         post: operations["regional_organs_create"];
         delete?: never;
         options?: never;
@@ -1400,17 +1757,86 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
+         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
+         *     borra la key anterior. No versiona ni usa `Document`.
+         */
         get: operations["regional_organs_retrieve"];
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
+         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
+         *     borra la key anterior. No versiona ni usa `Document`.
+         */
         put: operations["regional_organs_update"];
         post?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
+         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
+         *     borra la key anterior. No versiona ni usa `Document`.
+         */
         delete: operations["regional_organs_destroy"];
         options?: never;
         head?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
+         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
+         *     borra la key anterior. No versiona ni usa `Document`.
+         */
         patch: operations["regional_organs_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/regional-organs/{id}/logo-url/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obtener el signed URL del logo de la entidad
+         * @description Devuelve un signed URL efímero del logo, o 404 si no hay logo cargado.
+         */
+        get: operations["regional_organs_logo_url_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/regional-organs/{id}/upload-logo/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Subir/reemplazar el logo de la entidad
+         * @description Sube (o reemplaza) el logo de la entidad y devuelve un signed URL.
+         *
+         *     Sube la nueva imagen primero; si la entidad ya tenía un logo, se borra la
+         *     key anterior **después** de subir la nueva (no dejar la entidad sin logo si
+         *     la subida falla). Persiste la nueva key en `referencia_logo` y registra
+         *     auditoría. Responde `{referencia_logo, url}` (signed URL efímero).
+         */
+        post: operations["regional_organs_upload_logo_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/regions/": {
@@ -1516,10 +1942,22 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de representantes (relación polimórfica validada). Escritura solo Administrador RENADS. */
+        /**
+         * @description CRUD de representantes (relación polimórfica validada) + adjunto real de anexos.
+         *
+         *     Escritura solo Administrador RENADS. Adjunta PDFs de anexos del actor
+         *     `REPRESENTANTE` (resolución del cargo, documento de identidad) vía
+         *     `annex-upload`/`annex-checklist`.
+         */
         get: operations["representatives_list"];
         put?: never;
-        /** @description CRUD de representantes (relación polimórfica validada). Escritura solo Administrador RENADS. */
+        /**
+         * @description CRUD de representantes (relación polimórfica validada) + adjunto real de anexos.
+         *
+         *     Escritura solo Administrador RENADS. Adjunta PDFs de anexos del actor
+         *     `REPRESENTANTE` (resolución del cargo, documento de identidad) vía
+         *     `annex-upload`/`annex-checklist`.
+         */
         post: operations["representatives_create"];
         delete?: never;
         options?: never;
@@ -1534,17 +1972,91 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de representantes (relación polimórfica validada). Escritura solo Administrador RENADS. */
+        /**
+         * @description CRUD de representantes (relación polimórfica validada) + adjunto real de anexos.
+         *
+         *     Escritura solo Administrador RENADS. Adjunta PDFs de anexos del actor
+         *     `REPRESENTANTE` (resolución del cargo, documento de identidad) vía
+         *     `annex-upload`/`annex-checklist`.
+         */
         get: operations["representatives_retrieve"];
-        /** @description CRUD de representantes (relación polimórfica validada). Escritura solo Administrador RENADS. */
+        /**
+         * @description CRUD de representantes (relación polimórfica validada) + adjunto real de anexos.
+         *
+         *     Escritura solo Administrador RENADS. Adjunta PDFs de anexos del actor
+         *     `REPRESENTANTE` (resolución del cargo, documento de identidad) vía
+         *     `annex-upload`/`annex-checklist`.
+         */
         put: operations["representatives_update"];
         post?: never;
-        /** @description CRUD de representantes (relación polimórfica validada). Escritura solo Administrador RENADS. */
+        /**
+         * @description CRUD de representantes (relación polimórfica validada) + adjunto real de anexos.
+         *
+         *     Escritura solo Administrador RENADS. Adjunta PDFs de anexos del actor
+         *     `REPRESENTANTE` (resolución del cargo, documento de identidad) vía
+         *     `annex-upload`/`annex-checklist`.
+         */
         delete: operations["representatives_destroy"];
         options?: never;
         head?: never;
-        /** @description CRUD de representantes (relación polimórfica validada). Escritura solo Administrador RENADS. */
+        /**
+         * @description CRUD de representantes (relación polimórfica validada) + adjunto real de anexos.
+         *
+         *     Escritura solo Administrador RENADS. Adjunta PDFs de anexos del actor
+         *     `REPRESENTANTE` (resolución del cargo, documento de identidad) vía
+         *     `annex-upload`/`annex-checklist`.
+         */
         patch: operations["representatives_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/representatives/{id}/annex-checklist/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Checklist de anexos requeridos vs. adjuntados
+         * @description Lista los anexos activos del actor con su estado de adjunto por versión activa.
+         *
+         *     Cruza el catálogo maestro (`AnnexDocument` activos de `tipo_actor ==
+         *     annex_actor`) con los `Document` `ACTIVO` de esta entidad que apuntan a
+         *     cada anexo. Es la base del checklist requeridos (`obligatorio=True`) vs.
+         *     adjuntados.
+         */
+        get: operations["representatives_annex_checklist_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/representatives/{id}/annex-upload/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Adjuntar el PDF de un anexo (declaración jurada)
+         * @description Sube el PDF de un anexo y lo adjunta versionado a la entidad.
+         *
+         *     Valida (solo PDF, tamaño), verifica que el `documento_anexo` sea del
+         *     `tipo_actor` de este ViewSet (`annex_actor`), sube el binario al backend
+         *     seleccionado por settings y llama `adjuntar_documento(..., documento_anexo=...)`
+         *     (versionado por anexo + auditoría). Responde `201` con el `Document`.
+         */
+        post: operations["representatives_annex_upload_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/rotation-statuses/": {
@@ -1804,10 +2316,22 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad. */
+        /**
+         * @description CRUD de estudiantes + adjunto real de anexos (declaraciones juradas) del interno.
+         *
+         *     Escritura por rol Universidad/Administrador; alcance por universidad. Las
+         *     acciones `annex-upload`/`annex-checklist` (actor `INTERNO`) las aporta el mixin
+         *     transversal `AnnexAttachmentMixin` (T-F2.2).
+         */
         get: operations["students_list"];
         put?: never;
-        /** @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad. */
+        /**
+         * @description CRUD de estudiantes + adjunto real de anexos (declaraciones juradas) del interno.
+         *
+         *     Escritura por rol Universidad/Administrador; alcance por universidad. Las
+         *     acciones `annex-upload`/`annex-checklist` (actor `INTERNO`) las aporta el mixin
+         *     transversal `AnnexAttachmentMixin` (T-F2.2).
+         */
         post: operations["students_create"];
         delete?: never;
         options?: never;
@@ -1822,17 +2346,88 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad. */
+        /**
+         * @description CRUD de estudiantes + adjunto real de anexos (declaraciones juradas) del interno.
+         *
+         *     Escritura por rol Universidad/Administrador; alcance por universidad. Las
+         *     acciones `annex-upload`/`annex-checklist` (actor `INTERNO`) las aporta el mixin
+         *     transversal `AnnexAttachmentMixin` (T-F2.2).
+         */
         get: operations["students_retrieve"];
-        /** @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad. */
+        /**
+         * @description CRUD de estudiantes + adjunto real de anexos (declaraciones juradas) del interno.
+         *
+         *     Escritura por rol Universidad/Administrador; alcance por universidad. Las
+         *     acciones `annex-upload`/`annex-checklist` (actor `INTERNO`) las aporta el mixin
+         *     transversal `AnnexAttachmentMixin` (T-F2.2).
+         */
         put: operations["students_update"];
         post?: never;
-        /** @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad. */
+        /**
+         * @description CRUD de estudiantes + adjunto real de anexos (declaraciones juradas) del interno.
+         *
+         *     Escritura por rol Universidad/Administrador; alcance por universidad. Las
+         *     acciones `annex-upload`/`annex-checklist` (actor `INTERNO`) las aporta el mixin
+         *     transversal `AnnexAttachmentMixin` (T-F2.2).
+         */
         delete: operations["students_destroy"];
         options?: never;
         head?: never;
-        /** @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad. */
+        /**
+         * @description CRUD de estudiantes + adjunto real de anexos (declaraciones juradas) del interno.
+         *
+         *     Escritura por rol Universidad/Administrador; alcance por universidad. Las
+         *     acciones `annex-upload`/`annex-checklist` (actor `INTERNO`) las aporta el mixin
+         *     transversal `AnnexAttachmentMixin` (T-F2.2).
+         */
         patch: operations["students_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/students/{id}/annex-checklist/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Checklist de anexos requeridos vs. adjuntados
+         * @description Lista los anexos activos del actor con su estado de adjunto por versión activa.
+         *
+         *     Cruza el catálogo maestro (`AnnexDocument` activos de `tipo_actor ==
+         *     annex_actor`) con los `Document` `ACTIVO` de esta entidad que apuntan a
+         *     cada anexo. Es la base del checklist requeridos (`obligatorio=True`) vs.
+         *     adjuntados.
+         */
+        get: operations["students_annex_checklist_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/students/{id}/annex-upload/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Adjunta el PDF de un anexo del interno y recalcula el estado de sus DJ (RN-23).
+         *
+         *     Reutiliza la lógica del `AnnexAttachmentMixin` y, tras adjuntar, recalcula
+         *     `estado_declaraciones` de los internados vigentes del estudiante.
+         */
+        post: operations["students_annex_upload_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/students/bulk-upload/": {
@@ -2042,10 +2637,22 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
+         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
+         *     borra la key anterior. No versiona ni usa `Document`.
+         */
         get: operations["universities_list"];
         put?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
+         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
+         *     borra la key anterior. No versiona ni usa `Document`.
+         */
         post: operations["universities_create"];
         delete?: never;
         options?: never;
@@ -2060,17 +2667,86 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
+         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
+         *     borra la key anterior. No versiona ni usa `Document`.
+         */
         get: operations["universities_retrieve"];
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
+         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
+         *     borra la key anterior. No versiona ni usa `Document`.
+         */
         put: operations["universities_update"];
         post?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
+         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
+         *     borra la key anterior. No versiona ni usa `Document`.
+         */
         delete: operations["universities_destroy"];
         options?: never;
         head?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
+         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
+         *     borra la key anterior. No versiona ni usa `Document`.
+         */
         patch: operations["universities_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/universities/{id}/logo-url/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obtener el signed URL del logo de la entidad
+         * @description Devuelve un signed URL efímero del logo, o 404 si no hay logo cargado.
+         */
+        get: operations["universities_logo_url_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/universities/{id}/upload-logo/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Subir/reemplazar el logo de la entidad
+         * @description Sube (o reemplaza) el logo de la entidad y devuelve un signed URL.
+         *
+         *     Sube la nueva imagen primero; si la entidad ya tenía un logo, se borra la
+         *     key anterior **después** de subir la nueva (no dejar la entidad sin logo si
+         *     la subida falla). Persiste la nueva key en `referencia_logo` y registra
+         *     auditoría. Responde `{referencia_logo, url}` (signed URL efímero).
+         */
+        post: operations["universities_upload_logo_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/university-authorities/": {
@@ -2080,10 +2756,24 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Adjunta y lista los PDFs de anexos (declaraciones juradas) por actor.
+         *
+         *     Atributo de clase obligatorio `annex_actor` (uno de `ANNEX_ACTOR`:
+         *     `"INTERNO"` / `"AUTORIDAD_UNIVERSIDAD"` / `"REPRESENTANTE"`): restringe qué
+         *     anexos del catálogo maestro puede adjuntar la entidad destino. Cada anexo se
+         *     guarda como `Document` versionado por `(objeto, documento_anexo)`.
+         */
         get: operations["university_authorities_list"];
         put?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Adjunta y lista los PDFs de anexos (declaraciones juradas) por actor.
+         *
+         *     Atributo de clase obligatorio `annex_actor` (uno de `ANNEX_ACTOR`:
+         *     `"INTERNO"` / `"AUTORIDAD_UNIVERSIDAD"` / `"REPRESENTANTE"`): restringe qué
+         *     anexos del catálogo maestro puede adjuntar la entidad destino. Cada anexo se
+         *     guarda como `Document` versionado por `(objeto, documento_anexo)`.
+         */
         post: operations["university_authorities_create"];
         delete?: never;
         options?: never;
@@ -2098,17 +2788,95 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Adjunta y lista los PDFs de anexos (declaraciones juradas) por actor.
+         *
+         *     Atributo de clase obligatorio `annex_actor` (uno de `ANNEX_ACTOR`:
+         *     `"INTERNO"` / `"AUTORIDAD_UNIVERSIDAD"` / `"REPRESENTANTE"`): restringe qué
+         *     anexos del catálogo maestro puede adjuntar la entidad destino. Cada anexo se
+         *     guarda como `Document` versionado por `(objeto, documento_anexo)`.
+         */
         get: operations["university_authorities_retrieve"];
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Adjunta y lista los PDFs de anexos (declaraciones juradas) por actor.
+         *
+         *     Atributo de clase obligatorio `annex_actor` (uno de `ANNEX_ACTOR`:
+         *     `"INTERNO"` / `"AUTORIDAD_UNIVERSIDAD"` / `"REPRESENTANTE"`): restringe qué
+         *     anexos del catálogo maestro puede adjuntar la entidad destino. Cada anexo se
+         *     guarda como `Document` versionado por `(objeto, documento_anexo)`.
+         */
         put: operations["university_authorities_update"];
         post?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Adjunta y lista los PDFs de anexos (declaraciones juradas) por actor.
+         *
+         *     Atributo de clase obligatorio `annex_actor` (uno de `ANNEX_ACTOR`:
+         *     `"INTERNO"` / `"AUTORIDAD_UNIVERSIDAD"` / `"REPRESENTANTE"`): restringe qué
+         *     anexos del catálogo maestro puede adjuntar la entidad destino. Cada anexo se
+         *     guarda como `Document` versionado por `(objeto, documento_anexo)`.
+         */
         delete: operations["university_authorities_destroy"];
         options?: never;
         head?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Adjunta y lista los PDFs de anexos (declaraciones juradas) por actor.
+         *
+         *     Atributo de clase obligatorio `annex_actor` (uno de `ANNEX_ACTOR`:
+         *     `"INTERNO"` / `"AUTORIDAD_UNIVERSIDAD"` / `"REPRESENTANTE"`): restringe qué
+         *     anexos del catálogo maestro puede adjuntar la entidad destino. Cada anexo se
+         *     guarda como `Document` versionado por `(objeto, documento_anexo)`.
+         */
         patch: operations["university_authorities_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/university-authorities/{id}/annex-checklist/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Checklist de anexos requeridos vs. adjuntados
+         * @description Lista los anexos activos del actor con su estado de adjunto por versión activa.
+         *
+         *     Cruza el catálogo maestro (`AnnexDocument` activos de `tipo_actor ==
+         *     annex_actor`) con los `Document` `ACTIVO` de esta entidad que apuntan a
+         *     cada anexo. Es la base del checklist requeridos (`obligatorio=True`) vs.
+         *     adjuntados.
+         */
+        get: operations["university_authorities_annex_checklist_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/university-authorities/{id}/annex-upload/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Adjuntar el PDF de un anexo (declaración jurada)
+         * @description Sube el PDF de un anexo y lo adjunta versionado a la entidad.
+         *
+         *     Valida (solo PDF, tamaño), verifica que el `documento_anexo` sea del
+         *     `tipo_actor` de este ViewSet (`annex_actor`), sube el binario al backend
+         *     seleccionado por settings y llama `adjuntar_documento(..., documento_anexo=...)`
+         *     (versionado por anexo + auditoría). Responde `201` con el `Document`.
+         */
+        post: operations["university_authorities_annex_upload_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/university-campuses/": {
@@ -2322,6 +3090,18 @@ export interface components {
             /** @description Indica si está activo */
             activo?: boolean;
         };
+        AcademicPeriodAuto: {
+            readonly id: number;
+            /**
+             * Código
+             * @description Código único
+             */
+            codigo: string;
+            /** @description Nombre */
+            nombre: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+        };
         ActivityStatusAuto: {
             readonly id: number;
             /**
@@ -2350,6 +3130,64 @@ export interface components {
             nombre: string;
             /** @description Indica si está activo */
             activo?: boolean;
+        };
+        AnnexChecklistItem: {
+            documento_anexo: number;
+            codigo: string;
+            nombre: string;
+            obligatorio: boolean;
+            adjuntado: boolean;
+            documento_id: number | null;
+            version: number | null;
+            referencia_externa: string | null;
+        };
+        AnnexDocumentAuto: {
+            readonly id: number;
+            /**
+             * Código
+             * @description Código único
+             */
+            codigo: string;
+            /** @description Nombre */
+            nombre: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+            /**
+             * Tipo de actor
+             * @description Actor que debe presentar el documento
+             *
+             *     * `INTERNO` - Interno / estudiante
+             *     * `AUTORIDAD_UNIVERSIDAD` - Autoridad de universidad
+             *     * `REPRESENTANTE` - Representante / autoridad (incluye CONAPRES)
+             */
+            tipo_actor?: components["schemas"]["TipoActorEnum"];
+            /**
+             * Descripción
+             * @description Descripción del documento / declaración jurada
+             */
+            descripcion?: string;
+            /** @description Indica si el documento es de presentación obligatoria */
+            obligatorio?: boolean;
+        };
+        /**
+         * @description Subida del PDF de un anexo (declaración jurada) por actor (multipart).
+         *
+         *     Solo acepta `application/pdf`. El anexo (`documento_anexo`) referencia el
+         *     catálogo maestro `internados.AnnexDocument`; el enforcement de que su
+         *     `tipo_actor` coincide con la entidad destino lo hace el mixin (necesita el
+         *     `annex_actor` del ViewSet). El versionado por `(objeto, documento_anexo)` lo
+         *     resuelve el service `adjuntar_documento`. Mensajes de error en español.
+         */
+        AnnexUpload: {
+            /** @description Anexo del catálogo maestro (documentos_anexos) que se adjunta */
+            documento_anexo: number;
+            /**
+             * Format: uri
+             * @description Archivo PDF del anexo
+             */
+            archivo: string;
+            /** @description Nombre del archivo (si falta, se deriva del archivo subido) */
+            nombre_archivo?: string;
         };
         /**
          * @description * `TODOS` - Todos
@@ -2407,6 +3245,16 @@ export interface components {
         };
         /** @enum {unknown} */
         BlankEnum: "";
+        /**
+         * @description Cambio de la propia contraseña: exige la clave actual y valida la nueva.
+         *
+         *     Usada por el interno para reemplazar su contraseña temporal (RN-22): al hacerlo
+         *     se limpia el flag ``debe_cambiar_password``.
+         */
+        ChangeOwnPassword: {
+            password_actual: string;
+            password_nueva: string;
+        };
         ClosureReasonAuto: {
             readonly id: number;
             /**
@@ -2679,6 +3527,29 @@ export interface components {
             /** @description Indica si está activo */
             activo?: boolean;
         };
+        /**
+         * @description Subida real de un documento (multipart): valida tipo y tamaño del binario.
+         *
+         *     Recibe el binario en `archivo` junto con los metadatos necesarios para
+         *     adjuntarlo a un objeto (relación genérica). El versionado y la auditoría los
+         *     resuelve el service `adjuntar_documento`; este serializer solo valida la
+         *     entrada. Mensajes de error en español.
+         */
+        DocumentUpload: {
+            /**
+             * Format: uri
+             * @description Binario a subir (PDF o imagen)
+             */
+            archivo: string;
+            /** @description Tipo de documento */
+            tipo_documento: number;
+            /** @description Tabla destino */
+            tipo_contenido: number;
+            /** @description Registro destino */
+            id_objeto: number;
+            /** @description Nombre del archivo (si falta, se deriva del archivo subido) */
+            nombre_archivo?: string;
+        };
         /** @description Escritura de documentos: el versionado y el estado los fija el service. */
         DocumentWrite: {
             /** @description Tabla destino */
@@ -2698,6 +3569,14 @@ export interface components {
             /** @description Clave/URL del archivo en el repositorio externo */
             referencia_externa: string;
         };
+        /**
+         * @description * `PENDIENTE` - Pendiente
+         *     * `COMPLETAS` - Completas
+         *     * `OBSERVADAS` - Observadas
+         *     * `VALIDADAS` - Validadas
+         * @enum {string}
+         */
+        EstadoDeclaracionesEnum: "PENDIENTE" | "COMPLETAS" | "OBSERVADAS" | "VALIDADAS";
         /**
          * @description * `ACTIVO` - Activo
          *     * `REEMPLAZADO` - Reemplazado
@@ -2817,6 +3696,16 @@ export interface components {
             readonly estado_actual: string;
             readonly estado_codigo: string;
             /**
+             * Estado de declaraciones juradas
+             * @description Estado de las declaraciones juradas del interno (RN-23)
+             *
+             *     * `PENDIENTE` - Pendiente
+             *     * `COMPLETAS` - Completas
+             *     * `OBSERVADAS` - Observadas
+             *     * `VALIDADAS` - Validadas
+             */
+            estado_declaraciones?: components["schemas"]["EstadoDeclaracionesEnum"];
+            /**
              * Fecha de inicio
              * Format: date
              * @description Fecha de inicio
@@ -2897,6 +3786,11 @@ export interface components {
             direccion?: string;
             /** @description Autorizada por CONAPRES como sede docente (asistencial, MINSA/FF.AA.-FF.PP., pública) */
             es_sede_docente?: boolean;
+            /**
+             * Referencia del logo
+             * @description Referencia externa del logo (repositorio externo)
+             */
+            referencia_logo?: string;
             activo?: boolean;
             /** @description Unidad ejecutora a la que pertenece */
             unidad_ejecutora: number;
@@ -2904,6 +3798,27 @@ export interface components {
             ubigeo?: number | null;
             /** @description Ámbito geográfico sanitario */
             ambito_geografico_sanitario: number;
+        };
+        /**
+         * @description Subida del logo de una entidad (multipart): valida tipo y tamaño del binario.
+         *
+         *     Solo acepta imágenes (`image/png`, `image/jpeg`, `image/webp`); rechaza PDF.
+         *     El logo se guarda como una única key en `referencia_logo` de la entidad (sin
+         *     versionado, sin `Document`). Mensajes de error en español.
+         */
+        LogoUpload: {
+            /**
+             * Format: uri
+             * @description Imagen del logo (PNG, JPEG o WEBP)
+             */
+            archivo: string;
+        };
+        LogoUploadResponse: {
+            referencia_logo: string;
+            url: string;
+        };
+        LogoUrlResponse: {
+            url: string;
         };
         /** @description Datos del usuario autenticado: identidad, roles y perfiles institucionales. */
         Me: {
@@ -2913,6 +3828,7 @@ export interface components {
             email: string;
             readonly nombre: string;
             es_superusuario: boolean;
+            readonly debe_cambiar_password: boolean;
             readonly grupos: string[];
             readonly perfiles: {
                 [key: string]: unknown;
@@ -2974,6 +3890,21 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["AcademicLevelAuto"][];
         };
+        PaginatedAcademicPeriodAutoList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["AcademicPeriodAuto"][];
+        };
         PaginatedActivityStatusAutoList: {
             /** @example 123 */
             count: number;
@@ -3003,6 +3934,21 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["ActivityTypeAuto"][];
+        };
+        PaginatedAnnexDocumentAutoList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["AnnexDocumentAuto"][];
         };
         PaginatedAuditLogList: {
             /** @example 123 */
@@ -3724,6 +4670,46 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["UserRead"][];
         };
+        PatchedAcademicPeriodAuto: {
+            readonly id?: number;
+            /**
+             * Código
+             * @description Código único
+             */
+            codigo?: string;
+            /** @description Nombre */
+            nombre?: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+        };
+        PatchedAnnexDocumentAuto: {
+            readonly id?: number;
+            /**
+             * Código
+             * @description Código único
+             */
+            codigo?: string;
+            /** @description Nombre */
+            nombre?: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+            /**
+             * Tipo de actor
+             * @description Actor que debe presentar el documento
+             *
+             *     * `INTERNO` - Interno / estudiante
+             *     * `AUTORIDAD_UNIVERSIDAD` - Autoridad de universidad
+             *     * `REPRESENTANTE` - Representante / autoridad (incluye CONAPRES)
+             */
+            tipo_actor?: components["schemas"]["TipoActorEnum"];
+            /**
+             * Descripción
+             * @description Descripción del documento / declaración jurada
+             */
+            descripcion?: string;
+            /** @description Indica si el documento es de presentación obligatoria */
+            obligatorio?: boolean;
+        };
         PatchedConapresAuto: {
             readonly id?: number;
             /** @description Denominación */
@@ -3894,6 +4880,11 @@ export interface components {
             direccion?: string;
             /** @description Autorizada por CONAPRES como sede docente (asistencial, MINSA/FF.AA.-FF.PP., pública) */
             es_sede_docente?: boolean;
+            /**
+             * Referencia del logo
+             * @description Referencia externa del logo (repositorio externo)
+             */
+            referencia_logo?: string;
             activo?: boolean;
             /** @description Unidad ejecutora a la que pertenece */
             unidad_ejecutora?: number;
@@ -3917,12 +4908,8 @@ export interface components {
             /** @description Nombre de la carrera o programa */
             nombre?: string;
             activo?: boolean;
-            /** @description Facultad */
-            facultad?: number;
             /** @description Carrera profesional / segunda especialidad / maestría / doctorado */
             nivel_academico?: number;
-            /** @description Especialidad asociada */
-            especialidad?: number | null;
         };
         PatchedRegionalGovernmentAuto: {
             readonly id?: number;
@@ -4072,6 +5059,10 @@ export interface components {
             universidad?: number;
             /** @description Carrera / programa */
             carrera_profesional?: number;
+            /** @description Periodo académico (obligatorio para Pregrado — RN-19) */
+            periodo_academico?: number | null;
+            /** @description Especialidad (obligatoria para niveles distintos de Pregrado — RN-19) */
+            especialidad?: number | null;
             /** @description Parentesco del contacto de emergencia */
             contacto_emergencia_parentesco?: number | null;
             readonly creado_por?: number;
@@ -4299,12 +5290,8 @@ export interface components {
             /** @description Nombre de la carrera o programa */
             nombre: string;
             activo?: boolean;
-            /** @description Facultad */
-            facultad: number;
             /** @description Carrera profesional / segunda especialidad / maestría / doctorado */
             nivel_academico: number;
-            /** @description Especialidad asociada */
-            especialidad?: number | null;
         };
         RegionAuto: {
             readonly id: number;
@@ -4426,6 +5413,18 @@ export interface components {
             tipo_contenido: number;
             /** @description Cargo (catálogo) */
             cargo_ejecutivo: number;
+        };
+        /**
+         * @description * `VALIDADAS` - VALIDADAS
+         *     * `OBSERVADAS` - OBSERVADAS
+         * @enum {string}
+         */
+        ResultadoEnum: "VALIDADAS" | "OBSERVADAS";
+        /** @description Entrada de la revisión de declaraciones juradas (RN-23). */
+        RevisarDeclaraciones: {
+            resultado: components["schemas"]["ResultadoEnum"];
+            /** @default  */
+            observacion: string;
         };
         RotationRead: {
             readonly id: number;
@@ -4615,6 +5614,10 @@ export interface components {
             universidad: number;
             /** @description Carrera / programa */
             carrera_profesional: number;
+            /** @description Periodo académico (obligatorio para Pregrado — RN-19) */
+            periodo_academico?: number | null;
+            /** @description Especialidad (obligatoria para niveles distintos de Pregrado — RN-19) */
+            especialidad?: number | null;
             /** @description Parentesco del contacto de emergencia */
             contacto_emergencia_parentesco?: number | null;
             readonly creado_por: number;
@@ -4711,6 +5714,13 @@ export interface components {
              */
             carga_horaria?: string | null;
         };
+        /**
+         * @description * `INTERNO` - Interno / estudiante
+         *     * `AUTORIDAD_UNIVERSIDAD` - Autoridad de universidad
+         *     * `REPRESENTANTE` - Representante / autoridad (incluye CONAPRES)
+         * @enum {string}
+         */
+        TipoActorEnum: "INTERNO" | "AUTORIDAD_UNIVERSIDAD" | "REPRESENTANTE";
         TokenRefresh: {
             readonly access: string;
             refresh: string;
@@ -5083,6 +6093,157 @@ export interface operations {
             };
         };
     };
+    academic_periods_list: {
+        parameters: {
+            query?: {
+                activo?: boolean;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedAcademicPeriodAutoList"];
+                };
+            };
+        };
+    };
+    academic_periods_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcademicPeriodAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["AcademicPeriodAuto"];
+                "multipart/form-data": components["schemas"]["AcademicPeriodAuto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicPeriodAuto"];
+                };
+            };
+        };
+    };
+    academic_periods_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este periodo académico. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicPeriodAuto"];
+                };
+            };
+        };
+    };
+    academic_periods_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este periodo académico. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcademicPeriodAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["AcademicPeriodAuto"];
+                "multipart/form-data": components["schemas"]["AcademicPeriodAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicPeriodAuto"];
+                };
+            };
+        };
+    };
+    academic_periods_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este periodo académico. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    academic_periods_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este periodo académico. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedAcademicPeriodAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedAcademicPeriodAuto"];
+                "multipart/form-data": components["schemas"]["PatchedAcademicPeriodAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicPeriodAuto"];
+                };
+            };
+        };
+    };
     activity_statuses_list: {
         parameters: {
             query?: {
@@ -5181,6 +6342,166 @@ export interface operations {
             };
         };
     };
+    annex_documents_list: {
+        parameters: {
+            query?: {
+                activo?: boolean;
+                obligatorio?: boolean;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+                /**
+                 * @description Actor que debe presentar el documento
+                 *
+                 *     * `INTERNO` - Interno / estudiante
+                 *     * `AUTORIDAD_UNIVERSIDAD` - Autoridad de universidad
+                 *     * `REPRESENTANTE` - Representante / autoridad (incluye CONAPRES)
+                 */
+                tipo_actor?: "AUTORIDAD_UNIVERSIDAD" | "INTERNO" | "REPRESENTANTE";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedAnnexDocumentAutoList"];
+                };
+            };
+        };
+    };
+    annex_documents_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnnexDocumentAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["AnnexDocumentAuto"];
+                "multipart/form-data": components["schemas"]["AnnexDocumentAuto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnnexDocumentAuto"];
+                };
+            };
+        };
+    };
+    annex_documents_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este documento anexo. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnnexDocumentAuto"];
+                };
+            };
+        };
+    };
+    annex_documents_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este documento anexo. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnnexDocumentAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["AnnexDocumentAuto"];
+                "multipart/form-data": components["schemas"]["AnnexDocumentAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnnexDocumentAuto"];
+                };
+            };
+        };
+    };
+    annex_documents_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este documento anexo. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    annex_documents_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este documento anexo. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedAnnexDocumentAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedAnnexDocumentAuto"];
+                "multipart/form-data": components["schemas"]["PatchedAnnexDocumentAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnnexDocumentAuto"];
+                };
+            };
+        };
+    };
     audit_logs_list: {
         parameters: {
             query?: {
@@ -5244,6 +6565,31 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+        };
+    };
+    auth_me_cambiar_password_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeOwnPassword"];
+                "application/x-www-form-urlencoded": components["schemas"]["ChangeOwnPassword"];
+                "multipart/form-data": components["schemas"]["ChangeOwnPassword"];
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -6405,6 +7751,30 @@ export interface operations {
             };
         };
     };
+    documents_upload_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["DocumentUpload"];
+                "application/x-www-form-urlencoded": components["schemas"]["DocumentUpload"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Document"];
+                };
+            };
+        };
+    };
     executing_unit_types_list: {
         parameters: {
             query?: {
@@ -6603,6 +7973,55 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ExecutingUnitAuto"];
+                };
+            };
+        };
+    };
+    executing_units_logo_url_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este unidad ejecutora. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogoUrlResponse"];
+                };
+            };
+        };
+    };
+    executing_units_upload_logo_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este unidad ejecutora. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["LogoUpload"];
+                "application/x-www-form-urlencoded": components["schemas"]["LogoUpload"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogoUploadResponse"];
                 };
             };
         };
@@ -7277,6 +8696,33 @@ export interface operations {
             };
         };
     };
+    interns_revisar_declaraciones_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RevisarDeclaraciones"];
+                "application/x-www-form-urlencoded": components["schemas"]["RevisarDeclaraciones"];
+                "multipart/form-data": components["schemas"]["RevisarDeclaraciones"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternshipRead"];
+                };
+            };
+        };
+    };
     interns_rotaciones_retrieve: {
         parameters: {
             query?: never;
@@ -7552,6 +8998,55 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IpressAuto"];
+                };
+            };
+        };
+    };
+    ipress_logo_url_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este IPRESS. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogoUrlResponse"];
+                };
+            };
+        };
+    };
+    ipress_upload_logo_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este IPRESS. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["LogoUpload"];
+                "application/x-www-form-urlencoded": components["schemas"]["LogoUpload"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogoUploadResponse"];
                 };
             };
         };
@@ -7860,8 +9355,6 @@ export interface operations {
         parameters: {
             query?: {
                 activo?: boolean;
-                especialidad?: number;
-                facultad?: number;
                 nivel_academico?: number;
                 /** @description Qué campo usar para ordenar los resultados. */
                 ordering?: string;
@@ -8162,6 +9655,55 @@ export interface operations {
             };
         };
     };
+    regional_governments_logo_url_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este gobierno regional. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogoUrlResponse"];
+                };
+            };
+        };
+    };
+    regional_governments_upload_logo_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este gobierno regional. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["LogoUpload"];
+                "application/x-www-form-urlencoded": components["schemas"]["LogoUpload"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogoUploadResponse"];
+                };
+            };
+        };
+    };
     regional_organ_types_list: {
         parameters: {
             query?: {
@@ -8360,6 +9902,55 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RegionalOrganAuto"];
+                };
+            };
+        };
+    };
+    regional_organs_logo_url_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este órgano regional. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogoUrlResponse"];
+                };
+            };
+        };
+    };
+    regional_organs_upload_logo_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este órgano regional. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["LogoUpload"];
+                "application/x-www-form-urlencoded": components["schemas"]["LogoUpload"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogoUploadResponse"];
                 };
             };
         };
@@ -8661,6 +10252,56 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Representative"];
+                };
+            };
+        };
+    };
+    representatives_annex_checklist_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este representante. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lista de anexos requeridos del actor con su estado de adjunto. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnnexChecklistItem"];
+                };
+            };
+        };
+    };
+    representatives_annex_upload_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este representante. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["AnnexUpload"];
+                "application/x-www-form-urlencoded": components["schemas"]["AnnexUpload"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Document"];
                 };
             };
         };
@@ -9171,6 +10812,54 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Student"];
+                };
+            };
+        };
+    };
+    students_annex_checklist_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lista de anexos requeridos del actor con su estado de adjunto. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnnexChecklistItem"];
+                };
+            };
+        };
+    };
+    students_annex_upload_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["AnnexUpload"];
+                "application/x-www-form-urlencoded": components["schemas"]["AnnexUpload"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Document"];
                 };
             };
         };
@@ -9807,6 +11496,55 @@ export interface operations {
             };
         };
     };
+    universities_logo_url_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este universidad. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogoUrlResponse"];
+                };
+            };
+        };
+    };
+    universities_upload_logo_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este universidad. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["LogoUpload"];
+                "application/x-www-form-urlencoded": components["schemas"]["LogoUpload"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogoUploadResponse"];
+                };
+            };
+        };
+    };
     university_authorities_list: {
         parameters: {
             query?: {
@@ -9955,6 +11693,56 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UniversityAuthorityAuto"];
+                };
+            };
+        };
+    };
+    university_authorities_annex_checklist_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este autoridad de universidad. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lista de anexos requeridos del actor con su estado de adjunto. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnnexChecklistItem"];
+                };
+            };
+        };
+    };
+    university_authorities_annex_upload_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este autoridad de universidad. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["AnnexUpload"];
+                "application/x-www-form-urlencoded": components["schemas"]["AnnexUpload"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Document"];
                 };
             };
         };

@@ -21,6 +21,7 @@ campos, roles, estados) sin necesidad de abrir el repo del backend:
 | `docs/api-internados.md` | Módulo 2 — Registrar Internados |
 | `docs/api-actividades.md` | Módulo 3 — Registrar Actividades docente-asistenciales |
 | `docs/api-usuarios.md` | Gestión de Usuarios — usuarios, roles/grupos y permisos (`apps/common`, ruta `/usuarios`, solo superusuario) |
+| `docs/api-almacenamiento.md` | **Transversal** — adjuntos reales: logos de entidades (`upload-logo`/`logo-url`) y PDFs de anexos por actor (`annex-checklist`/`annex-upload`), sobre GCS + signed URLs; incluye Feature F3 (contraseña temporal + declaraciones juradas) |
 | `docs/frontend-conventions.md` | Idioma, SDD, cliente HTTP, gating por rol, estructura propuesta |
 
 ### Módulos del backend
@@ -28,7 +29,16 @@ campos, roles, estados) sin necesidad de abrir el repo del backend:
 1. **Gestionar Convenios** (`apps/convenios`) — convenios Marco/Específicos, evaluaciones, opiniones (DIGEP/CONAPRES/OGAJ), firmas, publicación, vigencia.
    - **CRUD transversales del Módulo 1** (`apps/convenios` + `apps/common`): catálogos (solo lectura), entidades organizacionales/académicas (CRUD, escritura `Administrador RENADS`), representantes, `user-entity-profiles`, **documentos** (`documents`, gestión documental polimórfica con versionado) y **bitácora de auditoría** (`audit-logs`, solo lectura, `Administrador RENADS`/Auditor). Contrato: `docs/api-catalogos.md`. Rutas front: `/catalogos` y `/usuarios`.
 2. **Registrar Internados** (`apps/internados`) — internos, tutores, internados, rotaciones, autorizaciones.
+   Incluye Feature F3: onboarding del interno con contraseña temporal (`debe_cambiar_password` +
+   `/auth/me/cambiar-password/`) y declaraciones juradas (`estado_declaraciones`, `revisar-declaraciones`).
 3. **Registrar Actividades** (`apps/actividades`) — actividades docente-asistenciales y su validación.
+
+**Adjuntos reales (transversal, Módulos 1–2):** subida/visualización de **logos** de entidades
+(`universities`, `regional-governments`, `regional-organs`, `executing-units`, `ipress`) con fallback
+institucional, y **anexos PDF** (declaraciones juradas por actor: `students`, `university-authorities`,
+`representatives`). Contrato: `docs/api-almacenamiento.md`. Capa API en `lib/api/storage.ts`; UI en
+`components/ui/entity-logo.tsx`, `components/catalogos/logo-upload-dialog.tsx`,
+`components/almacenamiento/annex-checklist-dialog.tsx`.
 
 Más auth/transversal (`apps/common`): login JWT, `/auth/me`, alcance institucional, auditoría, y
 **administración de usuarios/roles/permisos** (`users`, `groups`, `permissions` — solo superusuario;

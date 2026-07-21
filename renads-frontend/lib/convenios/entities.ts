@@ -1,7 +1,23 @@
-import type { FilterConfig, ResourceConfig } from "@/lib/crud/types";
+import { createElement } from "react";
+
+import type { ColumnConfig, FilterConfig, ResourceConfig } from "@/lib/crud/types";
 import type { WithId } from "@/lib/api/query";
+import { EntityLogo } from "@/components/ui/entity-logo";
 
 const siNo = (v: unknown) => (v ? "Sí" : "No");
+
+/** Columna «Logo» reutilizable: muestra el logo de la entidad (o su fallback institucional). */
+const logoColumn = (endpoint: string): ColumnConfig => ({
+  key: "referencia_logo",
+  header: "Logo",
+  render: (r) =>
+    createElement(EntityLogo, {
+      entidad: endpoint,
+      id: r.id,
+      referenciaLogo: (r.referencia_logo as string | undefined) ?? null,
+      size: 32,
+    }),
+});
 
 /** Etiqueta legible de un ubigeo (no tiene `nombre`). */
 const ubigeoLabel = (r: WithId) =>
@@ -25,6 +41,7 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     description: "Entidades académicas registradas en RENADS.",
     searchPlaceholder: "Buscar por nombre o siglas…",
     columns: [
+      logoColumn("universities"),
       { key: "nombre", header: "Nombre" },
       { key: "siglas", header: "Siglas" },
       { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
@@ -88,7 +105,6 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         optionsEndpoint: "ubigeos",
         optionsToLabel: ubigeoLabel,
       },
-      { name: "referencia_logo", label: "Referencia de logo", type: "text" },
       { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
     ],
   },
@@ -100,6 +116,7 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     description: "Establecimientos de salud (sedes).",
     searchPlaceholder: "Buscar por nombre o RENIPRESS…",
     columns: [
+      logoColumn("ipress"),
       { key: "nombre", header: "Nombre" },
       { key: "codigo_renipress", header: "RENIPRESS" },
       {
@@ -160,6 +177,7 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     singular: "gobierno regional",
     searchPlaceholder: "Buscar por nombre…",
     columns: [
+      logoColumn("regional-governments"),
       { key: "nombre", header: "Nombre" },
       { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
     ],
@@ -176,7 +194,6 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         required: true,
         optionsEndpoint: "regions",
       },
-      { name: "referencia_logo", label: "Referencia de logo", type: "text" },
       { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
     ],
   },
@@ -187,6 +204,7 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     singular: "unidad ejecutora",
     searchPlaceholder: "Buscar por nombre o código…",
     columns: [
+      logoColumn("executing-units"),
       { key: "nombre", header: "Nombre" },
       { key: "codigo", header: "Código" },
       { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
@@ -231,7 +249,6 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         optionsEndpoint: "ubigeos",
         optionsToLabel: ubigeoLabel,
       },
-      { name: "referencia_logo", label: "Referencia de logo", type: "text" },
       { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
     ],
   },
@@ -242,6 +259,7 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     singular: "órgano regional",
     searchPlaceholder: "Buscar por nombre o siglas…",
     columns: [
+      logoColumn("regional-organs"),
       { key: "nombre", header: "Nombre" },
       { key: "siglas", header: "Siglas" },
       { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
@@ -286,7 +304,6 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         optionsEndpoint: "ubigeos",
         optionsToLabel: ubigeoLabel,
       },
-      { name: "referencia_logo", label: "Referencia de logo", type: "text" },
       { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
     ],
   },

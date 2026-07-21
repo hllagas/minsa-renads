@@ -21,6 +21,8 @@ export interface AuthUser {
   es_superusuario: boolean;
   grupos: string[];
   perfiles: UserProfile[];
+  /** Contraseña temporal pendiente de cambio (RN-22). El front bloquea hasta cambiarla. */
+  debe_cambiar_password?: boolean;
 }
 
 interface AuthState {
