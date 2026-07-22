@@ -1,10 +1,12 @@
 """ViewSets del módulo Convenios (bloque núcleo). Vistas delgadas: delegan en services/selectors."""
 
 from django.contrib.contenttypes.models import ContentType
+from django.db.models import ProtectedError
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers as drf_serializers
 from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import APIException
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -187,6 +189,14 @@ class ConventionViewSet(viewsets.ModelViewSet):
         return Response(ConventionStatusHistorySerializer(qs, many=True).data)
 
 
+class ProtectedDeleteConflict(APIException):
+    """El registro no se puede borrar porque otras filas lo referencian con FK protegida (409)."""
+
+    status_code = 409
+    default_detail = "No se puede eliminar: el registro está referenciado por otros datos."
+    default_code = "protected_delete"
+
+
 class AuditedModelViewSet(viewsets.ModelViewSet):
     """ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01)."""
 
@@ -199,8 +209,20 @@ class AuditedModelViewSet(viewsets.ModelViewSet):
         registrar_auditoria(self.request.user, "ACTUALIZAR", objeto)
 
     def perform_destroy(self, instance):
+        # `instance.delete()` lanza ProtectedError si hay FK protegidas → devolver 409 legible
+        # en vez de un 500. Django anula `instance.pk` tras borrar, por eso se restaura para auditar.
+        pk = instance.pk
+        try:
+            instance.delete()
+        except ProtectedError as exc:
+            modelos = sorted({str(obj._meta.verbose_name) for obj in exc.protected_objects})
+            raise ProtectedDeleteConflict(
+                "No se puede eliminar: el registro está referenciado por "
+                + ", ".join(modelos)
+                + ". Elimina o reasigna esos registros primero."
+            )
+        instance.pk = pk
         registrar_auditoria(self.request.user, "ELIMINAR", instance)
-        instance.delete()
 
 
 class ConventionTemplateViewSet(AuditedModelViewSet):
@@ -318,16 +340,10 @@ CATALOG_VIEWSETS = {
     "health-geographic-scopes": _catalog_viewset(m.HealthGeographicScope),
     "convention-types": _catalog_viewset(m.ConventionType),
     "convention-statuses": _catalog_viewset(m.ConventionStatus),
-    "document-types": _catalog_viewset(m.DocumentType),
     "university-management-types": _catalog_viewset(m.UniversityManagementType),
-    "university-entity-types": _catalog_viewset(m.UniversityEntityType),
-    "authorization-types": _catalog_viewset(m.AuthorizationType),
-    "academic-levels": _catalog_viewset(m.AcademicLevel),
     "specialties": _catalog_viewset(m.Specialty),
     "signing-authority-types": _catalog_viewset(m.SigningAuthorityType),
-    "regional-organ-types": _catalog_viewset(m.RegionalOrganType),
     "executing-unit-types": _catalog_viewset(m.ExecutingUnitType),
-    "minsa-organ-types": _catalog_viewset(m.MinsaOrganType),
     "executive-positions": _catalog_viewset(m.ExecutivePosition),
     "observation-reasons": _catalog_viewset(m.ObservationReason),
     "rejection-reasons": _catalog_viewset(m.RejectionReason),
@@ -336,6 +352,25 @@ CATALOG_VIEWSETS = {
 
 # Entidades (CRUD): basename -> ViewSet
 ENTITY_VIEWSETS = {
+    # Catálogos maestros con CRUD (escritura solo Administrador RENADS; con auditoría).
+    "document-types": _entity_viewset(
+        m.DocumentType, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
+    ),
+    "university-entity-types": _entity_viewset(
+        m.UniversityEntityType, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
+    ),
+    "authorization-types": _entity_viewset(
+        m.AuthorizationType, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
+    ),
+    "academic-levels": _entity_viewset(
+        m.AcademicLevel, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
+    ),
+    "regional-organ-types": _entity_viewset(
+        m.RegionalOrganType, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
+    ),
+    "minsa-organ-types": _entity_viewset(
+        m.MinsaOrganType, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
+    ),
     "regional-governments": _entity_viewset(
         m.RegionalGovernment, filterset_fields=["region", "activo"], search_fields=["nombre"], logo=True
     ),

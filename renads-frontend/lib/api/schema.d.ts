@@ -5386,12 +5386,6 @@ export interface components {
              */
             codigo_universitario?: string;
             /**
-             * Año académico
-             * Format: int64
-             * @description Año académico
-             */
-            anio_academico?: number | null;
-            /**
              * Format: decimal
              * @description Nota promedio ponderado (escala 0–20)
              */
@@ -5931,12 +5925,6 @@ export interface components {
              * @description Código universitario / matrícula
              */
             codigo_universitario?: string;
-            /**
-             * Año académico
-             * Format: int64
-             * @description Año académico
-             */
-            anio_academico?: number | null;
             /**
              * Format: decimal
              * @description Nota promedio ponderado (escala 0–20)

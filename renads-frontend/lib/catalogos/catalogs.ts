@@ -31,6 +31,37 @@ function readOnlyCatalog(
   };
 }
 
+/**
+ * Catálogo maestro con **CRUD** (RNF-MAN-01/02/03): mismas columnas/búsqueda que el de solo
+ * lectura, pero editable. Escritura restringida a `Administrador RENADS` (backend
+ * `IsAdminRoleOrReadOnly` + auditoría). Campos del modelo base `Catalog`: `codigo` (único,
+ * obligatorio), `nombre` (obligatorio) y `activo`.
+ */
+function writableCatalog(
+  endpoint: string,
+  title: string,
+  singular: string,
+): ResourceConfig {
+  return {
+    endpoint,
+    title,
+    singular,
+    writeRoles: ["Administrador RENADS"],
+    searchPlaceholder: "Buscar por código o nombre…",
+    columns: [
+      { key: "codigo", header: "Código" },
+      { key: "nombre", header: "Nombre" },
+      { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
+    ],
+    filters: [activoFilter],
+    fields: [
+      { name: "codigo", label: "Código", type: "text", required: true },
+      { name: "nombre", label: "Nombre", type: "text", required: true },
+      { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
+    ],
+  };
+}
+
 /** Catálogo de ubigeos (INEI): columnas y filtros geográficos propios. */
 const ubigeosConfig: ResourceConfig = {
   endpoint: "ubigeos",
@@ -73,7 +104,7 @@ export const CATALOG_CONFIGS: Record<string, ResourceConfig> = {
     "Estados de convenio",
     "estado de convenio",
   ),
-  "document-types": readOnlyCatalog(
+  "document-types": writableCatalog(
     "document-types",
     "Tipos de documento",
     "tipo de documento",
@@ -83,17 +114,17 @@ export const CATALOG_CONFIGS: Record<string, ResourceConfig> = {
     "Tipos de gestión universitaria",
     "tipo de gestión universitaria",
   ),
-  "university-entity-types": readOnlyCatalog(
+  "university-entity-types": writableCatalog(
     "university-entity-types",
     "Tipos de entidad universitaria",
     "tipo de entidad universitaria",
   ),
-  "authorization-types": readOnlyCatalog(
+  "authorization-types": writableCatalog(
     "authorization-types",
     "Tipos de autorización",
     "tipo de autorización",
   ),
-  "academic-levels": readOnlyCatalog(
+  "academic-levels": writableCatalog(
     "academic-levels",
     "Niveles académicos",
     "nivel académico",
@@ -104,7 +135,7 @@ export const CATALOG_CONFIGS: Record<string, ResourceConfig> = {
     "Tipos de autoridad firmante",
     "tipo de autoridad firmante",
   ),
-  "regional-organ-types": readOnlyCatalog(
+  "regional-organ-types": writableCatalog(
     "regional-organ-types",
     "Tipos de órgano regional",
     "tipo de órgano regional",
@@ -114,7 +145,7 @@ export const CATALOG_CONFIGS: Record<string, ResourceConfig> = {
     "Tipos de unidad ejecutora",
     "tipo de unidad ejecutora",
   ),
-  "minsa-organ-types": readOnlyCatalog(
+  "minsa-organ-types": writableCatalog(
     "minsa-organ-types",
     "Tipos de órgano MINSA",
     "tipo de órgano MINSA",

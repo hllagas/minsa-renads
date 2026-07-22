@@ -21,17 +21,26 @@ Contrato de los **CRUD de soporte transversales** del Módulo 1 del backend (`ap
 CRUD de solo lectura (`list`/`retrieve`). Patrón común: filtro `activo`, search `codigo`/`nombre`,
 ordering `id`/`codigo`/`nombre` (default `id`). Se usan para poblar selects.
 
-`regions`, `health-geographic-scopes`, `convention-types`, `convention-statuses`, `document-types`,
-`university-management-types`, `university-entity-types`, `authorization-types`, `academic-levels`,
-`specialties`, `signing-authority-types`, `regional-organ-types`, `executing-unit-types`,
-`minsa-organ-types`, `executive-positions`, `observation-reasons`, `rejection-reasons`,
-`closure-reasons` (18 catálogos).
+`regions`, `health-geographic-scopes`, `convention-types`, `convention-statuses`,
+`university-management-types`, `specialties`, `signing-authority-types`, `executing-unit-types`,
+`executive-positions`, `observation-reasons`, `rejection-reasons`, `closure-reasons`
+(12 catálogos de solo lectura).
 
 `ubigeos` — catálogo INEI (solo lectura). Filtros: `departamento`, `provincia`, `distrito`, `activo`;
 search `codigo`/`distrito`/`provincia`/`departamento`.
 
-> Escritura de catálogos: **fuera de alcance** (ya validada/poblada en backend). En `/catalogos` se
-> listan/consultan; el alta/edición real aplica a las **entidades** de abajo.
+### 1.1. Catálogos maestros con CRUD (RNF-MAN-01/02/03)
+
+Seis catálogos dejan de ser de solo lectura y aceptan **CRUD completo** (`create`/`update`/
+`partial_update`/`destroy`) para mantenerlos sin cambios de código. Escritura solo
+**`Administrador RENADS`** (`IsAdminRoleOrReadOnly`) + auditoría. Campos del modelo base `Catalog`:
+`codigo` (único, obligatorio), `nombre` (obligatorio), `activo`.
+
+`document-types`, `university-entity-types`, `authorization-types`, `academic-levels`,
+`regional-organ-types`, `minsa-organ-types`.
+
+> Front: configurados con `writableCatalog()` en `lib/catalogos/catalogs.ts` (los 12 restantes
+> siguen `readOnlyCatalog()`). Se editan desde `/catalogos/listas/<slug>`.
 
 ## 2. Entidades organizacionales / académicas (CRUD)
 

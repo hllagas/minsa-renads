@@ -165,20 +165,20 @@ const SCHEMA = [
   { titulo:"Entidades — Gobiernos Regionales (GORE → Órgano → Unidad Ejecutora → IPRESS)", tablas:[
     {n:"gobierno_regional", cols:[
       ["id","PK",false,"","pk",""],["nombre","varchar(255)",false,"Nombre del gobierno regional","",""],
-      ["region_id","FK",false,"Región","fk","region"],["referencia_logo","varchar(500)",true,"Ref. externa del logo","",""],["activo","bool",false,"","",""]]},
+      ["region_id","FK",false,"Región","fk","region"],["referencia_logo","varchar(500)",true,"Logo institucional (ImageField; path de medios)","",""],["activo","bool",false,"","",""]]},
     {n:"organo_regional", d:"GERESA / DIRESA / DIRIS", cols:[
       ["id","PK",false,"","pk",""],["gobierno_regional_id","FK",false,"GORE al que pertenece","fk","gobierno_regional"],
       ["tipo_organo_regional_id","FK",false,"GERESA/DIRESA/DIRIS","fk","tipo_organo_regional"],["nombre","varchar(255)",false,"","",""],
-      ["siglas","varchar(50)",true,"","",""],["direccion","varchar(500)",true,"Dirección","",""],["ubigeo_id","FK",true,"UBIGEO","fk","ubigeo"],["referencia_logo","varchar(500)",true,"Ref. externa del logo","",""],["activo","bool",false,"","",""]]},
+      ["siglas","varchar(50)",true,"","",""],["direccion","varchar(500)",true,"Dirección","",""],["ubigeo_id","FK",true,"UBIGEO","fk","ubigeo"],["referencia_logo","varchar(500)",true,"Logo institucional (ImageField; path de medios)","",""],["activo","bool",false,"","",""]]},
     {n:"unidad_ejecutora", d:"Hospital / Instituto / Red", cols:[
       ["id","PK",false,"","pk",""],["organo_regional_id","FK",false,"Órgano que la administra","fk","organo_regional"],
       ["tipo_unidad_ejecutora_id","FK",false,"Hospital/Instituto/Red","fk","tipo_unidad_ejecutora"],["nombre","varchar(255)",false,"","",""],
-      ["codigo","varchar(50)",true,"Código presupuestal","",""],["direccion","varchar(500)",true,"Dirección","",""],["ubigeo_id","FK",true,"UBIGEO","fk","ubigeo"],["referencia_logo","varchar(500)",true,"Ref. externa del logo","",""],["activo","bool",false,"","",""]]},
+      ["codigo","varchar(50)",true,"Código presupuestal","",""],["direccion","varchar(500)",true,"Dirección","",""],["ubigeo_id","FK",true,"UBIGEO","fk","ubigeo"],["referencia_logo","varchar(500)",true,"Logo institucional (ImageField; path de medios)","",""],["activo","bool",false,"","",""]]},
     {n:"ipress", d:"Establecimiento de salud / sede docente", cols:[
       ["id","PK",false,"","pk",""],["unidad_ejecutora_id","FK",false,"Unidad ejecutora","fk","unidad_ejecutora"],
       ["nombre","varchar(255)",false,"Nombre del establecimiento","",""],["codigo_renipress","varchar(20)",true,"Código RENIPRESS","",""],
       ["direccion","varchar(500)",true,"Dirección","",""],["ubigeo_id","FK",true,"UBIGEO","fk","ubigeo"],
-      ["ambito_geografico_sanitario_id","FK",false,"Ámbito sanitario","fk","ambito_geografico_sanitario"],["es_sede_docente","bool",false,"Autorizada por CONAPRES","",""],["referencia_logo","varchar(500)",true,"Ref. externa del logo","",""],["activo","bool",false,"","",""]]},
+      ["ambito_geografico_sanitario_id","FK",false,"Ámbito sanitario","fk","ambito_geografico_sanitario"],["es_sede_docente","bool",false,"Autorizada por CONAPRES","",""],["referencia_logo","varchar(500)",true,"Logo institucional (ImageField; path de medios)","",""],["activo","bool",false,"","",""]]},
   ]},
   { titulo:"Entidades — MINSA / CONAPRES", tablas:[
     {n:"organo_minsa", d:"DIGEP / OGAJ / SG / VICEPAS", cols:[
@@ -199,7 +199,7 @@ const SCHEMA = [
       ["tipo_autorizacion_id","FK",false,"Licenciada/Denegada/Pendiente","fk","tipo_autorizacion"],["codigo_inei","varchar(20)",true,"","",""],
       ["fecha_constitucion","date",true,"","",""],["fecha_autorizacion","date",true,"","",""],["numero_resolucion","varchar(100)",true,"","",""],
       ["direccion_legal","varchar(500)",true,"","",""],["telefono","varchar(30)",true,"","",""],["correo_institucional","varchar(255)",true,"","",""],
-      ["ubigeo_id","FK",true,"UBIGEO","fk","ubigeo"],["referencia_logo","varchar(500)",true,"Ref. externa del logo","",""],["activo","bool",false,"","",""]]},
+      ["ubigeo_id","FK",true,"UBIGEO","fk","ubigeo"],["referencia_logo","varchar(500)",true,"Logo institucional (ImageField; path de medios)","",""],["activo","bool",false,"","",""]]},
     {n:"autoridad_universidad", cols:[
       ["id","PK",false,"","pk",""],["universidad_id","FK",false,"Universidad","fk","universidad"],["nombre","varchar(255)",false,"","",""],
       ["cargo","varchar(150)",false,"","",""],["fecha_inicio_cargo","date",false,"","",""],["fecha_fin_cargo","date",true,"","",""],
@@ -271,6 +271,7 @@ const SCHEMA = [
     {n:"documento", d:"Adjuntos en repositorio externo (polimórfico)", cols:[
       ["id","PK",false,"","pk",""],["tipo_documento_id","FK",false,"Tipo de documento","fk","tipo_documento"],["tipo_contenido_id","FK",false,"Tabla destino","fk","django_content_type"],
       ["id_objeto","int",false,"Registro destino","",""],["referencia_externa","varchar(500)",false,"Clave/URL externa","",""],["nombre_archivo","varchar(255)",false,"","",""],
+      ["texto_extraido","text",false,"Texto extraído del PDF por Document AI (vacío si no aplica/falla)","",""],
       ["version","int",false,"","",""],["estado","varchar(20)",false,"ACTIVO/REEMPLAZADO/ANULADO/OBSERVADO/VALIDADO","",""],["version_anterior_id","FK",true,"Versión previa","fk","documento"],
       ["documento_anexo_id","FK",true,"Anexo (declaración jurada); nulo salvo anexos por actor","fk","documentos_anexos"],
       ["cargado_por","FK",false,"Usuario","fk","auth_user"],["cargado_en","datetime",false,"","",""]]},
@@ -298,9 +299,8 @@ const SCHEMA = [
       ["direccion","varchar(500)",true,"Dirección","",""],["ubigeo_id","FK",true,"UBIGEO","fk","ubigeo"],
       ["universidad_id","FK",false,"Universidad","fk","universidad"],["carrera_profesional_id","FK",false,"Carrera","fk","carrera_profesional"],
       ["periodo_academico_id","FK",true,"Periodo académico (Pregrado — RN-19)","fk","periodo_academico"],["especialidad_id","FK",true,"Especialidad (otro nivel — RN-19)","fk","especialidad"],
-      ["codigo_universitario","varchar(50)",true,"","",""],["anio_academico","int",true,"","",""],
+      ["codigo_universitario","varchar(50)",true,"","",""],
       ["nota_promedio_ponderado","decimal(4,2)",true,"Escala 0–20","",""],
-      ["contacto_emergencia_nombre","varchar(255)",true,"Contacto de emergencia","",""],["contacto_emergencia_telefono","varchar(30)",true,"Contacto de emergencia","",""],["contacto_emergencia_parentesco_id","FK",true,"Parentesco","fk","parentesco"],
       ["activo","bool",false,"","",""],["creado_por","FK",false,"","fk","auth_user"],["creado_en","datetime",false,"","",""],
       ["(tipo_documento_identidad_id, numero_documento)","unique",false,"Restricción de unicidad","uq",""]]},
     {n:"tutor", cols:[
@@ -309,6 +309,8 @@ const SCHEMA = [
       ["correo","varchar(255)",true,"","",""],["telefono","varchar(30)",true,"","",""],["numero_colegiatura","varchar(50)",true,"","",""],
       ["direccion","varchar(500)",true,"Dirección","",""],["ubigeo_id","FK",true,"UBIGEO","fk","ubigeo"],
       ["especialidad_id","FK",true,"Especialidad del tutor","fk","especialidad"],["ipress_id","FK",true,"Establecimiento","fk","ipress"],["activo","bool",false,"","",""]]},
+    {n:"tutor_universidad", d:"Puente tutor↔universidad — 1 a 2 (RN-24)", cols:[
+      ["id","PK",false,"","pk",""],["tutor_id","FK",false,"Tutor (CASCADE)","fk","tutor"],["universidad_id","FK",false,"Universidad (PROTECT)","fk","universidad"]]},
   ]},
   { titulo:"Internado", tablas:[
     {n:"interno", cols:[
@@ -316,6 +318,7 @@ const SCHEMA = [
       ["campo_clinico_id","FK",false,"Campo clínico asignado","fk","campo_clinico"],["ipress_id","FK",false,"Sede docente principal","fk","ipress"],["tutor_id","FK",false,"Tutor responsable","fk","tutor"],
       ["ambito_geografico_sanitario_id","FK",false,"Ámbito","fk","ambito_geografico_sanitario"],["estado_actual_id","FK",false,"Estado actual","fk","estado_internado"],
       ["estado_declaraciones","varchar(20)",false,"Estado de las declaraciones juradas (RN-23): PENDIENTE/COMPLETAS/OBSERVADAS/VALIDADAS","",""],
+      ["contacto_emergencia_nombre","varchar(255)",true,"Contacto de emergencia","",""],["contacto_emergencia_telefono","varchar(30)",true,"Contacto de emergencia","",""],["contacto_emergencia_parentesco_id","FK",true,"Parentesco (PROTECT)","fk","parentesco"],
       ["fecha_inicio","date",false,"","",""],["fecha_fin","date",false,"Máx. 1 año","",""],["observaciones","text",true,"","",""],["creado_por","FK",false,"","fk","auth_user"],["creado_en","datetime",false,"","",""],["actualizado_en","datetime",false,"","",""]]},
     {n:"historial_estado_internado", d:"Trazabilidad (RN-15)", cols:[
       ["id","PK",false,"","pk",""],["interno_id","FK",false,"","fk","interno"],["estado_id","FK",false,"","fk","estado_internado"],

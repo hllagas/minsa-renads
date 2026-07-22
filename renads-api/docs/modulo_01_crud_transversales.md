@@ -22,7 +22,8 @@ implementada y validada**. Solo restan dos brechas reales.
 
 | Bloque | Tablas / endpoints | Estado |
 |--------|--------------------|--------|
-| **Catálogos** (solo lectura) | 18 catálogos (`region`, `tipo_convenio`, `estado_convenio`, …) + `ubigeo` | ✅ Implementado (`CATALOG_VIEWSETS`, `UbigeoViewSet`) |
+| **Catálogos** (solo lectura) | 12 catálogos (`region`, `tipo_convenio`, `estado_convenio`, `specialties`, …) + `ubigeo` | ✅ Implementado (`CATALOG_VIEWSETS`, `UbigeoViewSet`) |
+| **Catálogos maestros** (CRUD, Administrador RENADS) | `document-types`, `university-entity-types`, `authorization-types`, `academic-levels`, `regional-organ-types`, `minsa-organ-types` (+ `annex-documents` en `internados`) | ✅ Implementado (`ENTITY_VIEWSETS`, escritura solo Administrador RENADS + auditoría) |
 | **Entidades — Gobiernos Regionales** | `gobierno_regional`, `organo_regional`, `unidad_ejecutora`, `ipress` | ✅ Implementado (`ENTITY_VIEWSETS`) |
 | **Entidades — MINSA** | `organo_minsa` | ✅ Implementado (`minsa-organs`) |
 | **Entidades — CONAPRES** | `conapres` | ✅ Implementado (`conapres`) |

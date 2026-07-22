@@ -73,12 +73,14 @@ export function StudentsBulkUploadDialog() {
         <DialogHeader>
           <DialogTitle>Carga masiva de estudiantes</DialogTitle>
           <DialogDescription>
-            Sube un archivo <strong>.xlsx</strong> con las columnas requeridas: {" "}
-            <code>tipo_documento</code> (código, p. ej. DNI), {" "}
+            Sube un archivo <strong>.xlsx</strong> con la estructura de la trama
+            oficial (encabezados con sufijo <code>_id</code>). Columnas requeridas: {" "}
+            <code>tipo_documento_identidad_id</code> (código, p. ej. DNI, o id), {" "}
             <code>numero_documento</code>, <code>nombres</code>, {" "}
-            <code>apellido_paterno</code>, <code>universidad</code> (id o codigo_inei) y {" "}
-            <code>carrera_profesional</code> (id o nombre). Las filas con error se omiten sin
-            abortar el resto del lote.
+            <code>apellido_paterno</code>, <code>universidad_id</code> (id o código INEI) y {" "}
+            <code>carrera_profesional_id</code> (id o nombre). El resto es opcional
+            (<code>periodo_academico_id</code> admite <code>2025-I</code> o <code>2025-01</code>).
+            Las filas con error se omiten sin abortar el resto del lote.
           </DialogDescription>
         </DialogHeader>
 

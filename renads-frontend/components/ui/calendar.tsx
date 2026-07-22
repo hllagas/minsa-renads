@@ -55,6 +55,21 @@ function Calendar({
           defaultClassNames.month_caption,
         ),
         caption_label: cn("select-none", defaultClassNames.caption_label),
+        // Navegación por desplegables de mes/año (captionLayout="dropdown").
+        dropdowns: cn(
+          "flex items-center justify-center gap-1.5 text-sm font-medium",
+          defaultClassNames.dropdowns,
+        ),
+        dropdown_root: cn("relative", defaultClassNames.dropdown_root),
+        dropdown: cn(
+          buttonVariants({ variant: "outline", size: "sm" }),
+          "h-7 rounded-md px-2 capitalize",
+          // Colores explícitos del <select> y de sus <option> para que la lista desplegable
+          // nativa sea legible (evita texto claro sobre fondo claro en modo oscuro).
+          "bg-popover text-popover-foreground",
+          "[&>option]:bg-popover [&>option]:text-popover-foreground",
+          defaultClassNames.dropdown,
+        ),
         month_grid: cn("w-full border-collapse", defaultClassNames.month_grid),
         weekdays: cn("flex", defaultClassNames.weekdays),
         weekday: cn(

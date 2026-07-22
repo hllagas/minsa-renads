@@ -7,6 +7,7 @@ registro en el historial de estado correspondiente. Ver §6 del módulo 2.
 import datetime
 import decimal
 import logging
+import re
 import secrets
 
 import openpyxl
@@ -673,12 +674,39 @@ def _resolver_carrera(valor):
     return carrera
 
 
+# Semestre numérico → romano, para tolerar el formato `YYYY-NN` de la trama
+# (`2025-01`) además del código canónico sembrado (`2025-I`).
+_SEMESTRE_ROMANO = {1: "I", 2: "II", 3: "III", 4: "IV"}
+
+
+def _normalizar_codigo_periodo(texto: str) -> str:
+    """Normaliza `YYYY-NN` (semestre numérico) al código canónico `YYYY-<romano>`.
+
+    Devuelve el texto original si no coincide con ese patrón (p. ej. ya viene como
+    `2025-I`), para que el resolver intente el código tal cual.
+    """
+    match = re.fullmatch(r"(\d{4})-(\d{1,2})", texto)
+    if not match:
+        return texto
+    anio, semestre = match.group(1), int(match.group(2))
+    romano = _SEMESTRE_ROMANO.get(semestre)
+    return f"{anio}-{romano}" if romano else texto
+
+
 def _resolver_periodo_academico(valor):
     if valor is None:
         return None
     texto = str(valor).strip()
+    # La columna `periodo_academico_id` de la trama admite id, el código canónico
+    # (`2025-I`) o el formato numérico de semestre (`2025-01`).
+    if texto.isdigit():
+        try:
+            return AcademicPeriod.objects.get(id=int(texto))
+        except AcademicPeriod.DoesNotExist:
+            pass
+    codigo = _normalizar_codigo_periodo(texto)
     try:
-        return AcademicPeriod.objects.get(codigo=texto)
+        return AcademicPeriod.objects.get(codigo=codigo)
     except AcademicPeriod.DoesNotExist as exc:
         raise ValidationError(f"Periodo académico no encontrado: {texto}.") from exc
 
@@ -687,6 +715,12 @@ def _resolver_especialidad(valor):
     if valor is None:
         return None
     texto = str(valor).strip()
+    # La columna `especialidad_id` de la trama admite id o el código de especialidad.
+    if texto.isdigit():
+        try:
+            return Specialty.objects.get(id=int(texto))
+        except Specialty.DoesNotExist:
+            pass
     try:
         return Specialty.objects.get(codigo=texto)
     except Specialty.DoesNotExist as exc:

@@ -53,8 +53,10 @@ erDiagram
     ipress ||--o{ interno : "sede principal"
     tutor ||--o{ interno : ""
     universidad ||--o{ estudiante : ""
+    universidad ||--o{ tutor_universidad : ""
+    tutor ||--o{ tutor_universidad : "1 a 2 (RN-24)"
     carrera_profesional ||--o{ estudiante : ""
-    parentesco ||--o{ estudiante : "contacto emergencia"
+    parentesco ||--o{ interno : "contacto emergencia"
     periodo_academico ||--o{ estudiante : "Pregrado (RN-19)"
     especialidad ||--o{ estudiante : "otro nivel (RN-19)"
     interno ||--o{ historial_estado_internado : ""
@@ -132,5 +134,5 @@ bitacora_auditoria (M1) ─ genérico ─> [cualquier tabla]
 | App | Tablas (db_table) |
 |-----|-------------------|
 | **Gestionar Convenios** (`convenios`, M1) | `ubigeo`, `region`, `ambito_geografico_sanitario`, `tipo_convenio`, `estado_convenio`, `tipo_documento`, `tipo_gestion_universidad`, `tipo_entidad_universidad`, `tipo_autorizacion`, `nivel_academico`, `especialidad`, `tipo_autoridad_firmante`, `tipo_organo_regional`, `tipo_unidad_ejecutora`, `tipo_organo_minsa`, `cargo_ejecutivo`, `motivo_observacion`, `motivo_rechazo`, `motivo_cierre`, `gobierno_regional`, `organo_regional`, `unidad_ejecutora`, `ipress`, `organo_minsa`, `conapres`, `representante`, `universidad`, `autoridad_universidad`, `facultad`, `carrera_profesional`, `local_universidad`, `perfil_usuario_entidad`, `plantilla_convenio`, `convenio`, `participante_convenio`, `historial_estado_convenio`, `evaluacion_tecnica`, `opinion_conapres`, `campo_clinico`, `opinion_juridica`, `firma`, `publicacion`, `documento`, `bitacora_auditoria` |
-| **Registrar Internados** (`internados`, M2) | `estado_internado`, `estado_rotacion`, `servicio_area`, `tipo_documento_identidad`, `parentesco`, `periodo_academico`, `documentos_anexos`, `estudiante`, `tutor`, `interno`, `historial_estado_internado`, `historial_tutor`, `rotacion`, `autorizacion_rotacion`, `historial_estado_rotacion` |
+| **Registrar Internados** (`internados`, M2) | `estado_internado`, `estado_rotacion`, `servicio_area`, `tipo_documento_identidad`, `parentesco`, `periodo_academico`, `documentos_anexos`, `estudiante`, `tutor`, `tutor_universidad`, `interno`, `historial_estado_internado`, `historial_tutor`, `rotacion`, `autorizacion_rotacion`, `historial_estado_rotacion` |
 | **Registrar Actividades** (`actividades`, M3) | `tipo_actividad`, `estado_actividad`, `actividad_docente_asistencial`, `validacion_actividad`, `historial_estado_actividad` |

@@ -113,6 +113,26 @@ Toda escritura corre en `transaction.atomic()`, registra en `bitacora_auditoria`
 
 ---
 
+## T8 — Catálogos maestros con CRUD (parametrizables, RNF-MAN-01/02/03)
+
+Algunos catálogos dejan de ser de solo lectura y pasan a **CRUD completo** (list/retrieve/create/update/delete) para poder mantenerlos sin cambios de código. Escritura restringida al rol **Administrador RENADS** (`IsAdminRoleOrReadOnly`) y con **auditoría** (`AuditedModelViewSet`).
+
+- **T8.1** Promover de `CATALOG_VIEWSETS` a `ENTITY_VIEWSETS` (vía `_entity_viewset`) los siguientes catálogos, conservando su basename:
+  - `document-types` → `DocumentType` (`tipo_documento`)
+  - `university-entity-types` → `UniversityEntityType` (`tipo_entidad_universidad`)
+  - `authorization-types` → `AuthorizationType` (`tipo_autorizacion`)
+  - `academic-levels` → `AcademicLevel` (`nivel_academico`)
+  - `regional-organ-types` → `RegionalOrganType` (`tipo_organo_regional`)
+  - `minsa-organ-types` → `MinsaOrganType` (`tipo_organo_minsa`)
+- **T8.2** `filterset_fields=["activo"]`, `search_fields=["codigo", "nombre"]`. Serializer auto (`fields="__all__"`). Sin migraciones (no cambia el modelo).
+- **T8.3** `documentos_anexos` (`annex-documents`, app `internados`) ya expone CRUD (Feature F2). Mantiene su filtro por `tipo_actor`/`obligatorio`/`activo`.
+
+> Nota sobre T4.1/T5.3: los catálogos **restantes** siguen de solo lectura; estos seis son la excepción explícita (mantenimiento por Administrador RENADS).
+
+**Criterio:** los seis basenames aceptan `POST`/`PUT`/`PATCH`/`DELETE` con rol Administrador RENADS (403 para el resto); `check`/`spectacular` sin errores; sin migraciones pendientes.
+
+---
+
 ## Referencias
 
 - **Reglas de negocio (§6 del módulo 1):** RN-3 (Específico→Marco vigente, **excepción DIRIS**) → T3.1; solicitud de Marco solo GERESA/DIRESA → T3.1; CONAPRES/campos clínicos solo Específico → T3.4/T3.5; **OGAJ solo Marco** → T3.6; **autorización de sede docente por CONAPRES** → T3.10; **asignación de campos clínicos** (total CONAPRES por sede/carrera; cantidad por universidad GERESA/DIRESA/DIRIS) → T3.5; no firmar con observaciones pendientes → T3.7; trazabilidad de estados → T3.2 + `ConventionStatusHistory`; versionado documental → T4.5/`Document`.

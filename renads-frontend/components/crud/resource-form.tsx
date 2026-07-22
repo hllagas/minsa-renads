@@ -134,7 +134,7 @@ export function ResourceForm({
   return (
     <form
       onSubmit={handleSubmit((values) => onSubmit(buildPayload(fields, values)))}
-      className="grid max-h-[75vh] grid-cols-1 gap-x-5 gap-y-4 overflow-y-auto px-1 py-1 sm:grid-cols-2"
+      className="grid max-h-[75vh] grid-cols-1 gap-x-5 gap-y-4 overflow-x-hidden overflow-y-auto px-2 py-2 sm:grid-cols-2"
     >
       {fields.map((field) => (
         <div

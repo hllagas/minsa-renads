@@ -485,3 +485,27 @@ requisito para que la IPRESS pueda usarse en campos clínicos de convenios (regl
 
 > **Aprobación humana requerida:** esta lista de tareas delta (U1–U4, con las 3 decisiones
 > marcadas) debe ser aprobada antes de pasar al agente Implement.
+
+---
+
+## Actualización de contrato — Catálogos maestros con CRUD (2026-07-22)
+
+Delta del backend (`docs/modulo_01_crud_transversales.md` §Catálogos maestros; `spec/convenios.md`
+T8). Seis catálogos pasan de solo lectura a **CRUD** (escritura solo `Administrador RENADS` +
+auditoría). Modelo base `Catalog`: `codigo` (único, obligatorio), `nombre` (obligatorio), `activo`.
+Fuente de verdad: `lib/api/schema.d.ts` regenerado — confirma `*_create/update/partial_update/destroy`
+para los seis basenames.
+
+Basenames: `document-types`, `university-entity-types`, `authorization-types`, `academic-levels`,
+`regional-organ-types`, `minsa-organ-types`.
+
+- [x] **W1** `lib/catalogos/catalogs.ts`: nuevo helper `writableCatalog(endpoint, title, singular)`
+  (columnas/búsqueda del catálogo estándar + `fields` `codigo`/`nombre`/`activo` y
+  `writeRoles: ["Administrador RENADS"]`, sin `readOnly`). Los seis basenames pasan de
+  `readOnlyCatalog(...)` a `writableCatalog(...)`; los 12 restantes no cambian.
+  - **Criterio:** en `/catalogos/listas/<slug>` un `Administrador RENADS` ve «Nuevo»/editar/eliminar
+    y persiste contra `/<slug>/`; otros roles siguen en solo lectura (canWrite = false).
+- [x] **W2** Docs: `docs/api-catalogos.md` §1 dividido en 12 de solo lectura + §1.1 los seis CRUD.
+- [x] **W3** Verificación: `npx tsc --noEmit` y `npm run lint` limpios.
+
+> Sincronización directa de contrato ya mergeado en el backend; implementado en el mismo ciclo.

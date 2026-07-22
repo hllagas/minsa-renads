@@ -1,0 +1,164 @@
+# API de accesos y permisos — Guía para el frontend
+
+Cómo el frontend debe **validar el perfil y los accesos del usuario antes de cualquier
+funcionalidad** del módulo Internados (estudiantes, internos, tutores) y cómo resolver el
+**ámbito por universidad** (preseleccionar cuando hay una sola, o dejar elegir entre las
+permitidas cuando hay varias).
+
+> **Principio.** El backend **siempre** aplica el alcance institucional del lado del servidor
+> (no confíes solo en el front). Esta guía describe cómo el front debe **reflejar** ese alcance
+> para dar buena UX y evitar 403 innecesarios. La fuente de verdad del acceso del usuario es
+> `GET /api/v1/auth/me/`.
+
+---
+
+## 1. Identidad y accesos del usuario — `GET /api/v1/auth/me/`
+
+Al iniciar sesión (y al cargar la app), consulta el perfil del usuario. Requiere
+`Authorization: Bearer <access>`.
+
+```bash
+curl https://api.renads.minsa.gob.pe/api/v1/auth/me/ -H "Authorization: Bearer $TOKEN"
+```
+
+Respuesta:
+
+```json
+{
+  "id": 12,
+  "username": "40123456",
+  "email": "docente@unmsm.edu.pe",
+  "nombre": "María Pérez",
+  "es_superusuario": false,
+  "debe_cambiar_password": false,
+  "grupos": ["Universidad"],
+  "perfiles": [
+    { "tipo_entidad": "university", "id_objeto": 3, "entidad": "UNMSM", "rol": "Universidad" },
+    { "tipo_entidad": "university", "id_objeto": 7, "entidad": "UPCH", "rol": "Universidad" }
+  ]
+}
+```
+
+- **`grupos`** = roles del usuario (p. ej. `Universidad`, `Administrador RENADS`, `Interno`, `Autoridad de convenio`).
+- **`perfiles`** = accesos institucionales: cada uno es una entidad (`tipo_entidad` + `id_objeto` + `entidad` legible) con su `rol`.
+  - `tipo_entidad` usa el nombre de modelo en minúscula: `university`, `ipress`, `student`, etc.
+- **`es_superusuario`** y el rol **`Administrador RENADS`** están **exentos** del alcance: ven/operan sobre todo.
+- **`debe_cambiar_password: true`** ⇒ el interno tiene clave temporal; el front debe forzar el cambio
+  antes de dejar operar (ver `docs/api_almacenamiento_frontend.md`).
+
+### Derivar las universidades accesibles (front)
+
+```js
+const me = await fetch("/api/v1/auth/me/", { headers: { Authorization: `Bearer ${access}` } })
+  .then((r) => r.json());
+
+const esGlobal = me.es_superusuario || me.grupos.includes("Administrador RENADS");
+
+// Universidades a las que el usuario tiene acceso (si no es global):
+const universidades = me.perfiles
+  .filter((p) => p.tipo_entidad === "university")
+  .map((p) => ({ id: p.id_objeto, nombre: p.entidad }));
+
+// (Análogo para sedes: p.tipo_entidad === "ipress".)
+```
+
+---
+
+## 2. Regla de UI para el selector de universidad
+
+Al entrar a cualquier opción del módulo Internados que dependa de una universidad
+(estudiantes, internos, registro de tutores, filtros), resuelve el selector así:
+
+| Caso | Comportamiento en el front |
+|------|----------------------------|
+| Usuario **global** (`es_superusuario` o `Administrador RENADS`) | Cargar el catálogo completo: `GET /api/v1/universities/`. Puede elegir cualquiera. |
+| Acceso a **una** universidad | **Preseleccionar por defecto** esa universidad y **bloquear** el selector (o mostrarla como fija). No pedir que elija. |
+| Acceso a **varias** universidades | Mostrar **solo** las universidades de `perfiles` (no el catálogo completo) y dejar elegir. |
+| **Sin** universidades y no global | No hay ámbito → no mostrar el listado (el backend devolvería vacío / 403 en escritura). |
+
+```js
+function resolverUniversidadInicial(me, universidades) {
+  if (me.es_superusuario || me.grupos.includes("Administrador RENADS")) {
+    return { modo: "catalogo" };                 // cargar /universities/
+  }
+  if (universidades.length === 1) {
+    return { modo: "fija", universidad: universidades[0] };   // preseleccionar + bloquear
+  }
+  if (universidades.length > 1) {
+    return { modo: "elegir", opciones: universidades };       // dropdown con las permitidas
+  }
+  return { modo: "sin-acceso" };
+}
+```
+
+---
+
+## 3. Contrato de alcance por recurso (lo que impone el backend)
+
+El backend **filtra en lectura** y **valida en escritura**. El front debe alinear su UI a esto.
+
+| Recurso | Lectura (`GET` list/detail) | Escritura (`POST`/`PUT`/`PATCH`/`DELETE`) |
+|---------|------------------------------|-------------------------------------------|
+| **Estudiantes** `/api/v1/students/` | Solo estudiantes de **tus universidades**. El rol `Interno` ve **solo su propio** estudiante (lectura). Global ve todos. | Rol `Universidad`/`Administrador RENADS`. Al crear, la `universidad` enviada debe estar en tu ámbito → si no, **403**. |
+| **Internos** `/api/v1/interns/` | Internos de **tus universidades o sedes (IPRESS)**. El rol `Interno` ve **solo su propio** internado. Global ve todos. | Crear: rol `Universidad` + la universidad del estudiante en tu ámbito (**403** si no). Acciones de flujo con su rol (p. ej. `revisar-declaraciones`). Adjunto de DJ (`annex-upload`/`annex-checklist`, actor `INTERNO`) **sobre el internado**: rol `Universidad`/`Administrador RENADS` o el propio `Interno`. |
+| **Tutores** `/api/v1/tutors/` | Autenticados (los tutores son compartidos, no acotados por universidad). | Rol `Universidad`/`Administrador RENADS`. Al asignar `universidades` (RN-24, 1 a 2) usa **solo** las universidades permitidas del usuario. |
+| **Rotaciones** `/api/v1/rotations/` | Rotaciones de tus internos (según tu ámbito). | Acciones con su rol (`autorizar`, `iniciar`, `cambiar-estado`). |
+
+**Filtros útiles (query params):**
+- `GET /api/v1/students/?universidad=<id>` — acota a una universidad (dentro de tu ámbito).
+- `GET /api/v1/students/?carrera_profesional=<id>` — acota por carrera profesional.
+- `GET /api/v1/tutors/?universidades=<id>` — tutores de una universidad.
+- `GET /api/v1/interns/?...` — filtros de internos (convenio, ipress, tutor, estado, ámbito, fechas).
+
+> **Preselección con filtro:** cuando el selector quede **fijo** en una universidad (caso "una sola"),
+> el front debe enviar siempre `?universidad=<id>` en los listados y fijar ese `universidad` en los
+> formularios de alta, para que coincida con lo que el backend ya está filtrando.
+
+---
+
+## 4. Carreras profesionales y otros catálogos
+
+- **Carreras** `GET /api/v1/professional-careers/`: catálogo **global** (no está acotado por
+  universidad en el modelo de datos). Úsalo para poblar el selector de carrera del estudiante;
+  filtra los estudiantes por `?carrera_profesional=<id>` si necesitas segmentar.
+- **Universidades** `GET /api/v1/universities/` e **IPRESS** `GET /api/v1/ipress/`: catálogos de
+  entidades. Para usuarios no globales, **no** los uses como fuente del selector de ámbito: usa
+  `perfiles` de `/auth/me/` (solo lo permitido). Sí puedes usarlos para mostrar nombres/detalle.
+- **Otros catálogos** del módulo (estados, tipos de documento, parentesco, periodos académicos,
+  documentos anexos) son de solo lectura para autenticados.
+
+---
+
+## 5. Flujo recomendado al entrar al módulo Internados
+
+1. `GET /api/v1/auth/me/` → guarda `grupos`, `perfiles`, `es_superusuario`, `debe_cambiar_password`.
+2. Si `debe_cambiar_password` → forzar cambio de clave (`POST /api/v1/auth/me/cambiar-password/`) antes de continuar.
+3. Deriva `universidades` accesibles (§1) y resuelve el selector (§2).
+4. Muestra/oculta acciones de **escritura** según el rol (§3): si el usuario no tiene rol de escritura,
+   deshabilita botones de alta/edición (el backend igualmente responderá **403**).
+5. En listados, envía el filtro de universidad activo; en formularios de alta, fija/limita la
+   universidad (y, para tutores, el multiselect de `universidades`) a lo permitido.
+
+---
+
+## 6. Errores de acceso (mensajes en español)
+
+| Código | Situación | Acción del front |
+|--------|-----------|------------------|
+| `401` | Token ausente/expirado. | Redirigir a login / refrescar token (`POST /api/v1/auth/token/refresh/`). |
+| `403` | Autenticado sin rol o **fuera del ámbito institucional** (p. ej. crear un estudiante de una universidad no permitida). | No es recuperable reintentando: revisar rol/ámbito; ocultar la acción. Mensaje del backend: "La entidad indicada está fuera de tu ámbito institucional." / "La escritura requiere el rol Universidad o Administrador RENADS." |
+| `400` | Datos inválidos (p. ej. tutor con 0 o más de 2 universidades — RN-24). | Mostrar el detalle de validación por campo. |
+
+---
+
+## 7. Roles (grupos) relevantes
+
+| Rol (`grupos`) | Puede |
+|----------------|-------|
+| `Administrador RENADS` | Todo el módulo, **sin** restricción de ámbito. |
+| `Universidad` | Registrar/ver estudiantes, internos y tutores **de sus universidades** (1..N por `perfiles`). |
+| `Interno` | **Solo lectura** de sus propios datos + adjuntar sus declaraciones juradas (`annex-upload`/`annex-checklist`). |
+| `Autoridad de convenio` | Autorizar rotaciones (`rotations/{id}/autorizar`). |
+
+> El backend es la última línea: aunque el front oculte una acción, la API revalida rol y ámbito en
+> cada request. La UI solo **anticipa** el resultado para mejor experiencia.
