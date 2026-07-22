@@ -215,9 +215,25 @@ class ConventionTemplateViewSet(AuditedModelViewSet):
 # Bloque 2 — Catálogos (solo lectura) y entidades (CRUD)
 # ---------------------------------------------------------------------------
 def _auto_serializer(model):
-    """Crea un ModelSerializer con todos los campos del modelo."""
+    """Crea un ModelSerializer con todos los campos del modelo.
+
+    Para las entidades con logo (`ImageField` `referencia_logo`), expone el campo
+    como URL de solo lectura (`.url` = signed URL efímero con django-storages, o
+    `None` si no hay logo). El logo NO se sube por el CRUD, sino por `upload-logo`.
+    """
     meta = type("Meta", (), {"model": model, "fields": "__all__"})
-    return type(f"{model.__name__}AutoSerializer", (drf_serializers.ModelSerializer,), {"Meta": meta})
+    atributos = {"Meta": meta}
+
+    campos = {f.name for f in model._meta.get_fields()}
+    if "referencia_logo" in campos:
+        def _get_referencia_logo(self, obj):
+            """URL del logo institucional (o `None` si no hay logo cargado)."""
+            return obj.referencia_logo.url if obj.referencia_logo else None
+
+        atributos["referencia_logo"] = drf_serializers.SerializerMethodField()
+        atributos["get_referencia_logo"] = _get_referencia_logo
+
+    return type(f"{model.__name__}AutoSerializer", (drf_serializers.ModelSerializer,), atributos)
 
 
 def _catalog_viewset(model):

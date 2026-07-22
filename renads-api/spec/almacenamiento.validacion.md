@@ -162,3 +162,85 @@ No se modificó código de la app.
 
 Conforme a la regla del validator, se actualiza la guía de pruebas manuales en
 `spec/almacenamiento.guia_pruebas.md` (sección Etapa 2).
+
+---
+
+# Validación — Etapa 4 (migrar `referencia_logo` a `ImageField`)
+
+**Resultado: APROBADO — sin errores altos/medios.**
+
+Fecha: 2026-07-21. Revisión del `validator` (SDD) contra `spec/almacenamiento.md`
+(Etapa 4), `docs/arquitectura_desarrollo.md`, `CLAUDE.md` y el schema del módulo 1.
+No se modificó código de la app. Decisiones del usuario (Opción A django-storages,
+firma keyless impersonada, sin backfill) se toman como fijadas, no como hallazgos.
+
+## Sanidad técnica ejecutada
+
+- `manage.py check` (settings `dev`): **System check identified no issues (0 silenced)**.
+- `manage.py makemigrations --check --dry-run`: **No changes detected** (los 5 modelos
+  concuerdan con la migración `0013_logo_imagefield`).
+- Import de `config.settings.prod` con `GCS_ENABLED=False`: **STORAGES["default"] =
+  FileSystemStorage** y el import NO construye credenciales impersonadas ni falla.
+- Dependencias en el venv: `django-storages==1.14.6`, `Pillow==11.3.0` (import OK);
+  `storages` presente en `INSTALLED_APPS`.
+
+## Cobertura del spec (Etapa 4)
+
+- **Modelos** OK — las **5** entidades (`RegionalGovernment` L181, `RegionalOrgan`
+  L211, `ExecutingUnit` L241, `Ipress` L275, `University` L392) usan
+  `models.ImageField("logo", upload_to="<carpeta_entidad>/", max_length=500, null=True,
+  blank=True, help_text=...)`. `max_length=500` explícito (no el default 100), columna
+  DB `referencia_logo` preservada (sin `db_column`, por convención), `upload_to` por
+  entidad (`gobierno_regional/`, `organo_regional/`, `unidad_ejecutora/`, `ipress/`,
+  `universidad/`). `verbose_name`/`help_text` en español y homogéneos entre las 5.
+- **Migración 0013** OK — `dependencies=[('convenios','0012_document_texto_extraido')]`;
+  5 `AlterField` (`CharField`→`ImageField`), no destructiva, **sin `RunPython`**; nota
+  de backfill documentada en el docstring. `makemigrations --check` limpio.
+- **`LogoStorageMixin`** OK — ya **no** usa `get_document_storage()` para logos: asigna
+  el binario al `ImageField` y `save(update_fields=["referencia_logo"])`; Django persiste
+  vía `STORAGES["default"]`. Borrado del binario anterior **después** de guardar el nuevo,
+  **solo si difiere** (`logo_anterior != nueva_key`) y **tolerante a fallo**
+  (`try/except` con `logger.warning`), obtenido del `storage` del propio campo. Contrato
+  `{referencia_logo, url}` preservado (`url = entidad.referencia_logo.url`); `logo-url`
+  devuelve 404 en español si el campo está vacío. `@extend_schema` en ambas acciones.
+- **`AnnexAttachmentMixin` (PDFs)** OK — sin regresión: sigue resolviendo el backend
+  documental custom vía `get_document_storage()` (property `storage`, L146-148), sube por
+  `self.storage.subir(...)`, extrae texto (Document AI) y versiona por
+  `(objeto, documento_anexo)`. No comparte ruta con el flujo de logos.
+- **Settings** OK — `base.py`: `STORAGES["default"] = FileSystemStorage`; bloque `GS_*`
+  (`GS_BUCKET_NAME`/`GS_PROJECT_ID` heredan de `GCS_*`, `GS_LOCATION="logos"`,
+  `GS_QUERYSTRING_AUTH=True`, `GS_DEFAULT_ACL=None`, `GS_EXPIRATION=GCS_SIGNED_URL_EXPIRATION`,
+  `GS_FILE_OVERWRITE=False`), `MEDIA_URL`/`MEDIA_ROOT`, `storages` en `INSTALLED_APPS`.
+  `prod.py`: solo pasa a `storages.backends.gcloud.GoogleCloudStorage` cuando
+  `GCS_ENABLED and GS_BUCKET_NAME`; en ese ramo inyecta `credentials=get_impersonated_credentials()`
+  (import perezoso dentro del `if`, no en tiempo de módulo). Con GCS off → FileSystemStorage.
+- **Firma keyless centralizada** OK — `apps/common/storage.get_impersonated_credentials()`
+  construye ADC + `impersonated_credentials.Credentials` (`target_principal=GCS_SIGNING_SA`,
+  scope `devstorage.read_write`), reutilizado por el backend documental custom
+  (`GoogleCloudStorage._get_bucket`, L170) y por django-storages (`OPTIONS["credentials"]`
+  en prod). Errores en español si faltan librerías/ADC.
+- **Convivencia de backends** OK — PDFs/anexos por el custom bajo `GCS_OBJECT_PREFIX`;
+  imágenes por django-storages bajo `GS_LOCATION="logos"`. Mismo bucket, prefijos
+  distintos, sin colisión.
+- **Logo fuera del CRUD de escritura** OK — `_auto_serializer` expone `referencia_logo`
+  como `SerializerMethodField` (solo lectura, `.url` o `None`); no hay campo de escritura
+  de logo en los serializers CRUD. La subida es exclusiva de `upload-logo`. `LogoUploadSerializer`
+  solo tiene el campo `archivo`.
+- **Docs** OK — `docs/db_schema_modulo_01_convenios.md` documenta las 5 columnas
+  `referencia_logo varchar(500)` como `ImageField`/nullable; `docs/api_almacenamiento_frontend.md`
+  actualizado (sección logos = `ImageField`, `.url` = signed URL V4, contrato de endpoints
+  sin cambios, prefijo `GS_LOCATION`). `.env.example` lista las vars `GS_*`.
+- **Idioma** OK — `verbose_name`/`help_text`/docstrings/mensajes/`.md` en español; código,
+  clases y endpoints en inglés; columna `referencia_logo` y descripciones en español.
+
+## Observaciones menores (severidad baja — no bloquean)
+
+- `[BAJA]` `dev.py` mantiene `FileSystemStorage`; para probar `.url` como signed URL real
+  hay que replicar el bloque `STORAGES["default"]` de `prod.py` (ya documentado en dev.py).
+- `[BAJA]` Sin backfill por decisión del usuario: si existieran logos productivos con el
+  layout de keys del backend custom (`{GCS_OBJECT_PREFIX}/{uuid4}-...`), `.url` no
+  resolvería el binario (paths no coinciden con `GS_LOCATION`/`upload_to`). No aplica hoy
+  (no hay logos cargados); ya advertido en el docstring de la migración 0013.
+
+Conforme a la regla del validator, se actualiza la guía de pruebas manuales de logos en
+`spec/almacenamiento.guia_pruebas.md` (Flujo A) para el comportamiento de la Etapa 4.

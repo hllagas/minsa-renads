@@ -178,9 +178,9 @@ class Ubigeo(models.Model):
 class RegionalGovernment(models.Model):
     nombre = models.CharField("nombre", max_length=255, help_text="Nombre del gobierno regional")
     region = models.ForeignKey(Region, on_delete=models.PROTECT, db_column="region_id", help_text="Región")
-    referencia_logo = models.CharField(
-        "referencia del logo", max_length=500, blank=True,
-        help_text="Referencia externa del logo (repositorio externo)",
+    referencia_logo = models.ImageField(
+        "logo", upload_to="gobierno_regional/", max_length=500, null=True, blank=True,
+        help_text="Logo institucional (imagen almacenada en el repositorio de medios)",
     )
     activo = models.BooleanField("activo", default=True)
 
@@ -208,9 +208,9 @@ class RegionalOrgan(models.Model):
         Ubigeo, on_delete=models.PROTECT, db_column="ubigeo_id", null=True, blank=True,
         related_name="+", help_text="Ubicación geográfica (UBIGEO)",
     )
-    referencia_logo = models.CharField(
-        "referencia del logo", max_length=500, blank=True,
-        help_text="Referencia externa del logo (repositorio externo)",
+    referencia_logo = models.ImageField(
+        "logo", upload_to="organo_regional/", max_length=500, null=True, blank=True,
+        help_text="Logo institucional (imagen almacenada en el repositorio de medios)",
     )
     activo = models.BooleanField("activo", default=True)
 
@@ -238,9 +238,9 @@ class ExecutingUnit(models.Model):
         Ubigeo, on_delete=models.PROTECT, db_column="ubigeo_id", null=True, blank=True,
         related_name="+", help_text="Ubicación geográfica (UBIGEO)",
     )
-    referencia_logo = models.CharField(
-        "referencia del logo", max_length=500, blank=True,
-        help_text="Referencia externa del logo (repositorio externo)",
+    referencia_logo = models.ImageField(
+        "logo", upload_to="unidad_ejecutora/", max_length=500, null=True, blank=True,
+        help_text="Logo institucional (imagen almacenada en el repositorio de medios)",
     )
     activo = models.BooleanField("activo", default=True)
 
@@ -272,9 +272,9 @@ class Ipress(models.Model):
         "es sede docente", default=False,
         help_text="Autorizada por CONAPRES como sede docente (asistencial, MINSA/FF.AA.-FF.PP., pública)",
     )
-    referencia_logo = models.CharField(
-        "referencia del logo", max_length=500, blank=True,
-        help_text="Referencia externa del logo (repositorio externo)",
+    referencia_logo = models.ImageField(
+        "logo", upload_to="ipress/", max_length=500, null=True, blank=True,
+        help_text="Logo institucional (imagen almacenada en el repositorio de medios)",
     )
     activo = models.BooleanField("activo", default=True)
 
@@ -389,9 +389,9 @@ class University(models.Model):
         Ubigeo, on_delete=models.PROTECT, db_column="ubigeo_id", null=True, blank=True,
         related_name="+", help_text="Ubicación geográfica (UBIGEO)",
     )
-    referencia_logo = models.CharField(
-        "referencia del logo", max_length=500, blank=True,
-        help_text="Referencia externa del logo (repositorio externo)",
+    referencia_logo = models.ImageField(
+        "logo", upload_to="universidad/", max_length=500, null=True, blank=True,
+        help_text="Logo institucional (imagen almacenada en el repositorio de medios)",
     )
     activo = models.BooleanField("activo", default=True)
 
