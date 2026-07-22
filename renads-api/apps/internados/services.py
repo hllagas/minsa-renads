@@ -35,7 +35,6 @@ from apps.internados.models import (
     Internship,
     InternshipStatus,
     InternshipStatusHistory,
-    RelationshipType,
     Rotation,
     RotationAuthorization,
     RotationStatus,
@@ -60,10 +59,47 @@ ESTADOS_INTERNADO_BLOQUEANTES = {
 # RN-22 — Grupo (rol) asignado al interno aprovisionado.
 GRUPO_INTERNO = "Interno"
 
+# RN-24 — Un tutor pertenece de 1 a 2 universidades (tope de negocio).
+MAX_UNIVERSIDADES_TUTOR = 2
+
+
+def validar_universidades_tutor(universidades) -> None:
+    """Valida la regla RN-24: un tutor pertenece de 1 a ``MAX_UNIVERSIDADES_TUTOR`` universidades.
+
+    ``universidades`` es la colección de universidades a asignar. Lanza
+    ``ValidationError`` (mensaje en español) si está vacía o excede el tope.
+    Fuente única compartida por el registro individual (serializer) y cualquier
+    otro flujo que asigne universidades a un tutor.
+    """
+    cantidad = len(universidades)
+    if cantidad < 1:
+        raise ValidationError({"universidades": "El tutor debe pertenecer al menos a una universidad."})
+    if cantidad > MAX_UNIVERSIDADES_TUTOR:
+        raise ValidationError(
+            {"universidades": f"El tutor no puede pertenecer a más de {MAX_UNIVERSIDADES_TUTOR} universidades."}
+        )
+    if len({u.pk for u in universidades}) != cantidad:
+        raise ValidationError({"universidades": "Hay universidades repetidas en la lista."})
+
 # Columnas requeridas del Excel de carga masiva de estudiantes (RN-16, §6 bis schema M2).
+# Se expresan con la clave canónica interna (ver CARGA_ALIAS_COLUMNAS).
 CARGA_COLUMNAS_REQUERIDAS = {
     "tipo_documento", "numero_documento", "nombres", "apellido_paterno",
     "universidad", "carrera_profesional",
+}
+
+# Alias de encabezados del Excel → clave canónica interna. Permite adoptar la
+# estructura de la trama oficial `TramaCargaEstudiante.xlsx` (encabezados con
+# sufijo `_id`) manteniendo compatibilidad con los nombres históricos. Cada valor
+# de esas columnas puede seguir siendo un id numérico o un código (los resolvers
+# aceptan ambos). Todo encabezado no listado se usa tal cual (identidad).
+CARGA_ALIAS_COLUMNAS = {
+    "tipo_documento_identidad_id": "tipo_documento",
+    "ubigeo_id": "ubigeo",
+    "universidad_id": "universidad",
+    "carrera_profesional_id": "carrera_profesional",
+    "periodo_academico_id": "periodo_academico",
+    "especialidad_id": "especialidad",
 }
 
 
@@ -174,6 +210,9 @@ def crear_internado(*, datos: dict, usuario) -> Internship:
         ambito_geografico_sanitario=datos["ambito_geografico_sanitario"],
         estado_actual=estado_inicial,
         estado_declaraciones="PENDIENTE",
+        contacto_emergencia_nombre=datos.get("contacto_emergencia_nombre", ""),
+        contacto_emergencia_telefono=datos.get("contacto_emergencia_telefono", ""),
+        contacto_emergencia_parentesco=datos.get("contacto_emergencia_parentesco"),
         fecha_inicio=fecha_inicio,
         fecha_fin=fecha_fin,
         observaciones=datos.get("observaciones", ""),
@@ -297,9 +336,9 @@ def notificar_registro_interno(internado: Internship) -> bool:
         + (f" ({tutor_correo})" if tutor_correo else "")
         + "\n\n"
         f"Debe adjuntar sus declaraciones juradas en el sistema. Consulte su checklist en:\n"
-        f"  /api/v1/students/{estudiante.pk}/annex-checklist/\n"
+        f"  /api/v1/interns/{internado.pk}/annex-checklist/\n"
         f"y adjunte cada anexo en:\n"
-        f"  /api/v1/students/{estudiante.pk}/annex-upload/\n\n"
+        f"  /api/v1/interns/{internado.pk}/annex-upload/\n\n"
         f"Atentamente,\nRENADS — MINSA"
     )
     try:
@@ -325,11 +364,10 @@ def notificar_registro_interno(internado: Internship) -> bool:
 def _declaraciones_completas(internado: Internship) -> bool:
     """True si todas las DJ obligatorias del interno tienen una versión ACTIVO adjunta.
 
-    Los anexos (declaraciones juradas) se adjuntan por estudiante (``Student``) vía
+    Los anexos (declaraciones juradas) se adjuntan por interno (``Internship``) vía
     ``AnnexAttachmentMixin`` (actor ``INTERNO``); aquí se cruza el catálogo maestro
-    con los ``Document`` ``ACTIVO`` del estudiante.
+    con los ``Document`` ``ACTIVO`` del internado.
     """
-    estudiante = internado.estudiante
     obligatorios = set(
         AnnexDocument.objects.filter(
             activo=True, tipo_actor="INTERNO", obligatorio=True
@@ -337,11 +375,11 @@ def _declaraciones_completas(internado: Internship) -> bool:
     )
     if not obligatorios:
         return True
-    ct_student = ContentType.objects.get_for_model(Student)
+    ct_interno = ContentType.objects.get_for_model(Internship)
     adjuntados = set(
         Document.objects.filter(
-            tipo_contenido=ct_student,
-            id_objeto=estudiante.pk,
+            tipo_contenido=ct_interno,
+            id_objeto=internado.pk,
             estado="ACTIVO",
             documento_anexo__isnull=False,
         ).values_list("documento_anexo_id", flat=True)
@@ -419,6 +457,13 @@ def actualizar_internado(*, internado: Internship, datos: dict, usuario) -> Inte
         internado.ipress = nueva_ipress
     if "observaciones" in datos:
         internado.observaciones = datos["observaciones"]
+    for campo in (
+        "contacto_emergencia_nombre",
+        "contacto_emergencia_telefono",
+        "contacto_emergencia_parentesco",
+    ):
+        if campo in datos:
+            setattr(internado, campo, datos[campo])
     internado.save()
     registrar_auditoria(usuario, "ACTUALIZAR", internado)
     return internado
@@ -688,14 +733,6 @@ def _crear_estudiante_desde_fila(*, obtener, usuario, ct_uni, es_admin) -> Stude
         except Ubigeo.DoesNotExist as exc:
             raise ValidationError(f"UBIGEO no encontrado: {ubigeo_codigo}.") from exc
 
-    parentesco = None
-    parentesco_codigo = obtener("contacto_emergencia_parentesco")
-    if parentesco_codigo is not None:
-        try:
-            parentesco = RelationshipType.objects.get(codigo=str(parentesco_codigo).strip().upper())
-        except RelationshipType.DoesNotExist as exc:
-            raise ValidationError(f"Parentesco inválido: {parentesco_codigo}.") from exc
-
     sexo = obtener("sexo")
     if sexo is not None:
         sexo = str(sexo).strip().upper()
@@ -708,13 +745,6 @@ def _crear_estudiante_desde_fila(*, obtener, usuario, ct_uni, es_admin) -> Stude
             nota = decimal.Decimal(str(nota).replace(",", "."))
         except (decimal.InvalidOperation, ValueError) as exc:
             raise ValidationError("`nota_promedio_ponderado` inválida.") from exc
-
-    anio = obtener("anio_academico")
-    if anio is not None:
-        try:
-            anio = int(anio)
-        except (TypeError, ValueError) as exc:
-            raise ValidationError("`anio_academico` inválido.") from exc
 
     estudiante = Student.objects.create(
         tipo_documento_identidad=tipo_doc,
@@ -733,11 +763,7 @@ def _crear_estudiante_desde_fila(*, obtener, usuario, ct_uni, es_admin) -> Stude
         periodo_academico=periodo_academico,
         especialidad=especialidad,
         codigo_universitario=(str(obtener("codigo_universitario")).strip() if obtener("codigo_universitario") else ""),
-        anio_academico=anio,
         nota_promedio_ponderado=nota,
-        contacto_emergencia_nombre=(str(obtener("contacto_emergencia_nombre")).strip() if obtener("contacto_emergencia_nombre") else ""),
-        contacto_emergencia_telefono=(str(obtener("contacto_emergencia_telefono")).strip() if obtener("contacto_emergencia_telefono") else ""),
-        contacto_emergencia_parentesco=parentesco,
         creado_por=usuario,
     )
     registrar_auditoria(usuario, "CREAR", estudiante)
@@ -763,7 +789,13 @@ def registrar_estudiantes_masivo(*, archivo, usuario) -> dict:
     except StopIteration as exc:
         raise ValidationError("El archivo está vacío.") from exc
 
-    encabezados = [str(c).strip().lower() if c is not None else "" for c in cabecera]
+    # Normaliza los encabezados y aplica los alias de la trama oficial (`_id`) a la
+    # clave canónica interna; así la carga acepta tanto la estructura nueva como la
+    # histórica sin tocar los resolvers ni el mapeo de columnas.
+    encabezados = [
+        CARGA_ALIAS_COLUMNAS.get(h, h)
+        for h in (str(c).strip().lower() if c is not None else "" for c in cabecera)
+    ]
     faltantes = CARGA_COLUMNAS_REQUERIDAS - set(encabezados)
     if faltantes:
         raise ValidationError(f"Faltan columnas requeridas: {', '.join(sorted(faltantes))}.")

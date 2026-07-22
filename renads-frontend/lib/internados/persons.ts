@@ -87,7 +87,6 @@ export const PERSON_CONFIGS: Record<string, ResourceConfig> = {
         optionsEndpoint: "academic-periods",
       },
       { name: "codigo_universitario", label: "Código universitario", type: "text" },
-      { name: "anio_academico", label: "Año académico", type: "number" },
       {
         name: "nota_promedio_ponderado",
         label: "Nota promedio ponderado (0–20)",

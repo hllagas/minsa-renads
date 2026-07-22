@@ -10,7 +10,7 @@ Exponer vía DRF (bajo `/api/v1/`) los recursos del módulo: catálogos (solo le
 
 **Entidades** (modelos en `apps/internados/models.py`):
 - Catálogos: `InternshipStatus`, `RotationStatus`, `ServiceArea`, `IdentityDocumentType`, `RelationshipType` (tabla `parentesco`, parentesco del contacto de emergencia), `AcademicPeriod` (tabla `periodo_academico`), `AnnexDocument` (tabla `documentos_anexos`).
-- Personas: `Student`, `Tutor`. `Student` incluye `nota_promedio_ponderado`, contacto de emergencia inline (`contacto_emergencia_nombre`, `contacto_emergencia_telefono`, `contacto_emergencia_parentesco` → `RelationshipType`) y las FKs nullable `periodo_academico` (→ `AcademicPeriod`) y `especialidad` (→ `convenios.Specialty`).
+- Personas: `Student`, `Tutor`. `Student` incluye `nota_promedio_ponderado`, contacto de emergencia inline (`contacto_emergencia_nombre`, `contacto_emergencia_telefono`, `contacto_emergencia_parentesco` → `RelationshipType`) y las FKs nullable `periodo_academico` (→ `AcademicPeriod`) y `especialidad` (→ `convenios.Specialty`). `Tutor` incluye la relación **M2M `universidades`** (→ `convenios.University`) vía la tabla puente `TutorUniversity` (`tutor_universidad`), de **1 a 2** universidades (RN-24).
 - Núcleo: `Internship`, `InternshipStatusHistory`, `TutorHistory`, `Rotation`, `RotationAuthorization`, `RotationStatusHistory`.
 
 > **Feature F1 — Periodo académico, declaraciones juradas y RN-19 (2026-07):** ver el bloque **Feature F1** al final del spec. Introduce los catálogos `AcademicPeriod`/`AnnexDocument`, las FKs `periodo_academico`/`especialidad` en `Student`, el renombrado del código de nivel académico `CARRERA_PROFESIONAL` → `PREGRADO` (módulo 1) y la validación condicional **RN-19**. Amplía las tareas T1, T3, T4, T6 y T7.
@@ -18,6 +18,10 @@ Exponer vía DRF (bajo `/api/v1/`) los recursos del módulo: catálogos (solo le
 > **Feature F2 — Adjunto real de anexos (declaraciones juradas) por estudiante (2026-07):** ver la tarea **T-F2.2** al final del spec. Agrega al `StudentViewSet` las acciones `annex-upload`/`annex-checklist` que adjuntan el PDF real de cada `AnnexDocument` de `tipo_actor = "INTERNO"` reutilizando el mixin transversal `AnnexAttachmentMixin` (definido en `apps/convenios/mixins.py`) y el backend de almacenamiento de `spec/almacenamiento.md` (Etapa 2). Con esto, el flujo de adjunto real por estudiante **deja de estar fuera de alcance**.
 
 > **Feature F3 — Registro de internos por universidad, unicidad, onboarding del interno y estado de declaraciones juradas (2026-07):** ver el bloque **Feature F3** al final del spec. Introduce: (a) el registro de internos a cargo del **usuario de universidad** con **alcance por universidad** (1..N vía `perfil_usuario_entidad`); (b) la **unicidad de interno por DNI** (un internado vigente por estudiante) con **excepción de estados liberadores** (incl. `SUSPENDIDO`); (c) el **onboarding del interno** al asociarse: creación de un `User` (username = DNI, clave temporal, rol `Interno`, solo lectura de sus datos), **notificación por correo** (sede docente, fechas, tutor, instrucción de adjuntar DJ); y (d) el **estado de declaraciones juradas** `Internship.estado_declaraciones` (PENDIENTE/COMPLETAS/OBSERVADAS/VALIDADAS) con revisión humana. Amplía T3.1 y agrega el rol `Interno`.
+
+> **Feature F4 — Universidades del tutor (2026-07):** ver la tarea **T-F4.1** al final del spec. Agrega la relación M2M `Tutor.universidades` (tabla puente `tutor_universidad`) con la regla de negocio **RN-24** (de 1 a 2 universidades por tutor), validada por `services.validar_universidades_tutor` desde `TutorSerializer`.
+
+> **Feature F6 — Eliminar `anio_academico` de `estudiante` (refactor 2026-07):** ver el bloque **Feature F6** al final del spec. Elimina el campo `anio_academico` del modelo `Student` por ser **redundante** con `periodo_academico`; la columna del Excel de carga masiva pasa a **ignorarse**. Sincroniza modelo, migración, services, schema y frontend.
 
 ---
 
@@ -27,6 +31,8 @@ Exponer vía DRF (bajo `/api/v1/`) los recursos del módulo: catálogos (solo le
 - **Bloque F1 (feature 2026-07):** catálogos CRUD `AcademicPeriod`/`AnnexDocument`, FKs de `Student`, renombrado del código de nivel académico y validación **RN-19** (helper de services reutilizado por serializer y bulk-upload).
 - **Bloque F2 (feature 2026-07):** adjunto real de anexos por estudiante (`StudentViewSet` + `AnnexAttachmentMixin`), dependiente de la Etapa 2 de `spec/almacenamiento.md`.
 - **Bloque F3 (feature 2026-07):** registro de internos por universidad con alcance, unicidad por DNI (excepción `SUSPENDIDO`), onboarding del interno (usuario `Interno` + correo) y `estado_declaraciones`. Depende de F2 (checklist de DJ) y de `spec/almacenamiento.md` Etapa 2.
+- **Bloque F5 (refactor 2026-07):** el **contacto de emergencia** se mueve de `estudiante` a `interno`, y el **adjunto real de anexos del actor `INTERNO`** se mueve de `StudentViewSet` a `InternshipViewSet` (`interns/{id}/annex-upload`/`annex-checklist`). Ver **T-F5.1**. Supersede la ubicación definida en F2 (T-F2.2).
+- **Bloque F6 (refactor 2026-07):** eliminar el campo `anio_academico` de `estudiante` (modelo, migración a mano, carga masiva, schema y frontend). Ver **T-F6.1..T-F6.7**.
 
 ---
 
@@ -80,8 +86,9 @@ Toda escritura en `transaction.atomic()`, con auditoría (`apps.common.services.
 - **T3.5** `autorizar_rotacion(rotacion, datos, usuario)` (**RN-10**): el `participante_convenio` debe ser **firmante** (`es_firmante=True`) del Convenio Específico del internado; crea `RotationAuthorization`; estado `AUTORIZADA`/`OBSERVADA`/`RECHAZADA` según `resultado`.
 - **T3.6** `iniciar_rotacion(rotacion, usuario)` (**RN-11**): bloquea si no existe autorización `APROBADO`; pasa a `EN_CURSO`.
 - **T3.7** `cambiar_estado_rotacion(rotacion, nuevo_estado_codigo, usuario, observacion="")`.
-- **T3.8** `registrar_estudiantes_masivo(archivo_excel, usuario)` (**RN-16**): parsea el `.xlsx` (estructura de §6 bis del schema M2), valida por fila (unicidad `tipo_documento`+`numero_documento`, catálogos/entidades por `codigo`, alcance institucional de `universidad`), crea en lote dentro de `transaction.atomic()` con auditoría por fila y devuelve **resumen** `{creados, omitidos, errores:[{fila, motivo}]}`. Las filas inválidas no abortan el lote.
+- **T3.8** `registrar_estudiantes_masivo(archivo_excel, usuario)` (**RN-16**): parsea el `.xlsx` (estructura de §6 bis del schema M2, alineada con la trama oficial `TramaCargaEstudiante.xlsx`), valida por fila (unicidad `tipo_documento`+`numero_documento`, catálogos/entidades resueltos por id **o** `codigo`, alcance institucional de `universidad`), crea en lote dentro de `transaction.atomic()` con auditoría por fila y devuelve **resumen** `{creados, omitidos, errores:[{fila, motivo}]}`. Las filas inválidas no abortan el lote. Los encabezados de la trama llevan sufijo `_id` (`tipo_documento_identidad_id`, `universidad_id`, `carrera_profesional_id`, `periodo_academico_id`, `especialidad_id`, `ubigeo_id`) y se mapean a la clave canónica interna vía `CARGA_ALIAS_COLUMNAS` (se aceptan también los nombres históricos sin sufijo).
   - **(F1)** resolver por `codigo` las columnas opcionales `periodo_academico` (→ `AcademicPeriod.codigo`) y `especialidad` (→ `convenios.Specialty.codigo`), y aplicar **RN-19** por fila invocando `validar_regla_periodo_especialidad(...)` (T3.10). Una fila que viole RN-19 se reporta en `errores` con `{fila, motivo}` y **no** aborta el lote.
+  - **(F6)** la columna `anio_academico` de la trama, si viene, se **ignora** (no se lee ni valida); no es requerida ni opcional-mapeada. Ver **T-F6.3**.
 - **T3.9** Prelación (**RN-18**): al asignar cupos de un `campo_clinico`, ordenar candidatos por `estudiante.nota_promedio_ponderado` **descendente** (orden de mérito); respetar disponibilidad (**RN-17**).
 - **T3.10 (F1)** `validar_regla_periodo_especialidad(*, carrera_profesional, periodo_academico, especialidad)` (**RN-19**) — helper puro y reutilizable, **fuente única de verdad** de la regla:
   - Deriva `nivel = carrera_profesional.nivel_academico.codigo` (usar `select_related` al cargar el estudiante para evitar N+1 en bulk).
@@ -177,6 +184,11 @@ Feature del módulo Internados que agrega periodos académicos, el catálogo mae
 - **Criterio:** `manage.py check` limpio; `spectacular` sin error; `/api/v1/annex-documents/?tipo_actor=` filtra; seed con {`INTERNO`:4, `AUTORIDAD_UNIVERSIDAD`:2, `REPRESENTANTE`:2}; docs M2 + ER global + html + CLAUDE.md sincronizados.
 
 ### T-F2.2 — Adjunto real de anexos por estudiante en `StudentViewSet` (`apps/internados/views.py`)
+
+> **⚠ Superado por F5 (T-F5.1):** el adjunto del actor `INTERNO` se movió al **internado**
+> (`InternshipViewSet`, `interns/{id}/annex-upload`/`annex-checklist`). El `StudentViewSet` ya
+> **no** expone estas acciones. La descripción histórica abajo se conserva por trazabilidad;
+> léase «`interns/{id}`» y «`Internship`» donde diga «`students/{id}`» y «estudiante».
 
 Depende de **`spec/almacenamiento.md` — Etapa 2** (mixin `AnnexAttachmentMixin`, serializer `AnnexUploadSerializer`, FK `Document.documento_anexo`, `adjuntar_documento(..., documento_anexo=...)` y seed `DocumentType ANEXO`), que son transversales y viven en `apps/convenios`. Aquí solo se **aplica** el mixin al `StudentViewSet` para el actor `INTERNO`.
 
@@ -278,11 +290,93 @@ Depende de **`spec/almacenamiento.md` — Etapa 2** (mixin `AnnexAttachmentMixin
 
 ---
 
+## Feature F4 — Universidades del tutor (RN-24) (2026-07)
+
+### T-F4.1 — Relación `Tutor.universidades` (1 a 2) (`apps/internados/`)
+- **Modelo:** M2M `Tutor.universidades = ManyToManyField(convenios.University, through="TutorUniversity", related_name="tutores")`. Tabla puente `TutorUniversity` (`db_table="tutor_universidad"`): `tutor` (FK CASCADE, `db_column="tutor_id"`), `universidad` (FK PROTECT, `db_column="universidad_id"`), `unique_together=[("tutor","universidad")]`.
+- **Regla RN-24 (1 a 2, sin repetidos):** helper único `services.validar_universidades_tutor(universidades)` (mensajes español). El tope `MAX_UNIVERSIDADES_TUTOR = 2` se valida a nivel de aplicación (no hay constraint DB de cardinalidad).
+- **Serializer:** `TutorSerializer` expone `universidades` como lista de PKs **escribible** (`PrimaryKeyRelatedField(many=True)`); `validate_universidades` delega en el helper; `create`/`update` fijan la relación con `.set(...)`.
+- **ViewSet:** `TutorViewSet` con `prefetch_related("universidades")` y `universidades` en `filterset_fields` (filtro `/api/v1/tutors/?universidades=<id>`). Permisos sin cambios (escritura `Universidad`/`Administrador RENADS`).
+- **Migración a mano:** `0014_tutor_universidades` — `CreateModel TutorUniversity` + `AddField Tutor.universidades` (M2M through). Dependencias: `internados 0013` y `convenios 0011`.
+- **Documentación:** `docs/db_schema_modulo_02_internados.md` (tabla `tutor`, nueva tabla `tutor_universidad`, RN-24), ER global, `db_schema.html`, `CLAUDE.md`, diccionario regenerado.
+- **Criterio:** crear tutor con 0 universidades → 400; con 1 o 2 → OK; con 3 → 400; con repetidas → 400. `makemigrations --check` sin pendientes; `check` limpio; `spectacular` sin error; `tutors` acepta/filtra `universidades`.
+
+---
+
+## Feature F5 — Contacto de emergencia y anexos del interno se mueven a `interno` (refactor 2026-07)
+
+### T-F5.1 — Reubicar contacto de emergencia y adjunto de DJ del estudiante al internado (`apps/internados/`)
+
+Motivo: el contacto de emergencia y las declaraciones juradas del interno **aplican al internado concreto**, no al estudiante (que puede tener varios internados en el tiempo). Supersede **T-F2.2**.
+
+- **Modelo:** mover `contacto_emergencia_nombre` (char 255, blank), `contacto_emergencia_telefono` (char 30, blank) y `contacto_emergencia_parentesco` (FK `RelationshipType`, PROTECT, null/blank) de `Student` a `Internship`.
+- **Serializers:** agregar los 3 campos (opcionales) a `InternshipWriteSerializer` e `InternshipUpdateSerializer`, y exponerlos en `InternshipReadSerializer`. Quitarlos de `Student` (queda `fields="__all__"`, auto). Quitar las columnas de la **carga masiva** (`_crear_estudiante_desde_fila`) — la carga solo crea estudiantes.
+- **Services:** `crear_internado` e `actualizar_internado` persisten el contacto de emergencia. `_declaraciones_completas` cruza los `Document` `ACTIVO` del **internado** (ct `internship`), no del estudiante. `notificar_registro_interno` apunta las URLs a `interns/{id}/annex-…`.
+- **ViewSets:** quitar `AnnexAttachmentMixin`/`annex_actor` de `StudentViewSet` (y su override `annex_upload`); agregarlos a `InternshipViewSet` (`annex_actor="INTERNO"`), con override `annex_upload` que tras adjuntar llama `services.recalcular_estado_declaraciones(internado)`. `InternshipViewSet.permission_classes` añade `IsUniversityOrReadOnly` (habilita al rol `Interno` las acciones de anexo).
+- **Alcance del `Interno`:** `selectors.internados_visibles` e `InternshipScope` reconocen el perfil del `Interno` sobre su `Student` (ct `student`) para ver/adjuntar **su propio internado**.
+- **Migración a mano:** `0015_move_emergency_contact_to_internship` — `AddField` (interno) × 3 con `preserve_default=False` en los char; `RunPython` que copia el contacto del estudiante al internado y **re-apunta** los `documento` de anexos `INTERNO` de `estudiante` a su internado (best-effort, al internado más reciente); `RemoveField` (estudiante) × 3. Deps: `internados 0014`, `convenios 0011`.
+- **Documentación:** `docs/db_schema_modulo_02_internados.md` (columnas en `interno`, nota en `estudiante`, mapeo de anexos `INTERNO → interno`, carga masiva sin contacto de emergencia), ER global, `db_schema.html`, `api_almacenamiento_frontend.md`, `api_accesos_frontend.md`, `CLAUDE.md`, diccionario regenerado.
+- **Criterio:** `Student` sin columnas de contacto; `Internship` con ellas; rutas `intern-annex-upload`/`intern-annex-checklist` presentes y `student-annex-*` ausentes; `makemigrations --check` sin pendientes; `check` limpio; `spectacular` sin error.
+
+---
+
+## Feature F6 — Eliminar `anio_academico` de `estudiante` (refactor 2026-07)
+
+Motivo: el campo `anio_academico` de la tabla `estudiante` (modelo `Student`) es **redundante** con `periodo_academico` (FK → `AcademicPeriod`, que ya identifica el año/periodo lectivo, p. ej. `2025-01`). Decisión del usuario: eliminarlo del modelo, la carga masiva y la documentación. No se sustituye por otro campo.
+
+### T-F6.1 — Quitar el campo del modelo (`apps/internados/models.py`)
+- Eliminar la línea `anio_academico = models.PositiveSmallIntegerField("año académico", null=True, blank=True, help_text="Año académico")` del modelo `Student` (actualmente entre `codigo_universitario` y `nota_promedio_ponderado`, ~línea 139).
+- No tocar ningún otro campo. `periodo_academico` (FK, PROTECT) queda como única fuente del periodo/año lectivo.
+- **Criterio:** `Student` ya no declara `anio_academico`; `python manage.py check` limpio.
+
+### T-F6.2 — Migración a mano (`apps/internados/migrations/`)
+- Crear `0016_remove_student_anio_academico.py` (siguiente número libre; el máximo existente es `0015`) **a mano** (no autogenerar por regla del proyecto).
+- Contenido: una sola operación `migrations.RemoveField(model_name="student", name="anio_academico")`.
+- `dependencies`: `[("internados", "0015_move_emergency_contact_to_internship")]`.
+- **Riesgo documentado:** el `RemoveField` **elimina la columna y cualquier dato existente** en `estudiante.anio_academico` — pérdida **intencional e irreversible** (el dato es reconstruible desde `periodo_academico`). No se agrega `RunPython` de respaldo por decisión de diseño.
+- **Criterio:** tras crear la migración, `python manage.py makemigrations --check --dry-run` no reporta cambios pendientes; `migrate` aplica el drop de columna sin error.
+
+### T-F6.3 — Carga masiva: ignorar la columna `anio_academico` del Excel (`apps/internados/services.py`)
+- En `_crear_estudiante_desde_fila`: eliminar el bloque de parseo de `anio` (`anio = obtener("anio_academico")` con su validación/conversión, ~líneas 749–757) y quitar el kwarg `anio_academico=anio` del `Student.objects.create(...)` (~línea 776).
+- **Decisión de diseño (documentar en el schema):** la trama `TramaCargaEstudiante.xlsx` **puede seguir trayendo** la columna `anio_academico`; debe **ignorarse silenciosamente** (no se lee, no se valida, no rompe el lote si viene). **No** es columna requerida ni opcional-mapeada: simplemente no se procesa. No agregarla a ninguna lista de columnas requeridas/esperadas ni a `CARGA_ALIAS_COLUMNAS`.
+- **Criterio:** una fila del Excel con o sin `anio_academico` produce el mismo `Student`; no queda ninguna referencia a `anio_academico` en `services.py`.
+
+### T-F6.4 — Serializers: verificación (`apps/internados/serializers.py`)
+- `StudentSerializer` usa `Meta.fields = "__all__"`: al quitar el campo del modelo, **desaparece automáticamente** del serializer (read y write). **No requiere cambio de código**, solo **confirmar** que ni `StudentSerializer` ni ningún otro serializer del módulo referencian `anio_academico` de forma explícita (verificado: no lo hacen).
+- **Criterio:** el esquema OpenAPI del `Student` ya no expone `anio_academico`; `python manage.py spectacular --validate` sin error.
+
+### T-F6.5 — ViewSets / endpoints: verificación (`apps/internados/views.py`)
+- Confirmar que `StudentViewSet` (CRUD `students`) y la acción `students/bulk-upload/` **no referencian** `anio_academico` explícitamente (verificado: no lo hacen — el CRUD delega en el serializer `__all__` y el bulk-upload en `_crear_estudiante_desde_fila`, ya cubierto por T-F6.3).
+- **Criterio:** ninguna vista/acción del módulo menciona `anio_academico`.
+
+### T-F6.6 — Sincronizar documentación del schema (`docs/`)
+- `docs/db_schema_modulo_02_internados.md`:
+  - Quitar la fila `| \`anio_academico\` | int | Sí | Año académico |` de la **estructura de la tabla `estudiante`** (~línea 136).
+  - En la **tabla de columnas de la carga masiva** (estructura del Excel, ~línea 310): quitar la fila `anio_academico` y añadir una nota de que, si la trama la incluye, la columna se **ignora** (coherente con T-F6.3).
+  - Revisar y ajustar cualquier otra mención de `anio_academico` en el documento.
+- `docs/db_schema.html`: quitar la entrada `["anio_academico","int",true,"","",""]` de la definición de columnas de `estudiante` (~línea 301).
+- `docs/db_schema_er_global.md`: si lista `anio_academico` en `estudiante`, quitarlo (verificar).
+- `docs/diccionario_datos.docx`: **regenerar** con `docs/generar_diccionario.py` (tras aplicar los cambios de modelo y schema) para que no liste el campo. No editar el `.docx` a mano.
+- **Criterio:** ninguna búsqueda de `anio_academico` en `docs/` devuelve resultados en tablas de `estudiante` (salvo la nota de "columna del Excel ignorada").
+
+### T-F6.7 — Sincronizar frontend (`../renads-frontend/`, mismo git root)
+- `lib/api/schema.d.ts`: tipo generado del OpenAPI — se **regenera** desde el schema del backend (no editar a mano si el pipeline lo regenera); anotado aquí para que quede sin `anio_academico?` en `Student` (aparece en 2 ocurrencias, ~líneas 5393 y 5939).
+- `lib/internados/persons.ts`: quitar el campo del formulario/columnas/tipos — eliminar la entrada `{ name: "anio_academico", label: "Año académico", type: "number" }` (~línea 90) de la definición de campos del estudiante.
+- **Criterio:** el formulario de estudiante del frontend ya no muestra "Año académico"; el tipo generado del `Student` no incluye `anio_academico`.
+
+### Criterios de aceptación transversales de F6
+- No queda ninguna referencia a `anio_academico` en `apps/internados/` (modelo, services, serializers, views) ni en la documentación de la tabla `estudiante`.
+- La carga masiva funciona con tramas que aún incluyan la columna `anio_academico` (se ignora) y con tramas que no la incluyan.
+- `manage.py check` limpio; `makemigrations --check` sin pendientes; `spectacular --validate` sin error.
+- Convenciones RENADS respetadas (código/identificadores inglés; `.md`/notas español).
+
+---
+
 ## Referencias
 
 - **Reglas de negocio (§6 módulo 2):** RN-2/3/4 → T3.1; RN-5 (tutor) → T3.1; RN-6 (1 año) → T3.1; RN-8 (mismo ámbito) → T3.4; RN-9 (máx 4) → T3.4; RN-10 (autoridad suscrita) → T3.5; RN-11 (sin autorización no inicia) → T3.6; RN-12 (fechas) → T3.4; RN-13 (campos clínicos) → T3.1; RN-14 (cambio tutor) → T3.3; RN-15 (bitácora) → historiales + `registrar_auditoria`; **RN-16 (registro masivo Excel)** → T3.8 + acción `students/bulk-upload`; **RN-17 (asignación a campos clínicos disponibles)** → T3.1; **RN-18 (prelación por `nota_promedio_ponderado`)** → T3.9; **RN-19 (periodo académico vs. especialidad según nivel académico)** → T3.10 (helper de services), invocada por T1.6 (`StudentSerializer.validate`) y T3.8 (bulk-upload). Deriva `nivel = estudiante.carrera_profesional.nivel_academico.codigo`: `PREGRADO` ⇒ `periodo_academico` requerido / `especialidad` nula; otro nivel ⇒ `especialidad` requerida / `periodo_academico` nula.
 - **Requerimientos:** RF-IN-01..24. **(F2)** RNF-DOC-01/02/03 (gestión documental PDF de anexos), RNF-DOC-04 (versionado), RNF-AUD-01/02 (auditoría del adjunto).
-- **Schema:** `docs/db_schema_modulo_02_internados.md`. No inventar campos. **(F1)** tablas nuevas `periodo_academico` (`AcademicPeriod`: `codigo`/`nombre`/`activo`) y `documentos_anexos` (`AnnexDocument`: `codigo`/`nombre`/`activo`/`descripcion`/`obligatorio`); columnas nuevas en `estudiante`: `periodo_academico_id` (FK→`periodo_academico`, PROTECT, nullable) y `especialidad_id` (FK→`especialidad`, SET_NULL, nullable). Módulo 1: registro `nivel_academico.codigo` `CARRERA_PROFESIONAL` → `PREGRADO`. **(F2)** columna nueva en `documento`: `documento_anexo_id` (FK→`documentos_anexos`, SET_NULL, nullable) — definida en el módulo 1 (`apps/convenios/models.py Document`), ver `spec/almacenamiento.md` Etapa 2.
+- **Schema:** `docs/db_schema_modulo_02_internados.md`. No inventar campos. **(F1)** tablas nuevas `periodo_academico` (`AcademicPeriod`: `codigo`/`nombre`/`activo`) y `documentos_anexos` (`AnnexDocument`: `codigo`/`nombre`/`activo`/`descripcion`/`obligatorio`); columnas nuevas en `estudiante`: `periodo_academico_id` (FK→`periodo_academico`, PROTECT, nullable) y `especialidad_id` (FK→`especialidad`, SET_NULL, nullable). Módulo 1: registro `nivel_academico.codigo` `CARRERA_PROFESIONAL` → `PREGRADO`. **(F2)** columna nueva en `documento`: `documento_anexo_id` (FK→`documentos_anexos`, SET_NULL, nullable) — definida en el módulo 1 (`apps/convenios/models.py Document`), ver `spec/almacenamiento.md` Etapa 2. **(F6)** columna eliminada de `estudiante`: `anio_academico` (int, nullable) — redundante con `periodo_academico`.
 - **Reutilización módulo 1:** `Convention`, `ClinicalField`, `Ipress`, `University`, `ConventionParticipant`, `Specialty`, `ProfessionalCareer`/`AcademicLevel`; `apps/common` (permisos, auditoría) y el patrón `AuditedModelViewSet`/`IsAdminRoleOrReadOnly`; factories `_catalog_viewset`/`_entity_viewset` de `apps/convenios/views.py`. **(F2)** mixin `AnnexAttachmentMixin` y serializer `AnnexUploadSerializer` de `apps/convenios/mixins.py`/`serializers.py`; service `adjuntar_documento` (`apps/common/services.py`); backend `get_document_storage()` (`apps/common/storage.py`).
 
 ## Fuera de alcance (este spec)

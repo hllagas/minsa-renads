@@ -247,3 +247,136 @@ Fecha: 2026-07-20. Revisión del `validator` (SDD) contra `spec/internados.md`
 
 Conforme a la regla del validator, se actualiza la guía de pruebas manuales
 (`spec/internados.guia_pruebas.md`, secciones F2/F3).
+
+---
+
+# Validación — Feature F4 (Universidades del tutor — RN-24) — 2026-07-20
+
+**Resultado: APROBADO — sin errores altos/medios.**
+
+Revisión del `validator` (SDD) contra `spec/internados.md` (tarea **T-F4.1**, entidad `Tutor`),
+`docs/db_schema_modulo_02_internados.md` (tablas `tutor`/`tutor_universidad`, RN-24),
+`docs/db_schema_er_global.md`, `docs/arquitectura_desarrollo.md` y `CLAUDE.md`. No se modificó código.
+
+## Sanidad técnica (solo lectura/diagnóstico)
+
+| Comando | Resultado |
+|---------|-----------|
+| `manage.py check` | `System check identified no issues (0 silenced).` |
+| `manage.py makemigrations --check --dry-run` | `No changes detected` (modelo, M2M through y migración `0014` alineados). |
+| `manage.py spectacular --file schema.tmp.yml` | `Errors: 0`. `TutorSerializer` expone `universidades` como array de enteros **escribible** y **requerido**; el filtro `?universidades=` (array/form) aparece en `GET /api/v1/tutors/`. Los 49 warnings son preexistentes (dynamic `get_queryset` de otros ViewSets), no de F4. Temporal borrado. |
+| **BD fresca** (settings temporal → sqlite nuevo) | `migrate` aplica hasta `internados.0014_tutor_universidades` sin error; `showmigrations` marca `[X] 0014`. sqlite y settings temporal borrados; `db.sqlite3` intacto. |
+| Funcional en shell (BD fresca temporal, rollback) | Todos los casos RN-24 pasan (detalle abajo). |
+
+### Prueba funcional RN-24 (`services.validar_universidades_tutor` + `.set(...)` + `unique_together`)
+
+- [OK] 0 universidades → 400 ("El tutor debe pertenecer al menos a una universidad.")
+- [OK] 1 universidad → sin error.
+- [OK] 2 universidades → sin error.
+- [OK] 3 universidades → 400 ("El tutor no puede pertenecer a más de 2 universidades.")
+- [OK] repetidas → 400 ("Hay universidades repetidas en la lista.")
+- [OK] `tutor.universidades.set([u1,u2])` persiste **2 filas** en `tutor_universidad`.
+- [OK] insertar `(tutor, u1)` duplicado → `IntegrityError` (el `unique_together=[("tutor","universidad")]` lo evita).
+
+## Cobertura por criterio (T-F4.1)
+
+| Criterio | Estado | Evidencia |
+|----------|--------|-----------|
+| Modelo M2M `Tutor.universidades` (through, `related_name="tutores"`) | OK | `models.py:194-197`. |
+| Tabla puente `TutorUniversity` (`tutor_universidad`): `tutor` FK CASCADE `db_column=tutor_id`, `universidad` FK PROTECT `db_column=universidad_id`, `unique_together` | OK | `models.py:208-223`. `db_table`, `verbose_name`/plural en español. |
+| Helper único `services.validar_universidades_tutor` (1..2, sin repetidos, mensajes ES) | OK | `services.py:63-83`; `MAX_UNIVERSIDADES_TUTOR=2`. |
+| `TutorSerializer`: `universidades` PK write; `validate_universidades` delega en el helper; `create`/`update` con `.set(...)` | OK | `serializers.py:62-90`. `update` solo re-setea si `universidades` viene en el payload. |
+| `TutorViewSet` con `prefetch_related("universidades")` y `universidades` en `filterset_fields` | OK | `views.py:281-284`. Permisos sin cambios (`IsUniversityOrReadOnly`). |
+| Migración a mano `0014` (CreateModel + AddField M2M; deps `internados 0013`, `convenios 0011`) | OK | `0014_tutor_universidades.py`; dependencias existen y el grafo aplica en limpio. |
+| Docs sincronizados | OK | `db_schema_modulo_02` (regla RN-24 en §reglas, tabla `tutor_universidad`, ER textual y §RN), `db_schema_er_global` (relación `tutor ||--o{ tutor_universidad }` + listado de tablas M2), `db_schema.html`, `CLAUDE.md` (RN-24). |
+
+## Conformidad
+
+- **Arquitectura:** regla de negocio en `services.py` (fuente única); vista delgada; serializer delega en el service; router bajo `/api/v1/`. ✓
+- **Schema:** tabla `tutor_universidad` con columnas en español; sin campos inventados; `on_delete` (CASCADE/PROTECT) y `unique_together` coherentes con el `.md`. ✓
+- **Convenciones RENADS:** clases inglés (`Tutor`, `TutorUniversity`); endpoint inglés (`tutors`); `db_table`/columnas/`help_text`/docstrings/`.md` en español. ✓
+
+## Observaciones (informativas — no requieren corrección)
+
+- **[Baja / naming]** `TutorViewSet` no aplica alcance institucional sobre los tutores (ya registrado como hallazgo #5 del bloque Personas: los tutores son staff compartido; aceptable MVP). RN-24 es ortogonal a ese punto.
+- **[Baja / robustez]** `validar_universidades_tutor` recibe objetos `University` ya resueltos (el `PrimaryKeyRelatedField` los materializa); el chequeo de repetidos usa `u.pk`, robusto ante duplicados por PK.
+
+**F4 aprobada.** Sin hallazgos altos/medios. Modelo, migración, serializer, vista y documentación sincronizados. Se añade la sección F4 a `spec/internados.guia_pruebas.md`.
+
+---
+
+# Validación — Feature F5 (contacto de emergencia y anexos del interno movidos a `interno`) — 2026-07-21
+
+Revisión del `validator` (SDD) contra `spec/internados.md` (**Feature F5 — T-F5.1**, nota de superado en T-F2.2, bloque F5 de "Bloques sugeridos"), `docs/db_schema_modulo_02_internados.md`, `docs/db_schema_er_global.md` y `CLAUDE.md` (RN-20/21/22/23 + nota de contacto de emergencia).
+
+## Sanidad técnica (solo lectura/diagnóstico)
+
+| Comando | Resultado |
+|---------|-----------|
+| `manage.py check` | Sin issues (0 silenced). |
+| `manage.py makemigrations --check --dry-run` | `No changes detected` — modelos y migraciones sincronizados. |
+| `manage.py spectacular --file /dev/null` | `Errors: 0`. 49 warnings preexistentes (dynamic `get_queryset` de varios ViewSets, no de F5). |
+| Rutas (`get_resolver`) | `intern-annex-upload`/`intern-annex-checklist` **presentes**; `student-annex-*` **ausentes**. `representative-annex-*` y `university-authorities-annex-*` intactas. |
+| Migración `0015` — estado | Aplicada; deps `internados 0014` + `convenios 0011` resueltas. `Internship` tiene los 3 campos; `Student` sin columnas de contacto. |
+| Migración `0015` — reversibilidad | Sobre copia de la BD: `migrate internados 0014` (revierte RunPython + AddField/RemoveField) OK, y `migrate internados 0015` de vuelta OK. |
+| Prueba de alcance `Interno` (rollback) | Un usuario `Interno` con perfil sobre su `Student` ve su propio internado (`internados_visibles`) y pasa `InternshipScope.has_object_permission`; sin fugas por diseño (`(ct_student, estudiante_id)`). |
+
+## Cobertura por criterio (T-F5.1)
+
+- **Modelo** OK — `Internship` con `contacto_emergencia_nombre` (char 255, blank), `contacto_emergencia_telefono` (char 30, blank) y `contacto_emergencia_parentesco` (FK `RelationshipType`, PROTECT, null/blank). `Student` ya no declara ninguno de los tres.
+- **Serializers** OK — `InternshipWriteSerializer` e `InternshipUpdateSerializer` exponen los 3 campos como opcionales (`extra_kwargs required=False`); `InternshipReadSerializer` los incluye en `fields`. `StudentSerializer` (`fields="__all__"`) ya no los arrastra (removidos del modelo). Carga masiva (`_crear_estudiante_desde_fila`) no maneja contacto de emergencia.
+- **Services** OK — `crear_internado` persiste `contacto_emergencia_*` en el `create`; `actualizar_internado` los actualiza campo a campo; `_declaraciones_completas` cruza `Document` `ACTIVO` por `ContentType(Internship)` (`get_for_model(Internship)`, línea 363); `notificar_registro_interno` apunta las URLs a `interns/{id}/annex-checklist` y `interns/{id}/annex-upload`. `RelationshipType` no se importa en services (no se usa allí) — sin import muerto.
+- **ViewSets** OK — `StudentViewSet` **sin** `AnnexAttachmentMixin`/`annex_actor` ni override de `annex_upload`. `InternshipViewSet(AnnexAttachmentMixin, ModelViewSet)` con `annex_actor="INTERNO"`, `permission_classes` incluye `IsUniversityOrReadOnly`, y override `annex_upload` que tras un `201` invoca `services.recalcular_estado_declaraciones(self.get_object(), usuario=request.user)`.
+- **Alcance del `Interno`** OK — `selectors.internados_visibles` reconoce el perfil sobre `Student` (`ct_student` → `estudiante_id`); `InternshipScope.has_object_permission` acepta `(ct_student, internado.estudiante_id)`; `IsUniversityOrReadOnly.ACCIONES_INTERNO = ("annex_upload", "annex_checklist")` habilita al rol `Interno` esas acciones de escritura sin permitir CRUD.
+- **Migración `0015`** OK — `AddField` (interno) × 3 con `preserve_default=False` en los dos `CharField`; `RunPython` reversible (copia contacto estudiante→interno y re-apunta `Document` de anexos `INTERNO` de `student` al internado más reciente; `revertir` copia de vuelta el contacto); `RemoveField` (estudiante) × 3, en ese orden. Deps `internados 0014` + `convenios 0011`.
+- **Regresiones** OK — RN-19 (carga masiva sigue creando estudiantes sin contacto de emergencia); RN-21 (`tiene_internado_vigente`), RN-22 (`aprovisionar_interno` sobre `Student`), RN-23 (`recalcular_estado_declaraciones`/gate de `ACTIVO`) intactas y coherentes con la nueva ubicación de los anexos.
+
+## Documentación sincronizada
+
+- `docs/db_schema_modulo_02_internados.md`: `interno` lista los 3 campos; `estudiante` ya no; nota de contacto de emergencia (§4) y ER local `interno >── parentesco`.
+- `docs/db_schema_er_global.md`: `parentesco ||--o{ interno : "contacto emergencia"` (sin referencia a `estudiante`).
+- `CLAUDE.md`: RN-20/21/22/23 y nota de contacto de emergencia coherentes con la ubicación en `interno`.
+
+## Resultado
+
+**F5 aprobada.** Sin hallazgos altos/medios. Código, migración (reversible), permisos/alcance del `Interno`, rutas y documentación sincronizados con la spec F5. Se añade la sección F5 a `spec/internados.guia_pruebas.md`.
+
+
+---
+
+# Validación F6 — Eliminación de `anio_academico` de `estudiante`
+
+Revisión del agente **validator** de la Feature F6 de `spec/internados.md`: retiro del campo redundante `anio_academico` del modelo `Student` (representado ya por `periodo_academico`).
+
+## Sanidad técnica
+- `manage.py check` → **sin issues** (0 silenced).
+- `makemigrations --check --dry-run` → **No changes detected** (modelo y migraciones coherentes, sin pendientes).
+- `showmigrations internados` → `0016_remove_student_anio_academico [X]` aplicada; cadena hasta 0015 intacta.
+- `spectacular --validate` → **0 errores**; grep `anio_academico` en el schema OpenAPI = **0** (el `Student` del API ya no expone el campo).
+
+## Cobertura por criterio
+
+- **Modelo** OK — `apps/internados/models.py`: `Student` ya no declara `anio_academico`; `periodo_academico` (FK → `AcademicPeriod`, `db_column=periodo_academico_id`, null/blank, RN-19) intacto en líneas 128-132.
+- **Migración 0016** OK — `apps/internados/migrations/0016_remove_student_anio_academico.py`: un único `RemoveField(model_name=student, name=anio_academico)`, dependencia `("internados", "0015_move_emergency_contact_to_internship")` (última de la cadena), **sin** `RunPython` de respaldo. Pérdida de datos intencional y documentada en el docstring (reconstruible desde `periodo_academico`) — decisión fijada, no es hallazgo.
+- **Services** OK — `apps/internados/services.py`: `_crear_estudiante_desde_fila` no parsea `anio` ni pasa el kwarg `anio_academico` al `Student.objects.create` (líneas 749-768). `CARGA_COLUMNAS_REQUERIDAS` (86-89) y `CARGA_ALIAS_COLUMNAS` (96-103) no incluyen `anio_academico`. La carga masiva tolera la columna extra: los encabezados no listados mapean a identidad y `obtener` solo lee columnas nombradas, por lo que una columna `anio_academico` de la trama se **ignora silenciosamente** sin romper el lote.
+- **Sin referencias colgantes** OK — grep `anio_academico` en `apps/internados/` solo aparece en `0001_initial.py` (migración histórica, no editable) y en la nueva `0016` (docstring + name del RemoveField). Cero referencias vivas en `models.py`, `services.py`, `serializers.py`, `views.py`, `selectors.py`.
+- **Serializer** OK — `StudentSerializer` usa `fields="__all__"`; al no existir el campo en el modelo, deja de exponerse automáticamente (confirmado por el schema OpenAPI = 0).
+
+## Documentación sincronizada
+
+- `docs/db_schema_modulo_02_internados.md`: fila `anio_academico` retirada de la tabla `estudiante` y de la tabla del Excel; se conserva una **nota explícita** (§ línea 311) de que el campo fue eliminado y que la columna del Excel se ignora silenciosamente. La única ocurrencia del término es esa nota intencional.
+- `docs/db_schema.html` y `docs/diccionario_datos.docx`: sin la entrada `anio_academico` (grep en `docs/` = solo la nota del `.md`).
+
+## Frontend
+
+- grep `anio_academico`/`anioAcademico` en `../renads-frontend/` = **0** ocurrencias.
+- `lib/internados/persons.ts`: sin sintaxis rota — el array de campos pasa directo de `especialidad` (78-82) a `periodo_academico` (83-88) sin coma/objeto colgante.
+- `lib/api/schema.d.ts`: sin ocurrencias del campo (regenerado desde el OpenAPI limpio).
+
+## Reglas de idioma
+
+OK — docstring de la migración y notas de docs en español; nombres de código/clases/endpoints en inglés; columnas en español. Sin desviaciones.
+
+## Resultado
+
+**F6 aprobada.** Sin hallazgos altos/medios. Modelo, migración (drop intencional sin RunPython), services (carga masiva tolerante), serializer, schema OpenAPI, documentación y frontend sincronizados con la spec F6. Se añade la sección F6 a `spec/internados.guia_pruebas.md`.
