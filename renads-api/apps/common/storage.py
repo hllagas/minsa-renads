@@ -62,6 +62,58 @@ class ReferenciaExternaStorage:
         return None
 
 
+def get_impersonated_credentials(signing_sa: str | None = None):
+    """Construye credenciales impersonadas (keyless) de la SA de firma.
+
+    Parte de las credenciales ADC (`google.auth.default`) y deriva credenciales
+    impersonadas de la SA de firma con `impersonated_credentials.Credentials`.
+    Estas credenciales obtienen tokens efímeros y firman los signed URLs V4 vía el
+    endpoint IAM SignBlob, sin necesidad de una clave JSON de service account.
+
+    `signing_sa` es el email de la SA objetivo. Si es `None` (uso en runtime) se
+    lee de `settings.GCS_SIGNING_SA`. **En tiempo de import de los settings** (p.
+    ej. al construir `STORAGES` en `config/settings/base.py`) hay que pasarlo
+    EXPLÍCITO: `django.conf.settings` aún no está poblado durante ese import y
+    acceder a él lanzaría `AttributeError`.
+
+    Se centraliza aquí para reutilizarla tanto en el backend documental custom
+    (`GoogleCloudStorage._get_bucket`) como en el backend de imágenes
+    `storages.backends.gcloud.GoogleCloudStorage` de django-storages (que recibe
+    estas credenciales vía `credentials`/`GS_CREDENTIALS` para poder firmar `.url`).
+
+    Levanta `RuntimeError` con mensaje en español si faltan las librerías o las
+    credenciales ADC.
+    """
+    if signing_sa is None:
+        from django.conf import settings
+
+        signing_sa = settings.GCS_SIGNING_SA
+
+    try:
+        import google.auth
+        from google.auth import impersonated_credentials
+    except ImportError as exc:  # pragma: no cover - dependencia obligatoria
+        raise RuntimeError(
+            "La librería google-auth no está instalada; "
+            "no es posible construir las credenciales impersonadas de Google Cloud."
+        ) from exc
+
+    try:
+        credenciales_base, _ = google.auth.default()
+    except Exception as exc:
+        raise RuntimeError(
+            "No se encontraron credenciales de Google Cloud (ADC). "
+            "Ejecute `gcloud auth application-default login` o configure el "
+            "runtime con una identidad autorizada."
+        ) from exc
+
+    return impersonated_credentials.Credentials(
+        source_credentials=credenciales_base,
+        target_principal=signing_sa,
+        target_scopes=["https://www.googleapis.com/auth/devstorage.read_write"],
+    )
+
+
 def _nombre_seguro(nombre: str) -> str:
     """Sanea un nombre de archivo para usarlo como parte de una key de objeto.
 
@@ -115,8 +167,6 @@ class GoogleCloudStorage:
             return self._bucket
 
         try:
-            import google.auth
-            from google.auth import impersonated_credentials
             from google.cloud import storage
         except ImportError as exc:  # pragma: no cover - dependencia obligatoria
             raise RuntimeError(
@@ -124,21 +174,8 @@ class GoogleCloudStorage:
                 "no es posible usar el almacenamiento en Google Cloud Storage."
             ) from exc
 
-        try:
-            credenciales_base, _ = google.auth.default()
-        except Exception as exc:
-            raise RuntimeError(
-                "No se encontraron credenciales de Google Cloud (ADC). "
-                "Ejecute `gcloud auth application-default login` o configure el "
-                "runtime con una identidad autorizada."
-            ) from exc
-
         # Credenciales impersonadas de la SA de firma (keyless, IAM SignBlob).
-        credenciales = impersonated_credentials.Credentials(
-            source_credentials=credenciales_base,
-            target_principal=self._settings.GCS_SIGNING_SA,
-            target_scopes=["https://www.googleapis.com/auth/devstorage.read_write"],
-        )
+        credenciales = get_impersonated_credentials()
         self._client = storage.Client(
             project=self._settings.GCS_PROJECT_ID,
             credentials=credenciales,

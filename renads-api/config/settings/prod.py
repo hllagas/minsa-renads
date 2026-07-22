@@ -25,12 +25,6 @@ CORS_ALLOWED_ORIGINS = config("CORS_ALLOWED_ORIGINS", default="", cast=Csv())
 
 # WhiteNoise para servir estáticos en producción
 MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")  # noqa: F405
-STORAGES = {
-    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
-    },
-}
 
 # Almacenamiento documental (GCS):
 # En producción se prevé GCS_ENABLED=True. El bucket y el flag se definen por
@@ -39,6 +33,13 @@ STORAGES = {
 #   GCS_BUCKET_NAME=renads-cloud-media-prod
 # Autenticación keyless: el runtime (Cloud Run / Railway) debe correr con ADC del
 # principal que tenga `roles/iam.serviceAccountTokenCreator` sobre GCS_SIGNING_SA.
+#
+# Backend de imágenes (`ImageField` de logos): la selección de `STORAGES["default"]`
+# según `GCS_ENABLED` vive en `config/settings/base.py` y aplica a todos los
+# entornos. Aquí solo se sobrescribe el backend de estáticos con WhiteNoise.
+STORAGES["staticfiles"] = {  # noqa: F405
+    "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
+}
 
 # Correo — SMTP en producción (credenciales por .env). Ver config/settings/base.py.
 EMAIL_BACKEND = config(

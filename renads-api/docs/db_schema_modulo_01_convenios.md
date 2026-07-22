@@ -68,7 +68,7 @@ Jerarquía: **GORE → Órgano Regional (GERESA/DIRESA/DIRIS) → Unidad Ejecuto
 | `id` | PK | No | |
 | `nombre` | varchar(255) | No | Nombre del gobierno regional |
 | `region_id` | FK → `region` | No | Región |
-| `referencia_logo` | varchar(500) | Sí | Referencia externa del logo (repositorio externo) |
+| `referencia_logo` | varchar(500) | Sí | Logo institucional (`ImageField`; guarda el path del objeto en el repositorio de medios). Nullable. |
 | `activo` | bool | No | |
 
 ### `organo_regional` (GERESA / DIRESA / DIRIS)
@@ -82,7 +82,7 @@ Jerarquía: **GORE → Órgano Regional (GERESA/DIRESA/DIRIS) → Unidad Ejecuto
 | `siglas` | varchar(50) | Sí | Siglas |
 | `direccion` | varchar(500) | Sí | Dirección |
 | `ubigeo_id` | FK → `ubigeo` | Sí | Ubicación geográfica (UBIGEO) |
-| `referencia_logo` | varchar(500) | Sí | Referencia externa del logo (repositorio externo) |
+| `referencia_logo` | varchar(500) | Sí | Logo institucional (`ImageField`; guarda el path del objeto en el repositorio de medios). Nullable. |
 | `activo` | bool | No | |
 
 ### `unidad_ejecutora` (Hospital / Instituto especializado / Red de salud)
@@ -96,7 +96,7 @@ Jerarquía: **GORE → Órgano Regional (GERESA/DIRESA/DIRIS) → Unidad Ejecuto
 | `codigo` | varchar(50) | Sí | Código presupuestal de la unidad ejecutora |
 | `direccion` | varchar(500) | Sí | Dirección |
 | `ubigeo_id` | FK → `ubigeo` | Sí | Ubicación geográfica (UBIGEO) |
-| `referencia_logo` | varchar(500) | Sí | Referencia externa del logo (repositorio externo) |
+| `referencia_logo` | varchar(500) | Sí | Logo institucional (`ImageField`; guarda el path del objeto en el repositorio de medios). Nullable. |
 | `activo` | bool | No | |
 
 ### `ipress` (Institución Prestadora de Servicios de Salud)
@@ -111,7 +111,7 @@ Jerarquía: **GORE → Órgano Regional (GERESA/DIRESA/DIRIS) → Unidad Ejecuto
 | `ubigeo_id` | FK → `ubigeo` | Sí | Ubicación geográfica (UBIGEO) |
 | `ambito_geografico_sanitario_id` | FK → `ambito_geografico_sanitario` | No | Ámbito geográfico sanitario |
 | `es_sede_docente` | bool | No | Autorizada por CONAPRES como sede docente (default `false`) |
-| `referencia_logo` | varchar(500) | Sí | Referencia externa del logo (repositorio externo) |
+| `referencia_logo` | varchar(500) | Sí | Logo institucional (`ImageField`; guarda el path del objeto en el repositorio de medios). Nullable. |
 | `activo` | bool | No | |
 
 > La **sede docente** del módulo de convenios es una `ipress`.
@@ -171,7 +171,7 @@ Los miembros de CONAPRES se registran en la tabla genérica `representante` (sec
 | `telefono` | varchar(30) | Sí | Teléfono |
 | `correo_institucional` | varchar(255) | Sí | Correo institucional |
 | `ubigeo_id` | FK → `ubigeo` | Sí | Ubicación geográfica (UBIGEO) |
-| `referencia_logo` | varchar(500) | Sí | Referencia externa del logo (repositorio externo) |
+| `referencia_logo` | varchar(500) | Sí | Logo institucional (`ImageField`; guarda el path del objeto en el repositorio de medios). Nullable. |
 | `activo` | bool | No | |
 
 ### `autoridad_universidad`
@@ -443,6 +443,7 @@ Tabla única para todo adjunto del expediente (RNF-DOC-01..05). El binario vive 
 | `id_objeto` | int | No | Registro destino |
 | `referencia_externa` | varchar(500) | No | Clave/URL del archivo en el repositorio externo |
 | `nombre_archivo` | varchar(255) | No | Nombre del archivo |
+| `texto_extraido` | text | No (default `''`) | Texto extraído del PDF por Document AI (OCR genérico). Vacío para imágenes o cuando la extracción está deshabilitada/falla (best-effort) |
 | `version` | int | No | Versión |
 | `estado` | varchar(20) | No | `ACTIVO` / `REEMPLAZADO` / `ANULADO` / `OBSERVADO` / `VALIDADO` |
 | `version_anterior_id` | FK → `documento` (self) | Sí | Versión previa reemplazada (RNF-DOC-04 / AUD-04) |
@@ -529,7 +530,7 @@ bitacora_auditoria >── django_content_type   (genérico → cualquier entida
 - **Autorización de sede docente (CONAPRES):** `ipress` autorizada bajo criterios (asistencial, MINSA/FF.AA.-FF.PP., pública).
 - **Campos clínicos:** total por sede/carrera lo registra **CONAPRES**; la cantidad por universidad/carrera la asigna **GERESA/DIRESA/DIRIS** (`campo_clinico.cantidad_maxima`), sin exceder el total autorizado, en el mismo ámbito geográfico sanitario.
 - **Versionado documental (RNF-DOC-04 / AUD-04):** `documento.version_anterior_id` + `estado`. En los **anexos por actor**, el versionado se discrimina por `documento.documento_anexo_id` (par `(objeto, documento_anexo)`).
-- **Adjuntos en repositorio externo:** columnas `referencia_externa` (en `documento`, `plantilla_convenio`) y `referencia_logo` (logos de `universidad`, `gobierno_regional`, `organo_regional`, `unidad_ejecutora`, `ipress`); `autoridad_universidad.referencia_documento_resolucion`. El **adjunto real** (logos e imágenes / PDFs de anexos) se sirve vía el backend de almacenamiento (GCS o stub); ver `docs/api_almacenamiento_frontend.md`.
+- **Adjuntos en repositorio externo:** columna `referencia_externa` (en `documento`, `plantilla_convenio`) y `autoridad_universidad.referencia_documento_resolucion`. Las columnas `referencia_logo` (logos de `universidad`, `gobierno_regional`, `organo_regional`, `unidad_ejecutora`, `ipress`) son **`ImageField`** de Django (Etapa 4): guardan el path relativo del objeto en el repositorio de medios (`STORAGES["default"]` = django-storages sobre GCS en prod, `FileSystemStorage` en dev); su `.url` es un signed URL V4 efímero. El **adjunto real** (logos e imágenes / PDFs de anexos) se sirve vía el backend de almacenamiento; ver `docs/api_almacenamiento_frontend.md`. Todo **PDF** adjuntado se procesa además con **Document AI** (OCR genérico) y su texto se guarda en `documento.texto_extraido` (best-effort; las imágenes no se procesan).
 - **Trazabilidad de estados (RNF-AUD-03):** `historial_estado_convenio`.
 - **Bitácora de auditoría (RNF-AUD-01/02):** `bitacora_auditoria`.
 - **Roles y ámbito institucional (RNF-SEG-02/03):** `auth_group` + `perfil_usuario_entidad`.
