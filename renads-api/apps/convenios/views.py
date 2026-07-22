@@ -10,6 +10,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.common.documentai import extraer_texto_pdf
 from apps.common.permissions import IsInstitutionalMember, exigir_ambito
 from apps.common.services import adjuntar_documento, registrar_auditoria
 from apps.common.storage import get_document_storage
@@ -462,13 +463,20 @@ class DocumentViewSet(AuditedModelViewSet):
         datos = ser.validated_data
         tipo_contenido = datos["tipo_contenido"]
         objeto = tipo_contenido.get_object_for_this_type(pk=datos["id_objeto"])
-        referencia = self.storage.subir(datos["archivo"], ruta=datos["nombre_archivo"])
+        archivo = datos["archivo"]
+        referencia = self.storage.subir(archivo, ruta=datos["nombre_archivo"])
+        # Solo los PDFs se procesan con Document AI (best-effort); imágenes no.
+        content_type = getattr(archivo, "content_type", "") or ""
+        texto_extraido = (
+            extraer_texto_pdf(archivo) if content_type == "application/pdf" else ""
+        )
         documento = adjuntar_documento(
             objeto,
             tipo_documento=datos["tipo_documento"],
             nombre_archivo=datos["nombre_archivo"],
             referencia_externa=referencia,
             usuario=request.user,
+            texto_extraido=texto_extraido,
         )
         return Response(DocumentSerializer(documento).data, status=201)
 

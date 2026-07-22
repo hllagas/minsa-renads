@@ -809,6 +809,10 @@ class Document(models.Model):
         "referencia externa", max_length=500, help_text="Clave/URL del archivo en el repositorio externo",
     )
     nombre_archivo = models.CharField("nombre del archivo", max_length=255, help_text="Nombre del archivo")
+    texto_extraido = models.TextField(
+        "texto extraído", blank=True, default="",
+        help_text="Texto extraído del PDF por Document AI (vacío si no aplica o falló)",
+    )
     version = models.PositiveIntegerField("versión", default=1, help_text="Versión")
     estado = models.CharField("estado", max_length=20, choices=DOCUMENT_STATUS, default="ACTIVO", help_text="Estado")
     version_anterior = models.ForeignKey(

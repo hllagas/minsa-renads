@@ -39,6 +39,7 @@ def adjuntar_documento(
     referencia_externa,
     usuario,
     documento_anexo=None,
+    texto_extraido="",
 ) -> Document:
     """Adjunta un documento versionado a `objeto` (relación genérica, RNF-DOC-04).
 
@@ -85,6 +86,7 @@ def adjuntar_documento(
         id_objeto=objeto.pk,
         referencia_externa=referencia_externa,
         nombre_archivo=nombre_archivo,
+        texto_extraido=texto_extraido,
         version=(anterior.version + 1) if anterior else 1,
         estado="ACTIVO",
         version_anterior=anterior,

@@ -202,11 +202,13 @@ class DocumentSerializer(serializers.ModelSerializer):
         fields = [
             "id", "tipo_documento", "tipo_documento_nombre",
             "tipo_contenido", "tipo_contenido_label", "id_objeto",
-            "referencia_externa", "nombre_archivo", "version", "estado",
+            "referencia_externa", "nombre_archivo", "texto_extraido",
+            "version", "estado",
             "version_anterior", "cargado_por", "cargado_en",
         ]
         read_only_fields = [
-            "version", "estado", "version_anterior", "cargado_por", "cargado_en",
+            "texto_extraido", "version", "estado", "version_anterior",
+            "cargado_por", "cargado_en",
         ]
 
 

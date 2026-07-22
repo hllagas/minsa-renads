@@ -23,6 +23,7 @@ from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
+from apps.common.documentai import extraer_texto_pdf
 from apps.common.services import adjuntar_documento, registrar_auditoria
 from apps.common.storage import get_document_storage
 from apps.convenios.serializers import (
@@ -163,7 +164,10 @@ class AnnexAttachmentMixin:
             )
 
         nombre_archivo = ser.validated_data["nombre_archivo"]
-        referencia = self.storage.subir(ser.validated_data["archivo"], ruta=nombre_archivo)
+        archivo = ser.validated_data["archivo"]
+        referencia = self.storage.subir(archivo, ruta=nombre_archivo)
+        # El anexo siempre es PDF: se extrae su texto con Document AI (best-effort).
+        texto_extraido = extraer_texto_pdf(archivo)
         documento = adjuntar_documento(
             entidad,
             tipo_documento=self._tipo_documento_anexo(),
@@ -171,6 +175,7 @@ class AnnexAttachmentMixin:
             referencia_externa=referencia,
             usuario=request.user,
             documento_anexo=anexo,
+            texto_extraido=texto_extraido,
         )
         return Response(DocumentSerializer(documento).data, status=201)
 
