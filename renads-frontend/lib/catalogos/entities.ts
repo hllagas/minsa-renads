@@ -95,7 +95,9 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     endpoint: "professional-careers",
     title: "Carreras profesionales",
     singular: "carrera profesional",
-    description: "Carreras por facultad.",
+    // Contrato backend (`ProfessionalCareerAuto`): solo `nombre`, `nivel_academico` y `activo`.
+    // El nivel académico distingue carrera / segunda especialidad / maestría / doctorado.
+    description: "Carreras, segundas especialidades, maestrías y doctorados.",
     searchPlaceholder: "Buscar por nombre…",
     columns: [
       { key: "nombre", header: "Nombre" },
@@ -103,33 +105,14 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     ],
     filters: [
       {
-        name: "facultad",
-        label: "Facultad",
-        type: "select",
-        optionsEndpoint: "faculties",
-      },
-      {
         name: "nivel_academico",
         label: "Nivel académico",
         type: "select",
         optionsEndpoint: "academic-levels",
       },
-      {
-        name: "especialidad",
-        label: "Especialidad",
-        type: "select",
-        optionsEndpoint: "specialties",
-      },
       activoFilter,
     ],
     fields: [
-      {
-        name: "facultad",
-        label: "Facultad",
-        type: "select",
-        required: true,
-        optionsEndpoint: "faculties",
-      },
       { name: "nombre", label: "Nombre", type: "text", required: true },
       {
         name: "nivel_academico",
@@ -137,12 +120,6 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         type: "select",
         required: true,
         optionsEndpoint: "academic-levels",
-      },
-      {
-        name: "especialidad",
-        label: "Especialidad",
-        type: "select",
-        optionsEndpoint: "specialties",
       },
       { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
     ],
@@ -203,14 +180,14 @@ export const CATALOGO_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
 /** Orden y rótulos del índice de entidades de `/catalogos`. */
 export const CATALOGO_ENTITY_MENU: { slug: string; title: string }[] = [
   { slug: "universities", title: "Universidades" },
-  { slug: "university-authorities", title: "Autoridades universitarias" },
+  { slug: "university-authorities", title: "Autoridades Universitarias" },
   { slug: "faculties", title: "Facultades" },
-  { slug: "professional-careers", title: "Carreras profesionales" },
-  { slug: "university-campuses", title: "Sedes universitarias" },
+  { slug: "professional-careers", title: "Carreras Profesionales" },
+  { slug: "university-campuses", title: "Sedes Universitarias" },
   { slug: "ipress", title: "IPRESS" },
-  { slug: "regional-governments", title: "Gobiernos regionales" },
-  { slug: "executing-units", title: "Unidades ejecutoras" },
-  { slug: "regional-organs", title: "Órganos regionales" },
+  { slug: "regional-governments", title: "Gobiernos Regionales" },
+  { slug: "executing-units", title: "Unidades Ejecutoras" },
+  { slug: "regional-organs", title: "Órganos Regionales" },
   { slug: "minsa-organs", title: "Órganos MINSA" },
   { slug: "conapres", title: "CONAPRES" },
 ];

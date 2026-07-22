@@ -46,6 +46,11 @@ export interface FieldConfig {
   /** Deshabilita el campo (solo lectura en el formulario). */
   disabled?: boolean;
   /**
+   * Fuerza el campo a ocupar todo el ancho en el formulario de 2 columnas (p. ej. nombres largos,
+   * direcciones, descripciones). Los tipos `custom`/`multiselect` ya ocupan todo el ancho.
+   */
+  fullWidth?: boolean;
+  /**
    * Para `type: "custom"`: render propio del campo (recibe el `control` de react-hook-form).
    * El componente gestiona sus propios `Controller`/`useController`; útil para controles
    * compuestos como el selector polimórfico de entidad solicitante (tipo + entidad ligados).

@@ -3,6 +3,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
+import { Pencil, Trash2 } from "lucide-react";
 
 import type { ResourceConfig, RowAction } from "@/lib/crud/types";
 import { createResourceHooks } from "@/lib/crud/hooks";
@@ -42,6 +43,8 @@ export function ResourceCrud<TRead extends WithId>({
   rowActions,
   headerActions,
   fixedValues,
+  cardView,
+  renderCard,
 }: {
   config: ResourceConfig<TRead>;
   /** Acciones por fila inyectadas por la página (p. ej. abrir el diálogo de contraseña). */
@@ -54,6 +57,10 @@ export function ResourceCrud<TRead extends WithId>({
    * (no se pide lo que ya se conoce). El backend sigue siendo la autoridad del alcance.
    */
   fixedValues?: Record<string, number | string>;
+  /** Renderiza el listado como grilla de tarjetas (en vez de tabla). Requiere `renderCard`. */
+  cardView?: boolean;
+  /** Cuerpo visual de cada tarjeta (p. ej. logo + nombre). Las acciones las añade `ResourceCrud`. */
+  renderCard?: (row: TRead) => ReactNode;
 }) {
   const hooks = useMemo(
     () => createResourceHooks<TRead, Record<string, unknown>>(config.endpoint),
@@ -110,6 +117,57 @@ export function ResourceCrud<TRead extends WithId>({
   const updateM = hooks.useUpdate();
   const removeM = hooks.useRemove();
 
+  const hasActions = canWrite || (rowActions?.length ?? 0) > 0;
+
+  // Botonera de acciones por fila (editar + acciones inyectadas + eliminar). Reutilizada por la
+  // tabla y por la grilla de tarjetas.
+  function actionButtons(row: TRead): ReactNode {
+    if (!hasActions) return null;
+    return (
+      <div className="flex justify-end gap-2">
+        {canWrite ? (
+          <Button
+            variant="outline"
+            size="icon-sm"
+            aria-label="Editar"
+            title="Editar"
+            onClick={() => {
+              setEditing(row);
+              setDialogOpen(true);
+            }}
+          >
+            <Pencil />
+          </Button>
+        ) : null}
+        {(rowActions ?? []).map((action) =>
+          action.visible && !action.visible(row) ? null : action.render ? (
+            <span key={action.key}>{action.render(row)}</span>
+          ) : (
+            <Button
+              key={action.key}
+              variant={action.variant ?? "outline"}
+              size="sm"
+              onClick={() => action.onClick(row)}
+            >
+              {action.label}
+            </Button>
+          ),
+        )}
+        {canWrite ? (
+          <Button
+            variant="destructive"
+            size="icon-sm"
+            aria-label={config.deleteActionLabel ?? "Eliminar"}
+            title={config.deleteActionLabel ?? "Eliminar"}
+            onClick={() => setDeleting(row)}
+          >
+            <Trash2 />
+          </Button>
+        ) : null}
+      </div>
+    );
+  }
+
   const columns = useMemo<ColumnDef<TRead>[]>(() => {
     const base: ColumnDef<TRead>[] = config.columns.map((c) => ({
       accessorKey: c.key,
@@ -119,52 +177,15 @@ export function ResourceCrud<TRead extends WithId>({
     }));
     // La columna de acciones aparece si hay escritura (editar/eliminar) o acciones por fila
     // inyectadas por la página (p. ej. la acción CONAPRES de sede docente, sin escritura CRUD).
-    if (canWrite || (rowActions?.length ?? 0) > 0) {
+    if (hasActions) {
       base.push({
         id: "acciones",
         header: "",
-        cell: ({ row }) => (
-          <div className="flex justify-end gap-2">
-            {canWrite ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setEditing(row.original);
-                  setDialogOpen(true);
-                }}
-              >
-                Editar
-              </Button>
-            ) : null}
-            {(rowActions ?? []).map((action) =>
-              action.visible && !action.visible(row.original) ? null : action.render ? (
-                <span key={action.key}>{action.render(row.original)}</span>
-              ) : (
-                <Button
-                  key={action.key}
-                  variant={action.variant ?? "outline"}
-                  size="sm"
-                  onClick={() => action.onClick(row.original)}
-                >
-                  {action.label}
-                </Button>
-              ),
-            )}
-            {canWrite ? (
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => setDeleting(row.original)}
-              >
-                {config.deleteActionLabel ?? "Eliminar"}
-              </Button>
-            ) : null}
-          </div>
-        ),
+        cell: ({ row }) => actionButtons(row.original),
       });
     }
     return base;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config.columns, config.deleteActionLabel, canWrite, rowActions]);
 
   function onCreate() {
@@ -254,6 +275,36 @@ export function ResourceCrud<TRead extends WithId>({
             {list.isFetching ? "Reintentando…" : "Reintentar"}
           </Button>
         </div>
+      ) : cardView && renderCard ? (
+        <>
+          {list.isLoading ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">Cargando…</p>
+          ) : data.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              Sin resultados.
+            </p>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {data.map((row) => (
+                <div
+                  key={row.id}
+                  className="flex flex-col rounded-lg border bg-card p-4 shadow-sm transition-colors hover:bg-muted/30"
+                >
+                  <div className="flex-1">{renderCard(row)}</div>
+                  {hasActions ? (
+                    <div className="mt-3 border-t pt-3">{actionButtons(row)}</div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          )}
+          <DataTablePagination
+            page={page}
+            count={list.data?.count ?? 0}
+            onPageChange={setPage}
+            isFetching={list.isFetching}
+          />
+        </>
       ) : (
         <>
           <DataTable
@@ -271,10 +322,10 @@ export function ResourceCrud<TRead extends WithId>({
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>
-              {editing ? `Editar ${config.singular}` : `Nueva ${config.singular}`}
+              {editing ? `Editar ${config.singular}` : `Nuevo ${config.singular}`}
             </DialogTitle>
           </DialogHeader>
           {editing && config.renderEditInfo ? (

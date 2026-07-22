@@ -23,6 +23,39 @@ import {
 
 type FormValues = Record<string, unknown>;
 
+/** Campos de texto cuyo contenido suele ser largo → ocupan todo el ancho aunque no se marquen. */
+const AUTO_FULL_WIDTH_NAMES =
+  /^(nombre|denominacion|descripcion|direccion|observacion|observaciones|justificacion|motivo)/;
+
+/** ¿El campo ocupa las 2 columnas del formulario? `custom`/`multiselect` y textos largos sí. */
+function isFullWidth(field: FieldConfig): boolean {
+  if (field.fullWidth) return true;
+  if (field.type === "custom" || field.type === "multiselect") return true;
+  if (
+    (field.type === "text" || field.type === "email") &&
+    AUTO_FULL_WIDTH_NAMES.test(field.name)
+  )
+    return true;
+  return false;
+}
+
+/** Selecciona el control adecuado para un campo (sin envoltorio de columna). */
+function FieldRow({
+  field,
+  control,
+}: {
+  field: FieldConfig;
+  control: Control<FormValues>;
+}) {
+  if (field.type === "custom") return <>{field.render?.(control)}</>;
+  if (field.type === "select") return <SelectFieldRow field={field} control={control} />;
+  if (field.type === "multiselect")
+    return <MultiSelectFieldRow field={field} control={control} />;
+  if (field.type === "boolean")
+    return <BooleanFieldRow field={field} control={control} />;
+  return <InputFieldRow field={field} control={control} />;
+}
+
 function defaultFor(field: FieldConfig, initial: FormValues | null): unknown {
   if (field.type === "multiselect") {
     const v = initial?.[field.name];
@@ -101,22 +134,17 @@ export function ResourceForm({
   return (
     <form
       onSubmit={handleSubmit((values) => onSubmit(buildPayload(fields, values)))}
-      className="grid max-h-[60vh] gap-4 overflow-y-auto px-1"
+      className="grid max-h-[75vh] grid-cols-1 gap-x-5 gap-y-4 overflow-y-auto px-1 py-1 sm:grid-cols-2"
     >
-      {fields.map((field) =>
-        field.type === "custom" ? (
-          <div key={field.name}>{field.render?.(control)}</div>
-        ) : field.type === "select" ? (
-          <SelectFieldRow key={field.name} field={field} control={control} />
-        ) : field.type === "multiselect" ? (
-          <MultiSelectFieldRow key={field.name} field={field} control={control} />
-        ) : field.type === "boolean" ? (
-          <BooleanFieldRow key={field.name} field={field} control={control} />
-        ) : (
-          <InputFieldRow key={field.name} field={field} control={control} />
-        ),
-      )}
-      <div className="flex justify-end gap-2 pt-2">
+      {fields.map((field) => (
+        <div
+          key={field.name}
+          className={isFullWidth(field) ? "sm:col-span-2" : undefined}
+        >
+          <FieldRow field={field} control={control} />
+        </div>
+      ))}
+      <div className="flex justify-end gap-2 pt-2 sm:col-span-2">
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancelar
         </Button>

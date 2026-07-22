@@ -6,10 +6,12 @@ import type { ColumnDef } from "@tanstack/react-table";
 
 import { internshipHooks, type InternshipRead } from "@/lib/internados/hooks";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
+import { useAuthStore, userHasRole } from "@/lib/auth/store";
 import { PageHeader } from "@/components/data/page-header";
 import { DataTable } from "@/components/ui/data-table";
 import { DataTablePagination } from "@/components/data/data-table-pagination";
 import { EntityCombobox } from "@/components/form/entity-combobox";
+import { AnnexChecklistAction } from "@/components/almacenamiento/annex-checklist-dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -19,6 +21,9 @@ export default function InternosPage() {
   const [search, setSearch] = useState("");
   const [convenio, setConvenio] = useState<number | null>(null);
   const [estado, setEstado] = useState<number | null>(null);
+  const user = useAuthStore((s) => s.user);
+  // Anexos (declaraciones juradas del interno): gestión por Universidad/Administrador RENADS.
+  const canManageAnnexes = userHasRole(user, "Universidad", "Administrador RENADS", "Interno");
 
   const debouncedSearch = useDebouncedValue(search, 300);
 
@@ -45,7 +50,10 @@ export default function InternosPage() {
         id: "acciones",
         header: "",
         cell: ({ row }) => (
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            {canManageAnnexes ? (
+              <AnnexChecklistAction entidad="interns" row={row.original} />
+            ) : null}
             <Button
               variant="outline"
               size="sm"
@@ -55,7 +63,7 @@ export default function InternosPage() {
         ),
       },
     ],
-    [],
+    [canManageAnnexes],
   );
 
   return (
@@ -72,7 +80,7 @@ export default function InternosPage() {
         title="Internos"
         description="Internados, rotaciones y autorizaciones."
         actions={
-          <Button render={<Link href="/internados/nuevo">Nuevo internado</Link>} />
+          <Button render={<Link href="/internados/nuevo">Nuevo interno</Link>} />
         }
       />
 

@@ -12,6 +12,7 @@ import { ResourceCrud } from "@/components/crud/resource-crud";
 import { IpressSedeDocenteAction } from "@/components/catalogos/ipress-sede-docente-action";
 import { LogoUploadAction } from "@/components/catalogos/logo-upload-dialog";
 import { AnnexChecklistAction } from "@/components/almacenamiento/annex-checklist-dialog";
+import { EntityLogo } from "@/components/ui/entity-logo";
 import { Button } from "@/components/ui/button";
 
 /** CRUD de una entidad organizacional/académica, resuelta por el slug de la ruta. */
@@ -33,10 +34,13 @@ export default function EntidadCatalogoPage() {
   }
 
   const entidad = params.entidad;
+  const isUniversities = entidad === "universities";
   const actions: RowAction<WithId>[] = [];
 
   // Logo (subir/reemplazar) — 5 entidades con logo, solo `Administrador RENADS`.
-  if (hasLogo(entidad) && userHasRole(user, "Administrador RENADS")) {
+  // Universidades queda excluida: su logo se gestiona **dentro del formulario** de edición
+  // (ver `renderEditInfo` en la config) y su listado se muestra en tarjetas con el logo.
+  if (hasLogo(entidad) && !isUniversities && userHasRole(user, "Administrador RENADS")) {
     actions.push({
       key: "logo",
       label: "Logo",
@@ -77,7 +81,35 @@ export default function EntidadCatalogoPage() {
           ← Catálogos
         </Link>
       </div>
-      <ResourceCrud config={config} rowActions={rowActions} />
+      <ResourceCrud
+        config={config}
+        rowActions={rowActions}
+        cardView={isUniversities}
+        renderCard={
+          isUniversities
+            ? (row: WithId) => (
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <EntityLogo
+                    entidad="universities"
+                    id={row.id}
+                    referenciaLogo={(row.referencia_logo as string | undefined) ?? null}
+                    size={80}
+                  />
+                  <div className="grid gap-0.5">
+                    <p className="text-sm leading-tight font-medium">
+                      {String(row.nombre ?? "—")}
+                    </p>
+                    {row.siglas ? (
+                      <p className="text-xs text-muted-foreground">
+                        {String(row.siglas)}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              )
+            : undefined
+        }
+      />
     </div>
   );
 }

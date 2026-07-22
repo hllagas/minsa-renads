@@ -19,8 +19,11 @@ export default function EntidadMaestraPage() {
   const user = useAuthStore((s) => s.user);
   const entidad = params.entidad;
 
+  // Universidades gestiona su logo dentro del formulario de edición (no como acción por fila).
   const rowActions: RowAction<WithId>[] | undefined =
-    hasLogo(entidad) && userHasRole(user, "Administrador RENADS")
+    hasLogo(entidad) &&
+    entidad !== "universities" &&
+    userHasRole(user, "Administrador RENADS")
       ? [
           {
             key: "logo",

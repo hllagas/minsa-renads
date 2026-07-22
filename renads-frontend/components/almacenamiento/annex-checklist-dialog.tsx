@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { toast } from "sonner";
+import { CheckCircle2, XCircle, Paperclip, Upload, Loader2 } from "lucide-react";
 
 import {
   ANNEX_ACCEPT,
@@ -13,8 +14,6 @@ import {
 import { extractApiError } from "@/lib/api/errors";
 import type { WithId } from "@/lib/api/query";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -77,31 +76,65 @@ function AnnexRow({
         </div>
       </TableCell>
       <TableCell>
-        {item.obligatorio ? (
-          <Badge variant="secondary">Obligatorio</Badge>
-        ) : (
-          <span className="text-xs text-muted-foreground">Opcional</span>
-        )}
-      </TableCell>
-      <TableCell>
         {item.adjuntado ? (
-          <Badge>Adjuntado{item.version ? ` · v${item.version}` : ""}</Badge>
+          <span
+            className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400"
+            title={`Adjuntado${item.version ? ` · v${item.version}` : ""}`}
+          >
+            <CheckCircle2 className="size-5" aria-label="Adjuntado" />
+            {item.version ? (
+              <span className="text-xs text-muted-foreground">v{item.version}</span>
+            ) : null}
+          </span>
         ) : (
-          <Badge variant="outline">Falta</Badge>
+          <span
+            className="inline-flex items-center text-destructive"
+            title={item.obligatorio ? "Faltante (obligatorio)" : "Faltante"}
+          >
+            <XCircle className="size-5" aria-label="Faltante" />
+          </span>
         )}
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-2">
-          <Input
+          <input
             ref={inputRef}
             type="file"
             accept={ANNEX_ACCEPT}
-            className="max-w-56"
+            className="hidden"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             disabled={uploadM.isPending}
           />
-          <Button size="sm" onClick={onSubmit} disabled={!file || uploadM.isPending}>
-            {uploadM.isPending ? "…" : item.adjuntado ? "Reemplazar" : "Subir"}
+          <Button
+            variant="outline"
+            size="icon-sm"
+            aria-label="Seleccionar archivo"
+            title="Seleccionar archivo (PDF)"
+            disabled={uploadM.isPending}
+            onClick={() => inputRef.current?.click()}
+          >
+            <Paperclip />
+          </Button>
+          {file ? (
+            <span
+              className="max-w-32 truncate text-xs text-muted-foreground"
+              title={file.name}
+            >
+              {file.name}
+            </span>
+          ) : null}
+          <Button
+            size="icon-sm"
+            aria-label={item.adjuntado ? "Reemplazar" : "Subir"}
+            title={item.adjuntado ? "Reemplazar" : "Subir"}
+            onClick={onSubmit}
+            disabled={!file || uploadM.isPending}
+          >
+            {uploadM.isPending ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              <Upload />
+            )}
           </Button>
         </div>
       </TableCell>
@@ -119,6 +152,7 @@ export function AnnexChecklistAction({ entidad, row }: { entidad: string; row: W
   const checklist = useAnnexChecklist(entidad, row.id, open);
   const nombre =
     [row.nombres, row.apellido_paterno].filter(Boolean).join(" ") ||
+    (row.estudiante as string | undefined) ||
     (row.nombre as string | undefined) ||
     `#${row.id}`;
 
@@ -172,8 +206,7 @@ export function AnnexChecklistAction({ entidad, row }: { entidad: string; row: W
                 <TableHeader>
                   <TableRow>
                     <TableHead>Anexo</TableHead>
-                    <TableHead className="w-28">Requisito</TableHead>
-                    <TableHead className="w-32">Estado</TableHead>
+                    <TableHead className="w-24">Estado</TableHead>
                     <TableHead>Archivo</TableHead>
                   </TableRow>
                 </TableHeader>

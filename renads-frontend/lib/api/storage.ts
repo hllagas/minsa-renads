@@ -29,9 +29,13 @@ export function hasLogo(endpoint: string): endpoint is LogoEntity {
   return (LOGO_ENTITIES as readonly string[]).includes(endpoint);
 }
 
-/** Entidades con anexos (`annex-checklist`/`annex-upload`) y su `tipo_actor`. */
+/**
+ * Entidades con anexos (`annex-checklist`/`annex-upload`) y su `tipo_actor`.
+ * Refactor 2026-07: las declaraciones juradas del interno (`INTERNO`) se adjuntan sobre el
+ * **internado** (`interns/{id}/…`), no sobre el estudiante. El endpoint `students` ya no expone anexos.
+ */
 export const ANNEX_ENTITIES = {
-  students: "INTERNO",
+  interns: "INTERNO",
   "university-authorities": "AUTORIDAD_UNIVERSIDAD",
   representatives: "REPRESENTANTE",
 } as const;

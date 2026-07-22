@@ -11,9 +11,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         get: operations["academic_levels_list"];
         put?: never;
-        post?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        post: operations["academic_levels_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -27,13 +29,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         get: operations["academic_levels_retrieve"];
-        put?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        put: operations["academic_levels_update"];
         post?: never;
-        delete?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        delete: operations["academic_levels_destroy"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        patch: operations["academic_levels_partial_update"];
         trace?: never;
     };
     "/api/v1/academic-periods/": {
@@ -288,9 +294,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         get: operations["authorization_types_list"];
         put?: never;
-        post?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        post: operations["authorization_types_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -304,13 +312,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         get: operations["authorization_types_retrieve"];
-        put?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        put: operations["authorization_types_update"];
         post?: never;
-        delete?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        delete: operations["authorization_types_destroy"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        patch: operations["authorization_types_partial_update"];
         trace?: never;
     };
     "/api/v1/closure-reasons/": {
@@ -685,9 +697,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         get: operations["document_types_list"];
         put?: never;
-        post?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        post: operations["document_types_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -701,13 +715,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         get: operations["document_types_retrieve"];
-        put?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        put: operations["document_types_update"];
         post?: never;
-        delete?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        delete: operations["document_types_destroy"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        patch: operations["document_types_partial_update"];
         trace?: never;
     };
     "/api/v1/documents/": {
@@ -852,20 +870,34 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
          *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
-         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
-         *     borra la key anterior. No versiona ni usa `Document`.
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
          */
         get: operations["executing_units_list"];
         put?: never;
         /**
-         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
          *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
-         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
-         *     borra la key anterior. No versiona ni usa `Document`.
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
          */
         post: operations["executing_units_create"];
         delete?: never;
@@ -882,38 +914,66 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
          *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
-         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
-         *     borra la key anterior. No versiona ni usa `Document`.
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
          */
         get: operations["executing_units_retrieve"];
         /**
-         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
          *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
-         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
-         *     borra la key anterior. No versiona ni usa `Document`.
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
          */
         put: operations["executing_units_update"];
         post?: never;
         /**
-         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
          *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
-         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
-         *     borra la key anterior. No versiona ni usa `Document`.
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
          */
         delete: operations["executing_units_destroy"];
         options?: never;
         head?: never;
         /**
-         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
          *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
-         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
-         *     borra la key anterior. No versiona ni usa `Document`.
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
          */
         patch: operations["executing_units_partial_update"];
         trace?: never;
@@ -926,8 +986,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Obtener el signed URL del logo de la entidad
-         * @description Devuelve un signed URL efímero del logo, o 404 si no hay logo cargado.
+         * Obtener la URL del logo de la entidad
+         * @description Devuelve la URL (signed URL efímero) del logo, o 404 si no hay logo cargado.
          */
         get: operations["executing_units_logo_url_retrieve"];
         put?: never;
@@ -949,12 +1009,14 @@ export interface paths {
         put?: never;
         /**
          * Subir/reemplazar el logo de la entidad
-         * @description Sube (o reemplaza) el logo de la entidad y devuelve un signed URL.
+         * @description Sube (o reemplaza) el logo de la entidad y devuelve su URL.
          *
-         *     Sube la nueva imagen primero; si la entidad ya tenía un logo, se borra la
-         *     key anterior **después** de subir la nueva (no dejar la entidad sin logo si
-         *     la subida falla). Persiste la nueva key en `referencia_logo` y registra
-         *     auditoría. Responde `{referencia_logo, url}` (signed URL efímero).
+         *     Asigna el archivo al `ImageField` y guarda; Django escribe el binario en
+         *     `STORAGES["default"]` usando el `upload_to` de la entidad. Si ya existía un
+         *     logo distinto, se borra el binario anterior **después** de guardar el nuevo
+         *     (no dejar la entidad sin logo si la subida falla). Persiste el path en
+         *     `referencia_logo` y registra auditoría. Responde `{referencia_logo, url}`
+         *     (`url` = signed URL efímero del campo).
          */
         post: operations["executing_units_upload_logo_create"];
         delete?: never;
@@ -1142,10 +1204,22 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     Adjunto real de anexos (declaraciones juradas) del interno (actor `INTERNO`) vía
+         *     `annex-upload`/`annex-checklist` (mixin transversal `AnnexAttachmentMixin`, T-F2.2):
+         *     los PDFs se guardan como `Document` versionado por `(interno, documento_anexo)`.
+         */
         get: operations["interns_list"];
         put?: never;
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     Adjunto real de anexos (declaraciones juradas) del interno (actor `INTERNO`) vía
+         *     `annex-upload`/`annex-checklist` (mixin transversal `AnnexAttachmentMixin`, T-F2.2):
+         *     los PDFs se guardan como `Document` versionado por `(interno, documento_anexo)`.
+         */
         post: operations["interns_create"];
         delete?: never;
         options?: never;
@@ -1160,17 +1234,89 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     Adjunto real de anexos (declaraciones juradas) del interno (actor `INTERNO`) vía
+         *     `annex-upload`/`annex-checklist` (mixin transversal `AnnexAttachmentMixin`, T-F2.2):
+         *     los PDFs se guardan como `Document` versionado por `(interno, documento_anexo)`.
+         */
         get: operations["interns_retrieve"];
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     Adjunto real de anexos (declaraciones juradas) del interno (actor `INTERNO`) vía
+         *     `annex-upload`/`annex-checklist` (mixin transversal `AnnexAttachmentMixin`, T-F2.2):
+         *     los PDFs se guardan como `Document` versionado por `(interno, documento_anexo)`.
+         */
         put: operations["interns_update"];
         post?: never;
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     Adjunto real de anexos (declaraciones juradas) del interno (actor `INTERNO`) vía
+         *     `annex-upload`/`annex-checklist` (mixin transversal `AnnexAttachmentMixin`, T-F2.2):
+         *     los PDFs se guardan como `Document` versionado por `(interno, documento_anexo)`.
+         */
         delete: operations["interns_destroy"];
         options?: never;
         head?: never;
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     Adjunto real de anexos (declaraciones juradas) del interno (actor `INTERNO`) vía
+         *     `annex-upload`/`annex-checklist` (mixin transversal `AnnexAttachmentMixin`, T-F2.2):
+         *     los PDFs se guardan como `Document` versionado por `(interno, documento_anexo)`.
+         */
         patch: operations["interns_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/interns/{id}/annex-checklist/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Checklist de anexos requeridos vs. adjuntados
+         * @description Lista los anexos activos del actor con su estado de adjunto por versión activa.
+         *
+         *     Cruza el catálogo maestro (`AnnexDocument` activos de `tipo_actor ==
+         *     annex_actor`) con los `Document` `ACTIVO` de esta entidad que apuntan a
+         *     cada anexo. Es la base del checklist requeridos (`obligatorio=True`) vs.
+         *     adjuntados.
+         */
+        get: operations["interns_annex_checklist_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interns/{id}/annex-upload/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Adjunta el PDF de un anexo del interno y recalcula el estado de sus DJ (RN-23).
+         *
+         *     Reutiliza la lógica del `AnnexAttachmentMixin` (adjunto versionado por
+         *     `(interno, documento_anexo)`) y, tras adjuntar, recalcula
+         *     `estado_declaraciones` del internado.
+         */
+        post: operations["interns_annex_upload_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/interns/{id}/cambiar-estado/": {
@@ -1182,7 +1328,13 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     Adjunto real de anexos (declaraciones juradas) del interno (actor `INTERNO`) vía
+         *     `annex-upload`/`annex-checklist` (mixin transversal `AnnexAttachmentMixin`, T-F2.2):
+         *     los PDFs se guardan como `Document` versionado por `(interno, documento_anexo)`.
+         */
         post: operations["interns_cambiar_estado_create"];
         delete?: never;
         options?: never;
@@ -1199,7 +1351,13 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     Adjunto real de anexos (declaraciones juradas) del interno (actor `INTERNO`) vía
+         *     `annex-upload`/`annex-checklist` (mixin transversal `AnnexAttachmentMixin`, T-F2.2):
+         *     los PDFs se guardan como `Document` versionado por `(interno, documento_anexo)`.
+         */
         post: operations["interns_cambiar_tutor_create"];
         delete?: never;
         options?: never;
@@ -1214,7 +1372,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     Adjunto real de anexos (declaraciones juradas) del interno (actor `INTERNO`) vía
+         *     `annex-upload`/`annex-checklist` (mixin transversal `AnnexAttachmentMixin`, T-F2.2):
+         *     los PDFs se guardan como `Document` versionado por `(interno, documento_anexo)`.
+         */
         get: operations["interns_historial_retrieve"];
         put?: never;
         post?: never;
@@ -1252,10 +1416,22 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     Adjunto real de anexos (declaraciones juradas) del interno (actor `INTERNO`) vía
+         *     `annex-upload`/`annex-checklist` (mixin transversal `AnnexAttachmentMixin`, T-F2.2):
+         *     los PDFs se guardan como `Document` versionado por `(interno, documento_anexo)`.
+         */
         get: operations["interns_rotaciones_retrieve"];
         put?: never;
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     Adjunto real de anexos (declaraciones juradas) del interno (actor `INTERNO`) vía
+         *     `annex-upload`/`annex-checklist` (mixin transversal `AnnexAttachmentMixin`, T-F2.2):
+         *     los PDFs se guardan como `Document` versionado por `(interno, documento_anexo)`.
+         */
         post: operations["interns_rotaciones_create"];
         delete?: never;
         options?: never;
@@ -1358,8 +1534,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Obtener el signed URL del logo de la entidad
-         * @description Devuelve un signed URL efímero del logo, o 404 si no hay logo cargado.
+         * Obtener la URL del logo de la entidad
+         * @description Devuelve la URL (signed URL efímero) del logo, o 404 si no hay logo cargado.
          */
         get: operations["ipress_logo_url_retrieve"];
         put?: never;
@@ -1381,12 +1557,14 @@ export interface paths {
         put?: never;
         /**
          * Subir/reemplazar el logo de la entidad
-         * @description Sube (o reemplaza) el logo de la entidad y devuelve un signed URL.
+         * @description Sube (o reemplaza) el logo de la entidad y devuelve su URL.
          *
-         *     Sube la nueva imagen primero; si la entidad ya tenía un logo, se borra la
-         *     key anterior **después** de subir la nueva (no dejar la entidad sin logo si
-         *     la subida falla). Persiste la nueva key en `referencia_logo` y registra
-         *     auditoría. Responde `{referencia_logo, url}` (signed URL efímero).
+         *     Asigna el archivo al `ImageField` y guarda; Django escribe el binario en
+         *     `STORAGES["default"]` usando el `upload_to` de la entidad. Si ya existía un
+         *     logo distinto, se borra el binario anterior **después** de guardar el nuevo
+         *     (no dejar la entidad sin logo si la subida falla). Persiste el path en
+         *     `referencia_logo` y registra auditoría. Responde `{referencia_logo, url}`
+         *     (`url` = signed URL efímero del campo).
          */
         post: operations["ipress_upload_logo_create"];
         delete?: never;
@@ -1402,9 +1580,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         get: operations["minsa_organ_types_list"];
         put?: never;
-        post?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        post: operations["minsa_organ_types_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1418,13 +1598,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         get: operations["minsa_organ_types_retrieve"];
-        put?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        put: operations["minsa_organ_types_update"];
         post?: never;
-        delete?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        delete: operations["minsa_organ_types_destroy"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        patch: operations["minsa_organ_types_partial_update"];
         trace?: never;
     };
     "/api/v1/minsa-organs/": {
@@ -1577,20 +1761,34 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
          *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
-         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
-         *     borra la key anterior. No versiona ni usa `Document`.
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
          */
         get: operations["regional_governments_list"];
         put?: never;
         /**
-         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
          *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
-         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
-         *     borra la key anterior. No versiona ni usa `Document`.
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
          */
         post: operations["regional_governments_create"];
         delete?: never;
@@ -1607,38 +1805,66 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
          *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
-         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
-         *     borra la key anterior. No versiona ni usa `Document`.
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
          */
         get: operations["regional_governments_retrieve"];
         /**
-         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
          *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
-         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
-         *     borra la key anterior. No versiona ni usa `Document`.
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
          */
         put: operations["regional_governments_update"];
         post?: never;
         /**
-         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
          *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
-         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
-         *     borra la key anterior. No versiona ni usa `Document`.
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
          */
         delete: operations["regional_governments_destroy"];
         options?: never;
         head?: never;
         /**
-         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
          *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
-         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
-         *     borra la key anterior. No versiona ni usa `Document`.
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
          */
         patch: operations["regional_governments_partial_update"];
         trace?: never;
@@ -1651,8 +1877,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Obtener el signed URL del logo de la entidad
-         * @description Devuelve un signed URL efímero del logo, o 404 si no hay logo cargado.
+         * Obtener la URL del logo de la entidad
+         * @description Devuelve la URL (signed URL efímero) del logo, o 404 si no hay logo cargado.
          */
         get: operations["regional_governments_logo_url_retrieve"];
         put?: never;
@@ -1674,12 +1900,14 @@ export interface paths {
         put?: never;
         /**
          * Subir/reemplazar el logo de la entidad
-         * @description Sube (o reemplaza) el logo de la entidad y devuelve un signed URL.
+         * @description Sube (o reemplaza) el logo de la entidad y devuelve su URL.
          *
-         *     Sube la nueva imagen primero; si la entidad ya tenía un logo, se borra la
-         *     key anterior **después** de subir la nueva (no dejar la entidad sin logo si
-         *     la subida falla). Persiste la nueva key en `referencia_logo` y registra
-         *     auditoría. Responde `{referencia_logo, url}` (signed URL efímero).
+         *     Asigna el archivo al `ImageField` y guarda; Django escribe el binario en
+         *     `STORAGES["default"]` usando el `upload_to` de la entidad. Si ya existía un
+         *     logo distinto, se borra el binario anterior **después** de guardar el nuevo
+         *     (no dejar la entidad sin logo si la subida falla). Persiste el path en
+         *     `referencia_logo` y registra auditoría. Responde `{referencia_logo, url}`
+         *     (`url` = signed URL efímero del campo).
          */
         post: operations["regional_governments_upload_logo_create"];
         delete?: never;
@@ -1695,9 +1923,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         get: operations["regional_organ_types_list"];
         put?: never;
-        post?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        post: operations["regional_organ_types_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1711,13 +1941,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         get: operations["regional_organ_types_retrieve"];
-        put?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        put: operations["regional_organ_types_update"];
         post?: never;
-        delete?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        delete: operations["regional_organ_types_destroy"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        patch: operations["regional_organ_types_partial_update"];
         trace?: never;
     };
     "/api/v1/regional-organs/": {
@@ -1728,20 +1962,34 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
          *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
-         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
-         *     borra la key anterior. No versiona ni usa `Document`.
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
          */
         get: operations["regional_organs_list"];
         put?: never;
         /**
-         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
          *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
-         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
-         *     borra la key anterior. No versiona ni usa `Document`.
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
          */
         post: operations["regional_organs_create"];
         delete?: never;
@@ -1758,38 +2006,66 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
          *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
-         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
-         *     borra la key anterior. No versiona ni usa `Document`.
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
          */
         get: operations["regional_organs_retrieve"];
         /**
-         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
          *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
-         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
-         *     borra la key anterior. No versiona ni usa `Document`.
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
          */
         put: operations["regional_organs_update"];
         post?: never;
         /**
-         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
          *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
-         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
-         *     borra la key anterior. No versiona ni usa `Document`.
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
          */
         delete: operations["regional_organs_destroy"];
         options?: never;
         head?: never;
         /**
-         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
          *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
-         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
-         *     borra la key anterior. No versiona ni usa `Document`.
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
          */
         patch: operations["regional_organs_partial_update"];
         trace?: never;
@@ -1802,8 +2078,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Obtener el signed URL del logo de la entidad
-         * @description Devuelve un signed URL efímero del logo, o 404 si no hay logo cargado.
+         * Obtener la URL del logo de la entidad
+         * @description Devuelve la URL (signed URL efímero) del logo, o 404 si no hay logo cargado.
          */
         get: operations["regional_organs_logo_url_retrieve"];
         put?: never;
@@ -1825,12 +2101,14 @@ export interface paths {
         put?: never;
         /**
          * Subir/reemplazar el logo de la entidad
-         * @description Sube (o reemplaza) el logo de la entidad y devuelve un signed URL.
+         * @description Sube (o reemplaza) el logo de la entidad y devuelve su URL.
          *
-         *     Sube la nueva imagen primero; si la entidad ya tenía un logo, se borra la
-         *     key anterior **después** de subir la nueva (no dejar la entidad sin logo si
-         *     la subida falla). Persiste la nueva key en `referencia_logo` y registra
-         *     auditoría. Responde `{referencia_logo, url}` (signed URL efímero).
+         *     Asigna el archivo al `ImageField` y guarda; Django escribe el binario en
+         *     `STORAGES["default"]` usando el `upload_to` de la entidad. Si ya existía un
+         *     logo distinto, se borra el binario anterior **después** de guardar el nuevo
+         *     (no dejar la entidad sin logo si la subida falla). Persiste el path en
+         *     `referencia_logo` y registra auditoría. Responde `{referencia_logo, url}`
+         *     (`url` = signed URL efímero del campo).
          */
         post: operations["regional_organs_upload_logo_create"];
         delete?: never;
@@ -2317,20 +2595,20 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description CRUD de estudiantes + adjunto real de anexos (declaraciones juradas) del interno.
+         * @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad.
          *
-         *     Escritura por rol Universidad/Administrador; alcance por universidad. Las
-         *     acciones `annex-upload`/`annex-checklist` (actor `INTERNO`) las aporta el mixin
-         *     transversal `AnnexAttachmentMixin` (T-F2.2).
+         *     El adjunto real de anexos (declaraciones juradas) del interno se realiza sobre
+         *     el internado (`InternshipViewSet`, acciones `annex-upload`/`annex-checklist`),
+         *     no sobre el estudiante.
          */
         get: operations["students_list"];
         put?: never;
         /**
-         * @description CRUD de estudiantes + adjunto real de anexos (declaraciones juradas) del interno.
+         * @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad.
          *
-         *     Escritura por rol Universidad/Administrador; alcance por universidad. Las
-         *     acciones `annex-upload`/`annex-checklist` (actor `INTERNO`) las aporta el mixin
-         *     transversal `AnnexAttachmentMixin` (T-F2.2).
+         *     El adjunto real de anexos (declaraciones juradas) del interno se realiza sobre
+         *     el internado (`InternshipViewSet`, acciones `annex-upload`/`annex-checklist`),
+         *     no sobre el estudiante.
          */
         post: operations["students_create"];
         delete?: never;
@@ -2347,87 +2625,40 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description CRUD de estudiantes + adjunto real de anexos (declaraciones juradas) del interno.
+         * @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad.
          *
-         *     Escritura por rol Universidad/Administrador; alcance por universidad. Las
-         *     acciones `annex-upload`/`annex-checklist` (actor `INTERNO`) las aporta el mixin
-         *     transversal `AnnexAttachmentMixin` (T-F2.2).
+         *     El adjunto real de anexos (declaraciones juradas) del interno se realiza sobre
+         *     el internado (`InternshipViewSet`, acciones `annex-upload`/`annex-checklist`),
+         *     no sobre el estudiante.
          */
         get: operations["students_retrieve"];
         /**
-         * @description CRUD de estudiantes + adjunto real de anexos (declaraciones juradas) del interno.
+         * @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad.
          *
-         *     Escritura por rol Universidad/Administrador; alcance por universidad. Las
-         *     acciones `annex-upload`/`annex-checklist` (actor `INTERNO`) las aporta el mixin
-         *     transversal `AnnexAttachmentMixin` (T-F2.2).
+         *     El adjunto real de anexos (declaraciones juradas) del interno se realiza sobre
+         *     el internado (`InternshipViewSet`, acciones `annex-upload`/`annex-checklist`),
+         *     no sobre el estudiante.
          */
         put: operations["students_update"];
         post?: never;
         /**
-         * @description CRUD de estudiantes + adjunto real de anexos (declaraciones juradas) del interno.
+         * @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad.
          *
-         *     Escritura por rol Universidad/Administrador; alcance por universidad. Las
-         *     acciones `annex-upload`/`annex-checklist` (actor `INTERNO`) las aporta el mixin
-         *     transversal `AnnexAttachmentMixin` (T-F2.2).
+         *     El adjunto real de anexos (declaraciones juradas) del interno se realiza sobre
+         *     el internado (`InternshipViewSet`, acciones `annex-upload`/`annex-checklist`),
+         *     no sobre el estudiante.
          */
         delete: operations["students_destroy"];
         options?: never;
         head?: never;
         /**
-         * @description CRUD de estudiantes + adjunto real de anexos (declaraciones juradas) del interno.
+         * @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad.
          *
-         *     Escritura por rol Universidad/Administrador; alcance por universidad. Las
-         *     acciones `annex-upload`/`annex-checklist` (actor `INTERNO`) las aporta el mixin
-         *     transversal `AnnexAttachmentMixin` (T-F2.2).
+         *     El adjunto real de anexos (declaraciones juradas) del interno se realiza sobre
+         *     el internado (`InternshipViewSet`, acciones `annex-upload`/`annex-checklist`),
+         *     no sobre el estudiante.
          */
         patch: operations["students_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/students/{id}/annex-checklist/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Checklist de anexos requeridos vs. adjuntados
-         * @description Lista los anexos activos del actor con su estado de adjunto por versión activa.
-         *
-         *     Cruza el catálogo maestro (`AnnexDocument` activos de `tipo_actor ==
-         *     annex_actor`) con los `Document` `ACTIVO` de esta entidad que apuntan a
-         *     cada anexo. Es la base del checklist requeridos (`obligatorio=True`) vs.
-         *     adjuntados.
-         */
-        get: operations["students_annex_checklist_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/students/{id}/annex-upload/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Adjunta el PDF de un anexo del interno y recalcula el estado de sus DJ (RN-23).
-         *
-         *     Reutiliza la lógica del `AnnexAttachmentMixin` y, tras adjuntar, recalcula
-         *     `estado_declaraciones` de los internados vigentes del estudiante.
-         */
-        post: operations["students_annex_upload_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
         trace?: never;
     };
     "/api/v1/students/bulk-upload/": {
@@ -2638,20 +2869,34 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
          *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
-         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
-         *     borra la key anterior. No versiona ni usa `Document`.
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
          */
         get: operations["universities_list"];
         put?: never;
         /**
-         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
          *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
-         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
-         *     borra la key anterior. No versiona ni usa `Document`.
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
          */
         post: operations["universities_create"];
         delete?: never;
@@ -2668,38 +2913,66 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
          *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
-         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
-         *     borra la key anterior. No versiona ni usa `Document`.
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
          */
         get: operations["universities_retrieve"];
         /**
-         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
          *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
-         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
-         *     borra la key anterior. No versiona ni usa `Document`.
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
          */
         put: operations["universities_update"];
         post?: never;
         /**
-         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
          *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
-         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
-         *     borra la key anterior. No versiona ni usa `Document`.
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
          */
         delete: operations["universities_destroy"];
         options?: never;
         head?: never;
         /**
-         * @description Sube/consulta el logo de una entidad con columna `referencia_logo`.
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
          *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
-         *     El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
-         *     borra la key anterior. No versiona ni usa `Document`.
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
          */
         patch: operations["universities_partial_update"];
         trace?: never;
@@ -2712,8 +2985,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Obtener el signed URL del logo de la entidad
-         * @description Devuelve un signed URL efímero del logo, o 404 si no hay logo cargado.
+         * Obtener la URL del logo de la entidad
+         * @description Devuelve la URL (signed URL efímero) del logo, o 404 si no hay logo cargado.
          */
         get: operations["universities_logo_url_retrieve"];
         put?: never;
@@ -2735,12 +3008,14 @@ export interface paths {
         put?: never;
         /**
          * Subir/reemplazar el logo de la entidad
-         * @description Sube (o reemplaza) el logo de la entidad y devuelve un signed URL.
+         * @description Sube (o reemplaza) el logo de la entidad y devuelve su URL.
          *
-         *     Sube la nueva imagen primero; si la entidad ya tenía un logo, se borra la
-         *     key anterior **después** de subir la nueva (no dejar la entidad sin logo si
-         *     la subida falla). Persiste la nueva key en `referencia_logo` y registra
-         *     auditoría. Responde `{referencia_logo, url}` (signed URL efímero).
+         *     Asigna el archivo al `ImageField` y guarda; Django escribe el binario en
+         *     `STORAGES["default"]` usando el `upload_to` de la entidad. Si ya existía un
+         *     logo distinto, se borra el binario anterior **después** de guardar el nuevo
+         *     (no dejar la entidad sin logo si la subida falla). Persiste el path en
+         *     `referencia_logo` y registra auditoría. Responde `{referencia_logo, url}`
+         *     (`url` = signed URL efímero del campo).
          */
         post: operations["universities_upload_logo_create"];
         delete?: never;
@@ -2924,9 +3199,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         get: operations["university_entity_types_list"];
         put?: never;
-        post?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        post: operations["university_entity_types_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2940,13 +3217,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         get: operations["university_entity_types_retrieve"];
-        put?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        put: operations["university_entity_types_update"];
         post?: never;
-        delete?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        delete: operations["university_entity_types_destroy"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        patch: operations["university_entity_types_partial_update"];
         trace?: never;
     };
     "/api/v1/university-management-types/": {
@@ -3491,6 +3772,11 @@ export interface components {
              */
             nombre_archivo: string;
             /**
+             * Texto extraído
+             * @description Texto extraído del PDF por Document AI (vacío si no aplica o falló)
+             */
+            readonly texto_extraido: string;
+            /**
              * Versión
              * @description Versión
              */
@@ -3588,6 +3874,7 @@ export interface components {
         EstadoEnum: "ACTIVO" | "REEMPLAZADO" | "ANULADO" | "OBSERVADO" | "VALIDADO";
         ExecutingUnitAuto: {
             readonly id: number;
+            readonly referencia_logo: string;
             /** @description Nombre */
             nombre: string;
             /**
@@ -3600,11 +3887,6 @@ export interface components {
              * @description Dirección
              */
             direccion?: string;
-            /**
-             * Referencia del logo
-             * @description Referencia externa del logo (repositorio externo)
-             */
-            referencia_logo?: string;
             activo?: boolean;
             /** @description Órgano regional que la administra */
             organo_regional: number;
@@ -3706,6 +3988,18 @@ export interface components {
              */
             estado_declaraciones?: components["schemas"]["EstadoDeclaracionesEnum"];
             /**
+             * Contacto de emergencia - nombre
+             * @description Nombre del contacto de emergencia
+             */
+            contacto_emergencia_nombre?: string;
+            /**
+             * Contacto de emergencia - teléfono
+             * @description Teléfono del contacto de emergencia
+             */
+            contacto_emergencia_telefono?: string;
+            /** @description Parentesco del contacto de emergencia */
+            contacto_emergencia_parentesco?: number | null;
+            /**
              * Fecha de inicio
              * Format: date
              * @description Fecha de inicio
@@ -3769,9 +4063,22 @@ export interface components {
             fecha_fin: string;
             /** @description Observaciones */
             observaciones?: string;
+            /**
+             * Contacto de emergencia - nombre
+             * @description Nombre del contacto de emergencia
+             */
+            contacto_emergencia_nombre?: string;
+            /**
+             * Contacto de emergencia - teléfono
+             * @description Teléfono del contacto de emergencia
+             */
+            contacto_emergencia_telefono?: string;
+            /** @description Parentesco del contacto de emergencia */
+            contacto_emergencia_parentesco?: number | null;
         };
         IpressAuto: {
             readonly id: number;
+            readonly referencia_logo: string;
             /** @description Nombre del establecimiento */
             nombre: string;
             /**
@@ -3786,11 +4093,6 @@ export interface components {
             direccion?: string;
             /** @description Autorizada por CONAPRES como sede docente (asistencial, MINSA/FF.AA.-FF.PP., pública) */
             es_sede_docente?: boolean;
-            /**
-             * Referencia del logo
-             * @description Referencia externa del logo (repositorio externo)
-             */
-            referencia_logo?: string;
             activo?: boolean;
             /** @description Unidad ejecutora a la que pertenece */
             unidad_ejecutora: number;
@@ -4670,6 +4972,18 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["UserRead"][];
         };
+        PatchedAcademicLevelAuto: {
+            readonly id?: number;
+            /**
+             * Código
+             * @description Código único
+             */
+            codigo?: string;
+            /** @description Nombre */
+            nombre?: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+        };
         PatchedAcademicPeriodAuto: {
             readonly id?: number;
             /**
@@ -4709,6 +5023,18 @@ export interface components {
             descripcion?: string;
             /** @description Indica si el documento es de presentación obligatoria */
             obligatorio?: boolean;
+        };
+        PatchedAuthorizationTypeAuto: {
+            readonly id?: number;
+            /**
+             * Código
+             * @description Código único
+             */
+            codigo?: string;
+            /** @description Nombre */
+            nombre?: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
         };
         PatchedConapresAuto: {
             readonly id?: number;
@@ -4793,8 +5119,21 @@ export interface components {
              */
             max_campos_clinicos?: number | null;
         };
+        PatchedDocumentTypeAuto: {
+            readonly id?: number;
+            /**
+             * Código
+             * @description Código único
+             */
+            codigo?: string;
+            /** @description Nombre */
+            nombre?: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+        };
         PatchedExecutingUnitAuto: {
             readonly id?: number;
+            readonly referencia_logo?: string;
             /** @description Nombre */
             nombre?: string;
             /**
@@ -4807,11 +5146,6 @@ export interface components {
              * @description Dirección
              */
             direccion?: string;
-            /**
-             * Referencia del logo
-             * @description Referencia externa del logo (repositorio externo)
-             */
-            referencia_logo?: string;
             activo?: boolean;
             /** @description Órgano regional que la administra */
             organo_regional?: number;
@@ -4863,9 +5197,22 @@ export interface components {
             fecha_fin?: string;
             /** @description Observaciones */
             observaciones?: string;
+            /**
+             * Contacto de emergencia - nombre
+             * @description Nombre del contacto de emergencia
+             */
+            contacto_emergencia_nombre?: string;
+            /**
+             * Contacto de emergencia - teléfono
+             * @description Teléfono del contacto de emergencia
+             */
+            contacto_emergencia_telefono?: string;
+            /** @description Parentesco del contacto de emergencia */
+            contacto_emergencia_parentesco?: number | null;
         };
         PatchedIpressAuto: {
             readonly id?: number;
+            readonly referencia_logo?: string;
             /** @description Nombre del establecimiento */
             nombre?: string;
             /**
@@ -4880,11 +5227,6 @@ export interface components {
             direccion?: string;
             /** @description Autorizada por CONAPRES como sede docente (asistencial, MINSA/FF.AA.-FF.PP., pública) */
             es_sede_docente?: boolean;
-            /**
-             * Referencia del logo
-             * @description Referencia externa del logo (repositorio externo)
-             */
-            referencia_logo?: string;
             activo?: boolean;
             /** @description Unidad ejecutora a la que pertenece */
             unidad_ejecutora?: number;
@@ -4903,6 +5245,18 @@ export interface components {
             /** @description DIGEP / OGAJ / SG / VICEPAS */
             tipo_organo_minsa?: number;
         };
+        PatchedMinsaOrganTypeAuto: {
+            readonly id?: number;
+            /**
+             * Código
+             * @description Código único
+             */
+            codigo?: string;
+            /** @description Nombre */
+            nombre?: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+        };
         PatchedProfessionalCareerAuto: {
             readonly id?: number;
             /** @description Nombre de la carrera o programa */
@@ -4913,19 +5267,16 @@ export interface components {
         };
         PatchedRegionalGovernmentAuto: {
             readonly id?: number;
+            readonly referencia_logo?: string;
             /** @description Nombre del gobierno regional */
             nombre?: string;
-            /**
-             * Referencia del logo
-             * @description Referencia externa del logo (repositorio externo)
-             */
-            referencia_logo?: string;
             activo?: boolean;
             /** @description Región */
             region?: number;
         };
         PatchedRegionalOrganAuto: {
             readonly id?: number;
+            readonly referencia_logo?: string;
             /** @description Nombre del órgano */
             nombre?: string;
             /** @description Siglas */
@@ -4935,11 +5286,6 @@ export interface components {
              * @description Dirección
              */
             direccion?: string;
-            /**
-             * Referencia del logo
-             * @description Referencia externa del logo (repositorio externo)
-             */
-            referencia_logo?: string;
             activo?: boolean;
             /** @description GORE al que pertenece */
             gobierno_regional?: number;
@@ -4947,6 +5293,18 @@ export interface components {
             tipo_organo_regional?: number;
             /** @description Ubicación geográfica (UBIGEO) */
             ubigeo?: number | null;
+        };
+        PatchedRegionalOrganTypeAuto: {
+            readonly id?: number;
+            /**
+             * Código
+             * @description Código único
+             */
+            codigo?: string;
+            /** @description Nombre */
+            nombre?: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
         };
         /** @description Representante polimórfico; valida que apunte a una entidad permitida. */
         PatchedRepresentative: {
@@ -5038,16 +5396,6 @@ export interface components {
              * @description Nota promedio ponderado (escala 0–20)
              */
             nota_promedio_ponderado?: string | null;
-            /**
-             * Contacto de emergencia - nombre
-             * @description Nombre del contacto de emergencia
-             */
-            contacto_emergencia_nombre?: string;
-            /**
-             * Contacto de emergencia - teléfono
-             * @description Teléfono del contacto de emergencia
-             */
-            contacto_emergencia_telefono?: string;
             activo?: boolean;
             /** Format: date-time */
             readonly creado_en?: string;
@@ -5063,8 +5411,6 @@ export interface components {
             periodo_academico?: number | null;
             /** @description Especialidad (obligatoria para niveles distintos de Pregrado — RN-19) */
             especialidad?: number | null;
-            /** @description Parentesco del contacto de emergencia */
-            contacto_emergencia_parentesco?: number | null;
             readonly creado_por?: number;
         };
         PatchedTeachingActivityUpdate: {
@@ -5083,8 +5429,11 @@ export interface components {
             /** @description Servicio, área o unidad */
             servicio_area?: number;
         };
+        /** @description CRUD de tutores. `universidades` (RN-24): de 1 a 2 universidades por tutor. */
         PatchedTutor: {
             readonly id?: number;
+            /** @description Universidades del tutor (de 1 a 2 — RN-24) */
+            universidades?: number[];
             /**
              * Número de documento
              * @description Número de documento de identidad
@@ -5157,6 +5506,7 @@ export interface components {
         };
         PatchedUniversityAuto: {
             readonly id?: number;
+            readonly referencia_logo?: string;
             /** @description Nombre de la universidad */
             nombre?: string;
             /** @description Siglas */
@@ -5195,11 +5545,6 @@ export interface components {
             telefono?: string;
             /** @description Correo institucional */
             correo_institucional?: string;
-            /**
-             * Referencia del logo
-             * @description Referencia externa del logo (repositorio externo)
-             */
-            referencia_logo?: string;
             activo?: boolean;
             /** @description Pública / privada */
             tipo_gestion?: number;
@@ -5226,6 +5571,18 @@ export interface components {
             region?: number | null;
             /** @description Ubicación geográfica (UBIGEO) */
             ubigeo?: number | null;
+        };
+        PatchedUniversityEntityTypeAuto: {
+            readonly id?: number;
+            /**
+             * Código
+             * @description Código único
+             */
+            codigo?: string;
+            /** @description Nombre */
+            nombre?: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
         };
         PatchedUserEntityProfileAuto: {
             readonly id?: number;
@@ -5307,19 +5664,16 @@ export interface components {
         };
         RegionalGovernmentAuto: {
             readonly id: number;
+            readonly referencia_logo: string;
             /** @description Nombre del gobierno regional */
             nombre: string;
-            /**
-             * Referencia del logo
-             * @description Referencia externa del logo (repositorio externo)
-             */
-            referencia_logo?: string;
             activo?: boolean;
             /** @description Región */
             region: number;
         };
         RegionalOrganAuto: {
             readonly id: number;
+            readonly referencia_logo: string;
             /** @description Nombre del órgano */
             nombre: string;
             /** @description Siglas */
@@ -5329,11 +5683,6 @@ export interface components {
              * @description Dirección
              */
             direccion?: string;
-            /**
-             * Referencia del logo
-             * @description Referencia externa del logo (repositorio externo)
-             */
-            referencia_logo?: string;
             activo?: boolean;
             /** @description GORE al que pertenece */
             gobierno_regional: number;
@@ -5593,16 +5942,6 @@ export interface components {
              * @description Nota promedio ponderado (escala 0–20)
              */
             nota_promedio_ponderado?: string | null;
-            /**
-             * Contacto de emergencia - nombre
-             * @description Nombre del contacto de emergencia
-             */
-            contacto_emergencia_nombre?: string;
-            /**
-             * Contacto de emergencia - teléfono
-             * @description Teléfono del contacto de emergencia
-             */
-            contacto_emergencia_telefono?: string;
             activo?: boolean;
             /** Format: date-time */
             readonly creado_en: string;
@@ -5618,8 +5957,6 @@ export interface components {
             periodo_academico?: number | null;
             /** @description Especialidad (obligatoria para niveles distintos de Pregrado — RN-19) */
             especialidad?: number | null;
-            /** @description Parentesco del contacto de emergencia */
-            contacto_emergencia_parentesco?: number | null;
             readonly creado_por: number;
         };
         /** @description Entrada de la carga masiva de estudiantes (RN-16): archivo Excel `.xlsx`. */
@@ -5725,8 +6062,11 @@ export interface components {
             readonly access: string;
             refresh: string;
         };
+        /** @description CRUD de tutores. `universidades` (RN-24): de 1 a 2 universidades por tutor. */
         Tutor: {
             readonly id: number;
+            /** @description Universidades del tutor (de 1 a 2 — RN-24) */
+            universidades: number[];
             /**
              * Número de documento
              * @description Número de documento de identidad
@@ -5814,6 +6154,7 @@ export interface components {
         };
         UniversityAuto: {
             readonly id: number;
+            readonly referencia_logo: string;
             /** @description Nombre de la universidad */
             nombre: string;
             /** @description Siglas */
@@ -5852,11 +6193,6 @@ export interface components {
             telefono?: string;
             /** @description Correo institucional */
             correo_institucional?: string;
-            /**
-             * Referencia del logo
-             * @description Referencia externa del logo (repositorio externo)
-             */
-            referencia_logo?: string;
             activo?: boolean;
             /** @description Pública / privada */
             tipo_gestion: number;
@@ -6071,6 +6407,31 @@ export interface operations {
             };
         };
     };
+    academic_levels_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcademicLevelAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["AcademicLevelAuto"];
+                "multipart/form-data": components["schemas"]["AcademicLevelAuto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicLevelAuto"];
+                };
+            };
+        };
+    };
     academic_levels_retrieve: {
         parameters: {
             query?: never;
@@ -6082,6 +6443,83 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicLevelAuto"];
+                };
+            };
+        };
+    };
+    academic_levels_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este nivel académico. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcademicLevelAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["AcademicLevelAuto"];
+                "multipart/form-data": components["schemas"]["AcademicLevelAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicLevelAuto"];
+                };
+            };
+        };
+    };
+    academic_levels_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este nivel académico. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    academic_levels_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este nivel académico. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedAcademicLevelAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedAcademicLevelAuto"];
+                "multipart/form-data": components["schemas"]["PatchedAcademicLevelAuto"];
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -6678,6 +7116,31 @@ export interface operations {
             };
         };
     };
+    authorization_types_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthorizationTypeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["AuthorizationTypeAuto"];
+                "multipart/form-data": components["schemas"]["AuthorizationTypeAuto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorizationTypeAuto"];
+                };
+            };
+        };
+    };
     authorization_types_retrieve: {
         parameters: {
             query?: never;
@@ -6689,6 +7152,83 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorizationTypeAuto"];
+                };
+            };
+        };
+    };
+    authorization_types_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de autorización. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthorizationTypeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["AuthorizationTypeAuto"];
+                "multipart/form-data": components["schemas"]["AuthorizationTypeAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorizationTypeAuto"];
+                };
+            };
+        };
+    };
+    authorization_types_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de autorización. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    authorization_types_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de autorización. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedAuthorizationTypeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedAuthorizationTypeAuto"];
+                "multipart/form-data": components["schemas"]["PatchedAuthorizationTypeAuto"];
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -7600,6 +8140,31 @@ export interface operations {
             };
         };
     };
+    document_types_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentTypeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["DocumentTypeAuto"];
+                "multipart/form-data": components["schemas"]["DocumentTypeAuto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentTypeAuto"];
+                };
+            };
+        };
+    };
     document_types_retrieve: {
         parameters: {
             query?: never;
@@ -7611,6 +8176,83 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentTypeAuto"];
+                };
+            };
+        };
+    };
+    document_types_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de documento. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentTypeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["DocumentTypeAuto"];
+                "multipart/form-data": components["schemas"]["DocumentTypeAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentTypeAuto"];
+                };
+            };
+        };
+    };
+    document_types_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de documento. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    document_types_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de documento. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedDocumentTypeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedDocumentTypeAuto"];
+                "multipart/form-data": components["schemas"]["PatchedDocumentTypeAuto"];
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -8621,6 +9263,54 @@ export interface operations {
             };
         };
     };
+    interns_annex_checklist_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lista de anexos requeridos del actor con su estado de adjunto. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnnexChecklistItem"];
+                };
+            };
+        };
+    };
+    interns_annex_upload_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["AnnexUpload"];
+                "application/x-www-form-urlencoded": components["schemas"]["AnnexUpload"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Document"];
+                };
+            };
+        };
+    };
     interns_cambiar_estado_create: {
         parameters: {
             query?: never;
@@ -9078,6 +9768,31 @@ export interface operations {
             };
         };
     };
+    minsa_organ_types_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MinsaOrganTypeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["MinsaOrganTypeAuto"];
+                "multipart/form-data": components["schemas"]["MinsaOrganTypeAuto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MinsaOrganTypeAuto"];
+                };
+            };
+        };
+    };
     minsa_organ_types_retrieve: {
         parameters: {
             query?: never;
@@ -9089,6 +9804,83 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MinsaOrganTypeAuto"];
+                };
+            };
+        };
+    };
+    minsa_organ_types_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de órgano del MINSA. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MinsaOrganTypeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["MinsaOrganTypeAuto"];
+                "multipart/form-data": components["schemas"]["MinsaOrganTypeAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MinsaOrganTypeAuto"];
+                };
+            };
+        };
+    };
+    minsa_organ_types_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de órgano del MINSA. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    minsa_organ_types_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de órgano del MINSA. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedMinsaOrganTypeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedMinsaOrganTypeAuto"];
+                "multipart/form-data": components["schemas"]["PatchedMinsaOrganTypeAuto"];
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -9731,6 +10523,31 @@ export interface operations {
             };
         };
     };
+    regional_organ_types_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegionalOrganTypeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["RegionalOrganTypeAuto"];
+                "multipart/form-data": components["schemas"]["RegionalOrganTypeAuto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegionalOrganTypeAuto"];
+                };
+            };
+        };
+    };
     regional_organ_types_retrieve: {
         parameters: {
             query?: never;
@@ -9742,6 +10559,83 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegionalOrganTypeAuto"];
+                };
+            };
+        };
+    };
+    regional_organ_types_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de órgano regional. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegionalOrganTypeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["RegionalOrganTypeAuto"];
+                "multipart/form-data": components["schemas"]["RegionalOrganTypeAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegionalOrganTypeAuto"];
+                };
+            };
+        };
+    };
+    regional_organ_types_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de órgano regional. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    regional_organ_types_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de órgano regional. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedRegionalOrganTypeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedRegionalOrganTypeAuto"];
+                "multipart/form-data": components["schemas"]["PatchedRegionalOrganTypeAuto"];
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -10816,54 +11710,6 @@ export interface operations {
             };
         };
     };
-    students_annex_checklist_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Lista de anexos requeridos del actor con su estado de adjunto. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AnnexChecklistItem"];
-                };
-            };
-        };
-    };
-    students_annex_upload_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["AnnexUpload"];
-                "application/x-www-form-urlencoded": components["schemas"]["AnnexUpload"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Document"];
-                };
-            };
-        };
-    };
     students_bulk_upload_create: {
         parameters: {
             query?: never;
@@ -11149,6 +11995,7 @@ export interface operations {
                 page?: number;
                 /** @description Un término de búsqueda. */
                 search?: string;
+                universidades?: number[];
             };
             header?: never;
             path?: never;
@@ -11927,6 +12774,31 @@ export interface operations {
             };
         };
     };
+    university_entity_types_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UniversityEntityTypeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["UniversityEntityTypeAuto"];
+                "multipart/form-data": components["schemas"]["UniversityEntityTypeAuto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UniversityEntityTypeAuto"];
+                };
+            };
+        };
+    };
     university_entity_types_retrieve: {
         parameters: {
             query?: never;
@@ -11938,6 +12810,83 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UniversityEntityTypeAuto"];
+                };
+            };
+        };
+    };
+    university_entity_types_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de entidad de universidad. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UniversityEntityTypeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["UniversityEntityTypeAuto"];
+                "multipart/form-data": components["schemas"]["UniversityEntityTypeAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UniversityEntityTypeAuto"];
+                };
+            };
+        };
+    };
+    university_entity_types_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de entidad de universidad. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    university_entity_types_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de entidad de universidad. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedUniversityEntityTypeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedUniversityEntityTypeAuto"];
+                "multipart/form-data": components["schemas"]["PatchedUniversityEntityTypeAuto"];
+            };
+        };
         responses: {
             200: {
                 headers: {

@@ -3,6 +3,7 @@ import { createElement } from "react";
 import type { ColumnConfig, FilterConfig, ResourceConfig } from "@/lib/crud/types";
 import type { WithId } from "@/lib/api/query";
 import { EntityLogo } from "@/components/ui/entity-logo";
+import { LogoUploadField } from "@/components/catalogos/logo-upload-field";
 
 const siNo = (v: unknown) => (v ? "Sí" : "No");
 
@@ -40,6 +41,13 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     singular: "universidad",
     description: "Entidades académicas registradas en RENADS.",
     searchPlaceholder: "Buscar por nombre o siglas…",
+    // Logo embebido en la edición (solo universidades): se muestra sobre el formulario al editar.
+    renderEditInfo: (r) =>
+      createElement(LogoUploadField, {
+        entidad: "universities",
+        id: r.id,
+        referenciaLogo: (r.referencia_logo as string | undefined) ?? null,
+      }),
     columns: [
       logoColumn("universities"),
       { key: "nombre", header: "Nombre" },
