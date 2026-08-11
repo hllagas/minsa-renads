@@ -21,6 +21,8 @@ from apps.common.serializers import (
     PermissionSerializer,
     SetPasswordSerializer,
     UserCreateSerializer,
+    UserEntityProfileWriteReadSerializer,
+    UserEntityProfileWriteSerializer,
     UserReadSerializer,
     UserUpdateSerializer,
 )
@@ -86,6 +88,8 @@ class UserViewSet(viewsets.ModelViewSet):
             return UserUpdateSerializer
         if self.action == "set_password":
             return SetPasswordSerializer
+        if self.action == "profiles":
+            return UserEntityProfileWriteSerializer
         return UserReadSerializer
 
     @transaction.atomic
@@ -125,6 +129,100 @@ class UserViewSet(viewsets.ModelViewSet):
         usuario.save(update_fields=["password"])
         registrar_auditoria(request.user, "ACTUALIZAR", usuario, nombre_campo="password")
         return Response({"detalle": "Contraseña actualizada."})
+
+    @extend_schema(
+        request=UserEntityProfileWriteSerializer,
+        responses=UserEntityProfileWriteReadSerializer(many=True),
+    )
+    @action(detail=True, methods=["get", "post", "delete"], url_path="profiles")
+    def profiles(self, request, pk=None):
+        """Gestiona el alcance por objeto (`UserEntityProfile`) del usuario objetivo.
+
+        - GET: lista los perfiles del usuario; por defecto solo los activos,
+          salvo ``?incluir_inactivos=true``.
+        - POST: otorga/reactiva de forma idempotente el acceso a una o varias
+          entidades bajo un rol (una fila por cada id de ``ids``).
+        - DELETE: da de baja lógica (``activo=False``) un perfil concreto indicado
+          por ``profile_id`` (query param o body).
+        """
+        from apps.convenios.models import UserEntityProfile
+
+        usuario = self.get_object()
+
+        if request.method == "GET":
+            perfiles = UserEntityProfile.objects.filter(
+                usuario=usuario
+            ).select_related("tipo_contenido", "grupo")
+            incluir_inactivos = (
+                request.query_params.get("incluir_inactivos", "").lower() == "true"
+            )
+            if not incluir_inactivos:
+                perfiles = perfiles.filter(activo=True)
+            datos = UserEntityProfileWriteReadSerializer(perfiles, many=True).data
+            return Response(datos)
+
+        if request.method == "POST":
+            ser = UserEntityProfileWriteSerializer(data=request.data)
+            ser.is_valid(raise_exception=True)
+            tipo_contenido = ser.validated_data["tipo_contenido"]
+            grupo = ser.validated_data["rol"]
+            ids = ser.validated_data["ids"]
+            perfiles = []
+            with transaction.atomic():
+                for id_objeto in ids:
+                    perfil, creado = UserEntityProfile.objects.get_or_create(
+                        usuario=usuario,
+                        tipo_contenido=tipo_contenido,
+                        id_objeto=id_objeto,
+                        grupo=grupo,
+                        defaults={"activo": True},
+                    )
+                    if creado:
+                        registrar_auditoria(request.user, "CREAR", perfil)
+                    elif not perfil.activo:
+                        perfil.activo = True
+                        perfil.save(update_fields=["activo"])
+                        registrar_auditoria(
+                            request.user,
+                            "ACTIVAR",
+                            perfil,
+                            nombre_campo="activo",
+                            valor_anterior=False,
+                            valor_nuevo=True,
+                        )
+                    perfiles.append(perfil)
+            datos = UserEntityProfileWriteReadSerializer(perfiles, many=True).data
+            return Response(datos, status=status.HTTP_201_CREATED)
+
+        # DELETE: baja lógica de un perfil concreto.
+        profile_id = request.query_params.get("profile_id") or request.data.get(
+            "profile_id"
+        )
+        if profile_id is None:
+            return Response(
+                {"profile_id": ["Debe indicar el identificador del perfil a revocar."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            perfil = UserEntityProfile.objects.get(pk=profile_id, usuario=usuario)
+        except (UserEntityProfile.DoesNotExist, ValueError, TypeError):
+            return Response(
+                {"detalle": "El perfil indicado no pertenece al usuario."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        if perfil.activo:
+            with transaction.atomic():
+                perfil.activo = False
+                perfil.save(update_fields=["activo"])
+                registrar_auditoria(
+                    request.user,
+                    "DESACTIVAR",
+                    perfil,
+                    nombre_campo="activo",
+                    valor_anterior=True,
+                    valor_nuevo=False,
+                )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class GroupViewSet(viewsets.ModelViewSet):

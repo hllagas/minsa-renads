@@ -3,6 +3,7 @@ y administración de usuarios, grupos (roles) y permisos (solo superadministrado
 
 from django.contrib.auth.models import Group, Permission, User
 from django.contrib.auth.password_validation import validate_password
+from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
@@ -267,3 +268,91 @@ class GroupSerializer(serializers.ModelSerializer):
         if permissions is not None:
             instance.permissions.set(permissions)
         return instance
+
+
+# --- Escritura del alcance por objeto (UserEntityProfile, T10) ---
+
+# Apps admitidas para resolver el `ContentType` por nombre de modelo, evitando
+# ambigüedad de nombres entre distintas apps del proyecto.
+APPS_ENTIDADES_ADMITIDAS = ("convenios", "internados", "actividades")
+
+
+class UserEntityProfileWriteSerializer(serializers.Serializer):
+    """Entrada para otorgar a un usuario acceso a una o varias entidades bajo un rol.
+
+    Payload genérico ``{ "rol": <group_id>, "tipo_entidad": "university",
+    "ids": [3, 7] }``. El vínculo del modelo es polimórfico
+    (``tipo_contenido`` → ``ContentType``), por lo que el mismo endpoint sirve
+    para cualquier entidad admitida (universidades, IPRESS, sedes, etc.).
+    """
+
+    rol = serializers.PrimaryKeyRelatedField(
+        queryset=Group.objects.all(),
+        required=True,
+        error_messages={
+            "does_not_exist": "El rol indicado no existe.",
+            "required": "El rol es obligatorio.",
+        },
+        help_text="Identificador (PK) del rol (Group) a otorgar.",
+    )
+    tipo_entidad = serializers.CharField(
+        required=True,
+        help_text="Nombre del modelo de la entidad en minúscula (p. ej. 'university').",
+    )
+    ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        allow_empty=False,
+        required=True,
+        help_text="Lista de identificadores (PK) de las entidades a otorgar.",
+    )
+
+    def validate_tipo_entidad(self, value: str) -> str:
+        """Resuelve el `ContentType` por nombre de modelo, acotado a las apps admitidas."""
+        modelo = value.strip().lower()
+        content_type = ContentType.objects.filter(
+            app_label__in=APPS_ENTIDADES_ADMITIDAS, model=modelo
+        ).first()
+        if content_type is None:
+            raise serializers.ValidationError(
+                "El tipo de entidad indicado no es válido."
+            )
+        # Se conserva el ContentType resuelto para reutilizarlo en `validate`.
+        self._content_type = content_type
+        return modelo
+
+    def validate(self, attrs):
+        """Verifica que cada id de `ids` exista en el modelo resuelto por el tipo de entidad."""
+        content_type = getattr(self, "_content_type", None)
+        ids = attrs.get("ids")
+        # Si `tipo_entidad`/`ids` no validaron, DRF ya acumuló su error; se aborta.
+        if content_type is None or not ids:
+            return attrs
+        modelo = content_type.model_class()
+        existentes = set(
+            modelo.objects.filter(pk__in=ids).values_list("pk", flat=True)
+        )
+        faltantes = [pk for pk in ids if pk not in existentes]
+        if faltantes:
+            listado = ", ".join(str(pk) for pk in faltantes)
+            raise serializers.ValidationError(
+                {
+                    "ids": [
+                        "No existen entidades del tipo indicado con los "
+                        f"siguientes identificadores: {listado}."
+                    ]
+                }
+            )
+        attrs["tipo_contenido"] = content_type
+        return attrs
+
+
+class UserEntityProfileWriteReadSerializer(UserEntityProfileSerializer):
+    """Salida de la gestión de perfiles: forma de lectura más `id` y `activo`.
+
+    Reutiliza los 4 campos publicados por ``UserEntityProfileSerializer``
+    (``tipo_entidad``, ``id_objeto``, ``entidad``, ``rol``) y añade ``id`` (PK del
+    perfil) y ``activo`` para permitir la baja lógica y la re-alta.
+    """
+
+    id = serializers.IntegerField(read_only=True)
+    activo = serializers.BooleanField(read_only=True)

@@ -216,3 +216,110 @@ Tras ejecutar el flujo, comprobar en `bitacora_auditoria` que existen los regist
 `CREAR`/`ACTUALIZAR`/`DESACTIVAR` para usuarios y `CREAR`/`ACTUALIZAR`/`ELIMINAR` para grupos, cada uno
 con `usuario` (quién), fecha/hora, acción, entidad afectada y, donde aplica, valor anterior/nuevo. El
 cambio de contraseña aparece como `ACTUALIZAR` con `nombre_campo=password` **sin** exponer el valor.
+
+---
+
+## 6. Scope por objeto — perfiles institucionales (T10)
+
+Sub-recurso de usuarios para **otorgar/revocar** a un usuario el acceso a una o varias entidades
+institucionales (universidades, IPRESS, etc.) bajo un **rol** (`Group`). Endpoint:
+`GET/POST/DELETE /api/v1/users/{id}/profiles/`. **Rol/permiso requerido: superusuario** (`IsSuperUser`);
+cualquier otro rol o anónimo → `403`/`401`.
+
+### 6.1 Datos previos necesarios
+
+- Un **usuario objetivo** al que se le otorgará el scope (anota su `id`, p. ej. `12`) — se crea en la
+  sección 2 (`POST /users/`).
+- Un **rol** (`Group`) existente, p. ej. `Universidad` (anota su `id`, p. ej. `4`) — se crea en la
+  sección 3 (`POST /groups/`).
+- Al menos una **entidad** existente del tipo a otorgar. Ejemplos de `tipo_entidad` (nombre de modelo en
+  minúscula, de las apps `convenios`/`internados`/`actividades`): `university`, `ipress`, `student`.
+  Anota los `id` reales (p. ej. universidades `3` y `7`). Verifícalos con los catálogos del módulo
+  (p. ej. `GET /api/v1/universities/`).
+- Token `access` del **superusuario** en `Authorization: Bearer <access>`.
+
+### 6.2 Flujo paso a paso
+
+**Paso 1 — Estado inicial (GET, criterio 1).**
+```http
+GET http://localhost:8000/api/v1/users/12/profiles/
+Authorization: Bearer <access-superadmin>
+```
+Esperado **200** con la lista de perfiles **activos** del usuario (probablemente vacía al inicio).
+
+**Paso 2 — Otorgar scope (POST, criterio 1).**
+```http
+POST http://localhost:8000/api/v1/users/12/profiles/
+Authorization: Bearer <access-superadmin>
+Content-Type: application/json
+
+{ "rol": 4, "tipo_entidad": "university", "ids": [3, 7] }
+```
+Esperado **201** con la lista materializada; cada elemento con la forma:
+```json
+{ "id": 1, "tipo_entidad": "university", "id_objeto": 3, "entidad": "UNMSM", "rol": "Universidad", "activo": true }
+```
+Anota los `id` de perfil devueltos (p. ej. `1` y `2`) para el DELETE.
+
+**Paso 3 — Comprobar en `/auth/me/` del usuario objetivo (criterio 1).**
+Inicia sesión como el usuario `12` (`POST /auth/token/`) y consulta:
+```http
+GET http://localhost:8000/api/v1/auth/me/
+Authorization: Bearer <access-usuario-12>
+```
+Esperado **200**: en `perfiles` aparecen las entidades otorgadas con exactamente 4 campos
+(`tipo_entidad`, `id_objeto`, `entidad`, `rol`).
+
+**Paso 4 — Idempotencia (criterio 2).**
+Reenvía **el mismo POST** del Paso 2. Esperado **201** y el conteo de filas activas **no cambia** (no se
+duplican); no se generan registros de auditoría nuevos (verificar en sección 6.4).
+
+**Paso 5 — Baja lógica (DELETE, criterio 4).**
+```http
+DELETE http://localhost:8000/api/v1/users/12/profiles/?profile_id=2
+Authorization: Bearer <access-superadmin>
+```
+Esperado **204**. El perfil `2` queda `activo=false` (no borrado). Verificaciones:
+- `GET /users/12/profiles/` → ya **no** lista el perfil `2` (solo activos por defecto).
+- `GET /users/12/profiles/?incluir_inactivos=true` → el perfil `2` **sí** aparece con `"activo": false`.
+- `GET /auth/me/` del usuario `12` → el perfil dado de baja **desaparece** de `perfiles`.
+- Repetir el mismo DELETE → **204 idempotente** (sin nueva auditoría).
+
+**Paso 6 — Reactivación (criterio 3).**
+Reenvía el POST del Paso 2 con `"ids": [7]` (la entidad del perfil dado de baja). Esperado **201**; el
+perfil se reactiva (`activo` `false→true`) y vuelve a aparecer en `GET .../profiles/` y en `/auth/me/`.
+Se audita como `ACTIVAR` (sección 6.4).
+
+**Paso 7 — Genericidad (criterio 9).**
+Repite el Paso 2 con otro tipo admitido, p. ej.:
+```http
+POST http://localhost:8000/api/v1/users/12/profiles/
+Authorization: Bearer <access-superadmin>
+Content-Type: application/json
+
+{ "rol": 4, "tipo_entidad": "ipress", "ids": [1] }
+```
+Esperado **201** sin cambios de código (sustituye `ids` por identificadores reales de IPRESS).
+
+### 6.3 Casos que deben fallar (criterios 5 y 6)
+
+| Caso | Petición | Esperado |
+|------|----------|----------|
+| `rol` inexistente | `POST .../profiles/` con `"rol": 99999` | **400** — `"El rol indicado no existe."` |
+| `tipo_entidad` no admitida/desconocida | `"tipo_entidad": "planeta"` | **400** — `"El tipo de entidad indicado no es válido."` |
+| `ids` vacío | `"ids": []` | **400** (mensaje de lista no vacía) |
+| Algún `id` inexistente | `"tipo_entidad": "university", "ids": [3, 999999]` | **400** — `"No existen entidades del tipo indicado con los siguientes identificadores: 999999."` |
+| DELETE sin `profile_id` | `DELETE .../profiles/` (sin query ni body) | **400** — `"Debe indicar el identificador del perfil a revocar."` |
+| DELETE `profile_id` ajeno al usuario | `DELETE /users/12/profiles/?profile_id=<pk-de-otro-usuario>` | **404** — `"El perfil indicado no pertenece al usuario."` |
+| No-superusuario | `GET`/`POST`/`DELETE .../profiles/` con token de usuario normal | **403** — mensaje de `IsSuperUser` |
+| Anónimo | cualquier método de `.../profiles/` sin token | **401** |
+
+### 6.4 Verificación de auditoría (criterio 7)
+
+Tras el flujo, comprobar en `bitacora_auditoria` (`tipo_contenido` = `UserEntityProfile`, `id_objeto` =
+PK del perfil):
+- Alta nueva → `CREAR`.
+- Reactivación de un perfil dado de baja → `ACTIVAR` (`nombre_campo=activo`, `valor_anterior=False`,
+  `valor_nuevo=True`).
+- Baja lógica → `DESACTIVAR` (`nombre_campo=activo`, `valor_anterior=True`, `valor_nuevo=False`).
+- El reenvío idempotente del POST (Paso 4) **no** agrega registros nuevos.

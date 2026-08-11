@@ -71,3 +71,57 @@ privilegios). Fecha: 2026-06-29.
 | 1 | Informativo (no bloqueante) | `apps/common/serializers.py:162` (`UserCreateSerializer.create`), `:235` (`GroupSerializer.create`), `apps/common/views.py:62/66/107/111` | El alta/edición ejecuta `save()` + `set(...)` M2M (y el ViewSet añade `registrar_auditoria`) sin envoltura `transaction.atomic`. `ATOMIC_REQUESTS` no está activo en dev/prod. El orden es correcto; el riesgo es solo robustez: si la asignación M2M o la auditoría fallara tras crear el usuario/grupo, quedaría un registro parcial. No es requisito del spec y no implica escalación de privilegios (un fallo dejaría *menos* privilegios, no más). | Opcional: envolver `perform_create`/`perform_update`/`set_password`/`destroy` (o los `create`/`update` de los serializers) en `transaction.atomic()` para atomicidad completa. |
 
 No hay hallazgos de severidad alta ni media. La feature queda **aprobada**.
+
+---
+
+# Validación — T10: Escritura de perfiles institucionales / scope por objeto (`UserEntityProfile`)
+
+**Veredicto: APROBADO (sin errores altos, medios ni bajos).** Se actualiza la guía de pruebas manuales
+(`spec/common_usuarios.guia_pruebas.md`) con los casos de T10.
+
+Spec validado: `spec/common_usuarios.md` §T10 (T10.1–T10.4, criterios 1–9, "Endpoints resultantes",
+"Verificación de cierre"). Fecha: 2026-08-11.
+
+## Comprobaciones técnicas ejecutadas
+
+| Comando | Resultado |
+|---------|-----------|
+| `python manage.py check` | `System check identified no issues (0 silenced).` |
+| `python manage.py makemigrations --check --dry-run` | `No changes detected` (exit 0) — sin modelos/migraciones nuevos (criterio 8). |
+| `python manage.py spectacular --file schema.yml` | `Errors: 0`; warnings preexistentes ajenos a `common`. El path `/api/v1/users/{id}/profiles/` aparece con GET/POST/DELETE; request `UserEntityProfileWrite`, respuesta `UserEntityProfileWriteReadList` (criterio de cierre 3). |
+
+## Cobertura del spec (T10)
+
+| Tarea | Estado | Notas |
+|-------|--------|-------|
+| **T10.1** `UserEntityProfileWriteSerializer` | OK | `rol`=`PrimaryKeyRelatedField(queryset=Group)` con mensajes en español; `tipo_entidad`=`CharField`; `ids`=`ListField(IntegerField, allow_empty=False)`. `validate_tipo_entidad` resuelve el `ContentType` acotado a `APPS_ENTIDADES_ADMITIDAS=("convenios","internados","actividades")` y lo guarda en `self._content_type`; si no existe → `ValidationError` («El tipo de entidad indicado no es válido.»). `validate` verifica existencia de cada PK vía `content_type.model_class().objects.filter(pk__in=ids)` y lista los faltantes en español; deja `tipo_contenido` en `validated_data`. |
+| **T10.2** `UserEntityProfileWriteReadSerializer` | OK | Subclase de `UserEntityProfileSerializer`; reutiliza los 4 campos publicados (`tipo_entidad`/`id_objeto`/`entidad`/`rol`) y añade `id`/`activo` (`read_only`). No modifica `UserEntityProfileSerializer` ni `MeSerializer`. |
+| **T10.3** Acción `profiles` en `UserViewSet` | OK | `@action(detail=True, methods=["get","post","delete"], url_path="profiles")`. Import puntual `from apps.convenios.models import UserEntityProfile` dentro de la acción (patrón del selector). GET con `select_related("tipo_contenido","grupo")`, filtra `activo=True` salvo `?incluir_inactivos=true`. POST idempotente dentro de `transaction.atomic()`. DELETE = baja lógica. `get_serializer_class` devuelve `UserEntityProfileWriteSerializer` cuando `action == "profiles"`. |
+| **T10.4** OpenAPI / contrato | OK | `@extend_schema(request=..., responses=UserEntityProfileWriteReadSerializer(many=True))`; salida alineada con `docs/api_accesos_frontend.md` §1. |
+
+## Revisión de los puntos de foco
+
+1. **Permisos / anti-escalación (RNF-SEG) — OK.** La acción `profiles` no sobrescribe `permission_classes`; hereda `[IsSuperUser]` del `UserViewSet`. Solo el superadministrador otorga/revoca scope. Sin relajación.
+2. **Idempotencia y semántica de estado — OK.** Usa `get_or_create(usuario, tipo_contenido, id_objeto, grupo, defaults={"activo": True})` (no `update_or_create`), coincidiendo con la clave `unique_together (usuario, tipo_contenido, id_objeto, grupo)`. `creado`→`CREAR`; existente inactivo→`activo=False→True`+`ACTIVAR`; existente activo→sin cambio ni auditoría. Reenviar el mismo POST no duplica ni audita. Nota: el texto de "decisión" del spec menciona `update_or_create`, pero **T10.3 y el criterio de aceptación 2/3 exigen distinguir CREAR/ACTIVAR/ya-activo**, lo que requiere `get_or_create`; la implementación es la correcta y no constituye desviación.
+3. **DELETE = baja lógica — OK.** `activo=False` + `save(update_fields=["activo"])` (no `delete()`); `400` si falta `profile_id` (query o body); `404` si el perfil no pertenece al usuario (captura también `ValueError`/`TypeError` de un `profile_id` malformado); `204` idempotente si ya estaba inactivo; audita `DESACTIVAR`.
+4. **Auditoría (RNF-AUD) — OK.** Cada alta/reactivación/baja llama `registrar_auditoria(request.user, <accion>, perfil)` sobre la instancia `UserEntityProfile`, con `nombre_campo="activo"` y valores anterior/nuevo en reactivación/baja.
+5. **Payload genérico y validaciones — OK.** `tipo_entidad` resuelto por `model` acotado a `convenios`/`internados`/`actividades`; `ids` no vacío; existencia por id; `rol` existente; errores en español con `400`.
+6. **Consistencia de contrato — OK.** La salida mantiene `tipo_entidad`/`id_objeto`/`entidad`/`rol` (+`id`/`activo`). `UserEntityProfileSerializer` y `MeSerializer` intactos; `/auth/me/` sigue sirviendo exactamente 4 campos.
+7. **Cross-app — OK.** Import puntual de `UserEntityProfile` desde `apps.convenios.models` dentro de la acción; sin acoplamiento a serializers/vistas de `convenios`.
+8. **Sin migraciones / check / schema — OK.** Ver tabla de comprobaciones técnicas. `runserver` no ejecutado.
+9. **Idioma — OK.** Código/endpoints/`url_path` en inglés; docstrings/`help_text`/mensajes en español.
+
+## Genericidad (criterio 9)
+
+El endpoint no tiene ramas por tipo de entidad: `tipo_entidad` se resuelve genéricamente vía `ContentType`.
+Funciona con `"ipress"`, `"student"` u otra entidad de las apps admitidas sin cambios de código.
+
+## Notas
+
+- Existe un endpoint independiente `/api/v1/user-entity-profiles/` (CRUD preexistente en `apps/convenios`),
+  distinto del sub-recurso `/api/v1/users/{id}/profiles/` de T10. No hay colisión de rutas ni de basenames.
+- La observación informativa de atomicidad del bloque T1–T9 queda cubierta en T10: `perform_create`,
+  `perform_update`, `destroy`, `set_password` y la acción `profiles` envuelven sus operaciones en
+  `transaction.atomic`.
+
+No hay hallazgos de severidad alta, media ni baja. **T10 queda aprobada.**

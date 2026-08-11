@@ -26,9 +26,14 @@ serializers/views/urls funcionan igual que los de una app de módulo. La autenti
   auditoría/`cargado_por`). Acción dedicada para cambiar contraseña.
 - **CRUD de grupos (roles):** sobre `Group`, incluyendo asignación de permisos al grupo.
 - **Catálogo de permisos (solo lectura):** sobre `Permission`, para alimentar la UI.
+- **Escritura de scope por objeto (`UserEntityProfile`, T10):** otorgar/revocar a un usuario el acceso a
+  una o varias entidades institucionales (universidades, IPRESS, etc.) bajo un rol — sub-recurso de
+  usuarios.
 
 **Entidades cubiertas:** `User` (tabla `auth_user`), `Group` (`auth_group`), `Permission`
-(`auth_permission`), más las M2M `auth_user_groups` y `auth_group_permissions`.
+(`auth_permission`), más las M2M `auth_user_groups` y `auth_group_permissions`, y **`UserEntityProfile`**
+(tabla `perfil_usuario_entidad`, definida en `apps/convenios/models.py:490` — schema en
+`docs/db_schema_modulo_01_convenios.md` §7).
 
 **Convenciones (CLAUDE.md):** clases/funciones/endpoints/`basename` en inglés; docstrings, comentarios,
 `help_text` y mensajes de error al usuario en español. ViewSets delgados. Auditoría explícita en cada
@@ -308,12 +313,185 @@ cada operación queda auditada.
 
 ---
 
+## T10 — Escritura de perfiles institucionales / scope por objeto (`UserEntityProfile`)
+
+> **Feature aditiva sobre módulo cerrado.** Añade la **escritura del alcance por objeto** (row-level):
+> otorgar a un usuario acceso a una o varias **entidades institucionales** (universidades, IPRESS,
+> GERESA, etc.) bajo un **rol** (`Group`). Complementa el sistema de permisos por app/modelo (Django
+> Groups → Permissions, ya cubierto en T3–T7) con el **ámbito por entidad** que consumen
+> `HasEntityScope`/`exigir_ambito` (`apps/common/permissions.py`). **No** crea modelos ni migraciones: el
+> modelo `UserEntityProfile` ya existe (`apps/convenios/models.py:490`, tabla `perfil_usuario_entidad`;
+> schema en `docs/db_schema_modulo_01_convenios.md` §7 — **no** duplicar aquí su definición).
+
+### Diseño y decisiones (leer antes de implementar)
+
+- **Patrón: sub-recurso dedicado de usuarios (Opción A).** `GET/POST/DELETE
+  /api/v1/users/{id}/profiles/`. **No** anidar la escritura de perfiles en `UserCreateSerializer`/
+  `UserUpdateSerializer` (T3): mantiene esos serializers ya validados sin reabrir, permite **auditoría
+  granular** por alta/baja, concentra el control **anti-escalación** en un único punto y es coherente
+  con el patrón `@action` de `UserViewSet` (T5). Se implementa como `@action(detail=True,
+  methods=["get", "post", "delete"], url_path="profiles")` sobre `UserViewSet`.
+
+- **Payload: genérico** `{ "rol": <group_id>, "tipo_entidad": "university", "ids": [3, 7] }`.
+  - El FK del modelo es **polimórfico** (`tipo_contenido` → `ContentType`), por lo que sirve para
+    `university`, `ipress`, `student`, `geresa`, etc. Un payload específico `{universidades:[...]}`
+    cerraría la puerta a los demás tipos y obligaría a un endpoint por entidad. Se elige el **genérico**.
+  - **Vocabulario consistente con la lectura ya publicada** (`docs/api_accesos_frontend.md` §1;
+    `UserEntityProfileSerializer`, `apps/common/serializers.py:41`): se usa `tipo_entidad` (nombre de
+    modelo en minúscula, `source` = `tipo_contenido.model`), `id_objeto` (en la respuesta) y `rol`
+    (nombre del `Group` en la salida; su id en la entrada).
+    - **Entrada:** `rol` acepta el **id** del `Group` (`PrimaryKeyRelatedField`); `tipo_entidad` es el
+      `model` en minúscula del `ContentType` (string, p. ej. `"university"`); `ids` es la lista de PKs de
+      las entidades. Se resuelve el `ContentType` por `model` acotado a las apps del proyecto
+      (`convenios`, `internados`, `actividades`) para evitar ambigüedad de nombres de modelo.
+    - **Salida:** cada perfil se serializa con la **misma forma que la lectura** — `{ tipo_entidad,
+      id_objeto, entidad, rol }` (reutilizar la forma de `UserEntityProfileSerializer`), añadiendo `id`
+      (PK del perfil) y `activo` para permitir la baja/re-alta.
+
+- **Semántica de escritura:**
+  - **POST materializa N filas en una operación** (una por cada id de `ids`) para el `(usuario, rol,
+    tipo_entidad)` dado, dentro de una única `transaction.atomic()`.
+  - **Idempotente respecto de `unique_together` `(usuario, tipo_contenido, id_objeto, grupo)`:** para
+    cada `(usuario, tipo_contenido, id_objeto, grupo)` se hace `update_or_create` con `activo=True`. Si
+    el perfil ya existía **activo**, no se duplica ni se audita (no hay cambio); si existía **inactivo**,
+    se **reactiva** (`activo=False→True`) y se audita como `ACTIVAR`; si no existía, se **crea** y se
+    audita como `CREAR`. Reenviar el mismo POST no produce cambios ni auditoría redundante.
+  - **DELETE = baja lógica (`activo=False`), no borrado físico.** Justificación: el modelo tiene el
+    campo `activo` (default `True`) y todos los selectores de lectura filtran `activo=True`
+    (`perfiles_del_usuario`, `apps/common/selectors.py:14`); la baja lógica **preserva trazabilidad**
+    (RNF-AUD) y respeta el `unique_together` (un mismo vínculo puede reactivarse luego sin recrear PK ni
+    chocar con la restricción de unicidad). Se audita como `DESACTIVAR`. El DELETE opera sobre un
+    **perfil concreto**: `DELETE /api/v1/users/{id}/profiles/?profile_id=<pk>` (o `{ "profile_id": <pk>
+    }` en el body). Si el perfil ya estaba inactivo, respuesta idempotente `204` sin nueva auditoría.
+  - **GET** lista los perfiles del usuario objetivo. Por defecto solo los **activos**; admite
+    `?incluir_inactivos=true` para ver también los dados de baja (auditoría / UI de re-alta).
+
+- **Validaciones (marca de capa):**
+  - **Serializer (`400`):** el `rol` (`group_id`) debe existir → `PrimaryKeyRelatedField(queryset=
+    Group.objects.all())`; `ids` no vacío y de enteros; `tipo_entidad` debe corresponder a un
+    `ContentType` **existente y admitido** (apps `convenios`/`internados`/`actividades`) — si no,
+    `ValidationError` en español. **Existencia de cada id para el `tipo_contenido` dado:** el serializer
+    verifica que cada PK de `ids` exista en el modelo resuelto por el `ContentType`
+    (`content_type.model_class().objects.filter(pk__in=ids)`); los ids que no existan se rechazan con
+    `400` listándolos.
+  - **Coherencia con RN-20 (1..N):** el modelo admite de **1 a N** entidades por usuario/rol; el
+    endpoint no impone tope superior (RN-20 habla de 1..N universidades). Se exige **al menos un id**
+    (`ids` no vacío) por operación.
+  - **No es lógica de dominio con service dedicado:** la materialización idempotente y la auditoría
+    viven en la **acción del ViewSet** (mismo criterio que T5/T6, que auditan desde el ViewSet). El
+    serializer solo valida forma y existencia. No se crea un service en `apps/common/services.py` para
+    esto.
+
+- **Ubicación cross-app (resolución explícita del conflicto de dependencias):** el modelo
+  `UserEntityProfile` vive en `apps/convenios`, pero **`apps/common` ya importa desde
+  `apps.convenios.models` en producción** (`apps/common/selectors.py:6` importa `UserEntityProfile`;
+  `apps/common/services.py:6` importa `AuditLog`/`Document`). Por tanto la nota original del spec
+  —"mantener `common` sin importar desde `convenios`"— **no reflejaba el código real** y aplica solo al
+  patrón de **ViewSets de auditoría** (no importar `AuditedModelViewSet` desde `convenios.views`), no a
+  los **modelos**. **Decisión:** el ViewSet (acción `profiles`) y los serializers de esta feature viven
+  en `apps/common` (`views.py`/`serializers.py`), importan `UserEntityProfile` **puntualmente** desde
+  `apps.convenios.models` (mismo patrón ya usado por el selector) y reutilizan la auditoría local
+  (`registrar_auditoria`, sin importar de `convenios.views`). La resolución de `ContentType`/entidades se
+  hace vía `django.contrib.contenttypes.models.ContentType`, sin acoplarse a serializers de `convenios`.
+
+- **Permisos:** `permission_classes = [IsSuperUser]` (T2), heredado del `UserViewSet`. **Solo el
+  superadministrador** otorga o revoca scope por objeto. Anti-escalación: quien concede alcance no debe
+  poder auto-elevarse; es coherente con que solo el superadmin asigna `groups`/`is_superuser` en T5
+  (RNF-SEG-01/02/03). El rol `Administrador RENADS` queda **fuera** de la escritura de scope en este
+  spec para no abrir un vector de auto-elevación; si en el futuro se requiere, se decide en un spec
+  posterior.
+
+- **Auditoría (RNF-AUD-01/02):** cada fila materializada/reactivada/dada de baja se audita **por
+  separado** con `registrar_auditoria(self.request.user, <accion>, perfil)` sobre la instancia
+  `UserEntityProfile`, dentro de la misma transacción:
+  - alta nueva → `CREAR`;
+  - reactivación de un perfil inactivo → `ACTIVAR` (`nombre_campo="activo"`, `valor_anterior=False`,
+    `valor_nuevo=True`);
+  - baja lógica → `DESACTIVAR` (`nombre_campo="activo"`, `valor_anterior=True`, `valor_nuevo=False`).
+
+### Tareas
+
+- **T10.1 — `UserEntityProfileWriteSerializer` (entrada) (`apps/common/serializers.py` — EDITAR)**
+  `serializers.Serializer` con:
+  - `rol` = `PrimaryKeyRelatedField(queryset=Group.objects.all(), required=True)` (mensaje de error en
+    español si no existe).
+  - `tipo_entidad` = `CharField(required=True)` — `model` en minúscula del `ContentType`.
+  - `ids` = `ListField(child=IntegerField(), allow_empty=False, required=True)`.
+  - `validate_tipo_entidad`: resuelve el `ContentType` por `model` acotado a apps admitidas
+    (`convenios`/`internados`/`actividades`); si no existe → `ValidationError` («El tipo de entidad
+    indicado no es válido.»). Deja disponible el `ContentType` resuelto para el `validate`.
+  - `validate`: con el `ContentType` resuelto, comprueba que cada PK de `ids` exista en su modelo
+    (`content_type.model_class().objects.filter(pk__in=ids)`); si faltan, `ValidationError` en español
+    listando los ids inexistentes. Deja disponibles en `validated_data` el `ContentType` (`tipo_contenido`),
+    el `Group` (`rol`) y los `ids` validados.
+  - Docstrings/help_text/mensajes en español; nombres de clase en inglés. Los nombres de campo del
+    payload (`rol`, `tipo_entidad`, `ids`) se mantienen para consistencia con la lectura publicada.
+
+- **T10.2 — `UserEntityProfileWriteReadSerializer` (salida) (`apps/common/serializers.py` — EDITAR)**
+  Serializer de salida que **extiende la forma de `UserEntityProfileSerializer`** (los 4 campos ya
+  publicados: `tipo_entidad`, `id_objeto`, `entidad`, `rol`) añadiendo `id` (PK del perfil) y `activo`
+  para la gestión de bajas/re-altas. Puede ser una subclase de `UserEntityProfileSerializer` o un
+  serializer nuevo con los mismos `source`. **No modificar** `MeSerializer` ni el
+  `UserEntityProfileSerializer` original (esos siguen sirviendo `/auth/me/` con exactamente 4 campos).
+
+- **T10.3 — Acción `profiles` en `UserViewSet` (`apps/common/views.py` — EDITAR)**
+  Añadir `@action(detail=True, methods=["get", "post", "delete"], url_path="profiles")`:
+  - Importar `UserEntityProfile` puntualmente: `from apps.convenios.models import UserEntityProfile`
+    (mismo patrón que el selector). Importar `ContentType` si hace falta y los serializers de T10.
+  - **GET:** `perfiles = UserEntityProfile.objects.filter(usuario=usuario).select_related(
+    "tipo_contenido", "grupo")`; por defecto `.filter(activo=True)`, salvo `?incluir_inactivos=true`.
+    Devolver `UserEntityProfileWriteReadSerializer(perfiles, many=True).data` (`200`).
+  - **POST:** validar con `UserEntityProfileWriteSerializer`; dentro de `transaction.atomic()`, por cada
+    id hacer `update_or_create(usuario=usuario, tipo_contenido=<ct>, id_objeto=id, grupo=<group>,
+    defaults={"activo": True})`; auditar `CREAR`/`ACTIVAR` según haya sido creado o reactivado (comparar
+    el flag `created` y el estado previo de `activo`). Responder `201` con la lista resultante serializada
+    (`UserEntityProfileWriteReadSerializer`).
+  - **DELETE:** requiere `profile_id` (query param o body); localizar el `UserEntityProfile` del
+    `usuario`; si está activo, `activo=False` + `save(update_fields=["activo"])` + auditar `DESACTIVAR`;
+    responder `204` (idempotente si ya estaba inactivo). Si el `profile_id` no pertenece al usuario →
+    `404`; si falta `profile_id` → `400`.
+  - En `get_serializer_class` de `UserViewSet` (T5), devolver `UserEntityProfileWriteSerializer` cuando
+    `self.action == "profiles"` (para el esquema OpenAPI), o documentar el body con `@extend_schema`.
+
+- **T10.4 — Documentación OpenAPI y contrato**
+  Decorar la acción con `@extend_schema` (request=`UserEntityProfileWriteSerializer`,
+  responses=`UserEntityProfileWriteReadSerializer(many=True)`) para que el sub-recurso aparezca en el
+  esquema. Mantener la salida alineada con `docs/api_accesos_frontend.md` (`tipo_entidad`/`id_objeto`/
+  `entidad`/`rol`, más `id`/`activo` propios de la gestión). No es necesario reescribir
+  `docs/api_accesos_frontend.md`, pero el validator debe confirmar la consistencia del vocabulario.
+
+### Criterios de aceptación (T10)
+
+1. `POST /api/v1/users/{id}/profiles/` con `{ "rol": <group_id>, "tipo_entidad": "university", "ids":
+   [3, 7] }` (superadmin) → `201`; se materializan/reactivan las filas en `perfil_usuario_entidad` y
+   aparecen en `GET /api/v1/auth/me/` del usuario objetivo con la forma `{tipo_entidad, id_objeto,
+   entidad, rol}`.
+2. **Idempotencia:** reenviar el mismo POST no crea duplicados (respeta `unique_together`) ni genera
+   auditoría redundante; el conteo de filas activas no cambia.
+3. **Reactivación:** un `id` que apunta a un perfil previamente dado de baja lo reactiva (`activo`
+   `False→True`) y registra `ACTIVAR`.
+4. **DELETE** `?profile_id=<pk>` → `204`; el perfil queda `activo=False` (no borrado), desaparece de
+   `/auth/me/` y de `GET .../profiles/` por defecto, pero aparece con `?incluir_inactivos=true`; registra
+   `DESACTIVAR`. Idempotente si ya estaba inactivo.
+5. **Validaciones `400`:** `rol` inexistente; `tipo_entidad` no admitida/desconocida; `ids` vacío; algún
+   id inexistente para el `tipo_entidad` dado — todos con mensaje en español. `profile_id` ausente en
+   DELETE → `400`; `profile_id` ajeno al usuario → `404`.
+6. **Permisos:** usuario **no** superadmin (o anónimo) → `403` en GET/POST/DELETE de `.../profiles/`.
+7. **Auditoría:** cada alta/reactivación/baja deja su registro (`CREAR`/`ACTIVAR`/`DESACTIVAR`) en
+   `bitacora_auditoria` con `usuario`, `tipo_contenido` = `UserEntityProfile`, `id_objeto` = PK del
+   perfil.
+8. **Sin migraciones:** `python manage.py makemigrations` sigue saliendo vacío (no se tocan modelos).
+9. **Genericidad:** el mismo endpoint funciona con `tipo_entidad: "ipress"` (u otra entidad admitida) sin
+   cambios de código.
+
+---
+
 ## Verificación (cierre)
 
 1. `python manage.py check` sin errores (activar antes `.venv\Scripts\Activate.ps1`).
 2. `python manage.py makemigrations` **no** debe generar migraciones nuevas (no se crean modelos).
 3. `python manage.py spectacular --file schema.yml` (o `/api/schema/`) genera sin error e incluye los
-   paths `users`, `groups`, `permissions`.
+   paths `users`, `groups`, `permissions` y el sub-recurso `users/{id}/profiles/`.
 4. Ejecutar `/code-review` antes de cerrar (sin tests automatizados, regla MVP).
 5. **Guía de pruebas manuales** (criterio funcional; registrar en
    `spec/common_usuarios.guia_pruebas.md`):
@@ -328,8 +506,14 @@ cada operación queda auditada.
    - CRUD de `groups`: crear rol, asignarle `permissions`, editar y eliminar.
    - `GET /api/v1/permissions/?content_type__app_label=convenios` filtra; búsqueda por `codename`.
    - Como **NO superusuario** (o anónimo): `403` en `users`, `groups`, `permissions` (todos los métodos).
-   - Verificar registros `CREAR`/`ACTUALIZAR`/`DESACTIVAR` de usuarios y `CREAR`/`ACTUALIZAR`/`ELIMINAR`
-     de grupos en `bitacora_auditoria`.
+   - **Scope por objeto (T10):** como superadmin, `POST /api/v1/users/{id}/profiles/` con
+     `{rol, tipo_entidad:"university", ids:[...]}` → `201`; verificar filas en `perfil_usuario_entidad`
+     y en `GET /api/v1/auth/me/` del usuario objetivo. Reenviar el mismo POST → sin duplicados
+     (idempotencia). `DELETE .../profiles/?profile_id=<pk>` → `204` y `activo=False` (baja lógica);
+     reactivación vía POST del mismo id → `ACTIVAR`. `400` para `rol`/`tipo_entidad`/`ids` inválidos.
+     Como NO superadmin → `403`.
+   - Verificar registros `CREAR`/`ACTUALIZAR`/`DESACTIVAR` de usuarios; `CREAR`/`ACTUALIZAR`/`ELIMINAR`
+     de grupos; y `CREAR`/`ACTIVAR`/`DESACTIVAR` de perfiles institucionales en `bitacora_auditoria`.
 
 ## Endpoints resultantes
 
@@ -339,6 +523,7 @@ cada operación queda auditada.
 | GET / POST | `/api/v1/users/` | `UserViewSet` | `IsSuperUser` |
 | GET / PUT / PATCH / DELETE | `/api/v1/users/{id}/` | `UserViewSet` (DELETE = desactivar) | `IsSuperUser` |
 | POST | `/api/v1/users/{id}/set-password/` | `UserViewSet` (action) | `IsSuperUser` |
+| GET / POST / DELETE | `/api/v1/users/{id}/profiles/` | `UserViewSet` (action `profiles`, T10) | `IsSuperUser` |
 | GET / POST | `/api/v1/groups/` | `GroupViewSet` | `IsSuperUser` |
 | GET / PUT / PATCH / DELETE | `/api/v1/groups/{id}/` | `GroupViewSet` | `IsSuperUser` |
 | GET | `/api/v1/permissions/` | `PermissionViewSet` | `IsSuperUser` |
@@ -349,22 +534,40 @@ cada operación queda auditada.
 - **Modelos nativos Django:** `django.contrib.auth.models.User` (`auth_user`), `Group` (`auth_group`),
   `Permission` (`auth_permission`), M2M `auth_user_groups` / `auth_group_permissions`. No inventar
   campos: usar los del modelo estándar.
+- **Modelo de scope (T10):** `UserEntityProfile` (`apps/convenios/models.py:490`, tabla
+  `perfil_usuario_entidad`) — `usuario` + `tipo_contenido` (ContentType) + `id_objeto` + `grupo`
+  (`auth.Group`, `PROTECT`) + `activo` (default `True`); `unique_together (usuario, tipo_contenido,
+  id_objeto, grupo)`. Schema en `docs/db_schema_modulo_01_convenios.md` §7 y ER en
+  `docs/db_schema_er_global.md`.
 - **Auth existente:** `CustomTokenObtainPairSerializer` y `MeSerializer`
   (`apps/common/serializers.py`); `CustomTokenObtainPairView`/`MeView` (`apps/common/views.py`); rutas
   en `config/api_urls.py`.
+- **Lectura de scope ya publicada (contrato a mantener):** `UserEntityProfileSerializer`
+  (`apps/common/serializers.py:41`) y `MeSerializer.perfiles`; contrato del frontend en
+  `docs/api_accesos_frontend.md` §1 (`{tipo_entidad, id_objeto, entidad, rol}`).
+- **Enforcement del scope ya existente (consumidores de T10):** `HasEntityScope`, `exigir_ambito`,
+  `IsInstitutionalMember` (`apps/common/permissions.py`); `perfiles_del_usuario`, `entidades_del_usuario`,
+  `usuario_pertenece_a_entidad` (`apps/common/selectors.py`).
 - **Permisos:** patrón en `apps/common/permissions.py` (`IsInstitutionalMember`, `HasEntityScope`);
   nuevo `IsSuperUser` aquí.
 - **Auditoría:** `registrar_auditoria` (`apps/common/services.py:9`) — escribe en `bitacora_auditoria`
-  con cualquier modelo vía `ContentType` (incluye `User`/`Group`).
+  con cualquier modelo vía `ContentType` (incluye `User`/`Group`/`UserEntityProfile`).
 - **Patrón de ViewSets/auditoría:** `AuditedModelViewSet`, read/write serializers y `@action`
   (`apps/convenios/views.py`). En esta feature se replica el comportamiento de auditoría **sin importar
-  desde `convenios`** (mantener `common` como base; ver T5).
-- **RNF:** RNF-SEG-01/02/03 (autorización por rol/superusuario, anti-escalación), RNF-AUD-01/02
-  (bitácora de operaciones críticas).
+  desde `convenios.views`** (mantener `common` como base; ver T5). Importar el **modelo**
+  `UserEntityProfile` desde `apps.convenios.models` sí está permitido (patrón ya existente).
+- **RN:** RN-20 (registro por universidad con alcance, 1..N). **RNF:** RNF-SEG-01/02/03 (autorización por
+  rol/superusuario, anti-escalación), RNF-AUD-01/02 (bitácora de operaciones críticas).
 
 ## Fuera de alcance (este spec)
 
 Tests automatizados; modelos/migraciones nuevos; endpoint de login nuevo (se enriquece el existente);
-recuperación de contraseña por email / flujos de auto-registro; gestión de perfiles institucionales
-(`UserEntityProfile`, ya cubierta en `convenios` por `IsAdminRole`); cambios al núcleo de los módulos ya
+recuperación de contraseña por email / flujos de auto-registro; cambios al núcleo de los módulos ya
 validados.
+
+> **Nota (corrección):** la escritura de perfiles institucionales (`UserEntityProfile`) **entra en
+> alcance** en este spec (ver **T10**). La versión anterior de este documento la daba por "fuera de
+> alcance, ya cubierta en `convenios` por `IsAdminRole`", lo cual **no era exacto**: en `convenios` solo
+> existe el **enforcement/lectura** del scope (`HasEntityScope`, `perfiles_del_usuario`, `MeSerializer`),
+> pero **no había un endpoint de escritura** para otorgar/revocar el vínculo usuario↔entidad. T10 cubre
+> ese hueco como sub-recurso de usuarios en `apps/common`, restringido a `IsSuperUser`.
