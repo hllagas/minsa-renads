@@ -7,8 +7,9 @@ import { ResourceCrud } from "@/components/crud/resource-crud";
 import { UsuariosAccessGuard } from "@/components/usuarios/access-guard";
 
 /**
- * Perfiles institucionales — v1 parcial (list + filtros + editar `activo` + eliminar).
- * Escritura `Administrador RENADS` o superusuario. Alta diferida a v2 (falta `content-types`).
+ * Perfiles institucionales — vista global (list + filtros + editar `activo` + eliminar).
+ * El **alta** se realiza por usuario desde *Cuentas → Entidades* (solo superusuario), que consume
+ * el sub-recurso `users/{id}/profiles/`. Aquí no se crean perfiles fila a fila.
  */
 export default function PerfilesPage() {
   return (
@@ -22,9 +23,12 @@ export default function PerfilesPage() {
         </Link>
       </div>
       <UsuariosAccessGuard access="admin">
-        <div className="mb-4 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
-          El alta de perfiles está deshabilitada temporalmente (pendiente del endpoint{" "}
-          <code>content-types</code> del backend).
+        <div className="mb-4 rounded-md border p-3 text-sm text-muted-foreground">
+          Para asignar el alcance de un usuario, usa{" "}
+          <Link href="/usuarios/cuentas" className="font-medium underline">
+            Cuentas → Entidades
+          </Link>{" "}
+          (solo superusuario). Esta vista es la lista global de perfiles.
         </div>
         <ResourceCrud config={userEntityProfilesConfig} />
       </UsuariosAccessGuard>
