@@ -125,3 +125,58 @@ Funciona con `"ipress"`, `"student"` u otra entidad de las apps admitidas sin ca
   `transaction.atomic`.
 
 No hay hallazgos de severidad alta, media ni baja. **T10 queda aprobada.**
+
+
+---
+
+# Validación T11 — Lookup de tipos de entidad asignables
+
+**Fecha:** 2026-08-12 · **Resultado:** APROBADO (sin hallazgos altos/medios/bajos).
+
+## Comprobaciones técnicas (venv)
+
+| Comando | Resultado |
+|---------|-----------|
+| `python manage.py check` | `System check identified no issues (0 silenced).` |
+| `python manage.py makemigrations --check --dry-run` | `No changes detected` |
+| `python manage.py spectacular` | `Errors: 0` (solo warnings preexistentes ajenos a T11). Path `profile-entity-types` y schema `AssignableEntityType` presentes. |
+
+`runserver` NO ejecutado.
+
+## Puntos de foco verificados
+
+1. **Allowlist única y compartida — OK.** `ASSIGNABLE_PROFILE_MODELS` (`apps/common/serializers.py:296`)
+   es la MISMA fuente que consumen el lookup (`AssignableEntityTypeView.get`, `views.py:294`) y
+   `UserEntityProfileWriteSerializer.validate_tipo_entidad` (`serializers.py:345`). No hay listas
+   divergentes. Los 8 modelos coinciden con D1 (verificado en runtime): `university`, `ipress`,
+   `regionalgovernment`, `regionalorgan`, `executingunit`, `conapres`, `minsaorgan`, `student`.
+2. **Sin import circular — OK.** `views.py` importa `ASSIGNABLE_PROFILE_MODELS` y
+   `AssignableEntityTypeSerializer` desde `apps.common.serializers` (una sola dirección; serializers no
+   importa de views). `check` pasa limpio.
+3. **Contrato de salida — OK.** `get()` devuelve `{id, tipo_entidad(=ct.model), label(=verbose_name en
+   español), app_label}` y ordena por `label` (`data.sort(key=lambda item: item["label"])`).
+   `tipo_entidad` = `ct.model` es exactamente el string que consume el write de T10 (consistencia
+   end-to-end confirmada: comparten la allowlist).
+4. **Permisos — OK.** `AssignableEntityTypeView.permission_classes = [IsSuperUser]` (D4).
+5. **Endurecimiento T10 — OK.** `validate_tipo_entidad` valida contra `ASSIGNABLE_PROFILE_MODELS`
+   (`get_for_models`); rechaza modelos no institucionales (`document`, `auditlog`, `campoclinico`, …) con
+   `400` en español («El tipo de entidad indicado no es válido o no es asignable a un perfil.») y sigue
+   aceptando los 8 asignables. `APPS_ENTIDADES_ADMITIDAS` **eliminada** (grep sin coincidencias en
+   `apps/`): no quedó constante muerta.
+6. **Ruta — OK.** `path("profile-entity-types/", ...)` antepuesta a `*router.urls` en
+   `apps/common/urls.py`; queda en `GET /api/v1/profile-entity-types/` vía el `include` ya existente.
+   `config/api_urls.py` NO modificado (solo conserva `path("", include("apps.common.urls"))`).
+7. **Sin migraciones / schema — OK.** Ver tabla de comprobaciones técnicas.
+8. **Idioma — OK.** Clase/endpoint/campos en inglés; docstring/`help_text`/`label`/mensajes en español.
+
+## Criterios de aceptación (T11)
+
+1. `GET /api/v1/profile-entity-types/` → 200 con 8 items ordenados por `label` — **OK**.
+2. Contrato reutilizable: `tipo_entidad` del lookup aceptado por el POST de perfiles (misma allowlist) — **OK**.
+3. No-superadmin/anónimo → 403 — **OK** (`IsSuperUser`).
+4. Validación endurecida: `tipo_entidad` fuera de la allowlist → 400; dentro → 201 — **OK**.
+5. Sin migraciones — **OK**.
+6. OpenAPI incluye el path y `AssignableEntityType(many=True)` — **OK**.
+7. Idioma correcto — **OK**.
+
+**T11 queda aprobada.** No hay hallazgos que devolver a implement.

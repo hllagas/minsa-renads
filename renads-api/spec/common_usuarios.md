@@ -29,6 +29,9 @@ serializers/views/urls funcionan igual que los de una app de módulo. La autenti
 - **Escritura de scope por objeto (`UserEntityProfile`, T10):** otorgar/revocar a un usuario el acceso a
   una o varias entidades institucionales (universidades, IPRESS, etc.) bajo un rol — sub-recurso de
   usuarios.
+- **Lookup de tipos de entidad asignables (T11):** endpoint de solo lectura que lista los tipos de
+  entidad elegibles para asignar un perfil (alimenta el selector del alta de perfiles del frontend y
+  comparte allowlist con la validación de T10).
 
 **Entidades cubiertas:** `User` (tabla `auth_user`), `Group` (`auth_group`), `Permission`
 (`auth_permission`), más las M2M `auth_user_groups` y `auth_group_permissions`, y **`UserEntityProfile`**
@@ -289,6 +292,7 @@ cada operación queda auditada.
   - `router.register("groups", GroupViewSet, basename="group")`
   - `router.register("permissions", PermissionViewSet, basename="permission")`
 - **T8.2** Exponer `urlpatterns = router.urls`. Importar los ViewSets desde `apps.common.views`.
+  (T11.4 reestructura este `urlpatterns` para anteponer la ruta standalone del lookup.)
 
 **Criterio de aceptación:** el módulo expone los tres routers; `basename` claros (`user`/`group`/
 `permission`).
@@ -369,9 +373,9 @@ cada operación queda auditada.
 - **Validaciones (marca de capa):**
   - **Serializer (`400`):** el `rol` (`group_id`) debe existir → `PrimaryKeyRelatedField(queryset=
     Group.objects.all())`; `ids` no vacío y de enteros; `tipo_entidad` debe corresponder a un
-    `ContentType` **existente y admitido** (apps `convenios`/`internados`/`actividades`) — si no,
-    `ValidationError` en español. **Existencia de cada id para el `tipo_contenido` dado:** el serializer
-    verifica que cada PK de `ids` exista en el modelo resuelto por el `ContentType`
+    `ContentType` **existente y admitido** (a partir de T11, la allowlist `ASSIGNABLE_PROFILE_MODELS`) —
+    si no, `ValidationError` en español. **Existencia de cada id para el `tipo_contenido` dado:** el
+    serializer verifica que cada PK de `ids` exista en el modelo resuelto por el `ContentType`
     (`content_type.model_class().objects.filter(pk__in=ids)`); los ids que no existan se rechazan con
     `400` listándolos.
   - **Coherencia con RN-20 (1..N):** el modelo admite de **1 a N** entidades por usuario/rol; el
@@ -417,9 +421,10 @@ cada operación queda auditada.
     español si no existe).
   - `tipo_entidad` = `CharField(required=True)` — `model` en minúscula del `ContentType`.
   - `ids` = `ListField(child=IntegerField(), allow_empty=False, required=True)`.
-  - `validate_tipo_entidad`: resuelve el `ContentType` por `model` acotado a apps admitidas
-    (`convenios`/`internados`/`actividades`); si no existe → `ValidationError` («El tipo de entidad
-    indicado no es válido.»). Deja disponible el `ContentType` resuelto para el `validate`.
+  - `validate_tipo_entidad`: resuelve el `ContentType` por `model`. **A partir de T11.5** valida contra
+    la allowlist `ASSIGNABLE_PROFILE_MODELS` (fuente única compartida con el lookup); si el `model` no
+    pertenece a la allowlist → `ValidationError` («El tipo de entidad indicado no es válido o no es
+    asignable a un perfil.»). Deja disponible el `ContentType` resuelto para el `validate`.
   - `validate`: con el `ContentType` resuelto, comprueba que cada PK de `ids` exista en su modelo
     (`content_type.model_class().objects.filter(pk__in=ids)`); si faltan, `ValidationError` en español
     listando los ids inexistentes. Deja disponibles en `validated_data` el `ContentType` (`tipo_contenido`),
@@ -486,12 +491,198 @@ cada operación queda auditada.
 
 ---
 
+## T11 — Lookup de tipos de entidad asignables (destrabar el alta de perfiles)
+
+> **Feature aditiva que complementa a T10** (ya implementada y validada). T10 expone la escritura del
+> scope por objeto (`GET/POST/DELETE /api/v1/users/{id}/profiles/`) y recibe `tipo_entidad` como el
+> **nombre de modelo en minúscula** (p. ej. `"university"`). Sin embargo, el frontend no tiene de dónde
+> obtener la **lista de tipos de entidad válidos** ni sus **etiquetas legibles**, por lo que la pantalla
+> `/usuarios/perfiles` mantiene el alta deshabilitada (`disableCreate:true`). **T11 crea ese lookup** —
+> un endpoint de solo lectura que alimenta el selector «Tipo de entidad» del alta de perfiles — y
+> **endurece la validación de T10** para que ambos compartan una **única allowlist** de modelos
+> asignables. **No** crea modelos ni migraciones; **no** crea tests (regla MVP).
+
+### Problema que resuelve
+
+- El write de T10 espera `tipo_entidad` = `model` en minúscula, pero el cliente no dispone del catálogo
+  de tipos elegibles ni de nombres legibles en español.
+- La validación actual de T10 (`UserEntityProfileWriteSerializer.validate_tipo_entidad`,
+  `apps/common/serializers.py:309`) admite **cualquier** modelo de las apps `convenios`/`internados`/
+  `actividades` (constante `APPS_ENTIDADES_ADMITIDAS`, `apps/common/serializers.py:277`). Eso permite
+  asignar perfiles sobre modelos **no institucionales** (p. ej. `document`, `auditlog`, `campoclinico`,
+  `historialestadoconvenio`), lo cual no tiene sentido de negocio y ensucia el scope por objeto.
+
+### Precedente a imitar (mismo patrón, ya en el repo)
+
+`SolicitanteContentTypeView` (`apps/convenios/views.py:569`) + `SolicitanteContentTypeSerializer`
+(`apps/convenios/serializers.py:74`) + ruta `path("solicitante-content-types/", ...)`
+(`apps/convenios/urls.py:27`, fuera del router). Reproducir la misma estructura (allowlist de modelos +
+`APIView` con `get()` que resuelve `ContentType.objects.get_for_models(*MODELS)` + serializer de salida +
+ruta standalone), adaptada a la administración de perfiles.
+
+### Diseño y decisiones (leer antes de implementar)
+
+- **D1 — Allowlist `ASSIGNABLE_PROFILE_MODELS` (fuente única compartida).** Constante — una tupla de
+  clases de modelo — que define **exactamente** las entidades institucionales sobre las que tiene sentido
+  otorgar alcance a un usuario. Es la **misma** constante que consumen el lookup (T11) **y** la
+  validación del write de T10 (subtarea T11.5): así el catálogo que ofrece el lookup y el conjunto que
+  acepta el POST de perfiles **no pueden divergir**. Vive en `apps/common/serializers.py` (junto a
+  `UserEntityProfileWriteSerializer`, que ya importa modelos de `convenios`), y el ViewSet/lookup la
+  importa desde allí para no duplicarla.
+
+  **Conjunto exacto (incluidos) y justificación por RN:**
+
+  | Modelo | App | `tipo_entidad` (`model`) | `label` (`verbose_name`) | Motivo de inclusión |
+  |--------|-----|--------------------------|--------------------------|---------------------|
+  | `University` | `convenios` | `university` | «universidad» | RN-20: el rol `Universidad` registra internos; su alcance es 1..N universidades (`perfil_usuario_entidad`). Núcleo del scope. |
+  | `Ipress` | `convenios` | `ipress` | «IPRESS» | Sedes docentes autorizadas por CONAPRES; los actores de sede tienen alcance por IPRESS. |
+  | `RegionalGovernment` | `convenios` | `regionalgovernment` | «gobierno regional» | GORE que administra órganos regionales; alcance de usuarios GORE. |
+  | `RegionalOrgan` | `convenios` | `regionalorgan` | «órgano regional» | GERESA/DIRESA/DIRIS: asignan campos clínicos por universidad/carrera; alcance institucional propio. |
+  | `ExecutingUnit` | `convenios` | `executingunit` | «unidad ejecutora» | Unidad ejecutora que administra IPRESS; nivel intermedio del ámbito sanitario. |
+  | `Conapres` | `convenios` | `conapres` | «CONAPRES» | Autoriza/registra sedes docentes y campos clínicos; alcance de usuarios CONAPRES. |
+  | `MinsaOrgan` | `convenios` | `minsaorgan` | «órgano del MINSA» | DIGEP/OGAJ/SG/VICEPAS: órganos MINSA con usuarios de alcance institucional. |
+  | `Student` | `internados` | `student` | «estudiante» | **RN-22 (onboarding del interno):** al registrar el internado se crea un `User` con `perfil_usuario_entidad` **sobre su `Student`** (grupo `Interno`), con acceso de solo lectura a sus datos y adjunto de sus DJ. El scope del rol `Interno` es por `Student`. |
+
+  Los `label` provienen de `Model._meta.verbose_name` verificado en los modelos
+  (`apps/convenios/models.py`: universidad/IPRESS/gobierno regional/órgano regional/unidad ejecutora/
+  CONAPRES/órgano del MINSA; `apps/internados/models.py:151`: estudiante).
+
+  **Excluidos explícitamente (y por qué):** cualquier otro modelo de `convenios`/`internados`/
+  `actividades` que **no** sea una entidad institucional sujeta a alcance — p. ej. `Document`,
+  `AuditLog`, `UserEntityProfile`, `Convention`, `ClinicalField`, `Representative`,
+  `UniversityAuthority`, `Faculty`, `Career`, catálogos y tablas de historial. No son entidades sobre las
+  que se conceda un rol con ámbito; incluirlas abriría scopes sin sentido de negocio y contradiría
+  RN-20/RN-22. **Nota:** los modelos de la app `actividades` **no** entran en la allowlist en este spec
+  (no hay rol cuyo alcance sea una actividad); si en el futuro se requiere, se decide en spec posterior.
+
+- **D2 — Contrato de salida.** Cada item expone:
+  - `tipo_entidad` — el **`model` en minúscula** (`ContentType.model`), **exactamente el mismo string**
+    que consume el write de T10 (p. ej. `"university"`, `"student"`). Este es el campo que el frontend
+    reenvía en el POST de perfiles. Vocabulario alineado con `docs/api_accesos_frontend.md` §1 y con
+    `UserEntityProfileSerializer` (`apps/common/serializers.py:45`, `source="tipo_contenido.model"`).
+  - `label` — **etiqueta legible en español**, derivada de `Model._meta.verbose_name`
+    (p. ej. «universidad», «IPRESS», «órgano regional», «estudiante»). Para presentación en el selector;
+    aplicar capitalización en el frontend si se desea.
+  - `app_label` — app de Django del modelo (p. ej. `convenios`, `internados`). Para consistencia con el
+    precedente y para desambiguar en la UI.
+  - `id` — **se incluye** el `ContentType.id`, por **consistencia con el precedente**
+    (`SolicitanteContentTypeSerializer` lo expone). **Decisión documentada:** T10 **no** lo necesita
+    (su write resuelve el `ContentType` a partir del string `tipo_entidad`, no del id); se expone solo por
+    paridad con el precedente y como dato informativo. El frontend debe usar `tipo_entidad` (string), no
+    `id`, para el POST de perfiles.
+
+  **Orden:** salida ordenada de forma **estable por `label`** (alfabético en español), para que el
+  selector del frontend salga ordenado sin trabajo adicional. (El precedente ordena por `id`; aquí se
+  prefiere `label` por ergonomía de UI — decisión documentada.)
+
+- **D3 — Ruta, view y serializer (ubicación).**
+  - **Ubicación: `apps/common`**, junto al `UserViewSet`/T10. Respeta la dirección de dependencias: la
+    allowlist y la validación viven en `apps/common/serializers.py`, que **ya importa** modelos de
+    `convenios` (patrón existente, ver T10 y `apps/common/selectors.py:6`). No se invierte ninguna
+    dependencia nueva.
+  - **View:** `AssignableEntityTypeView(APIView)` en `apps/common/views.py`.
+  - **Serializer de salida:** `AssignableEntityTypeSerializer` en `apps/common/serializers.py`.
+  - **Ruta:** standalone (fuera del router), montada en `apps/common/urls.py` (T8) como
+    `path("profile-entity-types/", AssignableEntityTypeView.as_view(), name="profile-entity-types")`.
+    **Nombre de ruta elegido: `profile-entity-types`** (evita `content-types` a secas — que sería
+    ambiguo — y deja claro que son los tipos de entidad elegibles para **perfiles** de usuario). Queda
+    expuesto como `GET /api/v1/profile-entity-types/`.
+
+- **D4 — Permisos.** `permission_classes = [IsSuperUser]` (T2). **Decisión y justificación:** el lookup
+  solo alimenta el selector de la **administración de perfiles**, que es un flujo exclusivo del
+  superadministrador (coherente con T5/T10, todos `IsSuperUser`). Aunque el precedente
+  (`SolicitanteContentTypeView`) usa `IsAuthenticated`, aquí se elige **`IsSuperUser`** para **no filtrar
+  el catálogo de administración a roles sin acceso** a esa pantalla (RNF-SEG-01/02/03, principio de menor
+  exposición). Un no-superadmin recibe `403`.
+
+- **D5 — Endurecimiento de la validación de T10 (fuente única).**
+  `UserEntityProfileWriteSerializer.validate_tipo_entidad` (`apps/common/serializers.py:309`) deja de
+  validar contra `APPS_ENTIDADES_ADMITIDAS` (cualquier modelo de las tres apps) y pasa a validar contra
+  la **misma allowlist** `ASSIGNABLE_PROFILE_MODELS`. Así, lookup (T11) y validación de escritura (T10)
+  **comparten una única fuente de verdad**: solo los tipos que devuelve el lookup son aceptados por el
+  POST de perfiles. Un `tipo_entidad` fuera de la allowlist (p. ej. `"document"`) → `400` con mensaje en
+  español. La constante `APPS_ENTIDADES_ADMITIDAS` puede conservarse solo si algún otro punto la usa; de
+  lo contrario, retirarla para no dejar código muerto (documentar la decisión del implementador).
+
+### Tareas
+
+- **T11.1 — Allowlist `ASSIGNABLE_PROFILE_MODELS` (`apps/common/serializers.py` — EDITAR).**
+  Definir la tupla de clases de modelo del cuadro de D1, importando `University`, `Ipress`,
+  `RegionalGovernment`, `RegionalOrgan`, `ExecutingUnit`, `Conapres`, `MinsaOrgan` de
+  `apps.convenios.models` y `Student` de `apps.internados.models`. Comentario en español que la marque
+  como **fuente única** compartida por el lookup (T11) y la validación del write (T10). Colocarla cerca de
+  `UserEntityProfileWriteSerializer` para que ambos la referencien sin importaciones circulares.
+
+- **T11.2 — `AssignableEntityTypeSerializer` (salida) (`apps/common/serializers.py` — EDITAR).**
+  `serializers.Serializer` (mismo estilo que `SolicitanteContentTypeSerializer`) con:
+  - `id = IntegerField(help_text="ID del ContentType (informativo; el write usa tipo_entidad)")`,
+  - `tipo_entidad = CharField(help_text="Nombre de modelo en minúscula; valor que espera el POST de perfiles (p. ej. university, student)")`,
+  - `label = CharField(help_text="Etiqueta legible en español (verbose_name del modelo)")`,
+  - `app_label = CharField(help_text="App de Django (p. ej. convenios, internados)")`.
+  Docstring en español. Nombre de clase en inglés.
+
+- **T11.3 — `AssignableEntityTypeView(APIView)` (`apps/common/views.py` — EDITAR).**
+  - `permission_classes = [IsSuperUser]` (importar `IsSuperUser` de T2).
+  - `get(self, request)`: resolver `cts = ContentType.objects.get_for_models(*ASSIGNABLE_PROFILE_MODELS)`
+    (importar `ContentType` y la allowlist de `apps.common.serializers`). Para cada `(modelo, ct)` en
+    `cts.items()`, construir `{ "id": ct.id, "tipo_entidad": ct.model, "label":
+    modelo._meta.verbose_name, "app_label": ct.app_label }`. Ordenar por `label` (estable). Devolver
+    `AssignableEntityTypeSerializer(data, many=True).data` (`200`).
+  - Decorar con `@extend_schema(responses=AssignableEntityTypeSerializer(many=True), summary="Tipos de
+    entidad asignables a perfiles", description=..., tags=["common"])` en español, análogo al precedente.
+
+- **T11.4 — Ruta standalone (`apps/common/urls.py` — EDITAR).**
+  Reestructurar `urlpatterns` de T8 para anteponer la ruta standalone al `*router.urls` (mismo patrón que
+  `apps/convenios/urls.py:26`):
+  ```python
+  urlpatterns = [
+      path("profile-entity-types/", AssignableEntityTypeView.as_view(), name="profile-entity-types"),
+      *router.urls,
+  ]
+  ```
+  Importar `path` de `django.urls` y `AssignableEntityTypeView` de `apps.common.views`. Queda montada bajo
+  `/api/v1/` por el `include("apps.common.urls")` ya existente (T9); **no** tocar `config/api_urls.py`.
+
+- **T11.5 — Endurecer `validate_tipo_entidad` de T10 (`apps/common/serializers.py` — EDITAR).**
+  Modificar `UserEntityProfileWriteSerializer.validate_tipo_entidad` para validar contra
+  `ASSIGNABLE_PROFILE_MODELS` en lugar de `APPS_ENTIDADES_ADMITIDAS`. Implementación sugerida: resolver el
+  conjunto de `ContentType` admitidos con `ContentType.objects.get_for_models(*ASSIGNABLE_PROFILE_MODELS)`
+  y aceptar el `model` (minúscula) solo si coincide con uno de ellos; si no, `ValidationError`
+  («El tipo de entidad indicado no es válido o no es asignable a un perfil.»). Conservar el resto del
+  flujo de T10 (resolución del `ContentType`, verificación de existencia de `ids` en `validate`) sin
+  cambios funcionales. Si `APPS_ENTIDADES_ADMITIDAS` queda sin uso, retirarla (evitar código muerto).
+
+### Criterios de aceptación (T11)
+
+1. `GET /api/v1/profile-entity-types/` (superadmin) → `200` con una lista de items
+   `{ id, tipo_entidad, label, app_label }`, uno por cada modelo de `ASSIGNABLE_PROFILE_MODELS`
+   (8 entradas: `university`, `ipress`, `regionalgovernment`, `regionalorgan`, `executingunit`,
+   `conapres`, `minsaorgan`, `student`). `label` en español (verbose_name); ordenada de forma estable por
+   `label`.
+2. **Contrato reutilizable por T10:** el `tipo_entidad` de cada item (string en minúscula) es aceptado
+   sin cambios por `POST /api/v1/users/{id}/profiles/` como `tipo_entidad` — el front puede tomar el
+   valor del lookup y reenviarlo directamente.
+3. **Permisos:** un usuario **no** superadmin (o anónimo) recibe `403` en
+   `GET /api/v1/profile-entity-types/`.
+4. **Validación endurecida (T10):** `POST /api/v1/users/{id}/profiles/` con `tipo_entidad` **fuera** de
+   la allowlist (p. ej. `"document"`, `"auditlog"`, `"campoclinico"`) → `400` con mensaje en español; con
+   un `tipo_entidad` de la allowlist (p. ej. `"student"`, RN-22) sigue funcionando (`201`). Lookup y
+   validación comparten `ASSIGNABLE_PROFILE_MODELS`.
+5. **Sin migraciones:** `python manage.py makemigrations` sigue saliendo vacío.
+6. **OpenAPI:** el path `profile-entity-types` aparece en el esquema (`spectacular`) con la respuesta
+   `AssignableEntityTypeSerializer(many=True)`.
+7. **Idioma:** nombres de clase/endpoint/campo en inglés; docstrings/`help_text`/mensajes/`label` en
+   español.
+
+---
+
 ## Verificación (cierre)
 
 1. `python manage.py check` sin errores (activar antes `.venv\Scripts\Activate.ps1`).
 2. `python manage.py makemigrations` **no** debe generar migraciones nuevas (no se crean modelos).
 3. `python manage.py spectacular --file schema.yml` (o `/api/schema/`) genera sin error e incluye los
-   paths `users`, `groups`, `permissions` y el sub-recurso `users/{id}/profiles/`.
+   paths `users`, `groups`, `permissions`, el sub-recurso `users/{id}/profiles/` y el lookup
+   `profile-entity-types` (T11).
 4. Ejecutar `/code-review` antes de cerrar (sin tests automatizados, regla MVP).
 5. **Guía de pruebas manuales** (criterio funcional; registrar en
    `spec/common_usuarios.guia_pruebas.md`):
@@ -512,6 +703,14 @@ cada operación queda auditada.
      (idempotencia). `DELETE .../profiles/?profile_id=<pk>` → `204` y `activo=False` (baja lógica);
      reactivación vía POST del mismo id → `ACTIVAR`. `400` para `rol`/`tipo_entidad`/`ids` inválidos.
      Como NO superadmin → `403`.
+   - **Lookup de tipos de entidad asignables (T11):** como **superadmin**,
+     `GET /api/v1/profile-entity-types/` → `200` con 8 items `{id, tipo_entidad, label, app_label}`
+     (`university`, `ipress`, `regionalgovernment`, `regionalorgan`, `executingunit`, `conapres`,
+     `minsaorgan`, `student`), ordenados por `label` en español. Tomar un `tipo_entidad` del lookup
+     (p. ej. `"student"`) y usarlo en `POST /api/v1/users/{id}/profiles/` → `201` (contrato reutilizable).
+     `POST` de perfiles con `tipo_entidad:"document"` (fuera de la allowlist) → `400` en español
+     (validación endurecida, misma fuente `ASSIGNABLE_PROFILE_MODELS`). Como **NO superadmin** o anónimo:
+     `GET /api/v1/profile-entity-types/` → `403`.
    - Verificar registros `CREAR`/`ACTUALIZAR`/`DESACTIVAR` de usuarios; `CREAR`/`ACTUALIZAR`/`ELIMINAR`
      de grupos; y `CREAR`/`ACTIVAR`/`DESACTIVAR` de perfiles institucionales en `bitacora_auditoria`.
 
@@ -524,6 +723,7 @@ cada operación queda auditada.
 | GET / PUT / PATCH / DELETE | `/api/v1/users/{id}/` | `UserViewSet` (DELETE = desactivar) | `IsSuperUser` |
 | POST | `/api/v1/users/{id}/set-password/` | `UserViewSet` (action) | `IsSuperUser` |
 | GET / POST / DELETE | `/api/v1/users/{id}/profiles/` | `UserViewSet` (action `profiles`, T10) | `IsSuperUser` |
+| GET | `/api/v1/profile-entity-types/` | `AssignableEntityTypeView` (lookup, T11) | `IsSuperUser` |
 | GET / POST | `/api/v1/groups/` | `GroupViewSet` | `IsSuperUser` |
 | GET / PUT / PATCH / DELETE | `/api/v1/groups/{id}/` | `GroupViewSet` | `IsSuperUser` |
 | GET | `/api/v1/permissions/` | `PermissionViewSet` | `IsSuperUser` |
@@ -539,6 +739,13 @@ cada operación queda auditada.
   (`auth.Group`, `PROTECT`) + `activo` (default `True`); `unique_together (usuario, tipo_contenido,
   id_objeto, grupo)`. Schema en `docs/db_schema_modulo_01_convenios.md` §7 y ER en
   `docs/db_schema_er_global.md`.
+- **Modelos de entidad institucional (allowlist T11):** `University`, `Ipress`, `RegionalGovernment`,
+  `RegionalOrgan`, `ExecutingUnit`, `Conapres`, `MinsaOrgan` (`apps/convenios/models.py`); `Student`
+  (`apps/internados/models.py:102`, `verbose_name = "estudiante"`). Schema en
+  `docs/db_schema_modulo_01_convenios.md` y `docs/db_schema_modulo_02_internados.md`.
+- **Precedente del lookup (T11):** `SolicitanteContentTypeView` (`apps/convenios/views.py:569`),
+  `SolicitanteContentTypeSerializer` (`apps/convenios/serializers.py:74`), ruta standalone en
+  `apps/convenios/urls.py:27`.
 - **Auth existente:** `CustomTokenObtainPairSerializer` y `MeSerializer`
   (`apps/common/serializers.py`); `CustomTokenObtainPairView`/`MeView` (`apps/common/views.py`); rutas
   en `config/api_urls.py`.
@@ -556,18 +763,21 @@ cada operación queda auditada.
   (`apps/convenios/views.py`). En esta feature se replica el comportamiento de auditoría **sin importar
   desde `convenios.views`** (mantener `common` como base; ver T5). Importar el **modelo**
   `UserEntityProfile` desde `apps.convenios.models` sí está permitido (patrón ya existente).
-- **RN:** RN-20 (registro por universidad con alcance, 1..N). **RNF:** RNF-SEG-01/02/03 (autorización por
-  rol/superusuario, anti-escalación), RNF-AUD-01/02 (bitácora de operaciones críticas).
+- **RN:** RN-20 (registro por universidad con alcance, 1..N), RN-22 (onboarding del interno: perfil sobre
+  `Student`). **RNF:** RNF-SEG-01/02/03 (autorización por rol/superusuario, anti-escalación),
+  RNF-AUD-01/02 (bitácora de operaciones críticas).
 
 ## Fuera de alcance (este spec)
 
 Tests automatizados; modelos/migraciones nuevos; endpoint de login nuevo (se enriquece el existente);
 recuperación de contraseña por email / flujos de auto-registro; cambios al núcleo de los módulos ya
-validados.
+validados. **T11 no** incluye entidades de la app `actividades` en la allowlist (no hay rol con alcance
+por actividad); si se requiere, se decide en spec posterior.
 
 > **Nota (corrección):** la escritura de perfiles institucionales (`UserEntityProfile`) **entra en
 > alcance** en este spec (ver **T10**). La versión anterior de este documento la daba por "fuera de
 > alcance, ya cubierta en `convenios` por `IsAdminRole`", lo cual **no era exacto**: en `convenios` solo
 > existe el **enforcement/lectura** del scope (`HasEntityScope`, `perfiles_del_usuario`, `MeSerializer`),
 > pero **no había un endpoint de escritura** para otorgar/revocar el vínculo usuario↔entidad. T10 cubre
-> ese hueco como sub-recurso de usuarios en `apps/common`, restringido a `IsSuperUser`.
+> ese hueco como sub-recurso de usuarios en `apps/common`, restringido a `IsSuperUser`. **T11** añade el
+> lookup que destraba el alta de perfiles en el frontend y unifica la allowlist con la validación de T10.

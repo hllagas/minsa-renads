@@ -272,9 +272,37 @@ class GroupSerializer(serializers.ModelSerializer):
 
 # --- Escritura del alcance por objeto (UserEntityProfile, T10) ---
 
-# Apps admitidas para resolver el `ContentType` por nombre de modelo, evitando
-# ambigüedad de nombres entre distintas apps del proyecto.
-APPS_ENTIDADES_ADMITIDAS = ("convenios", "internados", "actividades")
+# Import puntual de los modelos institucionales (mismo patrón cross-app que ya usa
+# `apps.common.selectors` con `UserEntityProfile`). Necesarios para la allowlist.
+from apps.convenios.models import (  # noqa: E402
+    Conapres,
+    ExecutingUnit,
+    Ipress,
+    MinsaOrgan,
+    RegionalGovernment,
+    RegionalOrgan,
+    University,
+)
+from apps.internados.models import Student  # noqa: E402
+
+# Allowlist de entidades institucionales sobre las que tiene sentido otorgar
+# alcance (scope por objeto) a un usuario. **Fuente única** compartida por el
+# lookup de tipos de entidad asignables (T11, `AssignableEntityTypeView`) y por la
+# validación de escritura de perfiles (T10, `UserEntityProfileWriteSerializer`):
+# así el catálogo que ofrece el lookup y el conjunto que acepta el POST de perfiles
+# no pueden divergir. No incluye modelos no institucionales (documentos, auditoría,
+# catálogos, historial) ni entidades de la app `actividades` (no hay rol cuyo
+# alcance sea una actividad).
+ASSIGNABLE_PROFILE_MODELS = (
+    University,
+    Ipress,
+    RegionalGovernment,
+    RegionalOrgan,
+    ExecutingUnit,
+    Conapres,
+    MinsaOrgan,
+    Student,
+)
 
 
 class UserEntityProfileWriteSerializer(serializers.Serializer):
@@ -307,14 +335,20 @@ class UserEntityProfileWriteSerializer(serializers.Serializer):
     )
 
     def validate_tipo_entidad(self, value: str) -> str:
-        """Resuelve el `ContentType` por nombre de modelo, acotado a las apps admitidas."""
+        """Resuelve el `ContentType` validándolo contra la allowlist de perfiles.
+
+        Solo se aceptan los modelos de ``ASSIGNABLE_PROFILE_MODELS`` (misma fuente
+        única que consume el lookup de T11), evitando otorgar alcance sobre modelos
+        no institucionales (documentos, auditoría, catálogos, etc.).
+        """
         modelo = value.strip().lower()
-        content_type = ContentType.objects.filter(
-            app_label__in=APPS_ENTIDADES_ADMITIDAS, model=modelo
-        ).first()
+        cts_admitidos = ContentType.objects.get_for_models(*ASSIGNABLE_PROFILE_MODELS)
+        content_type = next(
+            (ct for ct in cts_admitidos.values() if ct.model == modelo), None
+        )
         if content_type is None:
             raise serializers.ValidationError(
-                "El tipo de entidad indicado no es válido."
+                "El tipo de entidad indicado no es válido o no es asignable a un perfil."
             )
         # Se conserva el ContentType resuelto para reutilizarlo en `validate`.
         self._content_type = content_type
@@ -356,3 +390,32 @@ class UserEntityProfileWriteReadSerializer(UserEntityProfileSerializer):
 
     id = serializers.IntegerField(read_only=True)
     activo = serializers.BooleanField(read_only=True)
+
+
+# --- Lookup de tipos de entidad asignables a perfiles (T11) ---
+
+
+class AssignableEntityTypeSerializer(serializers.Serializer):
+    """Tipo de entidad elegible para asignar un perfil de usuario (scope por objeto).
+
+    Alimenta el selector «Tipo de entidad» del alta de perfiles. El campo
+    ``tipo_entidad`` es exactamente el string que espera el POST de perfiles (T10);
+    ``id`` (ContentType) se expone solo por paridad con el precedente y como dato
+    informativo — el frontend debe reenviar ``tipo_entidad``, no ``id``.
+    """
+
+    id = serializers.IntegerField(
+        help_text="ID del ContentType (informativo; el write usa tipo_entidad)."
+    )
+    tipo_entidad = serializers.CharField(
+        help_text=(
+            "Nombre de modelo en minúscula; valor que espera el POST de perfiles "
+            "(p. ej. university, student)."
+        )
+    )
+    label = serializers.CharField(
+        help_text="Etiqueta legible en español (verbose_name del modelo)."
+    )
+    app_label = serializers.CharField(
+        help_text="App de Django (p. ej. convenios, internados)."
+    )

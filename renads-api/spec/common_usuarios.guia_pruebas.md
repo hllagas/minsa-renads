@@ -323,3 +323,98 @@ PK del perfil):
   `valor_nuevo=True`).
 - Baja lógica → `DESACTIVAR` (`nombre_campo=activo`, `valor_anterior=True`, `valor_nuevo=False`).
 - El reenvío idempotente del POST (Paso 4) **no** agrega registros nuevos.
+
+
+---
+
+## 7. Lookup de tipos de entidad asignables (T11)
+
+Endpoint: `GET /api/v1/profile-entity-types/` — alimenta el selector «Tipo de entidad» del alta de
+perfiles. Rol requerido: **superadministrador** (`is_superuser`). Usar el `access` de un superadmin
+(ver Paso 1 de esta guía) en `Authorization: Bearer <access>`.
+
+### 7.1 Listar tipos como superadmin (200 + forma)
+
+```bash
+curl -s http://localhost:8000/api/v1/profile-entity-types/ \
+  -H "Authorization: Bearer $ACCESS_SUPERADMIN"
+```
+
+Esperado: **200** con 8 items ordenados por `label` (alfabético en español). Forma de cada item:
+
+```json
+[
+  {"id": 12, "tipo_entidad": "conapres",           "label": "CONAPRES",          "app_label": "convenios"},
+  {"id": 8,  "tipo_entidad": "student",            "label": "estudiante",         "app_label": "internados"},
+  {"id": 5,  "tipo_entidad": "regionalgovernment", "label": "gobierno regional",  "app_label": "convenios"},
+  {"id": 3,  "tipo_entidad": "ipress",             "label": "IPRESS",             "app_label": "convenios"},
+  {"id": 9,  "tipo_entidad": "minsaorgan",         "label": "órgano del MINSA","app_label": "convenios"},
+  {"id": 6,  "tipo_entidad": "regionalorgan",      "label": "órgano regional","app_label": "convenios"},
+  {"id": 4,  "tipo_entidad": "executingunit",      "label": "unidad ejecutora",   "app_label": "convenios"},
+  {"id": 2,  "tipo_entidad": "university",         "label": "universidad",        "app_label": "convenios"}
+]
+```
+
+Verificar: exactamente 8 entradas; `tipo_entidad` en minúscula
+(`university`, `ipress`, `regionalgovernment`, `regionalorgan`, `executingunit`, `conapres`,
+`minsaorgan`, `student`); `label` en español (verbose_name); `app_label` = `convenios` salvo `student`
+(= `internados`). Los `id` (ContentType) dependen de la BD; el frontend debe usar `tipo_entidad`, no `id`.
+
+> Alternativa interactiva: Swagger en `http://localhost:8000/api/v1/docs/` → operación
+> `profile_entity_types_list`.
+
+### 7.2 No superadmin → 403 / anónimo → 401
+
+```bash
+# Con token de un usuario normal (no superusuario)
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8000/api/v1/profile-entity-types/ \
+  -H "Authorization: Bearer $ACCESS_USUARIO_NORMAL"
+# Esperado: 403 (mensaje de IsSuperUser en español)
+
+# Sin token
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8000/api/v1/profile-entity-types/
+# Esperado: 401
+```
+
+### 7.3 Contrato reutilizable — un `tipo_entidad` del lookup es aceptado por el POST de perfiles
+
+Tomar un `tipo_entidad` del lookup (p. ej. `"student"`, RN-22) y usarlo en el alta de perfiles de T10.
+Requiere un `<user_id>` objetivo, un `<group_id>` (rol) válido y `ids` de estudiantes existentes.
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/users/<user_id>/profiles/ \
+  -H "Authorization: Bearer $ACCESS_SUPERADMIN" \
+  -H "Content-Type: application/json" \
+  -d '{"rol": <group_id>, "tipo_entidad": "student", "ids": [<student_id>]}'
+```
+
+Esperado: **201** con la lista de perfiles materializados (`{id, tipo_entidad, id_objeto, entidad, rol,
+activo}`). El valor `tipo_entidad` del lookup se reenvía tal cual, sin transformación.
+
+### 7.4 `tipo_entidad` fuera de la allowlist → 400 (validación endurecida)
+
+Un modelo no institucional (fuera de `ASSIGNABLE_PROFILE_MODELS`) debe rechazarse, aunque exista como
+modelo de las apps del proyecto:
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/users/<user_id>/profiles/ \
+  -H "Authorization: Bearer $ACCESS_SUPERADMIN" \
+  -H "Content-Type: application/json" \
+  -d '{"rol": <group_id>, "tipo_entidad": "document", "ids": [1]}'
+```
+
+Esperado: **400** —
+`{"tipo_entidad": ["El tipo de entidad indicado no es válido o no es asignable a un perfil."]}`.
+Repetir con `"auditlog"` o `"campoclinico"` → mismo **400**. Esto confirma que lookup (T11) y validación
+del write (T10) comparten la única fuente `ASSIGNABLE_PROFILE_MODELS`: solo los tipos que devuelve el
+lookup son aceptados por el POST de perfiles.
+
+### 7.5 Matriz de casos T11
+
+| Caso | Petición | Esperado |
+|------|----------|----------|
+| Listar (superadmin) | `GET /profile-entity-types/` | **200**, 8 items ordenados por `label` |
+| No superadmin | `GET` con token normal | **403** |
+| Anónimo | `GET` sin token | **401** |
+| Contrato reutilizable | `POST /users/{id}/profiles/` con `tipo_entidad` del lookup | **201** |
+| Fuera de allowlist | `POST` con `tipo_entidad:"document"` | **400** en español |

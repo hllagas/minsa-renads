@@ -2,6 +2,7 @@
 administración de usuarios, grupos (roles) y permisos (solo superadministrador)."""
 
 from django.contrib.auth.models import Group, Permission, User
+from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 from drf_spectacular.utils import extend_schema
 from rest_framework import status, viewsets
@@ -14,6 +15,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from apps.common.models import UserSecurity
 from apps.common.permissions import IsSuperUser
 from apps.common.serializers import (
+    ASSIGNABLE_PROFILE_MODELS,
+    AssignableEntityTypeSerializer,
     ChangeOwnPasswordSerializer,
     CustomTokenObtainPairSerializer,
     GroupSerializer,
@@ -261,3 +264,42 @@ class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
     search_fields = ["name", "codename"]
     ordering_fields = ["id", "codename"]
     ordering = ["content_type", "codename"]
+
+
+class AssignableEntityTypeView(APIView):
+    """Lista los tipos de entidad elegibles para asignar un perfil de usuario (T11).
+
+    Alimenta el selector «Tipo de entidad» del alta de perfiles institucionales
+    (`GET/POST /api/v1/users/{id}/profiles/`). Cada item expone el `tipo_entidad`
+    (nombre de modelo en minúscula) que el frontend reenvía tal cual en el POST de
+    perfiles, junto con una etiqueta legible en español (`label`). Comparte la
+    allowlist `ASSIGNABLE_PROFILE_MODELS` con la validación de escritura (T10), de
+    modo que el catálogo ofrecido y el conjunto aceptado no pueden divergir.
+    """
+
+    permission_classes = [IsSuperUser]
+
+    @extend_schema(
+        responses=AssignableEntityTypeSerializer(many=True),
+        summary="Tipos de entidad asignables a perfiles",
+        description=(
+            "Lista los tipos de entidad institucional sobre los que se puede otorgar "
+            "un perfil (scope por objeto) a un usuario. El campo `tipo_entidad` es el "
+            "valor que espera el POST de perfiles; `label` es la etiqueta legible en "
+            "español (verbose_name del modelo). Restringido a superadministrador."
+        ),
+        tags=["common"],
+    )
+    def get(self, request):
+        cts = ContentType.objects.get_for_models(*ASSIGNABLE_PROFILE_MODELS)
+        data = [
+            {
+                "id": ct.id,
+                "tipo_entidad": ct.model,
+                "label": modelo._meta.verbose_name,
+                "app_label": ct.app_label,
+            }
+            for modelo, ct in cts.items()
+        ]
+        data.sort(key=lambda item: item["label"])
+        return Response(AssignableEntityTypeSerializer(data, many=True).data)
