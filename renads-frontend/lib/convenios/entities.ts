@@ -150,23 +150,34 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
       { name: "es_sede_docente", label: "Sede docente", type: "boolean" },
       activoFilter,
     ],
+    // Campos verificados contra `IpressAuto` (OpenAPI). Requeridos por el backend: `nombre`,
+    // `unidad_ejecutora`, `ambito_geografico_sanitario`. El resto son opcionales/anulables.
+    // `es_sede_docente` NO se edita aquí: se otorga con la acción CONAPRES `autorizar-sede-docente`.
     fields: [
-      { name: "nombre", label: "Nombre", type: "text", required: true },
+      // Identificación
+      { name: "nombre", label: "Nombre", type: "text", required: true, fullWidth: true },
+      { name: "codigo_renipress", label: "Código RENIPRESS", type: "text" },
+      { name: "numero_ruc", label: "RUC (11 dígitos)", type: "text", uppercase: false },
+      // Clasificación (catálogos)
+      {
+        name: "categoria",
+        label: "Categoría",
+        type: "select",
+        optionsEndpoint: "categories",
+      },
+      {
+        name: "tipo_clasificacion",
+        label: "Tipo de clasificación",
+        type: "select",
+        optionsEndpoint: "classification-types",
+      },
+      // Organización / alcance sanitario
       {
         name: "unidad_ejecutora",
         label: "Unidad ejecutora",
         type: "select",
         required: true,
         optionsEndpoint: "executing-units",
-      },
-      { name: "codigo_renipress", label: "Código RENIPRESS", type: "text" },
-      { name: "direccion", label: "Dirección", type: "text" },
-      {
-        name: "ubigeo",
-        label: "Ubigeo",
-        type: "select",
-        optionsEndpoint: "ubigeos",
-        optionsToLabel: ubigeoLabel,
       },
       {
         name: "ambito_geografico_sanitario",
@@ -175,6 +186,25 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         required: true,
         optionsEndpoint: "health-geographic-scopes",
       },
+      {
+        name: "microred",
+        label: "Microred",
+        type: "select",
+        optionsEndpoint: "micro-networks",
+      },
+      // Ubicación
+      { name: "direccion", label: "Dirección", type: "text", fullWidth: true },
+      {
+        name: "ubigeo",
+        label: "Ubigeo",
+        type: "select",
+        optionsEndpoint: "ubigeos",
+        optionsToLabel: ubigeoLabel,
+      },
+      { name: "latitud", label: "Latitud", type: "text", uppercase: false },
+      { name: "longitud", label: "Longitud", type: "text", uppercase: false },
+      // Capacidad / estado
+      { name: "cantidad_camas", label: "Cantidad de camas", type: "number" },
       { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
     ],
   },
