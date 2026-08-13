@@ -169,12 +169,94 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
 };
 
 /**
+ * Entidades de la estructura sanitaria (jerarquía `health-geographic-scopes` → `networks` →
+ * `micro-networks`). CRUD con FK; escritura solo `Administrador RENADS` (default de `ResourceCrud`).
+ */
+const SANITARY_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
+  networks: {
+    endpoint: "networks",
+    title: "Redes",
+    singular: "red",
+    description: "Redes asistenciales por ámbito geográfico sanitario.",
+    searchPlaceholder: "Buscar por código o nombre…",
+    columns: [
+      { key: "codigo", header: "Código" },
+      { key: "nombre", header: "Nombre" },
+      { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
+    ],
+    filters: [
+      {
+        name: "ambito_geografico_sanitario",
+        label: "Ámbito geográfico sanitario",
+        type: "select",
+        optionsEndpoint: "health-geographic-scopes",
+      },
+      activoFilter,
+    ],
+    fields: [
+      { name: "codigo", label: "Código", type: "text", required: true },
+      { name: "nombre", label: "Nombre", type: "text", required: true },
+      {
+        name: "ambito_geografico_sanitario",
+        label: "Ámbito geográfico sanitario",
+        type: "select",
+        required: true,
+        optionsEndpoint: "health-geographic-scopes",
+      },
+      { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
+    ],
+  },
+
+  "micro-networks": {
+    endpoint: "micro-networks",
+    title: "Microrredes",
+    singular: "microrred",
+    description: "Microrredes por red asistencial.",
+    searchPlaceholder: "Buscar por código o nombre…",
+    columns: [
+      { key: "codigo", header: "Código" },
+      { key: "nombre", header: "Nombre" },
+      { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
+    ],
+    // Filtro de lista plano (la cascada ámbito→red aplica solo al formulario de alta/edición).
+    filters: [
+      { name: "red", label: "Red", type: "select", optionsEndpoint: "networks" },
+      activoFilter,
+    ],
+    fields: [
+      // Campo virtual (solo UI, no se envía): filtra el select `red` por ámbito y lo resetea al cambiar.
+      {
+        name: "_ambito",
+        label: "Ámbito geográfico sanitario",
+        type: "select",
+        virtual: true,
+        optionsEndpoint: "health-geographic-scopes",
+      },
+      {
+        name: "red",
+        label: "Red",
+        type: "select",
+        required: true,
+        optionsEndpoint: "networks",
+        optionsParamsFrom: (v): Record<string, string> =>
+          v._ambito ? { ambito_geografico_sanitario: String(v._ambito) } : {},
+        resetsOn: ["_ambito"],
+      },
+      { name: "codigo", label: "Código", type: "text", required: true },
+      { name: "nombre", label: "Nombre", type: "text", required: true },
+      { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
+    ],
+  },
+};
+
+/**
  * Registro único de entidades organizacionales/académicas de `/catalogos`. Reutiliza las 7 configs
- * de Convenios (`ENTITY_CONFIGS`) sin duplicarlas y añade las 4 académicas.
+ * de Convenios (`ENTITY_CONFIGS`) sin duplicarlas y añade las académicas y las sanitarias.
  */
 export const CATALOGO_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
   ...ENTITY_CONFIGS,
   ...ACADEMIC_ENTITY_CONFIGS,
+  ...SANITARY_ENTITY_CONFIGS,
 };
 
 /** Orden y rótulos del índice de entidades de `/catalogos`. */
@@ -189,5 +271,7 @@ export const CATALOGO_ENTITY_MENU: { slug: string; title: string }[] = [
   { slug: "executing-units", title: "Unidades Ejecutoras" },
   { slug: "regional-organs", title: "Órganos Regionales" },
   { slug: "minsa-organs", title: "Órganos MINSA" },
+  { slug: "networks", title: "Redes" },
+  { slug: "micro-networks", title: "Microrredes" },
   { slug: "conapres", title: "CONAPRES" },
 ];

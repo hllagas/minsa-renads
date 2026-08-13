@@ -4,8 +4,9 @@ Contrato de los **CRUD de soporte transversales** del Módulo 1 del backend (`ap
 `apps/common`). Alimentan las rutas **`/catalogos`** (mantenimiento de tablas maestras) y, en parte,
 **`/usuarios`** (perfiles institucionales). El núcleo del convenio está en `docs/api-convenios.md`.
 
-> Fuente de verdad backend: `D:\dev\renads\renaes-api\docs\modulo_01_crud_transversales.md` y el
+> Fuente de verdad backend: `D:\dev\renads\renads-api\docs\modulo_01_crud_transversales.md` y el
 > código `apps/convenios/{urls,views,serializers}.py`. Base: `/api/v1/`. JWT en todos los endpoints.
+> Tipos generados del OpenAPI en `lib/api/schema.d.ts` (`npm run gen:api` contra el backend vivo).
 
 ## Mapa UI → recursos
 
@@ -37,10 +38,29 @@ Seis catálogos dejan de ser de solo lectura y aceptan **CRUD completo** (`creat
 `codigo` (único, obligatorio), `nombre` (obligatorio), `activo`.
 
 `document-types`, `university-entity-types`, `authorization-types`, `academic-levels`,
-`regional-organ-types`, `minsa-organ-types`.
+`regional-organ-types`, `minsa-organ-types`, **`categories`**, **`classification-types`**.
+
+> `categories` y `classification-types` (modelo base `Catalog`: `codigo`/`nombre`/`activo`) se
+> añadieron como CRUD maestro con el mismo patrón (filtro `activo`, search `codigo`/`nombre`).
 
 > Front: configurados con `writableCatalog()` en `lib/catalogos/catalogs.ts` (los 12 restantes
 > siguen `readOnlyCatalog()`). Se editan desde `/catalogos/listas/<slug>`.
+
+### 1.2. Estructura sanitaria — redes y microrredes (CRUD)
+
+Jerarquía de red asistencial, CRUD (escritura solo **`Administrador RENADS`** + auditoría). Campos
+base `Catalog` (`codigo`/`nombre`/`activo`) más su FK de jerarquía:
+
+| Endpoint | Modelo | Filtros | Search |
+|----------|--------|---------|--------|
+| `networks` | `Red` | `ambito_geografico_sanitario`, `activo` | `codigo`, `nombre` |
+| `micro-networks` | `Microred` | `red`, `activo` | `codigo`, `nombre` |
+
+> `Red` cuelga de `health-geographic-scopes` (ámbito geográfico sanitario) y `Microred` de `Red`.
+> Front: `networks`/`micro-networks` ya tienen config de entidad en `lib/catalogos/entities.ts`
+> (`SANITARY_ENTITY_CONFIGS`), editables desde `/catalogos/entidades/<slug>`. En el alta de
+> microrred, un selector auxiliar de ámbito filtra el select de `red` (cascada). Los catálogos
+> simples `categories`/`classification-types` están en `lib/catalogos/catalogs.ts` (§1.1).
 
 ## 2. Entidades organizacionales / académicas (CRUD)
 

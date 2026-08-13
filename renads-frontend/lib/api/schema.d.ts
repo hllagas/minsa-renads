@@ -325,6 +325,82 @@ export interface paths {
         patch: operations["authorization_types_partial_update"];
         trace?: never;
     };
+    "/api/v1/categories/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["categories_list"];
+        put?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        post: operations["categories_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/categories/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["categories_retrieve"];
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        put: operations["categories_update"];
+        post?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        delete: operations["categories_destroy"];
+        options?: never;
+        head?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        patch: operations["categories_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/classification-types/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["classification_types_list"];
+        put?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        post: operations["classification_types_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/classification-types/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["classification_types_retrieve"];
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        put: operations["classification_types_update"];
+        post?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        delete: operations["classification_types_destroy"];
+        options?: never;
+        head?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        patch: operations["classification_types_partial_update"];
+        trace?: never;
+    };
     "/api/v1/closure-reasons/": {
         parameters: {
             query?: never;
@@ -1573,6 +1649,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/micro-networks/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["micro_networks_list"];
+        put?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        post: operations["micro_networks_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/micro-networks/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["micro_networks_retrieve"];
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        put: operations["micro_networks_update"];
+        post?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        delete: operations["micro_networks_destroy"];
+        options?: never;
+        head?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        patch: operations["micro_networks_partial_update"];
+        trace?: never;
+    };
     "/api/v1/minsa-organ-types/": {
         parameters: {
             query?: never;
@@ -1647,6 +1761,44 @@ export interface paths {
         head?: never;
         /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         patch: operations["minsa_organs_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/networks/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["networks_list"];
+        put?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        post: operations["networks_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/networks/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["networks_retrieve"];
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        put: operations["networks_update"];
+        post?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        delete: operations["networks_destroy"];
+        options?: never;
+        head?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        patch: operations["networks_partial_update"];
         trace?: never;
     };
     "/api/v1/observation-reasons/": {
@@ -1751,6 +1903,26 @@ export interface paths {
         head?: never;
         /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         patch: operations["professional_careers_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/profile-entity-types/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tipos de entidad asignables a perfiles
+         * @description Lista los tipos de entidad institucional sobre los que se puede otorgar un perfil (scope por objeto) a un usuario. El campo `tipo_entidad` es el valor que espera el POST de perfiles; `label` es la etiqueta legible en español (verbose_name del modelo). Restringido a superadministrador.
+         */
+        get: operations["profile_entity_types_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/regional-governments/": {
@@ -3338,6 +3510,52 @@ export interface paths {
         patch: operations["users_partial_update"];
         trace?: never;
     };
+    "/api/v1/users/{id}/profiles/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Gestiona el alcance por objeto (`UserEntityProfile`) del usuario objetivo.
+         *
+         *     - GET: lista los perfiles del usuario; por defecto solo los activos,
+         *       salvo ``?incluir_inactivos=true``.
+         *     - POST: otorga/reactiva de forma idempotente el acceso a una o varias
+         *       entidades bajo un rol (una fila por cada id de ``ids``).
+         *     - DELETE: da de baja lógica (``activo=False``) un perfil concreto indicado
+         *       por ``profile_id`` (query param o body).
+         */
+        get: operations["users_profiles_list"];
+        put?: never;
+        /**
+         * @description Gestiona el alcance por objeto (`UserEntityProfile`) del usuario objetivo.
+         *
+         *     - GET: lista los perfiles del usuario; por defecto solo los activos,
+         *       salvo ``?incluir_inactivos=true``.
+         *     - POST: otorga/reactiva de forma idempotente el acceso a una o varias
+         *       entidades bajo un rol (una fila por cada id de ``ids``).
+         *     - DELETE: da de baja lógica (``activo=False``) un perfil concreto indicado
+         *       por ``profile_id`` (query param o body).
+         */
+        post: operations["users_profiles_create"];
+        /**
+         * @description Gestiona el alcance por objeto (`UserEntityProfile`) del usuario objetivo.
+         *
+         *     - GET: lista los perfiles del usuario; por defecto solo los activos,
+         *       salvo ``?incluir_inactivos=true``.
+         *     - POST: otorga/reactiva de forma idempotente el acceso a una o varias
+         *       entidades bajo un rol (una fila por cada id de ``ids``).
+         *     - DELETE: da de baja lógica (``activo=False``) un perfil concreto indicado
+         *       por ``profile_id`` (query param o body).
+         */
+        delete: operations["users_profiles_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/{id}/set-password/": {
         parameters: {
             query?: never;
@@ -3476,6 +3694,24 @@ export interface components {
          * @enum {string}
          */
         AplicaAEnum: "TODOS" | "ESPECIFICO";
+        /**
+         * @description Tipo de entidad elegible para asignar un perfil de usuario (scope por objeto).
+         *
+         *     Alimenta el selector «Tipo de entidad» del alta de perfiles. El campo
+         *     ``tipo_entidad`` es exactamente el string que espera el POST de perfiles (T10);
+         *     ``id`` (ContentType) se expone solo por paridad con el precedente y como dato
+         *     informativo — el frontend debe reenviar ``tipo_entidad``, no ``id``.
+         */
+        AssignableEntityType: {
+            /** @description ID del ContentType (informativo; el write usa tipo_entidad). */
+            id: number;
+            /** @description Nombre de modelo en minúscula; valor que espera el POST de perfiles (p. ej. university, student). */
+            tipo_entidad: string;
+            /** @description Etiqueta legible en español (verbose_name del modelo). */
+            label: string;
+            /** @description App de Django (p. ej. convenios, internados). */
+            app_label: string;
+        };
         /** @description Lectura de la bitácora de auditoría (RNF-AUD-01/02). Todos los campos read-only. */
         AuditLog: {
             readonly id: number;
@@ -3526,6 +3762,18 @@ export interface components {
         };
         /** @enum {unknown} */
         BlankEnum: "";
+        CategoryAuto: {
+            readonly id: number;
+            /**
+             * Código
+             * @description Código único
+             */
+            codigo: string;
+            /** @description Nombre */
+            nombre: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+        };
         /**
          * @description Cambio de la propia contraseña: exige la clave actual y valida la nueva.
          *
@@ -3535,6 +3783,18 @@ export interface components {
         ChangeOwnPassword: {
             password_actual: string;
             password_nueva: string;
+        };
+        ClassificationTypeAuto: {
+            readonly id: number;
+            /**
+             * Código
+             * @description Código único
+             */
+            codigo: string;
+            /** @description Nombre */
+            nombre: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
         };
         ClosureReasonAuto: {
             readonly id: number;
@@ -4091,6 +4351,27 @@ export interface components {
              * @description Dirección
              */
             direccion?: string;
+            /**
+             * Format: decimal
+             * @description Latitud (coordenada geográfica)
+             */
+            latitud?: string | null;
+            /**
+             * Format: decimal
+             * @description Longitud (coordenada geográfica)
+             */
+            longitud?: string | null;
+            /**
+             * Cantidad de camas
+             * Format: int64
+             * @description Número de camas del establecimiento
+             */
+            cantidad_camas?: number | null;
+            /**
+             * Número de RUC
+             * @description RUC (11 dígitos; texto para conservar ceros a la izquierda)
+             */
+            numero_ruc?: string;
             /** @description Autorizada por CONAPRES como sede docente (asistencial, MINSA/FF.AA.-FF.PP., pública) */
             es_sede_docente?: boolean;
             activo?: boolean;
@@ -4100,6 +4381,12 @@ export interface components {
             ubigeo?: number | null;
             /** @description Ámbito geográfico sanitario */
             ambito_geografico_sanitario: number;
+            /** @description Categoría del establecimiento */
+            categoria?: number | null;
+            /** @description Tipo de clasificación del establecimiento */
+            tipo_clasificacion?: number | null;
+            /** @description Microred a la que pertenece el establecimiento */
+            microred?: number | null;
         };
         /**
          * @description Subida del logo de una entidad (multipart): valida tipo y tamaño del binario.
@@ -4135,6 +4422,19 @@ export interface components {
             readonly perfiles: {
                 [key: string]: unknown;
             }[];
+        };
+        MicroredAuto: {
+            readonly id: number;
+            /**
+             * Código
+             * @description Código de la microred (único dentro de la red)
+             */
+            codigo: string;
+            /** @description Nombre de la microred */
+            nombre: string;
+            activo?: boolean;
+            /** @description Red a la que pertenece la microred */
+            red: number;
         };
         MinsaOrganAuto: {
             readonly id: number;
@@ -4281,6 +4581,36 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["AuthorizationTypeAuto"][];
+        };
+        PaginatedCategoryAutoList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["CategoryAuto"][];
+        };
+        PaginatedClassificationTypeAutoList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["ClassificationTypeAuto"][];
         };
         PaginatedClosureReasonAutoList: {
             /** @example 123 */
@@ -4552,6 +4882,21 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["IpressAuto"][];
         };
+        PaginatedMicroredAutoList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["MicroredAuto"][];
+        };
         PaginatedMinsaOrganAutoList: {
             /** @example 123 */
             count: number;
@@ -4626,6 +4971,21 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["ProfessionalCareerAuto"][];
+        };
+        PaginatedRedAutoList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["RedAuto"][];
         };
         PaginatedRegionAutoList: {
             /** @example 123 */
@@ -4957,6 +5317,21 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["UserEntityProfileAuto"][];
         };
+        PaginatedUserEntityProfileWriteReadList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["UserEntityProfileWriteRead"][];
+        };
         PaginatedUserReadList: {
             /** @example 123 */
             count: number;
@@ -5025,6 +5400,30 @@ export interface components {
             obligatorio?: boolean;
         };
         PatchedAuthorizationTypeAuto: {
+            readonly id?: number;
+            /**
+             * Código
+             * @description Código único
+             */
+            codigo?: string;
+            /** @description Nombre */
+            nombre?: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+        };
+        PatchedCategoryAuto: {
+            readonly id?: number;
+            /**
+             * Código
+             * @description Código único
+             */
+            codigo?: string;
+            /** @description Nombre */
+            nombre?: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+        };
+        PatchedClassificationTypeAuto: {
             readonly id?: number;
             /**
              * Código
@@ -5225,6 +5624,27 @@ export interface components {
              * @description Dirección
              */
             direccion?: string;
+            /**
+             * Format: decimal
+             * @description Latitud (coordenada geográfica)
+             */
+            latitud?: string | null;
+            /**
+             * Format: decimal
+             * @description Longitud (coordenada geográfica)
+             */
+            longitud?: string | null;
+            /**
+             * Cantidad de camas
+             * Format: int64
+             * @description Número de camas del establecimiento
+             */
+            cantidad_camas?: number | null;
+            /**
+             * Número de RUC
+             * @description RUC (11 dígitos; texto para conservar ceros a la izquierda)
+             */
+            numero_ruc?: string;
             /** @description Autorizada por CONAPRES como sede docente (asistencial, MINSA/FF.AA.-FF.PP., pública) */
             es_sede_docente?: boolean;
             activo?: boolean;
@@ -5234,6 +5654,25 @@ export interface components {
             ubigeo?: number | null;
             /** @description Ámbito geográfico sanitario */
             ambito_geografico_sanitario?: number;
+            /** @description Categoría del establecimiento */
+            categoria?: number | null;
+            /** @description Tipo de clasificación del establecimiento */
+            tipo_clasificacion?: number | null;
+            /** @description Microred a la que pertenece el establecimiento */
+            microred?: number | null;
+        };
+        PatchedMicroredAuto: {
+            readonly id?: number;
+            /**
+             * Código
+             * @description Código de la microred (único dentro de la red)
+             */
+            codigo?: string;
+            /** @description Nombre de la microred */
+            nombre?: string;
+            activo?: boolean;
+            /** @description Red a la que pertenece la microred */
+            red?: number;
         };
         PatchedMinsaOrganAuto: {
             readonly id?: number;
@@ -5264,6 +5703,19 @@ export interface components {
             activo?: boolean;
             /** @description Carrera profesional / segunda especialidad / maestría / doctorado */
             nivel_academico?: number;
+        };
+        PatchedRedAuto: {
+            readonly id?: number;
+            /**
+             * Código
+             * @description Código de la red (único dentro del ámbito)
+             */
+            codigo?: string;
+            /** @description Nombre de la red */
+            nombre?: string;
+            activo?: boolean;
+            /** @description Ámbito geográfico sanitario al que pertenece la red */
+            ambito_geografico_sanitario?: number;
         };
         PatchedRegionalGovernmentAuto: {
             readonly id?: number;
@@ -5643,6 +6095,19 @@ export interface components {
             activo?: boolean;
             /** @description Carrera profesional / segunda especialidad / maestría / doctorado */
             nivel_academico: number;
+        };
+        RedAuto: {
+            readonly id: number;
+            /**
+             * Código
+             * @description Código de la red (único dentro del ámbito)
+             */
+            codigo: string;
+            /** @description Nombre de la red */
+            nombre: string;
+            activo?: boolean;
+            /** @description Ámbito geográfico sanitario al que pertenece la red */
+            ambito_geografico_sanitario: number;
         };
         RegionAuto: {
             readonly id: number;
@@ -6278,6 +6743,37 @@ export interface components {
             tipo_contenido: number;
             /** @description Rol institucional */
             grupo: number;
+        };
+        /**
+         * @description Entrada para otorgar a un usuario acceso a una o varias entidades bajo un rol.
+         *
+         *     Payload genérico ``{ "rol": <group_id>, "tipo_entidad": "university",
+         *     "ids": [3, 7] }``. El vínculo del modelo es polimórfico
+         *     (``tipo_contenido`` → ``ContentType``), por lo que el mismo endpoint sirve
+         *     para cualquier entidad admitida (universidades, IPRESS, sedes, etc.).
+         */
+        UserEntityProfileWrite: {
+            /** @description Identificador (PK) del rol (Group) a otorgar. */
+            rol: number;
+            /** @description Nombre del modelo de la entidad en minúscula (p. ej. 'university'). */
+            tipo_entidad: string;
+            /** @description Lista de identificadores (PK) de las entidades a otorgar. */
+            ids: number[];
+        };
+        /**
+         * @description Salida de la gestión de perfiles: forma de lectura más `id` y `activo`.
+         *
+         *     Reutiliza los 4 campos publicados por ``UserEntityProfileSerializer``
+         *     (``tipo_entidad``, ``id_objeto``, ``entidad``, ``rol``) y añade ``id`` (PK del
+         *     perfil) y ``activo`` para permitir la baja lógica y la re-alta.
+         */
+        UserEntityProfileWriteRead: {
+            tipo_entidad: string;
+            id_objeto: number;
+            readonly entidad: string;
+            rol: string;
+            readonly id: number;
+            readonly activo: boolean;
         };
         /** @description Lectura de usuarios: nunca expone la contraseña ni su hash. */
         UserRead: {
@@ -7224,6 +7720,308 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuthorizationTypeAuto"];
+                };
+            };
+        };
+    };
+    categories_list: {
+        parameters: {
+            query?: {
+                activo?: boolean;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedCategoryAutoList"];
+                };
+            };
+        };
+    };
+    categories_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["CategoryAuto"];
+                "multipart/form-data": components["schemas"]["CategoryAuto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryAuto"];
+                };
+            };
+        };
+    };
+    categories_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este categoría. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryAuto"];
+                };
+            };
+        };
+    };
+    categories_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este categoría. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["CategoryAuto"];
+                "multipart/form-data": components["schemas"]["CategoryAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryAuto"];
+                };
+            };
+        };
+    };
+    categories_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este categoría. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    categories_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este categoría. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedCategoryAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedCategoryAuto"];
+                "multipart/form-data": components["schemas"]["PatchedCategoryAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryAuto"];
+                };
+            };
+        };
+    };
+    classification_types_list: {
+        parameters: {
+            query?: {
+                activo?: boolean;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedClassificationTypeAutoList"];
+                };
+            };
+        };
+    };
+    classification_types_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClassificationTypeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["ClassificationTypeAuto"];
+                "multipart/form-data": components["schemas"]["ClassificationTypeAuto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassificationTypeAuto"];
+                };
+            };
+        };
+    };
+    classification_types_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de clasificación. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassificationTypeAuto"];
+                };
+            };
+        };
+    };
+    classification_types_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de clasificación. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClassificationTypeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["ClassificationTypeAuto"];
+                "multipart/form-data": components["schemas"]["ClassificationTypeAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassificationTypeAuto"];
+                };
+            };
+        };
+    };
+    classification_types_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de clasificación. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    classification_types_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de clasificación. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedClassificationTypeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedClassificationTypeAuto"];
+                "multipart/form-data": components["schemas"]["PatchedClassificationTypeAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassificationTypeAuto"];
                 };
             };
         };
@@ -9503,13 +10301,16 @@ export interface operations {
             query?: {
                 activo?: boolean;
                 ambito_geografico_sanitario?: number;
+                categoria?: number;
                 es_sede_docente?: boolean;
+                microred?: number;
                 /** @description Qué campo usar para ordenar los resultados. */
                 ordering?: string;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
                 page?: number;
                 /** @description Un término de búsqueda. */
                 search?: string;
+                tipo_clasificacion?: number;
                 unidad_ejecutora?: number;
             };
             header?: never;
@@ -9725,6 +10526,158 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LogoUploadResponse"];
+                };
+            };
+        };
+    };
+    micro_networks_list: {
+        parameters: {
+            query?: {
+                activo?: boolean;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                red?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedMicroredAutoList"];
+                };
+            };
+        };
+    };
+    micro_networks_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MicroredAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["MicroredAuto"];
+                "multipart/form-data": components["schemas"]["MicroredAuto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MicroredAuto"];
+                };
+            };
+        };
+    };
+    micro_networks_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este microred. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MicroredAuto"];
+                };
+            };
+        };
+    };
+    micro_networks_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este microred. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MicroredAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["MicroredAuto"];
+                "multipart/form-data": components["schemas"]["MicroredAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MicroredAuto"];
+                };
+            };
+        };
+    };
+    micro_networks_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este microred. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    micro_networks_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este microred. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedMicroredAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedMicroredAuto"];
+                "multipart/form-data": components["schemas"]["PatchedMicroredAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MicroredAuto"];
                 };
             };
         };
@@ -10032,6 +10985,158 @@ export interface operations {
             };
         };
     };
+    networks_list: {
+        parameters: {
+            query?: {
+                activo?: boolean;
+                ambito_geografico_sanitario?: number;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedRedAutoList"];
+                };
+            };
+        };
+    };
+    networks_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RedAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["RedAuto"];
+                "multipart/form-data": components["schemas"]["RedAuto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RedAuto"];
+                };
+            };
+        };
+    };
+    networks_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este red. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RedAuto"];
+                };
+            };
+        };
+    };
+    networks_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este red. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RedAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["RedAuto"];
+                "multipart/form-data": components["schemas"]["RedAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RedAuto"];
+                };
+            };
+        };
+    };
+    networks_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este red. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    networks_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este red. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedRedAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedRedAuto"];
+                "multipart/form-data": components["schemas"]["PatchedRedAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RedAuto"];
+                };
+            };
+        };
+    };
     observation_reasons_list: {
         parameters: {
             query?: {
@@ -10279,6 +11384,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProfessionalCareerAuto"];
+                };
+            };
+        };
+    };
+    profile_entity_types_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignableEntityType"][];
                 };
             };
         };
@@ -13239,6 +14363,110 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["UserUpdate"];
                 };
+            };
+        };
+    };
+    users_profiles_list: {
+        parameters: {
+            query?: {
+                groups?: number[];
+                is_active?: boolean;
+                is_staff?: boolean;
+                is_superuser?: boolean;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este usuario. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedUserEntityProfileWriteReadList"];
+                };
+            };
+        };
+    };
+    users_profiles_create: {
+        parameters: {
+            query?: {
+                groups?: number[];
+                is_active?: boolean;
+                is_staff?: boolean;
+                is_superuser?: boolean;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este usuario. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserEntityProfileWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["UserEntityProfileWrite"];
+                "multipart/form-data": components["schemas"]["UserEntityProfileWrite"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedUserEntityProfileWriteReadList"];
+                };
+            };
+        };
+    };
+    users_profiles_destroy: {
+        parameters: {
+            query?: {
+                groups?: number[];
+                is_active?: boolean;
+                is_staff?: boolean;
+                is_superuser?: boolean;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este usuario. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

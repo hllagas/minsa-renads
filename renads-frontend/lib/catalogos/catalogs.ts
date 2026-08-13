@@ -170,6 +170,12 @@ export const CATALOG_CONFIGS: Record<string, ResourceConfig> = {
     "Motivos de cierre",
     "motivo de cierre",
   ),
+  categories: writableCatalog("categories", "Categorías", "categoría"),
+  "classification-types": writableCatalog(
+    "classification-types",
+    "Tipos de clasificación",
+    "tipo de clasificación",
+  ),
   ubigeos: ubigeosConfig,
 };
 

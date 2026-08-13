@@ -29,8 +29,10 @@ campos, roles, estados) sin necesidad de abrir el repo del backend:
 
 1. **Gestionar Convenios** (`apps/convenios`) — convenios Marco/Específicos, evaluaciones, opiniones (DIGEP/CONAPRES/OGAJ), firmas, publicación, vigencia.
    - **CRUD transversales del Módulo 1** (`apps/convenios` + `apps/common`): catálogos, entidades organizacionales/académicas (CRUD, escritura `Administrador RENADS`), representantes, `user-entity-profiles`, **documentos** (`documents`, gestión documental polimórfica con versionado) y **bitácora de auditoría** (`audit-logs`, solo lectura, `Administrador RENADS`/Auditor). Contrato: `docs/api-catalogos.md`. Rutas front: `/catalogos` y `/usuarios`.
-   - **Catálogos promovidos a CRUD** (antes solo lectura; ahora escritura `Administrador RENADS`, filtro `activo`, search `codigo`/`nombre`): `document-types`, `university-entity-types`, `authorization-types`, `academic-levels`, `regional-organ-types`, `minsa-organ-types`.
+   - **Catálogos promovidos a CRUD** (antes solo lectura; ahora escritura `Administrador RENADS`, filtro `activo`, search `codigo`/`nombre`): `document-types`, `university-entity-types`, `authorization-types`, `academic-levels`, `regional-organ-types`, `minsa-organ-types`, y los nuevos `categories`, `classification-types`.
+   - **Estructura sanitaria (nuevo, CRUD `Administrador RENADS`):** `networks` (`Red`, FK `ambito_geografico_sanitario` → `health-geographic-scopes`) y `micro-networks` (`Microred`, FK `red`). Jerarquía ámbito → red → microrred. Aún sin config de front en `lib/catalogos` (pendiente SDD). Contrato: `docs/api-catalogos.md` §1.2.
    - **Borrado protegido → HTTP 409** (`ProtectedDeleteConflict`): al eliminar un registro referenciado por FK protegida, el backend devuelve 409 con mensaje legible (no 500). El front debe mostrar el detalle (`extractApiError`).
+   - **Tipos OpenAPI generados:** `lib/api/schema.d.ts` se regenera con `npm run gen:api` (openapi-typescript contra `http://localhost:8000/api/v1/schema/`). Regenerar tras cualquier cambio de contrato del backend.
 2. **Registrar Internados** (`apps/internados`) — internos, tutores, internados, rotaciones, autorizaciones.
    Incluye Feature F3: onboarding del interno con contraseña temporal (`debe_cambiar_password` +
    `/auth/me/cambiar-password/`) y declaraciones juradas (`estado_declaraciones`, `revisar-declaraciones`).

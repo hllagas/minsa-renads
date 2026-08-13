@@ -1,6 +1,7 @@
 "use client";
 
-import { useForm, Controller, type Control } from "react-hook-form";
+import { useEffect, useRef } from "react";
+import { useForm, Controller, useWatch, type Control } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 
 import type { FieldConfig } from "@/lib/crud/types";
@@ -74,6 +75,8 @@ function defaultFor(field: FieldConfig, initial: FormValues | null): unknown {
 function buildPayload(fields: FieldConfig[], values: FormValues): FormValues {
   const out: FormValues = {};
   for (const f of fields) {
+    // Campos virtuales: solo UI (p. ej. filtro de cascada). No se envían al backend.
+    if (f.virtual) continue;
     const v = values[f.name];
     if (f.type === "boolean") {
       out[f.name] = Boolean(v);
@@ -290,6 +293,15 @@ function SelectFieldRow({
   field: FieldConfig;
   control: Control<FormValues>;
 }) {
+  // Valores en vivo del formulario, solo si el campo depende de otros (cascada). Sin
+  // `optionsParamsFrom`/`resetsOn` no se observa nada y el comportamiento es idéntico al previo.
+  const watchesValues = !!field.optionsParamsFrom;
+  const watchedValues = useWatch({ control, disabled: !watchesValues }) as FormValues;
+  // Params dinámicos: prioridad de `optionsParamsFrom` sobre `optionsParams` estático.
+  const dynamicParams = field.optionsParamsFrom
+    ? field.optionsParamsFrom(watchedValues ?? {})
+    : field.optionsParams;
+
   return (
     <Controller
       control={control}
@@ -306,6 +318,13 @@ function SelectFieldRow({
             {field.label}
             {field.required ? " *" : ""}
           </Label>
+          {field.resetsOn?.length ? (
+            <ResetOnParentChange
+              control={control}
+              parents={field.resetsOn}
+              onReset={() => f.onChange(null)}
+            />
+          ) : null}
           {field.choices ? (
             <Select
               items={field.choices.map((c) => ({ value: c.value, label: c.label }))}
@@ -326,7 +345,7 @@ function SelectFieldRow({
           ) : field.optionsValueKey ? (
             <CodeSelect
               endpoint={field.optionsEndpoint!}
-              params={field.optionsParams}
+              params={dynamicParams}
               valueKey={field.optionsValueKey}
               toLabel={field.optionsToLabel}
               value={(f.value as string | null) ?? null}
@@ -335,7 +354,7 @@ function SelectFieldRow({
           ) : (
             <EntityCombobox
               endpoint={field.optionsEndpoint!}
-              params={field.optionsParams}
+              params={dynamicParams}
               toLabel={field.optionsToLabel}
               value={f.value as number | null}
               onChange={(val) => f.onChange(val)}
@@ -348,6 +367,39 @@ function SelectFieldRow({
       )}
     />
   );
+}
+
+/**
+ * Resetea un campo dependiente cuando **cambia** (tras el montaje) alguno de sus campos padre.
+ * No dispara en el primer render, para no borrar un valor precargado en edición; solo reacciona a
+ * cambios reales del padre, evitando bucles.
+ */
+function ResetOnParentChange({
+  control,
+  parents,
+  onReset,
+}: {
+  control: Control<FormValues>;
+  parents: string[];
+  onReset: () => void;
+}) {
+  const parentValues = useWatch({ control, name: parents }) as unknown[];
+  const previous = useRef<unknown[] | null>(null);
+
+  useEffect(() => {
+    if (previous.current === null) {
+      // Primer render: fija la línea base sin resetear (respeta valores precargados en edición).
+      previous.current = parentValues;
+      return;
+    }
+    const changed = parentValues.some((v, i) => v !== previous.current![i]);
+    previous.current = parentValues;
+    if (changed) onReset();
+    // `onReset` es estable por render del Controller; se omite para evitar re-ejecuciones.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parentValues]);
+
+  return null;
 }
 
 /**
