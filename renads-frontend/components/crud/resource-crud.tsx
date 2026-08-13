@@ -45,12 +45,26 @@ export function ResourceCrud<TRead extends WithId>({
   fixedValues,
   cardView,
   renderCard,
+  renderForm,
+  dialogClassName,
 }: {
   config: ResourceConfig<TRead>;
   /** Acciones por fila inyectadas por la página (p. ej. abrir el diálogo de contraseña). */
   rowActions?: RowAction<TRead>[];
   /** Acciones extra en la cabecera, junto al botón «Nuevo» (p. ej. carga masiva). */
   headerActions?: ReactNode;
+  /**
+   * Formulario personalizado del diálogo de alta/edición (reemplaza a `ResourceForm`). Útil para
+   * controles que no encajan en el formulario declarativo (p. ej. la matriz de permisos de un rol).
+   */
+  renderForm?: (args: {
+    editing: TRead | null;
+    submitting: boolean;
+    onSubmit: (payload: Record<string, unknown>) => void;
+    onCancel: () => void;
+  }) => ReactNode;
+  /** Clase del `DialogContent` de alta/edición (por defecto `sm:max-w-2xl`). */
+  dialogClassName?: string;
   /**
    * Valores fijos por alcance (p. ej. `{ universidad: 12 }` cuando el usuario tiene una sola
    * universidad): se aplican al listado (filtro) y a cada alta, y ocultan su campo/filtro en la UI
@@ -322,7 +336,7 @@ export function ResourceCrud<TRead extends WithId>({
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className={dialogClassName ?? "sm:max-w-2xl"}>
           <DialogHeader>
             <DialogTitle>
               {editing ? `Editar ${config.singular}` : `Nuevo ${config.singular}`}
@@ -333,17 +347,26 @@ export function ResourceCrud<TRead extends WithId>({
               {config.renderEditInfo(editing)}
             </div>
           ) : null}
-          <ResourceForm
-            fields={dropFixed(
-              editing
-                ? config.editFields ?? config.fields
-                : config.createFields ?? config.fields,
-            )}
-            initial={editing as Record<string, unknown> | null}
-            submitting={createM.isPending || updateM.isPending}
-            onSubmit={onSubmit}
-            onCancel={() => setDialogOpen(false)}
-          />
+          {renderForm ? (
+            renderForm({
+              editing,
+              submitting: createM.isPending || updateM.isPending,
+              onSubmit,
+              onCancel: () => setDialogOpen(false),
+            })
+          ) : (
+            <ResourceForm
+              fields={dropFixed(
+                editing
+                  ? config.editFields ?? config.fields
+                  : config.createFields ?? config.fields,
+              )}
+              initial={editing as Record<string, unknown> | null}
+              submitting={createM.isPending || updateM.isPending}
+              onSubmit={onSubmit}
+              onCancel={() => setDialogOpen(false)}
+            />
+          )}
         </DialogContent>
       </Dialog>
 

@@ -5,7 +5,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Qué es este proyecto
 
 Frontend (Next.js) de **RENADS** — Registro Nacional de Articulación Docencia-Servicio en Salud
-(MINSA, Perú). Consume el backend **RENADS API** (Django + DRF) ubicado en `D:\dev\renaes\renaes-api`.
+(MINSA, Perú). Consume el backend **RENADS API** (Django + DRF) ubicado en `D:\dev\renads\renads-api`
+(monorepo: back y front comparten el repo raíz `D:\dev\renads`, con historial de commits común).
 
 **Antes de construir cualquier vista, leer `docs/`** — contiene el contrato del backend (endpoints,
 campos, roles, estados) sin necesidad de abrir el repo del backend:
@@ -27,10 +28,16 @@ campos, roles, estados) sin necesidad de abrir el repo del backend:
 ### Módulos del backend
 
 1. **Gestionar Convenios** (`apps/convenios`) — convenios Marco/Específicos, evaluaciones, opiniones (DIGEP/CONAPRES/OGAJ), firmas, publicación, vigencia.
-   - **CRUD transversales del Módulo 1** (`apps/convenios` + `apps/common`): catálogos (solo lectura), entidades organizacionales/académicas (CRUD, escritura `Administrador RENADS`), representantes, `user-entity-profiles`, **documentos** (`documents`, gestión documental polimórfica con versionado) y **bitácora de auditoría** (`audit-logs`, solo lectura, `Administrador RENADS`/Auditor). Contrato: `docs/api-catalogos.md`. Rutas front: `/catalogos` y `/usuarios`.
+   - **CRUD transversales del Módulo 1** (`apps/convenios` + `apps/common`): catálogos, entidades organizacionales/académicas (CRUD, escritura `Administrador RENADS`), representantes, `user-entity-profiles`, **documentos** (`documents`, gestión documental polimórfica con versionado) y **bitácora de auditoría** (`audit-logs`, solo lectura, `Administrador RENADS`/Auditor). Contrato: `docs/api-catalogos.md`. Rutas front: `/catalogos` y `/usuarios`.
+   - **Catálogos promovidos a CRUD** (antes solo lectura; ahora escritura `Administrador RENADS`, filtro `activo`, search `codigo`/`nombre`): `document-types`, `university-entity-types`, `authorization-types`, `academic-levels`, `regional-organ-types`, `minsa-organ-types`.
+   - **Borrado protegido → HTTP 409** (`ProtectedDeleteConflict`): al eliminar un registro referenciado por FK protegida, el backend devuelve 409 con mensaje legible (no 500). El front debe mostrar el detalle (`extractApiError`).
 2. **Registrar Internados** (`apps/internados`) — internos, tutores, internados, rotaciones, autorizaciones.
    Incluye Feature F3: onboarding del interno con contraseña temporal (`debe_cambiar_password` +
    `/auth/me/cambiar-password/`) y declaraciones juradas (`estado_declaraciones`, `revisar-declaraciones`).
+   - **Tutor ↔ universidades** (RN-24): `tutors.universidades` es M2M de **1 a 2** universidades (400 si 0 o >2); filtro `?universidades=<id>`. Los tutores no están acotados por universidad en lectura (son compartidos).
+   - **Contacto de emergencia** movido de `students` → **`interns`/internado** (`contacto_emergencia_nombre`/`_telefono`/`_parentesco` FK `relationship-types`). `students.anio_academico` **eliminado** (y de la trama de carga masiva).
+   - **Anexos DJ del interno** (actor `INTERNO`, `annex-upload`/`annex-checklist`) se adjuntan **sobre el internado** (`interns/{id}/...`), **no** sobre el estudiante. Puede adjuntar el rol `Universidad`/`Administrador RENADS` o el propio `Interno`.
+   - **Accesos y alcance por universidad** (contrato backend `docs/api_accesos_frontend.md`): la UI resuelve el selector de universidad desde `perfiles` de `/auth/me/` (una → fija; varias → elegir; global → catálogo). Reflejado en `lib/auth/scope.ts`.
 3. **Registrar Actividades** (`apps/actividades`) — actividades docente-asistenciales y su validación.
 
 **Adjuntos reales (transversal, Módulos 1–2):** subida/visualización de **logos** de entidades

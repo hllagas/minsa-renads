@@ -119,9 +119,9 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
 
   ipress: {
     endpoint: "ipress",
-    title: "IPRESS",
+    title: "Establecimientos de Salud",
     singular: "IPRESS",
-    description: "Establecimientos de salud (sedes).",
+    description: "Sedes docentes autorizadas para la prestación de servicios de salud.",
     searchPlaceholder: "Buscar por nombre o RENIPRESS…",
     columns: [
       logoColumn("ipress"),
