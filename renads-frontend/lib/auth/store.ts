@@ -12,6 +12,13 @@ export interface UserProfile {
   rol: string;
 }
 
+/** Módulo (ContentType) gobernado por el calendario, tal como lo expone `/auth/me/`. */
+export interface ModuleState {
+  app_label: string;
+  model: string;
+  content_type_id: number;
+}
+
 /** Usuario autenticado tal como lo devuelve `GET /auth/me/`. */
 export interface AuthUser {
   id: number;
@@ -23,6 +30,10 @@ export interface AuthUser {
   perfiles: UserProfile[];
   /** Contraseña temporal pendiente de cambio (RN-22). El front bloquea hasta cambiarla. */
   debe_cambiar_password?: boolean;
+  /** Módulos con ventana de calendario vigente (escritura habilitada). */
+  modulos_habilitados?: ModuleState[];
+  /** Módulos gobernados pero fuera de ventana (escritura bloqueada, salvo admin/superusuario). */
+  modulos_bloqueados?: ModuleState[];
 }
 
 interface AuthState {
@@ -75,3 +86,20 @@ export const userHasRole = (user: AuthUser | null, ...roles: string[]): boolean 
  * no basta con tener un grupo/rol. Lo exige `/usuarios` (cuentas/roles/permisos).
  */
 export const isSuperuser = (user: AuthUser | null): boolean => !!user?.es_superusuario;
+
+/**
+ * Indica si un módulo (`app_label.model`) está fuera de su ventana de calendario para el usuario.
+ * Refleja el estado temporal del backend (`modulos_bloqueados` de `/auth/me/`) para UX (deshabilitar
+ * acciones de escritura). El admin/superusuario está exento del gate, pero el módulo puede seguir
+ * apareciendo como bloqueado; por eso se combina con la exención. La autoridad final es el backend.
+ */
+export const moduloBloqueado = (
+  user: AuthUser | null,
+  appLabel: string,
+  model: string,
+): boolean => {
+  if (!user || user.es_superusuario || user.grupos.includes("Administrador RENADS")) return false;
+  return (user.modulos_bloqueados ?? []).some(
+    (m) => m.app_label === appLabel && m.model === model,
+  );
+};
