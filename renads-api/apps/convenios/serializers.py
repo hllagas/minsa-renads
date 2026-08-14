@@ -129,20 +129,40 @@ class ConapresOpinionSerializer(serializers.ModelSerializer):
         fields = ["fecha_solicitud", "estado_atencion", "resultado_opinion", "fecha_respuesta"]
 
 
+def _detalle_fk(rel, *campos: str):
+    """Detalle legible de una FK (o ``None``): ``{id, <campos…>}``.
+
+    Permite que los listados del frontend muestren nombres sin resolver ids.
+    """
+    if rel is None:
+        return None
+    detalle = {"id": rel.id}
+    for campo in campos:
+        detalle[campo] = getattr(rel, campo, None)
+    return detalle
+
+
 class ClinicalFieldRegistrationSerializer(serializers.ModelSerializer):
     """Registro (CONAPRES) del total de campos clínicos por sede + carrera.
 
     `campos_clinicos_asignados` es un acumulador de solo lectura (lo mantiene el
-    service); `disponibilidad` = registrados − asignados.
+    service); `disponibilidad` = registrados − asignados. Los campos `*_detalle`
+    son de solo lectura para poblar los listados del frontend.
     """
 
     disponibilidad = serializers.SerializerMethodField()
+    convenio_detalle = serializers.SerializerMethodField()
+    ipress_detalle = serializers.SerializerMethodField()
+    carrera_profesional_detalle = serializers.SerializerMethodField()
+    especialidad_detalle = serializers.SerializerMethodField()
 
     class Meta:
         model = ClinicalFieldRegistration
         fields = [
             "id", "convenio", "ipress", "carrera_profesional", "especialidad",
             "campos_clinicos_registrados", "campos_clinicos_asignados", "disponibilidad",
+            "convenio_detalle", "ipress_detalle", "carrera_profesional_detalle",
+            "especialidad_detalle",
             "creado_en", "creado_por", "actualizado_en", "actualizado_por",
         ]
         read_only_fields = [
@@ -153,6 +173,18 @@ class ClinicalFieldRegistrationSerializer(serializers.ModelSerializer):
     def get_disponibilidad(self, obj) -> int:
         return obj.campos_clinicos_registrados - obj.campos_clinicos_asignados
 
+    def get_convenio_detalle(self, obj):
+        return _detalle_fk(obj.convenio, "titulo", "codigo")
+
+    def get_ipress_detalle(self, obj):
+        return _detalle_fk(obj.ipress, "nombre", "codigo_renipress")
+
+    def get_carrera_profesional_detalle(self, obj):
+        return _detalle_fk(obj.carrera_profesional, "nombre")
+
+    def get_especialidad_detalle(self, obj):
+        return _detalle_fk(obj.especialidad, "nombre")
+
     def validate_campos_clinicos_registrados(self, value):
         if value <= 0:
             raise serializers.ValidationError("Debe ser un entero positivo.")
@@ -162,9 +194,18 @@ class ClinicalFieldRegistrationSerializer(serializers.ModelSerializer):
 class ClinicalFieldAllocationSerializer(serializers.ModelSerializer):
     """Asignación (Órgano Regional) de campos clínicos por universidad.
 
-    La disponibilidad, la coherencia con el registro padre y el convenio vigente
-    se validan en el service.
+    El cliente solo envía `campo_clinico_ipress`, `convenio`, las fechas y
+    `campos_clinicos_autorizados`. La sede (`ipress`), la carrera, la especialidad y
+    la `universidad` se **derivan** en el service (del registro padre y del convenio),
+    por lo que aquí son de solo lectura. La disponibilidad, la coherencia con el
+    registro y el convenio vigente se validan en el service.
     """
+
+    convenio_detalle = serializers.SerializerMethodField()
+    ipress_detalle = serializers.SerializerMethodField()
+    carrera_profesional_detalle = serializers.SerializerMethodField()
+    especialidad_detalle = serializers.SerializerMethodField()
+    universidad_detalle = serializers.SerializerMethodField()
 
     class Meta:
         model = ClinicalFieldAllocation
@@ -172,11 +213,29 @@ class ClinicalFieldAllocationSerializer(serializers.ModelSerializer):
             "id", "campo_clinico_ipress", "convenio", "ipress", "carrera_profesional",
             "especialidad", "universidad", "fecha_inicio", "fecha_fin",
             "campos_clinicos_autorizados",
+            "convenio_detalle", "ipress_detalle", "carrera_profesional_detalle",
+            "especialidad_detalle", "universidad_detalle",
             "creado_en", "creado_por", "actualizado_en", "actualizado_por",
         ]
         read_only_fields = [
-            "id", "creado_en", "creado_por", "actualizado_en", "actualizado_por",
+            "id", "ipress", "carrera_profesional", "especialidad", "universidad",
+            "creado_en", "creado_por", "actualizado_en", "actualizado_por",
         ]
+
+    def get_convenio_detalle(self, obj):
+        return _detalle_fk(obj.convenio, "titulo", "codigo")
+
+    def get_ipress_detalle(self, obj):
+        return _detalle_fk(obj.ipress, "nombre", "codigo_renipress")
+
+    def get_carrera_profesional_detalle(self, obj):
+        return _detalle_fk(obj.carrera_profesional, "nombre")
+
+    def get_especialidad_detalle(self, obj):
+        return _detalle_fk(obj.especialidad, "nombre")
+
+    def get_universidad_detalle(self, obj):
+        return _detalle_fk(obj.universidad, "nombre", "siglas")
 
     def validate_campos_clinicos_autorizados(self, value):
         if value <= 0:

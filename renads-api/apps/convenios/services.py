@@ -288,30 +288,11 @@ def _recalcular_asignados(registro: ClinicalFieldRegistration) -> None:
     registro.save(update_fields=["campos_clinicos_asignados", "actualizado_en"])
 
 
-def _validar_coherencia_asignacion(registro: ClinicalFieldRegistration, datos: dict) -> None:
-    """Valida convenio vigente, universidad y coherencia con el registro padre (b)."""
-    convenio = datos["convenio"]
+def _validar_convenio_asignacion(convenio: Convention) -> None:
+    """Valida que el convenio de la asignación sea Específico y esté vigente (b)."""
     _exigir_especifico(convenio, "La asignación de campos clínicos")
     if not convenio.estado_actual_id or convenio.estado_actual.codigo not in ESTADOS_VIGENTES:
         raise ValidationError({"convenio": "El Convenio Específico debe estar vigente."})
-    if convenio.universidad_id != datos["universidad"].id:
-        raise ValidationError(
-            {"universidad": "La universidad debe coincidir con la del convenio."}
-        )
-    if datos["ipress"].id != registro.ipress_id:
-        raise ValidationError(
-            {"ipress": "Debe coincidir con la IPRESS del registro de campos clínicos."}
-        )
-    if datos["carrera_profesional"].id != registro.carrera_profesional_id:
-        raise ValidationError(
-            {"carrera_profesional": "Debe coincidir con la carrera del registro de campos clínicos."}
-        )
-    especialidad = datos.get("especialidad")
-    especialidad_id = especialidad.id if especialidad is not None else None
-    if especialidad_id != registro.especialidad_id:
-        raise ValidationError(
-            {"especialidad": "Debe coincidir con la especialidad del registro de campos clínicos."}
-        )
 
 
 def _disponibilidad_registro(registro: ClinicalFieldRegistration, excluir_pk=None) -> int:
@@ -328,13 +309,15 @@ def crear_asignacion_campo_clinico(*, datos: dict, usuario) -> ClinicalFieldAllo
     """Asigna (Órgano Regional) campos clínicos a una universidad contra un registro.
 
     RN — disponibilidad: `campos_clinicos_autorizados` no puede exceder los cupos
-    disponibles del registro padre. RN — convenio específico vigente + universidad
-    coherente + coincidencia de sede/carrera/especialidad con el registro.
+    disponibles del registro padre. RN — convenio Específico vigente. La sede
+    (`ipress`), carrera, especialidad y `universidad` se **derivan** del registro
+    padre y del convenio (el cliente no las envía).
     """
     registro = ClinicalFieldRegistration.objects.select_for_update().get(
         pk=datos["campo_clinico_ipress"].pk
     )
-    _validar_coherencia_asignacion(registro, datos)
+    convenio = datos["convenio"]
+    _validar_convenio_asignacion(convenio)
 
     disponible = _disponibilidad_registro(registro)
     if datos["campos_clinicos_autorizados"] > disponible:
@@ -342,7 +325,14 @@ def crear_asignacion_campo_clinico(*, datos: dict, usuario) -> ClinicalFieldAllo
             {"campos_clinicos_autorizados": "Excede los campos clínicos disponibles del registro."}
         )
 
-    asignacion = ClinicalFieldAllocation.objects.create(creado_por=usuario, **datos)
+    asignacion = ClinicalFieldAllocation.objects.create(
+        creado_por=usuario,
+        ipress=registro.ipress,
+        carrera_profesional=registro.carrera_profesional,
+        especialidad=registro.especialidad,
+        universidad=convenio.universidad,
+        **datos,
+    )
     _recalcular_asignados(registro)
     registrar_auditoria(usuario, "CREAR", asignacion)
     return asignacion
