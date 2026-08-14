@@ -16,9 +16,6 @@ const contentTypeLabel = (r: WithId) => {
   return r.app_label ? `${vn} (${r.app_label}.${r.model})` : String(vn ?? r.id);
 };
 
-/** Etiqueta de un rol/grupo. */
-const groupLabel = (r: WithId) => String(r.name ?? r.id);
-
 export const calendarActivitiesConfig: ResourceConfig = {
   endpoint: "calendar-activities",
   title: "Calendario de actividades",
@@ -29,7 +26,7 @@ export const calendarActivitiesConfig: ResourceConfig = {
   defaultOrdering: "numero_orden",
   searchPlaceholder: "Buscar por nombre…",
   columns: [
-    { key: "numero_orden", header: "N.º" },
+    { key: "numero_orden", header: "Nº" },
     { key: "nombre", header: "Actividad" },
     { key: "fecha_inicio", header: "Desde" },
     { key: "fecha_fin", header: "Hasta", render: (r) => String(r.fecha_fin ?? "—") },
@@ -39,11 +36,7 @@ export const calendarActivitiesConfig: ResourceConfig = {
       header: "Módulos",
       render: (r) => String((r.content_types_detalle as unknown[] | undefined)?.length ?? 0),
     },
-    {
-      key: "responsables_detalle",
-      header: "Responsables",
-      render: (r) => String((r.responsables_detalle as unknown[] | undefined)?.length ?? 0),
-    },
+    { key: "responsables", header: "Responsables" },
     { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
   ],
   filters: [
@@ -58,18 +51,12 @@ export const calendarActivitiesConfig: ResourceConfig = {
     },
   ],
   fields: [
-    { name: "numero_orden", label: "Número de orden", type: "number", required: true },
+    { name: "numero_orden", label: "N° de secuencia", type: "number", required: true },
     { name: "nombre", label: "Nombre de la actividad", type: "text", required: true, fullWidth: true },
     { name: "detalle", label: "Detalle", type: "text", fullWidth: true },
     { name: "fecha_inicio", label: "Fecha de inicio", type: "date", required: true },
     { name: "fecha_fin", label: "Fecha de fin (vacío = sin cierre)", type: "date" },
-    {
-      name: "responsables",
-      label: "Responsables (roles)",
-      type: "multiselect",
-      optionsEndpoint: "groups",
-      optionsToLabel: groupLabel,
-    },
+    { name: "responsables", label: "Responsables", type: "text", fullWidth: true },
     {
       name: "controla_acceso",
       label: "¿Controla el acceso a módulos?",
