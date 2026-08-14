@@ -10,7 +10,7 @@ from django.db import models
 from apps.convenios.models import (
     Catalog,
     Convention,
-    ClinicalField,
+    ClinicalFieldAllocation,
     ConventionParticipant,
     HealthGeographicScope,
     Ipress,
@@ -234,8 +234,8 @@ class Internship(models.Model):
         help_text="Convenio Específico vigente que lo respalda",
     )
     campo_clinico = models.ForeignKey(
-        ClinicalField, on_delete=models.PROTECT, db_column="campo_clinico_id", related_name="internos",
-        help_text="Campo clínico autorizado asignado",
+        ClinicalFieldAllocation, on_delete=models.PROTECT, db_column="campo_clinico_id", related_name="internos",
+        help_text="Asignación de campos clínicos por universidad",
     )
     ipress = models.ForeignKey(
         Ipress, on_delete=models.PROTECT, db_column="ipress_id", related_name="internos_principales",

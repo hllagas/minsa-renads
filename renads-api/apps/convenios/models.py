@@ -6,6 +6,7 @@ Nombres de clases en inglés; tablas, columnas y descripciones en español.
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from django.core.validators import RegexValidator
 from django.db import models
 
 
@@ -40,6 +41,58 @@ class HealthGeographicScope(Catalog):
     class Meta:
         db_table = "ambito_geografico_sanitario"
         verbose_name = "ámbito geográfico sanitario"
+
+
+class Red(models.Model):
+    """Red de salud que cuelga de un ámbito geográfico sanitario.
+
+    No hereda de ``Catalog`` porque su ``codigo`` no es único global sino por
+    ámbito (``unique_together``).
+    """
+
+    ambito_geografico_sanitario = models.ForeignKey(
+        HealthGeographicScope, on_delete=models.PROTECT,
+        db_column="ambito_geografico_sanitario_id", related_name="redes",
+        help_text="Ámbito geográfico sanitario al que pertenece la red",
+    )
+    codigo = models.CharField("código", max_length=50, help_text="Código de la red (único dentro del ámbito)")
+    nombre = models.CharField("nombre", max_length=255, help_text="Nombre de la red")
+    activo = models.BooleanField("activo", default=True)
+
+    class Meta:
+        db_table = "red"
+        verbose_name = "red"
+        verbose_name_plural = "redes"
+        unique_together = (("ambito_geografico_sanitario", "codigo"),)
+        ordering = ["ambito_geografico_sanitario", "codigo"]
+
+    def __str__(self):
+        return self.nombre
+
+
+class Microred(models.Model):
+    """Microred que cuelga de una red.
+
+    No hereda de ``Catalog``: su ``codigo`` es único por red (``unique_together``).
+    """
+
+    red = models.ForeignKey(
+        Red, on_delete=models.PROTECT, db_column="red_id", related_name="microredes",
+        help_text="Red a la que pertenece la microred",
+    )
+    codigo = models.CharField("código", max_length=50, help_text="Código de la microred (único dentro de la red)")
+    nombre = models.CharField("nombre", max_length=255, help_text="Nombre de la microred")
+    activo = models.BooleanField("activo", default=True)
+
+    class Meta:
+        db_table = "microred"
+        verbose_name = "microred"
+        verbose_name_plural = "microredes"
+        unique_together = (("red", "codigo"),)
+        ordering = ["red", "codigo"]
+
+    def __str__(self):
+        return self.nombre
 
 
 class ConventionType(Catalog):
@@ -149,6 +202,20 @@ class ClosureReason(Catalog):
     class Meta:
         db_table = "motivo_cierre"
         verbose_name = "motivo de cierre"
+
+
+class Category(Catalog):
+    class Meta:
+        db_table = "categoria"
+        verbose_name = "categoría"
+        verbose_name_plural = "categorías"
+
+
+class ClassificationType(Catalog):
+    class Meta:
+        db_table = "tipo_clasificacion"
+        verbose_name = "tipo de clasificación"
+        verbose_name_plural = "tipos de clasificación"
 
 
 # ---------------------------------------------------------------------------
@@ -267,6 +334,34 @@ class Ipress(models.Model):
     ambito_geografico_sanitario = models.ForeignKey(
         HealthGeographicScope, on_delete=models.PROTECT, db_column="ambito_geografico_sanitario_id",
         help_text="Ámbito geográfico sanitario",
+    )
+    categoria = models.ForeignKey(
+        Category, on_delete=models.PROTECT, db_column="categoria_id", null=True, blank=True,
+        related_name="ipress_por_categoria", help_text="Categoría del establecimiento",
+    )
+    tipo_clasificacion = models.ForeignKey(
+        ClassificationType, on_delete=models.PROTECT, db_column="tipo_clasificacion_id", null=True, blank=True,
+        related_name="ipress_por_clasificacion", help_text="Tipo de clasificación del establecimiento",
+    )
+    microred = models.ForeignKey(
+        Microred, on_delete=models.PROTECT, db_column="microred_id", null=True, blank=True,
+        related_name="ipress_por_microred", help_text="Microred a la que pertenece el establecimiento",
+    )
+    latitud = models.DecimalField(
+        "latitud", max_digits=9, decimal_places=6, null=True, blank=True,
+        help_text="Latitud (coordenada geográfica)",
+    )
+    longitud = models.DecimalField(
+        "longitud", max_digits=9, decimal_places=6, null=True, blank=True,
+        help_text="Longitud (coordenada geográfica)",
+    )
+    cantidad_camas = models.PositiveIntegerField(
+        "cantidad de camas", null=True, blank=True, help_text="Número de camas del establecimiento",
+    )
+    numero_ruc = models.CharField(
+        "número de RUC", max_length=11, blank=True,
+        validators=[RegexValidator(r"^\d{11}$", message="El RUC debe tener exactamente 11 dígitos numéricos.")],
+        help_text="RUC (11 dígitos; texto para conservar ceros a la izquierda)",
     )
     es_sede_docente = models.BooleanField(
         "es sede docente", default=False,
@@ -688,7 +783,14 @@ class ConapresOpinion(models.Model):
         verbose_name = "opinión CONAPRES"
 
 
-class ClinicalField(models.Model):
+class ClinicalFieldRegistration(models.Model):
+    """Registro (CONAPRES) del total de campos clínicos por sede docente + carrera.
+
+    Tabla `campo_clinico_ipress`. CONAPRES registra el total de campos clínicos
+    disponibles por IPRESS (sede docente) y carrera profesional. Las asignaciones
+    por universidad se llevan en `ClinicalFieldAllocation`.
+    """
+
     convenio = models.ForeignKey(
         Convention, on_delete=models.CASCADE, db_column="convenio_id",
         related_name="campos_clinicos", help_text="Convenio (solo Específico)",
@@ -704,19 +806,89 @@ class ClinicalField(models.Model):
         Specialty, on_delete=models.SET_NULL, db_column="especialidad_id", null=True, blank=True,
         related_name="+", help_text="Especialidad",
     )
-    cantidad_maxima = models.PositiveIntegerField("cantidad máxima", help_text="Cantidad máxima de campos clínicos autorizados")
-    vigencia_inicio = models.DateField("vigencia inicio", help_text="Inicio de vigencia")
-    vigencia_fin = models.DateField("vigencia fin", help_text="Fin de vigencia")
-    ambito_geografico_sanitario = models.ForeignKey(
-        HealthGeographicScope, on_delete=models.PROTECT, db_column="ambito_geografico_sanitario_id",
-        help_text="Ámbito",
+    campos_clinicos_registrados = models.PositiveIntegerField(
+        "campos clínicos registrados",
+        help_text="Total de campos clínicos registrados por CONAPRES para la sede y carrera",
     )
-    observaciones = models.TextField("observaciones", blank=True, help_text="Observaciones")
+    campos_clinicos_asignados = models.PositiveIntegerField(
+        "campos clínicos asignados",
+        default=0,
+        help_text=(
+            "Acumulador Σ de los campos autorizados en las asignaciones por universidad; "
+            "recalculado por el service (solo lectura en la API)"
+        ),
+    )
     creado_en = models.DateTimeField("creado en", auto_now_add=True)
+    creado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, db_column="creado_por",
+        null=True, blank=True, related_name="+", help_text="Usuario que creó el registro",
+    )
+    actualizado_en = models.DateTimeField("actualizado en", auto_now=True)
+    actualizado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, db_column="actualizado_por",
+        null=True, blank=True, related_name="+", help_text="Usuario que actualizó el registro",
+    )
 
     class Meta:
-        db_table = "campo_clinico"
-        verbose_name = "campo clínico"
+        db_table = "campo_clinico_ipress"
+        verbose_name = "registro de campos clínicos por sede"
+        verbose_name_plural = "registros de campos clínicos por sede"
+        unique_together = (("convenio", "ipress", "carrera_profesional", "especialidad"),)
+
+
+class ClinicalFieldAllocation(models.Model):
+    """Asignación (Órgano Regional) de campos clínicos por universidad.
+
+    Tabla `campo_clinico_ipress_universidad`. El Órgano Regional (grupo
+    `Gobierno Regional`) asigna cupos por universidad contra un registro
+    (`ClinicalFieldRegistration`), sujeto a la disponibilidad del registro padre.
+    """
+
+    campo_clinico_ipress = models.ForeignKey(
+        ClinicalFieldRegistration, on_delete=models.PROTECT, db_column="campo_clinico_ipress_id",
+        related_name="asignaciones", help_text="Registro de campos clínicos (sede + carrera)",
+    )
+    convenio = models.ForeignKey(
+        Convention, on_delete=models.PROTECT, db_column="convenio_id",
+        related_name="+", help_text="Convenio Específico vigente que respalda la asignación",
+    )
+    ipress = models.ForeignKey(
+        Ipress, on_delete=models.PROTECT, db_column="ipress_id", help_text="Sede docente (establecimiento)",
+    )
+    carrera_profesional = models.ForeignKey(
+        ProfessionalCareer, on_delete=models.PROTECT, db_column="carrera_profesional_id",
+        help_text="Carrera / programa académico",
+    )
+    especialidad = models.ForeignKey(
+        Specialty, on_delete=models.SET_NULL, db_column="especialidad_id", null=True, blank=True,
+        related_name="+", help_text="Especialidad",
+    )
+    universidad = models.ForeignKey(
+        University, on_delete=models.PROTECT, db_column="universidad_id",
+        related_name="campos_clinicos_asignados", help_text="Universidad a la que se asignan los cupos",
+    )
+    fecha_inicio = models.DateField("fecha de inicio", help_text="Inicio de vigencia de la asignación")
+    fecha_fin = models.DateField("fecha de fin", help_text="Fin de vigencia de la asignación")
+    campos_clinicos_autorizados = models.PositiveIntegerField(
+        "campos clínicos autorizados",
+        help_text="Cupos autorizados para la universidad",
+    )
+    creado_en = models.DateTimeField("creado en", auto_now_add=True)
+    creado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, db_column="creado_por",
+        null=True, blank=True, related_name="+", help_text="Usuario que creó la asignación",
+    )
+    actualizado_en = models.DateTimeField("actualizado en", auto_now=True)
+    actualizado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, db_column="actualizado_por",
+        null=True, blank=True, related_name="+", help_text="Usuario que actualizó la asignación",
+    )
+
+    class Meta:
+        db_table = "campo_clinico_ipress_universidad"
+        verbose_name = "asignación de campos clínicos por universidad"
+        verbose_name_plural = "asignaciones de campos clínicos por universidad"
+        unique_together = (("campo_clinico_ipress", "universidad", "convenio"),)
 
 
 class LegalOpinion(models.Model):

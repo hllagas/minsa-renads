@@ -8,11 +8,13 @@ Toda escritura corre en `transaction.atomic()`, registra auditoría en
 import datetime
 
 from django.db import transaction
+from django.db.models import Sum
 from rest_framework.exceptions import ValidationError
 
 from apps.common.services import registrar_auditoria
 from apps.convenios.models import (
-    ClinicalField,
+    ClinicalFieldAllocation,
+    ClinicalFieldRegistration,
     ConapresOpinion,
     Convention,
     ConventionParticipant,
@@ -61,6 +63,22 @@ def _set_estado(convenio: Convention, codigo: str, usuario, observacion: str = "
         nombre_campo="estado_actual", valor_anterior=anterior, valor_nuevo=codigo,
     )
     return convenio
+
+
+def _avanzar_estado(convenio: Convention, codigo: str, usuario) -> None:
+    """Avanza el convenio a `codigo` solo si es una transición hacia adelante.
+
+    Idempotente y sin regresión: no hace nada si el convenio ya está en ese estado
+    o en uno posterior (por `orden`). Útil para estados que dispara una sub-entidad
+    (p. ej. `CAMPOS_CLINICOS_DEFINIDOS` al registrar campos clínicos) sin retroceder
+    un convenio ya vigente.
+    """
+    destino = _obtener_estado(codigo)
+    if destino.aplica_a == "ESPECIFICO" and convenio.tipo_convenio.codigo != "ESPECIFICO":
+        return
+    orden_actual = convenio.estado_actual.orden if convenio.estado_actual_id else 0
+    if orden_actual < destino.orden:
+        _set_estado(convenio, codigo, usuario)
 
 
 def _tiene_observaciones_pendientes(convenio: Convention) -> bool:
@@ -194,22 +212,182 @@ def registrar_opinion_conapres(*, convenio: Convention, datos: dict, usuario) ->
     return opinion
 
 
+# ---------------------------------------------------------------------------
+# Campos clínicos — Registro (CONAPRES) y Asignación (Órgano Regional)
+# ---------------------------------------------------------------------------
 @transaction.atomic
-def definir_campo_clinico(*, convenio: Convention, datos: dict, usuario) -> ClinicalField:
-    _exigir_especifico(convenio, "La definición de campos clínicos")
+def crear_registro_campo_clinico(*, datos: dict, usuario) -> ClinicalFieldRegistration:
+    """Registra (CONAPRES) el total de campos clínicos por sede docente + carrera.
+
+    RN — sede docente: la IPRESS debe estar autorizada (`es_sede_docente=True`).
+    Opcional: si el convenio fija `max_campos_clinicos`, el total no puede excederlo.
+    """
     ipress = datos["ipress"]
     if not ipress.es_sede_docente:
         raise ValidationError(
             {"ipress": "La IPRESS debe estar autorizada como sede docente por CONAPRES."}
         )
-    if convenio.max_campos_clinicos is not None and datos["cantidad_maxima"] > convenio.max_campos_clinicos:
+    convenio = datos["convenio"]
+    if (
+        convenio.max_campos_clinicos is not None
+        and datos["campos_clinicos_registrados"] > convenio.max_campos_clinicos
+    ):
         raise ValidationError(
-            {"cantidad_maxima": "Excede el máximo de campos clínicos del convenio."}
+            {"campos_clinicos_registrados": "Excede el máximo de campos clínicos del convenio."}
         )
-    campo = ClinicalField.objects.create(convenio=convenio, **datos)
-    registrar_auditoria(usuario, "CREAR", campo)
-    _set_estado(convenio, "CAMPOS_CLINICOS_DEFINIDOS", usuario)
-    return campo
+    registro = ClinicalFieldRegistration.objects.create(
+        campos_clinicos_asignados=0, creado_por=usuario, **datos
+    )
+    registrar_auditoria(usuario, "CREAR", registro)
+    # RN — flujo del convenio: registrar campos clínicos (CONAPRES) avanza el
+    # Convenio Específico a CAMPOS_CLINICOS_DEFINIDOS (forward-only, idempotente).
+    _avanzar_estado(convenio, "CAMPOS_CLINICOS_DEFINIDOS", usuario)
+    return registro
+
+
+@transaction.atomic
+def actualizar_registro_campo_clinico(
+    *, registro: ClinicalFieldRegistration, datos: dict, usuario
+) -> ClinicalFieldRegistration:
+    """Actualiza (CONAPRES) un registro de campos clínicos.
+
+    No permite editar `campos_clinicos_asignados` (lo maneja el acumulador) y el
+    total registrado no puede quedar por debajo de lo ya asignado a universidades.
+    """
+    editables = [
+        "convenio", "ipress", "carrera_profesional", "especialidad",
+        "campos_clinicos_registrados",
+    ]
+    for campo in editables:
+        if campo in datos:
+            setattr(registro, campo, datos[campo])
+
+    if not registro.ipress.es_sede_docente:
+        raise ValidationError(
+            {"ipress": "La IPRESS debe estar autorizada como sede docente por CONAPRES."}
+        )
+    if registro.campos_clinicos_registrados < registro.campos_clinicos_asignados:
+        raise ValidationError(
+            {"campos_clinicos_registrados": "No puede ser menor que los campos ya asignados a universidades."}
+        )
+    registro.actualizado_por = usuario
+    registro.save()
+    registrar_auditoria(usuario, "ACTUALIZAR", registro)
+    return registro
+
+
+def _recalcular_asignados(registro: ClinicalFieldRegistration) -> None:
+    """Fuente única del acumulador `campos_clinicos_asignados` del registro.
+
+    Recalcula la suma de `campos_clinicos_autorizados` de todas las asignaciones
+    del registro y la persiste. Debe invocarse dentro de la misma transacción de
+    create/update/delete de asignaciones.
+    """
+    total = registro.asignaciones.aggregate(total=Sum("campos_clinicos_autorizados"))["total"] or 0
+    registro.campos_clinicos_asignados = total
+    registro.save(update_fields=["campos_clinicos_asignados", "actualizado_en"])
+
+
+def _validar_coherencia_asignacion(registro: ClinicalFieldRegistration, datos: dict) -> None:
+    """Valida convenio vigente, universidad y coherencia con el registro padre (b)."""
+    convenio = datos["convenio"]
+    _exigir_especifico(convenio, "La asignación de campos clínicos")
+    if not convenio.estado_actual_id or convenio.estado_actual.codigo not in ESTADOS_VIGENTES:
+        raise ValidationError({"convenio": "El Convenio Específico debe estar vigente."})
+    if convenio.universidad_id != datos["universidad"].id:
+        raise ValidationError(
+            {"universidad": "La universidad debe coincidir con la del convenio."}
+        )
+    if datos["ipress"].id != registro.ipress_id:
+        raise ValidationError(
+            {"ipress": "Debe coincidir con la IPRESS del registro de campos clínicos."}
+        )
+    if datos["carrera_profesional"].id != registro.carrera_profesional_id:
+        raise ValidationError(
+            {"carrera_profesional": "Debe coincidir con la carrera del registro de campos clínicos."}
+        )
+    especialidad = datos.get("especialidad")
+    especialidad_id = especialidad.id if especialidad is not None else None
+    if especialidad_id != registro.especialidad_id:
+        raise ValidationError(
+            {"especialidad": "Debe coincidir con la especialidad del registro de campos clínicos."}
+        )
+
+
+def _disponibilidad_registro(registro: ClinicalFieldRegistration, excluir_pk=None) -> int:
+    """Cupos disponibles = registrados − Σ autorizados de las OTRAS asignaciones."""
+    qs = registro.asignaciones.all()
+    if excluir_pk is not None:
+        qs = qs.exclude(pk=excluir_pk)
+    usados = qs.aggregate(total=Sum("campos_clinicos_autorizados"))["total"] or 0
+    return registro.campos_clinicos_registrados - usados
+
+
+@transaction.atomic
+def crear_asignacion_campo_clinico(*, datos: dict, usuario) -> ClinicalFieldAllocation:
+    """Asigna (Órgano Regional) campos clínicos a una universidad contra un registro.
+
+    RN — disponibilidad: `campos_clinicos_autorizados` no puede exceder los cupos
+    disponibles del registro padre. RN — convenio específico vigente + universidad
+    coherente + coincidencia de sede/carrera/especialidad con el registro.
+    """
+    registro = ClinicalFieldRegistration.objects.select_for_update().get(
+        pk=datos["campo_clinico_ipress"].pk
+    )
+    _validar_coherencia_asignacion(registro, datos)
+
+    disponible = _disponibilidad_registro(registro)
+    if datos["campos_clinicos_autorizados"] > disponible:
+        raise ValidationError(
+            {"campos_clinicos_autorizados": "Excede los campos clínicos disponibles del registro."}
+        )
+
+    asignacion = ClinicalFieldAllocation.objects.create(creado_por=usuario, **datos)
+    _recalcular_asignados(registro)
+    registrar_auditoria(usuario, "CREAR", asignacion)
+    return asignacion
+
+
+@transaction.atomic
+def actualizar_asignacion_campo_clinico(
+    *, asignacion: ClinicalFieldAllocation, datos: dict, usuario
+) -> ClinicalFieldAllocation:
+    """Actualiza (Órgano Regional) una asignación, revalidando la disponibilidad."""
+    registro = ClinicalFieldRegistration.objects.select_for_update().get(
+        pk=asignacion.campo_clinico_ipress_id
+    )
+    editables = ["campos_clinicos_autorizados", "fecha_inicio", "fecha_fin"]
+    for campo in editables:
+        if campo in datos:
+            setattr(asignacion, campo, datos[campo])
+
+    disponible = _disponibilidad_registro(registro, excluir_pk=asignacion.pk)
+    if asignacion.campos_clinicos_autorizados > disponible:
+        raise ValidationError(
+            {"campos_clinicos_autorizados": "Excede los campos clínicos disponibles del registro."}
+        )
+    asignacion.actualizado_por = usuario
+    asignacion.save()
+    _recalcular_asignados(registro)
+    registrar_auditoria(usuario, "ACTUALIZAR", asignacion)
+    return asignacion
+
+
+@transaction.atomic
+def eliminar_asignacion_campo_clinico(*, asignacion: ClinicalFieldAllocation, usuario) -> None:
+    """Elimina (Órgano Regional) una asignación y recalcula el acumulador del registro.
+
+    Si hay internados que la referencian, el `PROTECT` de `Internship` impide el
+    borrado (la vista lo traduce a 409).
+    """
+    registro = ClinicalFieldRegistration.objects.select_for_update().get(
+        pk=asignacion.campo_clinico_ipress_id
+    )
+    pk = asignacion.pk
+    asignacion.delete()
+    asignacion.pk = pk
+    _recalcular_asignados(registro)
+    registrar_auditoria(usuario, "ELIMINAR", asignacion)
 
 
 @transaction.atomic

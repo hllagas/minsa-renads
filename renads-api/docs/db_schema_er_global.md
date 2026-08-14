@@ -24,6 +24,13 @@ erDiagram
     organo_regional ||--o{ unidad_ejecutora : ""
     unidad_ejecutora ||--o{ ipress : ""
 
+    %% ===== M1: Jerarquía Red/Microred y clasificación de IPRESS =====
+    ambito_geografico_sanitario ||--o{ red : ""
+    red ||--o{ microred : ""
+    microred ||--o{ ipress : ""
+    categoria ||--o{ ipress : ""
+    tipo_clasificacion ||--o{ ipress : ""
+
     %% ===== M1: Universidad =====
     universidad ||--o{ autoridad_universidad : ""
     universidad ||--o{ facultad : ""
@@ -39,17 +46,24 @@ erDiagram
     convenio ||--o{ historial_estado_convenio : ""
     convenio ||--o{ evaluacion_tecnica : ""
     convenio ||--o{ opinion_conapres : ""
-    convenio ||--o{ campo_clinico : ""
+    convenio ||--o{ campo_clinico_ipress : "registro CONAPRES"
+    convenio ||--o{ campo_clinico_ipress_universidad : ""
+    campo_clinico_ipress ||--o{ campo_clinico_ipress_universidad : "asignación Órgano Regional"
     convenio ||--o{ opinion_juridica : ""
     convenio ||--o{ firma : ""
     convenio ||--o{ publicacion : ""
-    ipress ||--o{ campo_clinico : ""
-    carrera_profesional ||--o{ campo_clinico : ""
+    ipress ||--o{ campo_clinico_ipress : ""
+    carrera_profesional ||--o{ campo_clinico_ipress : ""
+    especialidad ||--o{ campo_clinico_ipress : ""
+    ipress ||--o{ campo_clinico_ipress_universidad : ""
+    carrera_profesional ||--o{ campo_clinico_ipress_universidad : ""
+    especialidad ||--o{ campo_clinico_ipress_universidad : ""
+    universidad ||--o{ campo_clinico_ipress_universidad : ""
 
     %% ===== M2: Internado =====
     estudiante ||--o{ interno : ""
     convenio ||--o{ interno : ""
-    campo_clinico ||--o{ interno : ""
+    campo_clinico_ipress_universidad ||--o{ interno : "asignación por universidad"
     ipress ||--o{ interno : "sede principal"
     tutor ||--o{ interno : ""
     universidad ||--o{ estudiante : ""
@@ -114,7 +128,7 @@ erDiagram
 M1 (conventions)                M2 (internships)              M3 (activities)
 ────────────────                ────────────────              ───────────────
 convenio ───────────────────────> interno
-campo_clinico ──────────────────> interno
+campo_clinico_ipress_universidad ─> interno   (asignación por universidad)
 ipress ─────────────────────────> interno / rotacion ─────> actividad_docente_asistencial
 universidad ────────────────────> estudiante
 carrera_profesional ────────────> estudiante
@@ -133,6 +147,6 @@ bitacora_auditoria (M1) ─ genérico ─> [cualquier tabla]
 
 | App | Tablas (db_table) |
 |-----|-------------------|
-| **Gestionar Convenios** (`convenios`, M1) | `ubigeo`, `region`, `ambito_geografico_sanitario`, `tipo_convenio`, `estado_convenio`, `tipo_documento`, `tipo_gestion_universidad`, `tipo_entidad_universidad`, `tipo_autorizacion`, `nivel_academico`, `especialidad`, `tipo_autoridad_firmante`, `tipo_organo_regional`, `tipo_unidad_ejecutora`, `tipo_organo_minsa`, `cargo_ejecutivo`, `motivo_observacion`, `motivo_rechazo`, `motivo_cierre`, `gobierno_regional`, `organo_regional`, `unidad_ejecutora`, `ipress`, `organo_minsa`, `conapres`, `representante`, `universidad`, `autoridad_universidad`, `facultad`, `carrera_profesional`, `local_universidad`, `perfil_usuario_entidad`, `plantilla_convenio`, `convenio`, `participante_convenio`, `historial_estado_convenio`, `evaluacion_tecnica`, `opinion_conapres`, `campo_clinico`, `opinion_juridica`, `firma`, `publicacion`, `documento`, `bitacora_auditoria` |
+| **Gestionar Convenios** (`convenios`, M1) | `ubigeo`, `region`, `ambito_geografico_sanitario`, `tipo_convenio`, `estado_convenio`, `tipo_documento`, `tipo_gestion_universidad`, `tipo_entidad_universidad`, `tipo_autorizacion`, `nivel_academico`, `especialidad`, `tipo_autoridad_firmante`, `tipo_organo_regional`, `tipo_unidad_ejecutora`, `tipo_organo_minsa`, `cargo_ejecutivo`, `motivo_observacion`, `motivo_rechazo`, `motivo_cierre`, `gobierno_regional`, `organo_regional`, `unidad_ejecutora`, `ipress`, `organo_minsa`, `conapres`, `representante`, `universidad`, `autoridad_universidad`, `facultad`, `carrera_profesional`, `local_universidad`, `perfil_usuario_entidad`, `plantilla_convenio`, `convenio`, `participante_convenio`, `historial_estado_convenio`, `evaluacion_tecnica`, `opinion_conapres`, `campo_clinico_ipress`, `campo_clinico_ipress_universidad`, `opinion_juridica`, `firma`, `publicacion`, `documento`, `bitacora_auditoria` |
 | **Registrar Internados** (`internados`, M2) | `estado_internado`, `estado_rotacion`, `servicio_area`, `tipo_documento_identidad`, `parentesco`, `periodo_academico`, `documentos_anexos`, `estudiante`, `tutor`, `tutor_universidad`, `interno`, `historial_estado_internado`, `historial_tutor`, `rotacion`, `autorizacion_rotacion`, `historial_estado_rotacion` |
 | **Registrar Actividades** (`actividades`, M3) | `tipo_actividad`, `estado_actividad`, `actividad_docente_asistencial`, `validacion_actividad`, `historial_estado_actividad` |

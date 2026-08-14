@@ -7,7 +7,8 @@ from rest_framework import serializers
 
 from apps.convenios.models import (
     AuditLog,
-    ClinicalField,
+    ClinicalFieldAllocation,
+    ClinicalFieldRegistration,
     ConapresOpinion,
     Convention,
     ConventionParticipant,
@@ -128,13 +129,68 @@ class ConapresOpinionSerializer(serializers.ModelSerializer):
         fields = ["fecha_solicitud", "estado_atencion", "resultado_opinion", "fecha_respuesta"]
 
 
-class ClinicalFieldSerializer(serializers.ModelSerializer):
+class ClinicalFieldRegistrationSerializer(serializers.ModelSerializer):
+    """Registro (CONAPRES) del total de campos clínicos por sede + carrera.
+
+    `campos_clinicos_asignados` es un acumulador de solo lectura (lo mantiene el
+    service); `disponibilidad` = registrados − asignados.
+    """
+
+    disponibilidad = serializers.SerializerMethodField()
+
     class Meta:
-        model = ClinicalField
+        model = ClinicalFieldRegistration
         fields = [
-            "ipress", "carrera_profesional", "especialidad", "cantidad_maxima",
-            "vigencia_inicio", "vigencia_fin", "ambito_geografico_sanitario", "observaciones",
+            "id", "convenio", "ipress", "carrera_profesional", "especialidad",
+            "campos_clinicos_registrados", "campos_clinicos_asignados", "disponibilidad",
+            "creado_en", "creado_por", "actualizado_en", "actualizado_por",
         ]
+        read_only_fields = [
+            "id", "campos_clinicos_asignados", "creado_en", "creado_por",
+            "actualizado_en", "actualizado_por",
+        ]
+
+    def get_disponibilidad(self, obj) -> int:
+        return obj.campos_clinicos_registrados - obj.campos_clinicos_asignados
+
+    def validate_campos_clinicos_registrados(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Debe ser un entero positivo.")
+        return value
+
+
+class ClinicalFieldAllocationSerializer(serializers.ModelSerializer):
+    """Asignación (Órgano Regional) de campos clínicos por universidad.
+
+    La disponibilidad, la coherencia con el registro padre y el convenio vigente
+    se validan en el service.
+    """
+
+    class Meta:
+        model = ClinicalFieldAllocation
+        fields = [
+            "id", "campo_clinico_ipress", "convenio", "ipress", "carrera_profesional",
+            "especialidad", "universidad", "fecha_inicio", "fecha_fin",
+            "campos_clinicos_autorizados",
+            "creado_en", "creado_por", "actualizado_en", "actualizado_por",
+        ]
+        read_only_fields = [
+            "id", "creado_en", "creado_por", "actualizado_en", "actualizado_por",
+        ]
+
+    def validate_campos_clinicos_autorizados(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Debe ser un entero positivo.")
+        return value
+
+    def validate(self, attrs):
+        fecha_inicio = attrs.get("fecha_inicio", getattr(self.instance, "fecha_inicio", None))
+        fecha_fin = attrs.get("fecha_fin", getattr(self.instance, "fecha_fin", None))
+        if fecha_inicio and fecha_fin and fecha_fin < fecha_inicio:
+            raise serializers.ValidationError(
+                {"fecha_fin": "La fecha de fin no puede ser anterior a la de inicio."}
+            )
+        return attrs
 
 
 class LegalOpinionSerializer(serializers.ModelSerializer):

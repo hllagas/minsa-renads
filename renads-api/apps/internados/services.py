@@ -186,19 +186,20 @@ def crear_internado(*, datos: dict, usuario) -> Internship:
     # El campo clínico debe pertenecer al convenio.
     if campo_clinico.convenio_id != convenio.id:
         raise ValidationError({"campo_clinico": "El campo clínico no pertenece al convenio indicado."})
-    # RN-13: no exceder los campos clínicos autorizados.
+    # RN-13: no exceder los campos clínicos autorizados de la asignación.
     usados = Internship.objects.filter(campo_clinico=campo_clinico).count()
-    if usados >= campo_clinico.cantidad_maxima:
+    if usados >= campo_clinico.campos_clinicos_autorizados:
         raise ValidationError({"campo_clinico": "Se alcanzó el máximo de campos clínicos autorizados."})
     # RN-6: duración máxima de un año.
     if fecha_fin > _sumar_anios(fecha_inicio, 1):
         raise ValidationError({"fecha_fin": "El internado no puede durar más de un año."})
     if fecha_fin < fecha_inicio:
         raise ValidationError({"fecha_fin": "La fecha de fin no puede ser anterior a la de inicio."})
-    # Coherencia de ámbito con el campo clínico.
-    if datos["ambito_geografico_sanitario"].id != campo_clinico.ambito_geografico_sanitario_id:
+    # Coherencia de ámbito: se deriva de la IPRESS (sede docente) de la asignación,
+    # ya que la asignación de campos clínicos no almacena el ámbito directamente.
+    if datos["ambito_geografico_sanitario"].id != campo_clinico.ipress.ambito_geografico_sanitario_id:
         raise ValidationError(
-            {"ambito_geografico_sanitario": "Debe coincidir con el ámbito del campo clínico."}
+            {"ambito_geografico_sanitario": "Debe coincidir con el ámbito de la sede docente."}
         )
 
     estado_inicial = _estado_internado("REGISTRADO")

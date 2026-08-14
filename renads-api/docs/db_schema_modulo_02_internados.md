@@ -26,7 +26,7 @@ El módulo **Registrar Internados** registra a los estudiantes (alumnos de últi
 - **Onboarding del interno** (RN-22): al registrar el internado se crea (o reutiliza) un `User` con `username = numero_documento`, contraseña temporal, `debe_cambiar_password=True` (tabla `seguridad_usuario`), grupo `Interno` y `perfil_usuario_entidad` sobre su `estudiante`. Solo lee sus datos y adjunta sus declaraciones juradas; no edita datos personales ni ve otros internos. Se le **notifica por correo** (sede docente, fechas, tutor, instrucción de adjuntar DJ) — best-effort post-commit.
 - **Estado de las declaraciones juradas** (RN-23): `interno.estado_declaraciones` (`PENDIENTE`/`COMPLETAS`/`OBSERVADAS`/`VALIDADAS`). `PENDIENTE→COMPLETAS` automático al completar las DJ obligatorias del actor `INTERNO`; revisión humana `COMPLETAS→VALIDADAS`/`OBSERVADAS`; `OBSERVADAS→COMPLETAS` al re-adjuntar. **Gate:** el internado no pasa a `ACTIVO` salvo `estado_declaraciones = VALIDADAS`.
 
-> **Convenciones (heredadas del módulo 1):** tablas/columnas/descripciones en **español**; adjuntos en **repositorio externo** (solo `referencia_externa`); se reutilizan tablas nativas de Django y las tablas del **módulo 1** (`convenio`, `campo_clinico`, `ipress`, `universidad`, `carrera_profesional`, `especialidad`, `ambito_geografico_sanitario`, `participante_convenio`, `documento`, `bitacora_auditoria`).
+> **Convenciones (heredadas del módulo 1):** tablas/columnas/descripciones en **español**; adjuntos en **repositorio externo** (solo `referencia_externa`); se reutilizan tablas nativas de Django y las tablas del **módulo 1** (`convenio`, `campo_clinico_ipress`, `campo_clinico_ipress_universidad`, `ipress`, `universidad`, `carrera_profesional`, `especialidad`, `ambito_geografico_sanitario`, `participante_convenio`, `documento`, `bitacora_auditoria`).
 
 ---
 
@@ -44,7 +44,8 @@ El módulo **Registrar Internados** registra a los estudiantes (alumnos de últi
 | Tabla | Uso en el módulo 2 |
 |-------|--------------------|
 | `convenio` | Convenio Específico vigente que respalda el internado |
-| `campo_clinico` | Validación de disponibilidad de campo clínico |
+| `campo_clinico_ipress` | Registro CONAPRES del total de campos clínicos por sede/carrera (tope) |
+| `campo_clinico_ipress_universidad` | Asignación por universidad; el interno referencia esta asignación (`interno.campo_clinico_id`) y la disponibilidad se valida contra sus `campos_clinicos_autorizados` |
 | `ipress` | Sede docente principal y sedes de rotación |
 | `universidad` | Universidad del estudiante |
 | `carrera_profesional` | Carrera / programa del estudiante |
@@ -189,7 +190,7 @@ Re-subir el mismo anexo a la misma entidad genera una nueva versión del
 | `id` | PK | No | |
 | `estudiante_id` | FK → `estudiante` | No | Estudiante |
 | `convenio_id` | FK → `convenio` | No | Convenio Específico vigente que lo respalda |
-| `campo_clinico_id` | FK → `campo_clinico` | No | Campo clínico autorizado asignado |
+| `campo_clinico_id` | FK → `campo_clinico_ipress_universidad` (PROTECT) | No | Asignación de campos clínicos por universidad (módulo 1). La columna conserva el nombre `campo_clinico_id`; el modelo `Internship.campo_clinico` apunta a `ClinicalFieldAllocation` |
 | `ipress_id` | FK → `ipress` | No | Sede docente principal |
 | `tutor_id` | FK → `tutor` | No | Tutor responsable actual |
 | `ambito_geografico_sanitario_id` | FK → `ambito_geografico_sanitario` | No | Ámbito geográfico sanitario |
@@ -334,7 +335,7 @@ tutor   ──< tutor_universidad >── universidad   (1 a 2 universidades —
 
 interno >── estudiante
 interno >── convenio (Convenio Específico, módulo 1)
-interno >── campo_clinico (módulo 1)
+interno >── campo_clinico_ipress_universidad (módulo 1; columna campo_clinico_id)
 interno >── ipress (sede principal)
 interno >── tutor
 interno >── parentesco (contacto_emergencia_parentesco_id)
@@ -364,11 +365,11 @@ bitacora_auditoria >── django_content_type  (genérico)
 - **RN-9 (máx. 4 rotaciones):** validación sobre `rotacion.numero_rotacion` por `interno`.
 - **RN-10/11 (autorización por autoridad suscrita):** `autorizacion_rotacion.participante_convenio_id`; rotación no inicia sin registro `AUTORIZADO`.
 - **RN-12 (fechas dentro del internado):** validación de fechas de `rotacion` contra `interno`.
-- **RN-13 (no exceder campos clínicos):** validación contra `campo_clinico.cantidad_maxima` (módulo 1).
+- **RN-13 (no exceder campos clínicos):** validación contra `campo_clinico_ipress_universidad.campos_clinicos_autorizados` (módulo 1); el ámbito geográfico sanitario se deriva de `interno.campo_clinico.ipress.ambito_geografico_sanitario_id`.
 - **RN-14 (cambio de tutor):** `historial_tutor`.
 - **RN-15 (trazabilidad de estados):** `historial_estado_internado`, `historial_estado_rotacion`, `bitacora_auditoria`.
 - **RN-16 (registro individual y masivo):** `POST /students/` y `POST /students/bulk-upload/` (ver §6 bis).
-- **RN-17 (asignación a campos clínicos por sede/carrera):** validación contra `campo_clinico` del Convenio Específico (disponibilidad = `cantidad_maxima` − asignados).
+- **RN-17 (asignación a campos clínicos por sede/carrera):** validación contra la asignación por universidad `campo_clinico_ipress_universidad` del Convenio Específico (disponibilidad = `campos_clinicos_autorizados` − internos ya usados en esa asignación).
 - **RN-18 (prelación por mérito):** ordenamiento por `estudiante.nota_promedio_ponderado` descendente al asignar cupos.
 - **RN-19 (periodo académico vs. especialidad según nivel):** deriva `nivel = estudiante.carrera_profesional.nivel_academico.codigo`; `PREGRADO` ⇒ `periodo_academico_id` requerido / `especialidad_id` nulo; otro nivel ⇒ `especialidad_id` requerido / `periodo_academico_id` nulo. Regla única en `services.validar_regla_periodo_especialidad`, invocada por `StudentSerializer.validate` (individual) y por `registrar_estudiantes_masivo` (carga masiva).
 - **RN-24 (universidades del tutor):** un tutor pertenece de **1 a 2** universidades vía `tutor_universidad`. Regla única en `services.validar_universidades_tutor`, invocada por `TutorSerializer` (create/update). El endpoint `tutors` acepta y filtra por `universidades`.

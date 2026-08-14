@@ -2,7 +2,12 @@
 
 from django_filters import rest_framework as filters
 
-from apps.convenios.models import AuditLog, ClinicalField, Convention
+from apps.convenios.models import (
+    AuditLog,
+    ClinicalFieldAllocation,
+    ClinicalFieldRegistration,
+    Convention,
+)
 
 
 class ConventionFilter(filters.FilterSet):
@@ -24,15 +29,26 @@ class ConventionFilter(filters.FilterSet):
         }
 
 
-class ClinicalFieldFilter(filters.FilterSet):
+class ClinicalFieldRegistrationFilter(filters.FilterSet):
     class Meta:
-        model = ClinicalField
+        model = ClinicalFieldRegistration
         fields = {
             "convenio": ["exact"],
             "ipress": ["exact"],
             "carrera_profesional": ["exact"],
             "especialidad": ["exact"],
-            "ambito_geografico_sanitario": ["exact"],
+        }
+
+
+class ClinicalFieldAllocationFilter(filters.FilterSet):
+    class Meta:
+        model = ClinicalFieldAllocation
+        fields = {
+            "campo_clinico_ipress": ["exact"],
+            "convenio": ["exact"],
+            "ipress": ["exact"],
+            "carrera_profesional": ["exact"],
+            "universidad": ["exact"],
         }
 
 

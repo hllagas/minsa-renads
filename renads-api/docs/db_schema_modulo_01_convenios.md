@@ -48,6 +48,36 @@ Tablas paramétricas (RNF-MAN-01). Patrón común: `id` (PK), `codigo` (varchar,
 | `motivo_observacion` | Motivos de observación | — |
 | `motivo_rechazo` | Motivos de rechazo | — |
 | `motivo_cierre` | Motivos de cierre o anulación | — |
+| `categoria` | Categoría del establecimiento de salud (clasificación de IPRESS). Hereda de `Catalog` (`codigo` único global) | — |
+| `tipo_clasificacion` | Tipo de clasificación del establecimiento de salud (clasificación de IPRESS). Hereda de `Catalog` (`codigo` único global) | — |
+
+### Jerarquía geográfica sanitaria: `red` y `microred`
+
+`red` y `microred` **no** son catálogos `Catalog` (su `codigo` no es único global sino por padre, vía `unique_together`). Cuelgan de `ambito_geografico_sanitario`: `ambito_geografico_sanitario → red → microred`.
+
+#### `red`
+
+| Columna | Tipo | Null | Descripción |
+|---------|------|------|-------------|
+| `id` | PK | No | |
+| `ambito_geografico_sanitario_id` | FK → `ambito_geografico_sanitario` (PROTECT) | No | Ámbito geográfico sanitario al que pertenece la red |
+| `codigo` | varchar(50) | No | Código de la red (único dentro del ámbito) |
+| `nombre` | varchar(255) | No | Nombre de la red |
+| `activo` | bool | No | |
+
+`unique_together = (ambito_geografico_sanitario, codigo)`.
+
+#### `microred`
+
+| Columna | Tipo | Null | Descripción |
+|---------|------|------|-------------|
+| `id` | PK | No | |
+| `red_id` | FK → `red` (PROTECT) | No | Red a la que pertenece la microred |
+| `codigo` | varchar(50) | No | Código de la microred (único dentro de la red) |
+| `nombre` | varchar(255) | No | Nombre de la microred |
+| `activo` | bool | No | |
+
+`unique_together = (red, codigo)`.
 
 ### Valores del catálogo `estado_convenio`
 
@@ -110,6 +140,13 @@ Jerarquía: **GORE → Órgano Regional (GERESA/DIRESA/DIRIS) → Unidad Ejecuto
 | `direccion` | varchar(500) | Sí | Dirección |
 | `ubigeo_id` | FK → `ubigeo` | Sí | Ubicación geográfica (UBIGEO) |
 | `ambito_geografico_sanitario_id` | FK → `ambito_geografico_sanitario` | No | Ámbito geográfico sanitario |
+| `categoria_id` | FK → `categoria` (PROTECT) | Sí | Categoría del establecimiento |
+| `tipo_clasificacion_id` | FK → `tipo_clasificacion` (PROTECT) | Sí | Tipo de clasificación del establecimiento |
+| `microred_id` | FK → `microred` (PROTECT) | Sí | Microred a la que pertenece el establecimiento |
+| `latitud` | decimal(9,6) | Sí | Latitud (coordenada geográfica) |
+| `longitud` | decimal(9,6) | Sí | Longitud (coordenada geográfica) |
+| `cantidad_camas` | int positivo | Sí | Número de camas del establecimiento |
+| `numero_ruc` | varchar(11) | Sí | RUC (11 dígitos; texto para conservar ceros a la izquierda). Validación de formato: exactamente 11 dígitos numéricos si no es vacío. No `unique` en el MVP |
 | `es_sede_docente` | bool | No | Autorizada por CONAPRES como sede docente (default `false`) |
 | `referencia_logo` | varchar(500) | Sí | Logo institucional (`ImageField`; guarda el path del objeto en el repositorio de medios). Nullable. |
 | `activo` | bool | No | |
@@ -363,25 +400,61 @@ Cada actividad soporta documentos PDF mediante la tabla `documento` (sección 10
 | `fecha_respuesta` | date | Sí | Fecha de respuesta |
 | `creado_en` | datetime | No | |
 
-### `campo_clinico` (proceso 4.4 — solo Específico)
+### Campos clínicos (proceso 4.4 — solo Específico)
+
+El registro de campos clínicos se modela en **dos tablas** que separan las dos
+competencias del proceso:
+
+1. **`campo_clinico_ipress`** — el **registro** que hace **CONAPRES** del **total** de campos
+   clínicos por **sede docente (`ipress`) y carrera profesional** (tope de la sede/carrera).
+2. **`campo_clinico_ipress_universidad`** — la **asignación** que hace el **Órgano Regional**
+   (GERESA/DIRESA/DIRIS, grupo `Gobierno Regional`) de cupos **por universidad** contra un
+   registro, sujeta a la disponibilidad del registro padre.
 
 > **Reglas de asignación de campos clínicos:**
-> - **CONAPRES** autoriza y registra el **total** de campos clínicos por **sede docente (`ipress`) y carrera profesional** (tope global de la sede).
-> - La **GERESA/DIRESA/DIRIS** asigna la **cantidad por universidad y carrera profesional** (`cantidad_maxima` de este registro) para universidades con Convenios Específicos aprobados en el **mismo ámbito geográfico sanitario**; la suma por sede/carrera no debe exceder el total autorizado por CONAPRES.
+> - **CONAPRES** autoriza/registra el **total** de campos clínicos por **sede docente (`ipress`) y carrera profesional** en `campo_clinico_ipress.campos_clinicos_registrados` (tope de la sede/carrera). Escritura: rol **CONAPRES**.
+> - El **Órgano Regional** (GERESA/DIRESA/DIRIS) asigna la **cantidad por universidad** en `campo_clinico_ipress_universidad.campos_clinicos_autorizados`, para universidades con Convenios Específicos aprobados en el **mismo ámbito geográfico sanitario**. Escritura: grupo **Gobierno Regional**.
+> - **Disponibilidad:** `campos_clinicos_autorizados ≤ campos_clinicos_registrados − Σ autorizados de las demás asignaciones del mismo registro`. Además, la asignación exige convenio **Específico + vigente**, `convenio.universidad == asignacion.universidad`, e `ipress`/`carrera_profesional` coherentes con el registro padre.
+> - **Acumulador:** `campo_clinico_ipress.campos_clinicos_asignados` es la suma (Σ) de los `campos_clinicos_autorizados` de sus asignaciones; el service lo **recalcula** tras crear/actualizar/eliminar una asignación. Es de **solo lectura** en la API (la disponibilidad expuesta = `registrados − asignados`).
+
+#### `campo_clinico_ipress` (registro por sede + carrera — CONAPRES)
+
+Reemplaza a la antigua tabla `campo_clinico`. `unique_together = (convenio, ipress, carrera_profesional, especialidad)`.
 
 | Columna | Tipo | Null | Descripción |
 |---------|------|------|-------------|
 | `id` | PK | No | |
-| `convenio_id` | FK → `convenio` | No | |
-| `ipress_id` | FK → `ipress` | No | Sede docente (establecimiento de salud) autorizada por CONAPRES |
-| `carrera_profesional_id` | FK → `carrera_profesional` | No | Carrera / programa académico |
-| `especialidad_id` | FK → `especialidad` | Sí | Especialidad |
-| `cantidad_maxima` | int | No | Cantidad máxima asignada a la universidad para esta sede/carrera (GERESA/DIRESA/DIRIS) |
-| `vigencia_inicio` | date | No | Inicio de vigencia |
-| `vigencia_fin` | date | No | Fin de vigencia |
-| `ambito_geografico_sanitario_id` | FK → `ambito_geografico_sanitario` | No | Ámbito |
-| `observaciones` | text | Sí | Observaciones |
+| `convenio_id` | FK → `convenio` (CASCADE) | No | Convenio Específico |
+| `ipress_id` | FK → `ipress` (PROTECT) | No | Sede docente (establecimiento) autorizada por CONAPRES (`es_sede_docente = true`) |
+| `carrera_profesional_id` | FK → `carrera_profesional` (PROTECT) | No | Carrera / programa académico |
+| `especialidad_id` | FK → `especialidad` (SET_NULL) | Sí | Especialidad |
+| `campos_clinicos_registrados` | int positivo | No | Total de campos clínicos registrados por CONAPRES para la sede y carrera (renombra `cantidad_maxima`) |
+| `campos_clinicos_asignados` | int positivo | No (default `0`) | Acumulador Σ de los campos autorizados en las asignaciones por universidad; lo recalcula el service (**solo lectura** en la API) |
 | `creado_en` | datetime | No | |
+| `creado_por` | FK → `auth_user` (SET_NULL) | Sí | Usuario que creó el registro |
+| `actualizado_en` | datetime | No | |
+| `actualizado_por` | FK → `auth_user` (SET_NULL) | Sí | Usuario que actualizó el registro |
+
+#### `campo_clinico_ipress_universidad` (asignación por universidad — Órgano Regional)
+
+Tabla nueva. `unique_together = (campo_clinico_ipress, universidad, convenio)`. `related_name` del registro padre: `asignaciones`.
+
+| Columna | Tipo | Null | Descripción |
+|---------|------|------|-------------|
+| `id` | PK | No | |
+| `campo_clinico_ipress_id` | FK → `campo_clinico_ipress` (PROTECT) | No | Registro de campos clínicos (sede + carrera) del que descuenta la asignación |
+| `convenio_id` | FK → `convenio` (PROTECT) | No | Convenio Específico vigente que respalda la asignación |
+| `ipress_id` | FK → `ipress` (PROTECT) | No | Sede docente (coherente con el registro padre) |
+| `carrera_profesional_id` | FK → `carrera_profesional` (PROTECT) | No | Carrera / programa académico (coherente con el registro padre) |
+| `especialidad_id` | FK → `especialidad` (SET_NULL) | Sí | Especialidad |
+| `universidad_id` | FK → `universidad` (PROTECT) | No | Universidad a la que se asignan los cupos |
+| `fecha_inicio` | date | No | Inicio de vigencia de la asignación |
+| `fecha_fin` | date | No | Fin de vigencia de la asignación |
+| `campos_clinicos_autorizados` | int positivo | No | Cupos autorizados para la universidad (sujetos a la disponibilidad del registro padre) |
+| `creado_en` | datetime | No | |
+| `creado_por` | FK → `auth_user` (SET_NULL) | Sí | Usuario que creó la asignación |
+| `actualizado_en` | datetime | No | |
+| `actualizado_por` | FK → `auth_user` (SET_NULL) | Sí | Usuario que actualizó la asignación |
 
 ### `opinion_juridica` (OGAJ — proceso 4.5)
 
@@ -451,7 +524,7 @@ Tabla única para todo adjunto del expediente (RNF-DOC-01..05). El binario vive 
 | `cargado_por` | FK → `auth_user` | No | Usuario que cargó |
 | `cargado_en` | datetime | No | Fecha y hora de carga |
 
-Se adjunta a: `convenio`, `evaluacion_tecnica`, `opinion_conapres`, `campo_clinico`, `opinion_juridica`, `firma`, `publicacion`. **Anexos (declaraciones juradas por actor):** también se adjunta a `estudiante` (interno), `autoridad_universidad` y `representante` con `documento_anexo_id` (ver módulo 2 y `docs/api_almacenamiento_frontend.md`).
+Se adjunta a: `convenio`, `evaluacion_tecnica`, `opinion_conapres`, `campo_clinico_ipress`, `campo_clinico_ipress_universidad`, `opinion_juridica`, `firma`, `publicacion`. **Anexos (declaraciones juradas por actor):** también se adjunta a `estudiante` (interno), `autoridad_universidad` y `representante` con `documento_anexo_id` (ver módulo 2 y `docs/api_almacenamiento_frontend.md`).
 
 ---
 
@@ -483,6 +556,8 @@ gobierno_regional >── region
 organo_regional >── tipo_organo_regional
 unidad_ejecutora >── tipo_unidad_ejecutora
 ipress >── ambito_geografico_sanitario
+ambito_geografico_sanitario ──< red ──< microred ──< ipress
+ipress >── categoria / tipo_clasificacion / microred
 
 organo_minsa >── tipo_organo_minsa
 conapres
@@ -508,7 +583,9 @@ convenio ──< participante_convenio >── django_content_type (participante
 convenio ──< historial_estado_convenio >── estado_convenio
 convenio ──< evaluacion_tecnica >── organo_minsa
 convenio ──< opinion_conapres                    (solo Específico)
-convenio ──< campo_clinico >── ipress / carrera_profesional / especialidad / ambito_geografico_sanitario   (solo Específico)
+convenio ──< campo_clinico_ipress >── ipress / carrera_profesional / especialidad   (registro CONAPRES, solo Específico)
+campo_clinico_ipress ──< campo_clinico_ipress_universidad >── ipress / carrera_profesional / especialidad / universidad   (asignación Órgano Regional)
+convenio ──< campo_clinico_ipress_universidad
 convenio ──< opinion_juridica
 convenio ──< firma >── django_content_type (firmante polimórfico)
 convenio ──< publicacion
@@ -524,11 +601,11 @@ bitacora_auditoria >── django_content_type   (genérico → cualquier entida
 
 - **RN-3 (Específico requiere Marco vigente):** `convenio.convenio_marco_id`. **Excepción DIRIS:** solicitan Específico sin Marco (`convenio_marco_id` nulo).
 - **Solicitud de Convenio Marco (solo GERESA/DIRESA):** validación sobre la entidad solicitante (`organo_regional → tipo_organo_regional`).
-- **CONAPRES y campos clínicos solo en Específico:** tablas `opinion_conapres` y `campo_clinico`; estados con `aplica_a = ESPECIFICO`.
+- **CONAPRES y campos clínicos solo en Específico:** tablas `opinion_conapres`, `campo_clinico_ipress` y `campo_clinico_ipress_universidad`; estados con `aplica_a = ESPECIFICO`.
 - **Opinión jurídica (OGAJ) solo para Marco:** `opinion_juridica` se registra únicamente cuando `convenio.tipo_convenio = MARCO`.
 - **Opinión favorable (CONAPRES) solo para Específico:** `opinion_conapres`.
 - **Autorización de sede docente (CONAPRES):** `ipress` autorizada bajo criterios (asistencial, MINSA/FF.AA.-FF.PP., pública).
-- **Campos clínicos:** total por sede/carrera lo registra **CONAPRES**; la cantidad por universidad/carrera la asigna **GERESA/DIRESA/DIRIS** (`campo_clinico.cantidad_maxima`), sin exceder el total autorizado, en el mismo ámbito geográfico sanitario.
+- **Campos clínicos (dos tablas):** el total por sede/carrera lo registra **CONAPRES** en `campo_clinico_ipress.campos_clinicos_registrados`; los cupos por universidad los asigna el **Órgano Regional** (GERESA/DIRESA/DIRIS) en `campo_clinico_ipress_universidad.campos_clinicos_autorizados`, sin exceder la disponibilidad del registro (`registrados − Σ autorizados`), en el mismo ámbito geográfico sanitario. El acumulador `campo_clinico_ipress.campos_clinicos_asignados` lo recalcula el service tras cada create/update/delete de asignación. Endpoints: `clinical-field-registrations` (CONAPRES) y `clinical-field-allocations` (Gobierno Regional).
 - **Versionado documental (RNF-DOC-04 / AUD-04):** `documento.version_anterior_id` + `estado`. En los **anexos por actor**, el versionado se discrimina por `documento.documento_anexo_id` (par `(objeto, documento_anexo)`).
 - **Adjuntos en repositorio externo:** columna `referencia_externa` (en `documento`, `plantilla_convenio`) y `autoridad_universidad.referencia_documento_resolucion`. Las columnas `referencia_logo` (logos de `universidad`, `gobierno_regional`, `organo_regional`, `unidad_ejecutora`, `ipress`) son **`ImageField`** de Django (Etapa 4): guardan el path relativo del objeto en el repositorio de medios (`STORAGES["default"]` = django-storages sobre GCS en prod, `FileSystemStorage` en dev); su `.url` es un signed URL V4 efímero. El **adjunto real** (logos e imágenes / PDFs de anexos) se sirve vía el backend de almacenamiento; ver `docs/api_almacenamiento_frontend.md`. Todo **PDF** adjuntado se procesa además con **Document AI** (OCR genérico) y su texto se guarda en `documento.texto_extraido` (best-effort; las imágenes no se procesan).
 - **Trazabilidad de estados (RNF-AUD-03):** `historial_estado_convenio`.

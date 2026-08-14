@@ -124,8 +124,56 @@ El backend **filtra en lectura** y **valida en escritura**. El front debe alinea
 - **Universidades** `GET /api/v1/universities/` e **IPRESS** `GET /api/v1/ipress/`: catálogos de
   entidades. Para usuarios no globales, **no** los uses como fuente del selector de ámbito: usa
   `perfiles` de `/auth/me/` (solo lo permitido). Sí puedes usarlos para mostrar nombres/detalle.
+- **Clasificación y jerarquía de IPRESS** (CRUD, escritura solo `Administrador RENADS`; lectura para
+  autenticados). Úsalos para poblar los selectores del formulario de IPRESS:
+  - **Categoría** `GET /api/v1/categories/` y **Tipo de clasificación** `GET /api/v1/classification-types/`.
+  - **Ámbito geográfico sanitario** `GET /api/v1/health-geographic-scopes/` (CRUD, escritura solo
+    `Administrador RENADS`; antes solo lectura). Raíz de la jerarquía `ámbito → red → microred`.
+  - **Redes** `GET /api/v1/networks/` (filtrable `?ambito_geografico_sanitario=<id>`) y **Microredes**
+    `GET /api/v1/micro-networks/` (filtrable `?red=<id>`). Jerarquía `ámbito → red → microred`; encadena
+    los selectores por esos filtros. La IPRESS referencia la `microred` (`GET /api/v1/ipress/?microred=<id>`).
 - **Otros catálogos** del módulo (estados, tipos de documento, parentesco, periodos académicos,
   documentos anexos) son de solo lectura para autenticados.
+
+---
+
+## 4 bis. Campos clínicos — registro (CONAPRES) y asignación (Órgano Regional)
+
+Los campos clínicos que habilitan el registro de internos se modelan en **dos recursos
+encadenados**. El interno se asigna a una **asignación por universidad**
+(`interno.campo_clinico_id` → `clinical-field-allocations`), no al registro global.
+
+| Recurso | Tabla | Escritura | Lectura | Filtros (query params) |
+|---------|-------|-----------|---------|-------------------------|
+| **Registro** `/api/v1/clinical-field-registrations/` | `campo_clinico_ipress` | Rol **CONAPRES** (superusuario exento) | Autenticados | `convenio`, `ipress`, `carrera_profesional`, `especialidad` |
+| **Asignación** `/api/v1/clinical-field-allocations/` | `campo_clinico_ipress_universidad` | Grupo **Gobierno Regional** (superusuario exento) | Autenticados | `campo_clinico_ipress`, `convenio`, `ipress`, `carrera_profesional`, `universidad` |
+
+> **Reemplaza** la antigua action anidada `POST /api/v1/conventions/{id}/campos-clinicos/` (retirada).
+> Ambos son CRUD standalone bajo `/api/v1/`.
+
+### Encadenamiento registro → asignación (front)
+
+1. **CONAPRES** crea el **registro** por sede docente (`ipress`) + carrera: define
+   `campos_clinicos_registrados` (el total/tope).
+2. El **Órgano Regional** crea **asignaciones** por universidad contra ese registro
+   (`campo_clinico_ipress` = id del registro), enviando `universidad`, `convenio` (Específico
+   vigente cuya universidad debe coincidir), `fecha_inicio`, `fecha_fin` y
+   `campos_clinicos_autorizados`. `ipress` y `carrera_profesional` deben coincidir con el registro padre.
+3. Al registrar un **interno**, el selector de campo clínico se puebla con las **asignaciones**
+   (`clinical-field-allocations`) de la universidad y sede correspondientes.
+
+### Disponibilidad (lo que valida el backend)
+
+- El **registro** expone `disponibilidad = campos_clinicos_registrados − campos_clinicos_asignados`
+  (computed) y `campos_clinicos_asignados` (acumulador Σ de las asignaciones; **solo lectura**).
+- Al crear/editar una **asignación**, el backend exige
+  `campos_clinicos_autorizados ≤ campos_clinicos_registrados − Σ autorizados de las demás asignaciones
+  del mismo registro`; si se excede, responde **400**. Tras cada create/update/delete el service
+  **recalcula** `campos_clinicos_asignados` del registro padre.
+- Mostrar `disponibilidad` del registro seleccionado como tope del input de cupos en el formulario
+  de asignación, para anticipar el 400.
+- Escritura sin el rol correspondiente ⇒ **403** ("La escritura requiere el rol CONAPRES." /
+  "La escritura requiere el rol Gobierno Regional.").
 
 ---
 
@@ -159,6 +207,8 @@ El backend **filtra en lectura** y **valida en escritura**. El front debe alinea
 | `Universidad` | Registrar/ver estudiantes, internos y tutores **de sus universidades** (1..N por `perfiles`). |
 | `Interno` | **Solo lectura** de sus propios datos + adjuntar sus declaraciones juradas (`annex-upload`/`annex-checklist`). |
 | `Autoridad de convenio` | Autorizar rotaciones (`rotations/{id}/autorizar`). |
+| `CONAPRES` | Registrar el total de campos clínicos por sede/carrera (`clinical-field-registrations`). |
+| `Gobierno Regional` | Asignar cupos de campos clínicos por universidad (`clinical-field-allocations`). |
 
 > El backend es la última línea: aunque el front oculte una acción, la API revalida rol y ámbito en
 > cada request. La UI solo **anticipa** el resultado para mejor experiencia.
