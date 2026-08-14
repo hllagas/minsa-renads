@@ -266,7 +266,7 @@ export const CATALOGO_ENTITY_MENU: { slug: string; title: string }[] = [
   { slug: "faculties", title: "Facultades" },
   { slug: "professional-careers", title: "Carreras Profesionales" },
   { slug: "university-campuses", title: "Sedes Universitarias" },
-  { slug: "ipress", title: "IPRESS" },
+  { slug: "ipress", title: "Establecimientos de Salud" },
   { slug: "regional-governments", title: "Gobiernos Regionales" },
   { slug: "executing-units", title: "Unidades Ejecutoras" },
   { slug: "regional-organs", title: "Órganos Regionales" },

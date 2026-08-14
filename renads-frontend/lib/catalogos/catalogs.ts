@@ -89,7 +89,8 @@ const ubigeosConfig: ResourceConfig = {
 /** Registro de los 18 catálogos de solo lectura + `ubigeos`, por slug. */
 export const CATALOG_CONFIGS: Record<string, ResourceConfig> = {
   regions: readOnlyCatalog("regions", "Regiones", "región"),
-  "health-geographic-scopes": readOnlyCatalog(
+  // CRUD (backend lo promovió a ENTITY_VIEWSETS: escritura `Administrador RENADS` + auditoría).
+  "health-geographic-scopes": writableCatalog(
     "health-geographic-scopes",
     "Ámbitos geográficos sanitarios",
     "ámbito geográfico sanitario",

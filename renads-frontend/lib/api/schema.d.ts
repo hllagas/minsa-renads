@@ -1216,9 +1216,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         get: operations["health_geographic_scopes_list"];
         put?: never;
-        post?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        post: operations["health_geographic_scopes_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1232,13 +1234,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         get: operations["health_geographic_scopes_retrieve"];
-        put?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        put: operations["health_geographic_scopes_update"];
         post?: never;
-        delete?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        delete: operations["health_geographic_scopes_destroy"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        patch: operations["health_geographic_scopes_partial_update"];
         trace?: never;
     };
     "/api/v1/identity-document-types/": {
@@ -4339,6 +4345,11 @@ export interface components {
         IpressAuto: {
             readonly id: number;
             readonly referencia_logo: string;
+            readonly categoria_detalle: string;
+            readonly tipo_clasificacion_detalle: string;
+            readonly ambito_geografico_sanitario_detalle: string;
+            readonly microred_detalle: string;
+            readonly ubigeo_detalle: string;
             /** @description Nombre del establecimiento */
             nombre: string;
             /**
@@ -5569,6 +5580,18 @@ export interface components {
             permissions?: number[];
             readonly permissions_detalle?: components["schemas"]["Permission"][];
         };
+        PatchedHealthGeographicScopeAuto: {
+            readonly id?: number;
+            /**
+             * Código
+             * @description Código único
+             */
+            codigo?: string;
+            /** @description Nombre */
+            nombre?: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+        };
         PatchedInternshipWrite: {
             /** @description Estudiante */
             estudiante?: number;
@@ -5612,6 +5635,11 @@ export interface components {
         PatchedIpressAuto: {
             readonly id?: number;
             readonly referencia_logo?: string;
+            readonly categoria_detalle?: string;
+            readonly tipo_clasificacion_detalle?: string;
+            readonly ambito_geografico_sanitario_detalle?: string;
+            readonly microred_detalle?: string;
+            readonly ubigeo_detalle?: string;
             /** @description Nombre del establecimiento */
             nombre?: string;
             /**
@@ -9832,6 +9860,31 @@ export interface operations {
             };
         };
     };
+    health_geographic_scopes_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HealthGeographicScopeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["HealthGeographicScopeAuto"];
+                "multipart/form-data": components["schemas"]["HealthGeographicScopeAuto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthGeographicScopeAuto"];
+                };
+            };
+        };
+    };
     health_geographic_scopes_retrieve: {
         parameters: {
             query?: never;
@@ -9843,6 +9896,83 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthGeographicScopeAuto"];
+                };
+            };
+        };
+    };
+    health_geographic_scopes_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este ámbito geográfico sanitario. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HealthGeographicScopeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["HealthGeographicScopeAuto"];
+                "multipart/form-data": components["schemas"]["HealthGeographicScopeAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthGeographicScopeAuto"];
+                };
+            };
+        };
+    };
+    health_geographic_scopes_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este ámbito geográfico sanitario. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    health_geographic_scopes_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este ámbito geográfico sanitario. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedHealthGeographicScopeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedHealthGeographicScopeAuto"];
+                "multipart/form-data": components["schemas"]["PatchedHealthGeographicScopeAuto"];
+            };
+        };
         responses: {
             200: {
                 headers: {

@@ -22,10 +22,10 @@ Contrato de los **CRUD de soporte transversales** del Módulo 1 del backend (`ap
 CRUD de solo lectura (`list`/`retrieve`). Patrón común: filtro `activo`, search `codigo`/`nombre`,
 ordering `id`/`codigo`/`nombre` (default `id`). Se usan para poblar selects.
 
-`regions`, `health-geographic-scopes`, `convention-types`, `convention-statuses`,
+`regions`, `convention-types`, `convention-statuses`,
 `university-management-types`, `specialties`, `signing-authority-types`, `executing-unit-types`,
 `executive-positions`, `observation-reasons`, `rejection-reasons`, `closure-reasons`
-(12 catálogos de solo lectura).
+(11 catálogos de solo lectura).
 
 `ubigeos` — catálogo INEI (solo lectura). Filtros: `departamento`, `provincia`, `distrito`, `activo`;
 search `codigo`/`distrito`/`provincia`/`departamento`.
@@ -38,10 +38,13 @@ Seis catálogos dejan de ser de solo lectura y aceptan **CRUD completo** (`creat
 `codigo` (único, obligatorio), `nombre` (obligatorio), `activo`.
 
 `document-types`, `university-entity-types`, `authorization-types`, `academic-levels`,
-`regional-organ-types`, `minsa-organ-types`, **`categories`**, **`classification-types`**.
+`regional-organ-types`, `minsa-organ-types`, **`categories`**, **`classification-types`**,
+**`health-geographic-scopes`**.
 
-> `categories` y `classification-types` (modelo base `Catalog`: `codigo`/`nombre`/`activo`) se
-> añadieron como CRUD maestro con el mismo patrón (filtro `activo`, search `codigo`/`nombre`).
+> `categories`, `classification-types` y `health-geographic-scopes` (modelo base `Catalog`:
+> `codigo`/`nombre`/`activo`) se añadieron como CRUD maestro con el mismo patrón (filtro `activo`,
+> search `codigo`/`nombre`). `health-geographic-scopes` es la cúspide de la jerarquía sanitaria
+> (ámbito → red → microrred, ver §1.2).
 
 > Front: configurados con `writableCatalog()` en `lib/catalogos/catalogs.ts` (los 12 restantes
 > siguen `readOnlyCatalog()`). Se editan desde `/catalogos/listas/<slug>`.

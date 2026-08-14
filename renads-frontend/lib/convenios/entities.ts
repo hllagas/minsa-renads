@@ -7,6 +7,25 @@ import { LogoUploadField } from "@/components/catalogos/logo-upload-field";
 
 const siNo = (v: unknown) => (v ? "Sí" : "No");
 
+
+/** Lee `codigo` de un objeto `*_detalle` de FK (o «—»). */
+const detalleCodigo = (v: unknown): string =>
+  v && typeof v === "object" && "codigo" in v
+    ? String((v as { codigo?: unknown }).codigo ?? "—")
+    : "—";
+
+/** Lee `nombre` de un objeto `*_detalle` de FK (o «—»). */
+const detalleNombre = (v: unknown): string =>
+  v && typeof v === "object" && "nombre" in v
+    ? String((v as { nombre?: unknown }).nombre ?? "—")
+    : "—";
+
+/** Lee una parte del `ubigeo_detalle` (distrito/provincia/departamento) o «—». */
+const ubigeoParte = (v: unknown, parte: "distrito" | "provincia" | "departamento"): string =>
+  v && typeof v === "object" && parte in v
+    ? String((v as Record<string, unknown>)[parte] ?? "—")
+    : "—";
+
 /** Columna «Logo» reutilizable: muestra el logo de la entidad (o su fallback institucional). */
 const logoColumn = (endpoint: string): ColumnConfig => ({
   key: "referencia_logo",
@@ -120,13 +139,41 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
   ipress: {
     endpoint: "ipress",
     title: "Establecimientos de Salud",
-    singular: "IPRESS",
+    singular: "Establecimiento de Salud",
     description: "Sedes docentes autorizadas para la prestación de servicios de salud.",
     searchPlaceholder: "Buscar por nombre o RENIPRESS…",
     columns: [
       logoColumn("ipress"),
-      { key: "nombre", header: "Nombre" },
-      { key: "codigo_renipress", header: "RENIPRESS" },
+      { key: "codigo_renipress", header: "Código" },
+      { key: "nombre", header: "Establecimiento" },
+      { key: "categoria", header: "Categoría", render: (r) => detalleCodigo(r.categoria_detalle) },
+      {
+        key: "tipo_clasificacion",
+        header: "Clasificación",
+        render: (r) => detalleCodigo(r.tipo_clasificacion_detalle),
+      },
+      {
+        key: "ambito_geografico_sanitario",
+        header: "Ámbito geográfico",
+        render: (r) => detalleNombre(r.ambito_geografico_sanitario_detalle),
+      },
+      { key: "microred", header: "Microred", 
+        render: (r) => detalleNombre(r.microred_detalle) },
+      {
+        key: "ubigeo_departamento",
+        header: "Departamento",
+        render: (r) => ubigeoParte(r.ubigeo_detalle, "departamento"),
+      },      
+      {
+        key: "ubigeo_provincia",
+        header: "Provincia",
+        render: (r) => ubigeoParte(r.ubigeo_detalle, "provincia"),
+      },
+      {
+        key: "ubigeo_distrito",
+        header: "Distrito",
+        render: (r) => ubigeoParte(r.ubigeo_detalle, "distrito"),
+      },
       {
         key: "es_sede_docente",
         header: "Sede docente",
@@ -155,9 +202,10 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     // `es_sede_docente` NO se edita aquí: se otorga con la acción CONAPRES `autorizar-sede-docente`.
     fields: [
       // Identificación
-      { name: "nombre", label: "Nombre", type: "text", required: true, fullWidth: true },
-      { name: "codigo_renipress", label: "Código RENIPRESS", type: "text" },
+      { name: "codigo_renipress", label: "Código RENIPRESS", type: "text", required: true },
       { name: "numero_ruc", label: "RUC (11 dígitos)", type: "text", uppercase: false },
+      { name: "nombre", label: "Nombre", type: "text", required: true, fullWidth: true },
+      
       // Clasificación (catálogos)
       {
         name: "categoria",
@@ -173,19 +221,19 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
       },
       // Organización / alcance sanitario
       {
-        name: "unidad_ejecutora",
-        label: "Unidad ejecutora",
-        type: "select",
-        required: true,
-        optionsEndpoint: "executing-units",
-      },
-      {
         name: "ambito_geografico_sanitario",
         label: "Ámbito geográfico sanitario",
         type: "select",
         required: true,
         optionsEndpoint: "health-geographic-scopes",
       },
+      {
+        name: "unidad_ejecutora",
+        label: "Unidad ejecutora",
+        type: "select",
+        required: true,
+        optionsEndpoint: "executing-units",
+      },      
       {
         name: "microred",
         label: "Microred",
