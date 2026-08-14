@@ -89,10 +89,9 @@ erDiagram
     }
 
     %% ===== M4: Calendario administrativo =====
-    %% actividad_calendario referencia módulos (django_content_type) y roles responsables
-    %% (auth_group) por M2M. Si controla_acceso=True gobierna la escritura de esos
-    %% content_types durante la ventana fecha_inicio..fecha_fin (fecha_fin NULL = abierta; OR).
-    actividad_calendario }o--o{ auth_group : "responsables (M2M)"
+    %% actividad_calendario referencia módulos (django_content_type) por M2M. Si
+    %% controla_acceso=True gobierna la escritura de esos content_types durante la
+    %% ventana fecha_inicio..fecha_fin (fecha_fin NULL = abierta; OR).
     actividad_calendario }o--o{ django_content_type : "módulos gobernados (M2M)"
 
     %% ===== M3: Actividad =====
@@ -160,4 +159,4 @@ actividad_calendario (M4) ─ M2M content_types ─> [cualquier modelo] (gobiern
 | **Gestionar Convenios** (`convenios`, M1) | `ubigeo`, `region`, `ambito_geografico_sanitario`, `tipo_convenio`, `estado_convenio`, `tipo_documento`, `tipo_gestion_universidad`, `tipo_entidad_universidad`, `tipo_autorizacion`, `nivel_academico`, `especialidad`, `tipo_autoridad_firmante`, `tipo_organo_regional`, `tipo_unidad_ejecutora`, `tipo_organo_minsa`, `cargo_ejecutivo`, `motivo_observacion`, `motivo_rechazo`, `motivo_cierre`, `gobierno_regional`, `organo_regional`, `unidad_ejecutora`, `ipress`, `organo_minsa`, `conapres`, `representante`, `universidad`, `autoridad_universidad`, `facultad`, `carrera_profesional`, `local_universidad`, `perfil_usuario_entidad`, `plantilla_convenio`, `convenio`, `participante_convenio`, `historial_estado_convenio`, `evaluacion_tecnica`, `opinion_conapres`, `campo_clinico_ipress`, `campo_clinico_ipress_universidad`, `opinion_juridica`, `firma`, `publicacion`, `documento`, `bitacora_auditoria` |
 | **Registrar Internados** (`internados`, M2) | `estado_internado`, `estado_rotacion`, `servicio_area`, `tipo_documento_identidad`, `parentesco`, `periodo_academico`, `documentos_anexos`, `estudiante`, `tutor`, `tutor_universidad`, `interno`, `historial_estado_internado`, `historial_tutor`, `rotacion`, `autorizacion_rotacion`, `historial_estado_rotacion` |
 | **Registrar Actividades** (`actividades`, M3) | `tipo_actividad`, `estado_actividad`, `actividad_docente_asistencial`, `validacion_actividad`, `historial_estado_actividad` |
-| **Calendario administrativo** (`calendario`, M4) | `actividad_calendario`, `actividad_calendario_responsable` (puente M2M → `auth_group`), `actividad_calendario_content_type` (puente M2M → `django_content_type`) |
+| **Calendario administrativo** (`calendario`, M4) | `actividad_calendario`, `actividad_calendario_content_type` (puente M2M → `django_content_type`) |

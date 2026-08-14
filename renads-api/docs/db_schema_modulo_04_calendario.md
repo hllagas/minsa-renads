@@ -15,7 +15,7 @@ La feature vive en la app **`apps.calendario`** (clases en inglés; tablas, colu
 - **Exención:** el **superusuario** y el rol **`Administrador RENADS`** no son bloqueados por el gate de escritura (`IsModuleEnabled`), aunque el módulo esté fuera de ventana.
 - **Coherencia de fechas:** si `fecha_fin` no es nula, debe ser `>= fecha_inicio` (validación del serializer de escritura).
 
-> **Convenciones (heredadas de los módulos previos):** tablas/columnas/descripciones en **español**; se reutilizan tablas nativas de Django (`auth_group` para los responsables, `django_content_type` para los módulos gobernados) y la auditoría transversal.
+> **Convenciones (heredadas de los módulos previos):** tablas/columnas/descripciones en **español**; se reutilizan tablas nativas de Django (`django_content_type` para los módulos gobernados) y la auditoría transversal.
 
 ---
 
@@ -25,7 +25,6 @@ La feature vive en la app **`apps.calendario`** (clases en inglés; tablas, colu
 | Tabla | Uso en el módulo 4 |
 |-------|--------------------|
 | `auth_user` | Auditoría (`creado_por`, `actualizado_por`) |
-| `auth_group` | Roles **responsables** de la actividad (M2M) |
 | `django_content_type` | Módulos/modelos **referenciados y gobernados** por la actividad (M2M) |
 
 ### Transversal (app `common`)
@@ -46,6 +45,7 @@ Hito/ventana del calendario administrativo. Sirve como agenda informativa y, si 
 | `id` | PK | No | |
 | `nombre` | varchar(255) | No | Nombre de la actividad de calendario |
 | `detalle` | text | No (`blank`) | Descripción o detalle de la actividad (puede ir vacío) |
+| `responsables` | text | No (`blank`) | Responsables de la actividad (texto libre) |
 | `numero_orden` | int positivo | No | Orden de presentación (default `0`; **no único**; usado en el ordenamiento por defecto) |
 | `fecha_inicio` | date | No | Fecha de inicio de la ventana |
 | `fecha_fin` | date | **Sí** | Fecha de fin de la ventana. **NULL = ventana abierta** (sin fecha de cierre) |
@@ -62,16 +62,6 @@ Hito/ventana del calendario administrativo. Sirve como agenda informativa y, si 
 ---
 
 ## 3. Tablas puente (M2M)
-
-### `actividad_calendario_responsable` (M2M `CalendarActivity.responsables` → `auth_group`)
-
-Roles (grupos de Django) **responsables** de la actividad. Informativo; no participa en el enforcement.
-
-| Columna | Tipo | Null | Descripción |
-|---------|------|------|-------------|
-| `id` | PK | No | |
-| `calendaractivity_id` | FK → `actividad_calendario` | No | Actividad |
-| `group_id` | FK → `auth_group` | No | Rol responsable |
 
 ### `actividad_calendario_content_type` (M2M `CalendarActivity.content_types` → `django_content_type`)
 
@@ -130,7 +120,7 @@ Permiso *opt-in* que instrumentan los ViewSets gobernados declarando el atributo
 | Actividades de calendario | `/api/v1/calendar-activities/` | CRUD | Rol `Administrador RENADS` (con auditoría) | Autenticados |
 
 - **`content-types`** expone `{ id, app_label, model, verbose_name }` — alimenta el selector `content_types[]` del CRUD de calendario y ayuda a interpretar `modulos_habilitados`/`modulos_bloqueados`.
-- **`calendar-activities`** — lectura expone `responsables_detalle` (`[{id, name}]`) y `content_types_detalle` (`[{id, app_label, model, verbose_name}]`); escritura recibe `responsables` y `content_types` por id. Filtros: `controla_acceso`, `activo`, `content_types` y rango de fechas.
+- **`calendar-activities`** — lectura expone `content_types_detalle` (`[{id, app_label, model, verbose_name}]`); `responsables` es un campo de **texto libre** (string en lectura y escritura). Escritura recibe `content_types` por id. Filtros: `controla_acceso`, `activo`, `content_types` y rango de fechas.
 
 ---
 
@@ -138,4 +128,4 @@ Permiso *opt-in* que instrumentan los ViewSets gobernados declarando el atributo
 
 | App | Tablas (db_table) |
 |-----|-------------------|
-| **Calendario administrativo** (`calendario`, M4) | `actividad_calendario`, `actividad_calendario_responsable` (puente M2M → `auth_group`), `actividad_calendario_content_type` (puente M2M → `django_content_type`) |
+| **Calendario administrativo** (`calendario`, M4) | `actividad_calendario`, `actividad_calendario_content_type` (puente M2M → `django_content_type`) |

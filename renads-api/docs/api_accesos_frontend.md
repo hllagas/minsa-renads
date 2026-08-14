@@ -285,10 +285,11 @@ Lista los `ContentType` de Django con `{ id, app_label, model, verbose_name }`. 
 | `GET` (list/detail) | — | Autenticados |
 | `POST` / `PUT` / `PATCH` / `DELETE` | Rol `Administrador RENADS` (con auditoría) | — |
 
-- **Lectura** expone, además de los campos base (`nombre`, `detalle`, `numero_orden`, `fecha_inicio`,
-  `fecha_fin`, `controla_acceso`, `activo` y auditoría): `responsables_detalle` (`[{ id, name }]` de los
-  roles) y `content_types_detalle` (`[{ id, app_label, model, verbose_name }]` de los módulos).
-- **Escritura** recibe `responsables` (lista de ids de grupo) y `content_types` (lista de ids de
+- **Lectura** expone, además de los campos base (`nombre`, `detalle`, `responsables`, `numero_orden`,
+  `fecha_inicio`, `fecha_fin`, `controla_acceso`, `activo` y auditoría): `content_types_detalle`
+  (`[{ id, app_label, model, verbose_name }]` de los módulos). `responsables` es un campo de **texto
+  libre** (string).
+- **Escritura** recibe `responsables` (texto libre) y `content_types` (lista de ids de
   ContentType). Validación: si `fecha_fin` no es nula, debe ser `>= fecha_inicio`.
 - **Filtros (query params):** `controla_acceso` (bool), `activo` (bool), `content_types` (id) y rango de
   fechas.

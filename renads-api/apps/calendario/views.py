@@ -24,9 +24,7 @@ class CalendarActivityViewSet(AuditedModelViewSet):
     (el propio calendario no está sujeto a ventanas).
     """
 
-    queryset = CalendarActivity.objects.prefetch_related(
-        "responsables", "content_types"
-    ).all()
+    queryset = CalendarActivity.objects.prefetch_related("content_types").all()
     permission_classes = [IsAuthenticated, IsAdminRoleOrReadOnly]
     filterset_class = CalendarActivityFilter
     search_fields = ["nombre", "detalle"]

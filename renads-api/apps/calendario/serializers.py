@@ -1,11 +1,9 @@
 """Serializers de la feature Calendario: lectura (con detalles) y escritura."""
 
-from django.contrib.auth.models import Group
 from django.contrib.contenttypes.models import ContentType
 from rest_framework import serializers
 
 from apps.calendario.models import CalendarActivity
-from apps.common.serializers import GroupBriefSerializer
 
 
 def _content_type_detalle(ct: ContentType) -> dict:
@@ -23,9 +21,6 @@ def _content_type_detalle(ct: ContentType) -> dict:
 class CalendarActivityReadSerializer(serializers.ModelSerializer):
     """Lectura de actividades de calendario: campos legibles + detalles de M2M."""
 
-    responsables_detalle = GroupBriefSerializer(
-        source="responsables", many=True, read_only=True
-    )
     content_types_detalle = serializers.SerializerMethodField()
 
     class Meta:
@@ -40,7 +35,6 @@ class CalendarActivityReadSerializer(serializers.ModelSerializer):
             "controla_acceso",
             "activo",
             "responsables",
-            "responsables_detalle",
             "content_types",
             "content_types_detalle",
             "creado_en",
@@ -57,14 +51,11 @@ class CalendarActivityReadSerializer(serializers.ModelSerializer):
 class CalendarActivityWriteSerializer(serializers.ModelSerializer):
     """Escritura de actividades de calendario.
 
-    Recibe `responsables` y `content_types` por id. Los campos de auditoría los
-    fija el ViewSet (`creado_por`/`actualizado_por`); las marcas de tiempo son
-    automáticas.
+    Recibe `responsables` como texto libre y `content_types` por id. Los campos de
+    auditoría los fija el ViewSet (`creado_por`/`actualizado_por`); las marcas de
+    tiempo son automáticas.
     """
 
-    responsables = serializers.PrimaryKeyRelatedField(
-        many=True, queryset=Group.objects.all(), required=False
-    )
     content_types = serializers.PrimaryKeyRelatedField(
         many=True, queryset=ContentType.objects.all(), required=False
     )

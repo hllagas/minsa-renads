@@ -14,14 +14,11 @@ from apps.common.services import registrar_auditoria
 @transaction.atomic
 def crear_actividad_calendario(*, datos: dict, usuario) -> CalendarActivity:
     """Crea una actividad de calendario, fija auditoría de creación y registra bitácora."""
-    responsables = datos.pop("responsables", None)
     content_types = datos.pop("content_types", None)
     actividad = CalendarActivity(**datos)
     actividad.creado_por = usuario
     actividad.actualizado_por = usuario
     actividad.save()
-    if responsables is not None:
-        actividad.responsables.set(responsables)
     if content_types is not None:
         actividad.content_types.set(content_types)
     registrar_auditoria(usuario, "CREAR", actividad)
@@ -33,14 +30,11 @@ def actualizar_actividad_calendario(
     *, actividad: CalendarActivity, datos: dict, usuario
 ) -> CalendarActivity:
     """Actualiza una actividad de calendario, fija auditoría y registra bitácora."""
-    responsables = datos.pop("responsables", None)
     content_types = datos.pop("content_types", None)
     for campo, valor in datos.items():
         setattr(actividad, campo, valor)
     actividad.actualizado_por = usuario
     actividad.save()
-    if responsables is not None:
-        actividad.responsables.set(responsables)
     if content_types is not None:
         actividad.content_types.set(content_types)
     registrar_auditoria(usuario, "ACTUALIZAR", actividad)

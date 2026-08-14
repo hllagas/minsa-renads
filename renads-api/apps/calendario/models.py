@@ -66,12 +66,10 @@ class CalendarActivity(models.Model):
         blank=True,
         help_text="Usuario que actualizó la actividad por última vez",
     )
-    responsables = models.ManyToManyField(
-        "auth.Group",
-        db_table="actividad_calendario_responsable",
+    responsables = models.TextField(
+        "responsables",
         blank=True,
-        related_name="actividades_calendario_responsable",
-        help_text="Roles responsables de la actividad",
+        help_text="Responsables de la actividad (texto libre)",
     )
     content_types = models.ManyToManyField(
         "contenttypes.ContentType",
