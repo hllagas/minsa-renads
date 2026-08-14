@@ -19,6 +19,7 @@ Entregar un API REST funcional que permita gestionar los tres módulos de RENADS
 | Gestionar Convenios | `apps.convenios` | CRUD de convenios, plantillas, participantes, campos clínicos, evaluaciones/opiniones/firmas/publicaciones, catálogos |
 | Registrar Internados | `apps.internados` | CRUD de estudiantes, tutores, internados, rotaciones, autorizaciones |
 | Registrar Actividades | `apps.actividades` | CRUD de actividades docente-asistenciales y validaciones |
+| Calendario administrativo | `apps.calendario` | CRUD de actividades de calendario (`calendar-activities`) y **enforcement temporal de escritura** por módulo: una ventana de fechas (`controla_acceso`) habilita/bloquea la escritura de los `content_types` gobernados. Lookup de `content-types`; claims `modulos_habilitados`/`modulos_bloqueados` en `/auth/me/` |
 
 ### CRUD por entidad
 Para cada entidad relevante del módulo: **listar, obtener, crear, actualizar, eliminar** vía DRF `ModelViewSet`, con paginación, filtros y permisos. Las reglas de negocio (validaciones RN) se aplican en la capa de **services** según la arquitectura.

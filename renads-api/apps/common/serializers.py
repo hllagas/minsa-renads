@@ -62,6 +62,8 @@ class MeSerializer(serializers.Serializer):
     debe_cambiar_password = serializers.SerializerMethodField()
     grupos = serializers.SerializerMethodField()
     perfiles = serializers.SerializerMethodField()
+    modulos_habilitados = serializers.SerializerMethodField()
+    modulos_bloqueados = serializers.SerializerMethodField()
 
     def get_nombre(self, obj) -> str:
         return obj.get_full_name() or obj.get_username()
@@ -74,6 +76,60 @@ class MeSerializer(serializers.Serializer):
 
     def get_perfiles(self, obj) -> list[dict]:
         return UserEntityProfileSerializer(perfiles_del_usuario(obj), many=True).data
+
+    def _estado_modulos(self) -> tuple[list[dict], list[dict]]:
+        """Calcula (habilitados, bloqueados) según el calendario para `timezone.now()`.
+
+        Deriva del selector de calendario (fuente única temporal). Total 2 queries:
+        una agregada del selector (controlados/habilitados) y otra para resolver
+        `app_label`/`model` de los CT involucrados; el resultado se cachea en la
+        instancia para que los dos `SerializerMethodField` no lo recalculen. Los
+        campos reflejan el **estado temporal del módulo**, no la exención del admin:
+        para admin/superusuario un módulo fuera de ventana aparece en
+        `modulos_bloqueados` aunque el gate (`IsModuleEnabled`) no lo bloquee.
+        """
+        cache = getattr(self, "_cache_estado_modulos", None)
+        if cache is not None:
+            return cache
+
+        from django.contrib.contenttypes.models import ContentType
+        from django.utils import timezone
+
+        from apps.calendario.selectors import (
+            content_types_controlados,
+            content_types_habilitados,
+        )
+
+        now = timezone.now()
+        controlados = content_types_controlados(now)
+        habilitados = content_types_habilitados(now)
+        bloqueados = controlados - habilitados
+        involucrados = controlados
+        if not involucrados:
+            self._cache_estado_modulos: tuple[list[dict], list[dict]] = ([], [])
+            return self._cache_estado_modulos
+        metadatos = {
+            ct.id: (ct.app_label, ct.model)
+            for ct in ContentType.objects.filter(id__in=involucrados)
+        }
+
+        def _fila(ct_id: int) -> dict:
+            app_label, model = metadatos.get(ct_id, ("", ""))
+            return {"app_label": app_label, "model": model, "content_type_id": ct_id}
+
+        self._cache_estado_modulos = (
+            [_fila(ct_id) for ct_id in habilitados],
+            [_fila(ct_id) for ct_id in bloqueados],
+        )
+        return self._cache_estado_modulos
+
+    def get_modulos_habilitados(self, obj) -> list[dict]:
+        habilitados, _ = self._estado_modulos()
+        return habilitados
+
+    def get_modulos_bloqueados(self, obj) -> list[dict]:
+        _, bloqueados = self._estado_modulos()
+        return bloqueados
 
 
 # --- Administración de usuarios, grupos y permisos (solo superadministrador) ---
@@ -94,6 +150,29 @@ class GroupBriefSerializer(serializers.ModelSerializer):
     class Meta:
         model = Group
         fields = ["id", "name"]
+
+
+class ContentTypeSerializer(serializers.Serializer):
+    """Tipo de contenido (`ContentType`) de Django, para poblar selectores del frontend.
+
+    Serializa instancias de `ContentType`. El frontend usa esta lista (paginada,
+    con `?search=`) para el selector `content_types[]` del CRUD de `calendar-activities`
+    y para interpretar `modulos_habilitados`/`modulos_bloqueados` de `/auth/me/`.
+    """
+
+    id = serializers.IntegerField(read_only=True, help_text="ID del ContentType")
+    app_label = serializers.CharField(read_only=True, help_text="App de Django (p. ej. convenios)")
+    model = serializers.CharField(
+        read_only=True, help_text="Modelo de Django en minúscula (p. ej. convention)"
+    )
+    verbose_name = serializers.SerializerMethodField(
+        help_text="Nombre legible en español del modelo"
+    )
+
+    def get_verbose_name(self, obj) -> str:
+        """Nombre legible del modelo; fallback a `ct.name` si el CT es huérfano."""
+        modelo = obj.model_class()
+        return str(modelo._meta.verbose_name) if modelo is not None else obj.name
 
 
 class PermissionSerializer(serializers.ModelSerializer):

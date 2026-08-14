@@ -13,7 +13,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.common.documentai import extraer_texto_pdf
-from apps.common.permissions import IsInstitutionalMember, exigir_ambito
+from apps.common.permissions import IsInstitutionalMember, IsModuleEnabled, exigir_ambito
 from apps.common.services import adjuntar_documento, registrar_auditoria
 from apps.common.storage import get_document_storage
 from apps.convenios import models as m
@@ -60,7 +60,8 @@ from apps.convenios.serializers import (
 class ConventionViewSet(viewsets.ModelViewSet):
     """CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors."""
 
-    permission_classes = [IsAuthenticated, IsInstitutionalMember, ConventionScope]
+    permission_classes = [IsAuthenticated, IsInstitutionalMember, ConventionScope, IsModuleEnabled]
+    module_content_type = ("convenios", "convention")
     filterset_class = ConventionFilter
     search_fields = ["titulo", "codigo"]
     ordering_fields = ["fecha_solicitud", "fecha_inicio", "fecha_fin", "id"]

@@ -18,6 +18,7 @@ from apps.common.serializers import (
     ASSIGNABLE_PROFILE_MODELS,
     AssignableEntityTypeSerializer,
     ChangeOwnPasswordSerializer,
+    ContentTypeSerializer,
     CustomTokenObtainPairSerializer,
     GroupSerializer,
     MeSerializer,
@@ -264,6 +265,24 @@ class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
     search_fields = ["name", "codename"]
     ordering_fields = ["id", "codename"]
     ordering = ["content_type", "codename"]
+
+
+class ContentTypeViewSet(viewsets.ReadOnlyModelViewSet):
+    """Catálogo de `ContentType` de Django (solo lectura) para selectores del frontend.
+
+    Paginado y con `?search=` (por `app_label`/`model`), compatible con el combobox
+    genérico. Alimenta el selector `content_types[]` del CRUD de `calendar-activities`
+    e interpreta `modulos_habilitados`/`modulos_bloqueados` de `/auth/me/`. El
+    `verbose_name` es el nombre legible del modelo (fallback a `ct.name` si es huérfano).
+    """
+
+    queryset = ContentType.objects.all().order_by("app_label", "model")
+    serializer_class = ContentTypeSerializer
+    permission_classes = [IsAuthenticated]
+    filterset_fields = ["app_label"]
+    search_fields = ["app_label", "model"]
+    ordering_fields = ["app_label", "model", "id"]
+    ordering = ["app_label", "model"]
 
 
 class AssignableEntityTypeView(APIView):

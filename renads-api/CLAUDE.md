@@ -30,6 +30,7 @@ Sistema de información del MINSA (Perú) para registrar, controlar y dar seguim
 | **Gestionar Convenios** | Ciclo de vida de Convenios Marco y Específicos: documentos PDF, evaluaciones, opiniones (DIGEP, CONAPRES, OGAJ), firmas, publicación, vigencia y cierre |
 | **Registrar Internados** | Estudiantes, tutores, sedes docentes, periodos, rotaciones y autorizaciones |
 | **Registrar Actividades** | Registro, validación y consulta de actividades docente-asistenciales de estudiantes en sedes |
+| **Calendario administrativo** | Agenda de hitos/ventanas del proceso y **enforcement temporal de escritura** por módulo: una actividad de calendario con ventana de fechas habilita o bloquea la escritura de los modelos que gobierna (`content_types`) mientras esté vigente |
 
 ### Actores principales
 
@@ -73,6 +74,14 @@ Sistema de información del MINSA (Perú) para registrar, controlar y dar seguim
 - **RN-23 (estado de declaraciones juradas):** `interno.estado_declaraciones` (`PENDIENTE`/`COMPLETAS`/`OBSERVADAS`/`VALIDADAS`). `PENDIENTE→COMPLETAS` automático al completar las DJ obligatorias del actor `INTERNO` (fuente única `services.recalcular_estado_declaraciones`, enganchada tras `annex-upload`); revisión humana `COMPLETAS→VALIDADAS`/`OBSERVADAS` en `POST /api/v1/interns/{id}/revisar-declaraciones/` (rol `Universidad`/`Administrador RENADS`). El internado no pasa a `ACTIVO` sin `estado_declaraciones = VALIDADAS`.
 - **RN-24 (universidades del tutor):** un **tutor** pertenece de **1 a 2 universidades** (tope de negocio) vía la tabla puente `tutor_universidad` (M2M `Tutor.universidades`). Regla única en `services.validar_universidades_tutor`, aplicada por `TutorSerializer` en create/update; el endpoint `/api/v1/tutors/` acepta y filtra por `universidades`.
 
+#### Reglas del módulo Calendario administrativo
+
+- **RN-26 (la ventana habilita la escritura del módulo):** una `CalendarActivity` (app `apps.calendario`, tabla `actividad_calendario`) con `controla_acceso = True` y `activo = True` **gobierna la escritura** (`POST`/`PUT`/`PATCH`/`DELETE`) de los modelos que referencia por M2M `content_types` (→ `django_content_type`). La escritura de un módulo gobernado se permite **solo** si existe ≥1 **ventana vigente**: `fecha_inicio <= hoy` y (`fecha_fin` NULL **o** `fecha_fin >= hoy`). **`fecha_fin` NULL = ventana abierta** (sin cierre). Semántica **OR** entre ventanas del mismo `ContentType` (basta una vigente). Módulo no referenciado ⇒ *pass-through* (nunca se bloquea).
+  - **Fuente única temporal — selector `apps/calendario/selectors.py`:** `content_types_controlados(now)` (quién está gobernado; sin filtro de fechas), `content_types_habilitados(now)` (subconjunto con ventana vigente) y `esta_habilitado(ct_id, now)` (`True` si no gobernado o con ventana vigente). Consumido por el permiso de escritura y por `/auth/me/`.
+  - **Gate de escritura — `IsModuleEnabled` (`apps/common/permissions.py`):** *opt-in* por atributo de vista `module_content_type = (app_label, model)`; si la vista no lo declara ⇒ *pass-through*. Solo gatea escritura (lectura `SAFE_METHODS` siempre libre); **exentos** superusuario y `Administrador RENADS`. Fuera de ventana deniega con **403** y `code = "MODULO_FUERA_DE_VENTANA"`. **ViewSets instrumentados:** `ConventionViewSet`, `InternshipViewSet`, `TeachingActivityViewSet`.
+  - **Exposición al frontend — `/auth/me/`:** `MeSerializer` (`apps/common/serializers.py`) agrega `modulos_habilitados` y `modulos_bloqueados`, cada uno lista de `{ app_label, model, content_type_id }` derivada del mismo selector. Reflejan el **estado temporal del módulo**, no la exención del admin (para admin/superusuario un módulo fuera de ventana aparece en `modulos_bloqueados` aunque el gate no lo bloquee).
+  - **Endpoints:** `/api/v1/content-types/` (solo lectura, `{id, app_label, model, verbose_name}`, `IsAuthenticated`) alimenta el selector `content_types[]`; `/api/v1/calendar-activities/` (CRUD, escritura solo `Administrador RENADS` con auditoría; lectura expone `responsables_detalle` y `content_types_detalle`; filtros `controla_acceso`, `activo`, `content_types`, rango de fechas). Detalle en `docs/db_schema_modulo_04_calendario.md` y `docs/api_accesos_frontend.md`.
+
 ### Requerimientos no funcionales clave para el API
 
 - **Autenticación y autorización** basada en roles y perfiles institucionales (RNF-SEG-01/02/03).
@@ -95,6 +104,7 @@ Especificaciones funcionales: archivos `0X_*.md` en la raíz del proyecto.
 | M1 — Gestionar Convenios | `convenios` | [docs/db_schema_modulo_01_convenios.md](docs/db_schema_modulo_01_convenios.md) |
 | M2 — Registrar Internados | `internados` | [docs/db_schema_modulo_02_internados.md](docs/db_schema_modulo_02_internados.md) |
 | M3 — Registrar Actividades | `actividades` | [docs/db_schema_modulo_03_actividades.md](docs/db_schema_modulo_03_actividades.md) |
+| M4 — Calendario administrativo | `calendario` | [docs/db_schema_modulo_04_calendario.md](docs/db_schema_modulo_04_calendario.md) |
 | Diagrama ER global | — | [docs/db_schema_er_global.md](docs/db_schema_er_global.md) |
 | Arquitectura de desarrollo (MVP) | — | [docs/arquitectura_desarrollo.md](docs/arquitectura_desarrollo.md) |
 | Alcance del MVP + metodología SDD | — | [docs/alcance_mvp.md](docs/alcance_mvp.md) |

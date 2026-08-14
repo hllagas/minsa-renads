@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from django.contrib.contenttypes.models import ContentType
 
-from apps.common.permissions import IsInstitutionalMember, exigir_ambito
+from apps.common.permissions import IsInstitutionalMember, IsModuleEnabled, exigir_ambito
 from apps.common.services import registrar_auditoria
 from apps.convenios.mixins import AnnexAttachmentMixin
 from apps.convenios.models import University
@@ -47,7 +47,8 @@ class InternshipViewSet(AnnexAttachmentMixin, viewsets.ModelViewSet):
     los PDFs se guardan como `Document` versionado por `(interno, documento_anexo)`.
     """
 
-    permission_classes = [IsAuthenticated, IsInstitutionalMember, InternshipScope, IsUniversityOrReadOnly]
+    permission_classes = [IsAuthenticated, IsInstitutionalMember, InternshipScope, IsUniversityOrReadOnly, IsModuleEnabled]
+    module_content_type = ("internados", "internship")
     annex_actor = "INTERNO"
     filterset_class = InternshipFilter
     search_fields = ["estudiante__numero_documento", "estudiante__nombres", "estudiante__apellido_paterno"]

@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     "apps.convenios",
     "apps.internados",
     "apps.actividades",
+    "apps.calendario",
 ]
 
 MIDDLEWARE = [

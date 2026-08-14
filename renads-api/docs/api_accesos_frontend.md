@@ -35,6 +35,12 @@ Respuesta:
   "perfiles": [
     { "tipo_entidad": "university", "id_objeto": 3, "entidad": "UNMSM", "rol": "Universidad" },
     { "tipo_entidad": "university", "id_objeto": 7, "entidad": "UPCH", "rol": "Universidad" }
+  ],
+  "modulos_habilitados": [
+    { "app_label": "internados", "model": "internship", "content_type_id": 42 }
+  ],
+  "modulos_bloqueados": [
+    { "app_label": "convenios", "model": "convention", "content_type_id": 31 }
   ]
 }
 ```
@@ -45,6 +51,14 @@ Respuesta:
 - **`es_superusuario`** y el rol **`Administrador RENADS`** están **exentos** del alcance: ven/operan sobre todo.
 - **`debe_cambiar_password: true`** ⇒ el interno tiene clave temporal; el front debe forzar el cambio
   antes de dejar operar (ver `docs/api_almacenamiento_frontend.md`).
+- **`modulos_habilitados`** / **`modulos_bloqueados`** = estado **temporal** de los módulos gobernados
+  por el **Calendario administrativo** (ver §8). Cada item es `{ app_label, model, content_type_id }`.
+  Un módulo aparece en `modulos_habilitados` si tiene una ventana de calendario vigente, o en
+  `modulos_bloqueados` si está gobernado pero fuera de ventana. Solo aparecen los módulos **gobernados**
+  (con `controla_acceso=True`); los no gobernados no figuran en ninguna lista (escritura libre).
+  > **Ojo:** estos campos reflejan el estado del módulo, **no** la exención del admin. Para
+  > `es_superusuario`/`Administrador RENADS` un módulo fuera de ventana igual aparece en
+  > `modulos_bloqueados`, aunque el backend **no** les bloquee la escritura.
 
 ### Derivar las universidades accesibles (front)
 
@@ -212,3 +226,75 @@ encadenados**. El interno se asigna a una **asignación por universidad**
 
 > El backend es la última línea: aunque el front oculte una acción, la API revalida rol y ámbito en
 > cada request. La UI solo **anticipa** el resultado para mejor experiencia.
+
+---
+
+## 8. Calendario administrativo — habilitación temporal de módulos
+
+El módulo **Calendario administrativo** gobierna **cuándo** se puede escribir en ciertos módulos.
+Una **actividad de calendario** con `controla_acceso=true` define una **ventana de fechas**
+(`fecha_inicio`..`fecha_fin`) durante la cual se habilita la escritura de los modelos que referencia
+(`content_types`). Fuera de esa ventana, la escritura de esos módulos responde **403**.
+
+- **`fecha_fin` NULL = ventana abierta** (sin cierre): vigente indefinidamente desde `fecha_inicio`.
+- **OR entre ventanas:** basta **una** actividad controladora con ventana vigente para habilitar el módulo.
+- **Módulo no gobernado** (ningún calendario lo referencia) ⇒ escritura siempre libre (*pass-through*).
+- **Exentos del bloqueo:** `es_superusuario` y `Administrador RENADS` (pero ver la nota de §1: igual
+  figuran en `modulos_bloqueados` si el módulo está fuera de ventana).
+
+### 8.1. Cómo el front gatea nav y acciones
+
+La fuente de verdad para el front son `modulos_habilitados` / `modulos_bloqueados` de
+`GET /api/v1/auth/me/` (§1). Con ellas:
+
+- **Navegación:** si un módulo (p. ej. `convenios/convention`) está en `modulos_bloqueados` y el usuario
+  **no** es global, atenúa/oculta las acciones de **alta/edición** de ese módulo y muestra el motivo
+  ("fuera de la ventana de registro"). La **lectura** siempre está permitida (no la bloquees).
+- **Botones de escritura:** habilítalos solo si el módulo está en `modulos_habilitados` **o** no aparece
+  en ninguna lista (no gobernado) **o** el usuario es global. Aun así, el backend revalida.
+- **Manejo del 403 de calendario:** si un `POST/PUT/PATCH/DELETE` a un módulo gobernado devuelve **403**
+  con `code = "MODULO_FUERA_DE_VENTANA"`, muestra el mensaje del backend ("El módulo está fuera de su
+  ventana de registro.") y refresca `/auth/me/` para re-sincronizar el estado.
+
+```js
+const me = await fetch("/api/v1/auth/me/", { headers: { Authorization: `Bearer ${access}` } })
+  .then((r) => r.json());
+
+const esGlobal = me.es_superusuario || me.grupos.includes("Administrador RENADS");
+const bloqueados = new Set(me.modulos_bloqueados.map((m) => `${m.app_label}.${m.model}`));
+
+// ¿Puede el usuario escribir en un módulo dado ahora mismo?
+function puedeEscribirModulo(appLabel, model) {
+  if (esGlobal) return true;                 // el admin no queda bloqueado por la ventana
+  return !bloqueados.has(`${appLabel}.${model}`); // habilitado o no gobernado
+}
+// p. ej. puedeEscribirModulo("internados", "internship")
+```
+
+### 8.2. Endpoint `GET /api/v1/content-types/` (solo lectura, autenticados)
+
+Lista los `ContentType` de Django con `{ id, app_label, model, verbose_name }`. Úsalo para:
+- poblar el selector `content_types[]` del CRUD de `calendar-activities`;
+- resolver el nombre legible (`verbose_name`) de los ítems de `modulos_habilitados`/`modulos_bloqueados`
+  (empatando por `content_type_id` o por `app_label`+`model`).
+
+### 8.3. CRUD `/api/v1/calendar-activities/`
+
+| Método | Escritura | Lectura |
+|--------|-----------|---------|
+| `GET` (list/detail) | — | Autenticados |
+| `POST` / `PUT` / `PATCH` / `DELETE` | Rol `Administrador RENADS` (con auditoría) | — |
+
+- **Lectura** expone, además de los campos base (`nombre`, `detalle`, `numero_orden`, `fecha_inicio`,
+  `fecha_fin`, `controla_acceso`, `activo` y auditoría): `responsables_detalle` (`[{ id, name }]` de los
+  roles) y `content_types_detalle` (`[{ id, app_label, model, verbose_name }]` de los módulos).
+- **Escritura** recibe `responsables` (lista de ids de grupo) y `content_types` (lista de ids de
+  ContentType). Validación: si `fecha_fin` no es nula, debe ser `>= fecha_inicio`.
+- **Filtros (query params):** `controla_acceso` (bool), `activo` (bool), `content_types` (id) y rango de
+  fechas.
+
+### 8.4. Errores propios del calendario
+
+| Código | Situación | Acción del front |
+|--------|-----------|------------------|
+| `403` (`code = "MODULO_FUERA_DE_VENTANA"`) | Escritura a un módulo gobernado fuera de su ventana de registro. | Mostrar el mensaje del backend; ocultar/atenuar la acción; refrescar `/auth/me/`. |
