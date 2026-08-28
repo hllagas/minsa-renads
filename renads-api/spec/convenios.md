@@ -8,9 +8,10 @@ Producido por el agente **spec** (SDD). El agente **implement** ejecuta estas ta
 
 Exponer vía DRF (bajo `/api/v1/`) los recursos del módulo: catálogos (solo lectura), entidades organizacionales/académicas, núcleo de convenios y flujo del convenio. La lógica de negocio (reglas RN) va en `services.py`; las lecturas en `selectors.py`; los ViewSets son delgados. Auth JWT ya existe (Fase 1-2); permisos base en `apps/common/`.
 
-**Convenciones:** clases en inglés; campos/tablas/`help_text` en español; **endpoints en inglés**; docstrings en español. No crear archivos de testing (fuera de alcance MVP).
+**Convenciones:** clases en inglés; campos/tablas/`help_text` en español; **endpoints en inglés**; docstrings en español. No crear archivos de testing (fuera de alcance MVP). 
 
 **Entidades del módulo** (modelos en `apps/convenios/models.py`):
+
 - Catálogos (18): `Region`, `HealthGeographicScope`, `ConventionType`, `ConventionStatus`, `DocumentType`, `UniversityManagementType`, `UniversityEntityType`, `AuthorizationType`, `AcademicLevel`, `Specialty`, `SigningAuthorityType`, `RegionalOrganType`, `ExecutingUnitType`, `MinsaOrganType`, `ExecutivePosition`, `ObservationReason`, `RejectionReason`, `ClosureReason`.
 - Entidades: `RegionalGovernment`, `RegionalOrgan`, `ExecutingUnit`, `Ipress`, `MinsaOrgan`, `Conapres`, `Representative`, `University`, `UniversityAuthority`, `Faculty`, `ProfessionalCareer`, `UniversityCampus`, `UserEntityProfile`.
   - `ProfessionalCareer` se simplificó: **sin** relación a `Faculty` ni a `Specialty` (solo `nombre`, `nivel_academico`, `activo`). Filtro del endpoint `professional-careers` por `nivel_academico`/`activo`.
@@ -19,6 +20,8 @@ Exponer vía DRF (bajo `/api/v1/`) los recursos del módulo: catálogos (solo le
 - Transversal: `Document`, `AuditLog`.
 
 ---
+
+
 
 ## T1 — Serializers (`apps/convenios/serializers.py`)
 
@@ -33,6 +36,8 @@ Exponer vía DRF (bajo `/api/v1/`) los recursos del módulo: catálogos (solo le
 
 ---
 
+
+
 ## T2 — Selectors (`apps/convenios/selectors.py`)
 
 - **T2.1** `convenios_visibles(usuario)`: queryset de `Convention` filtrado por alcance institucional (entidad solicitante/participante dentro de las entidades del usuario; superusuario ve todo). Usar helpers de `apps/common/selectors.py`.
@@ -43,6 +48,8 @@ Exponer vía DRF (bajo `/api/v1/`) los recursos del módulo: catálogos (solo le
 **Criterio:** las vistas no construyen querysets de negocio; usan selectors. El alcance institucional se aplica en `convenios_visibles`.
 
 ---
+
+
 
 ## T3 — Services (`apps/convenios/services.py`)
 
@@ -69,6 +76,8 @@ Toda escritura corre en `transaction.atomic()`, registra en `bitacora_auditoria`
 
 ---
 
+
+
 ## T4 — ViewSets (`apps/convenios/views.py`)
 
 - **T4.1** Catálogos: `ReadOnlyModelViewSet` por catálogo (list/retrieve).
@@ -82,6 +91,8 @@ Toda escritura corre en `transaction.atomic()`, registra en `bitacora_auditoria`
 
 ---
 
+
+
 ## T5 — Permissions (`apps/convenios/permissions.py`)
 
 - **T5.1** Por defecto `IsAuthenticated` (global) + `IsInstitutionalMember` (de `apps/common`).
@@ -93,6 +104,8 @@ Toda escritura corre en `transaction.atomic()`, registra en `bitacora_auditoria`
 
 ---
 
+
+
 ## T6 — Filters (`apps/convenios/filters.py`)
 
 - **T6.1** `ConventionFilter`: por `tipo_convenio`, `estado_actual`, `convenio_marco`, rango de `fecha_solicitud`/`fecha_inicio`/`fecha_fin`, `solicitante` (tipo+id).
@@ -103,6 +116,8 @@ Toda escritura corre en `transaction.atomic()`, registra en `bitacora_auditoria`
 
 ---
 
+
+
 ## T7 — URLs / router (`apps/convenios/urls.py` + registro en `config/api_urls.py`)
 
 - **T7.1** `DefaultRouter` del módulo registrando todos los ViewSets con **basenames en inglés** (p. ej. `conventions`, `convention-templates`, `clinical-fields`, `technical-evaluations`, `conapres-opinions`, `legal-opinions`, `signatures`, `publications`, `regional-governments`, `regional-organs`, `executing-units`, `ipress`, `minsa-organs`, `conapres`, `representatives`, `universities`, `university-authorities`, `faculties`, `professional-careers`, `university-campuses`, `documents`, y catálogos como `regions`, `specialties`, etc.).
@@ -112,6 +127,8 @@ Toda escritura corre en `transaction.atomic()`, registra en `bitacora_auditoria`
 **Criterio:** `manage.py check` limpio; `spectacular` genera sin error; los endpoints aparecen en el esquema.
 
 ---
+
+
 
 ## T8 — Catálogos maestros con CRUD (parametrizables, RNF-MAN-01/02/03)
 
@@ -133,6 +150,8 @@ Algunos catálogos dejan de ser de solo lectura y pasan a **CRUD completo** (lis
 
 ---
 
+
+
 ## Referencias
 
 - **Reglas de negocio (§6 del módulo 1):** RN-3 (Específico→Marco vigente, **excepción DIRIS**) → T3.1; solicitud de Marco solo GERESA/DIRESA → T3.1; CONAPRES/campos clínicos solo Específico → T3.4/T3.5; **OGAJ solo Marco** → T3.6; **autorización de sede docente por CONAPRES** → T3.10; **asignación de campos clínicos** (total CONAPRES por sede/carrera; cantidad por universidad GERESA/DIRESA/DIRIS) → T3.5; no firmar con observaciones pendientes → T3.7; trazabilidad de estados → T3.2 + `ConventionStatusHistory`; versionado documental → T4.5/`Document`.
@@ -140,5 +159,8 @@ Algunos catálogos dejan de ser de solo lectura y pasan a **CRUD completo** (lis
 - **Schema:** tablas y columnas exactas en `docs/db_schema_modulo_01_convenios.md`. No inventar campos.
 - **Auth/permisos base:** `apps/common/permissions.py`, `apps/common/selectors.py`.
 
+
+
 ## Fuera de alcance (este spec)
+
 Testing automatizado; generación real de PDF/plantillas; integración del repositorio externo de archivos (solo se guarda `referencia_externa`); reportes/exportación.

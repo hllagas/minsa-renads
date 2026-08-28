@@ -36,14 +36,10 @@ Tablas paramétricas (RNF-MAN-01). Patrón común: `id` (PK), `codigo` (varchar,
 | `estado_convenio` | Estados del flujo (26) | `aplica_a` (`TODOS` \| `ESPECIFICO`), `orden` (int) |
 | `tipo_documento` | Tipos de documento | — |
 | `tipo_gestion_universidad` | Tipo de gestión | valores: `PUBLICA`, `PRIVADA` |
-| `tipo_entidad_universidad` | Tipo de entidad educativa | valores: `UNIVERSIDAD`, `ESCUELA_POSGRADO`, `ESCUELA_SUPERIOR`, `INSTITUTO` |
 | `tipo_autorizacion` | Estado de autorización SUNEDU | valores: `LICENCIADA`, `DENEGADA`, `PENDIENTE` |
 | `nivel_academico` | Nivel académico de la carrera | valores: `PREGRADO`, `SEGUNDA_ESPECIALIDAD`, `MAESTRIA`, `DOCTORADO` |
 | `especialidad` | Especialidades de salud (seed: 46 especialidades médicas, nomenclatura oficial CONAREME) | — |
 | `tipo_autoridad_firmante` | Tipo de autoridad firmante | — |
-| `tipo_organo_regional` | Tipo de órgano regional | valores: `GERESA`, `DIRESA`, `DIRIS` |
-| `tipo_unidad_ejecutora` | Tipo de unidad ejecutora | valores: `HOSPITAL`, `INSTITUTO_ESPECIALIZADO`, `RED_SALUD` |
-| `tipo_organo_minsa` | Órgano del MINSA | valores: `DIGEP`, `OGAJ`, `SG`, `VICEPAS` |
 | `cargo_ejecutivo` | Cargos ejecutivos de representantes | — |
 | `motivo_observacion` | Motivos de observación | — |
 | `motivo_rechazo` | Motivos de rechazo | — |
@@ -79,6 +75,28 @@ Tablas paramétricas (RNF-MAN-01). Patrón común: `id` (PK), `codigo` (varchar,
 
 `unique_together = (red, codigo)`.
 
+### `tipo_organo` — catálogo unificado de tipos de órgano
+
+No hereda de `Catalog` (unicidad por `(organo, codigo)`, no global). Reemplaza las cuatro tablas `tipo_entidad_universidad`, `tipo_organo_regional`, `tipo_unidad_ejecutora` y `tipo_organo_minsa`.
+
+| Columna | Tipo | Null | Descripción |
+|---------|------|------|-------------|
+| `id` | PK | No | |
+| `organo` | varchar(20) | No | Categoría: `MINSA`, `UNIVERSIDAD`, `ORGANO_REGIONAL`, `UNIDAD_EJECUTORA` |
+| `codigo` | varchar(50) | No | Código del tipo (único dentro de la categoría) |
+| `nombre` | varchar(255) | No | Nombre |
+| `activo` | bool | No | |
+
+`unique_together = (organo, codigo)`. Seed: 14 registros canónicos.
+
+Valores por categoría:
+- `UNIVERSIDAD`: `UNIVERSIDAD`, `ESCUELA_POSGRADO`, `ESCUELA_SUPERIOR`, `INSTITUTO`
+- `ORGANO_REGIONAL`: `GERESA`, `DIRESA`, `DIRIS`
+- `UNIDAD_EJECUTORA`: `HOSPITAL`, `INSTITUTO_ESPECIALIZADO`, `RED_SALUD`
+- `MINSA`: `DIGEP`, `OGAJ`, `SG`, `VICEPAS`
+
+---
+
 ### Valores del catálogo `estado_convenio`
 
 `aplica_a = ESPECIFICO` marca los exclusivos de Convenio Específico:
@@ -107,7 +125,7 @@ Jerarquía: **GORE → Órgano Regional (GERESA/DIRESA/DIRIS) → Unidad Ejecuto
 |---------|------|------|-------------|
 | `id` | PK | No | |
 | `gobierno_regional_id` | FK → `gobierno_regional` | No | GORE al que pertenece |
-| `tipo_organo_regional_id` | FK → `tipo_organo_regional` | No | GERESA / DIRESA / DIRIS |
+| `tipo_organo_id` | FK → `tipo_organo` (PROTECT) | No | GERESA / DIRESA / DIRIS (discriminador `ORGANO_REGIONAL`) |
 | `nombre` | varchar(255) | No | Nombre del órgano |
 | `siglas` | varchar(50) | Sí | Siglas |
 | `direccion` | varchar(500) | Sí | Dirección |
@@ -121,7 +139,7 @@ Jerarquía: **GORE → Órgano Regional (GERESA/DIRESA/DIRIS) → Unidad Ejecuto
 |---------|------|------|-------------|
 | `id` | PK | No | |
 | `organo_regional_id` | FK → `organo_regional` | No | Órgano regional que la administra |
-| `tipo_unidad_ejecutora_id` | FK → `tipo_unidad_ejecutora` | No | Hospital / Instituto / Red |
+| `tipo_organo_id` | FK → `tipo_organo` (PROTECT) | No | Hospital / Instituto especializado / Red de salud (discriminador `UNIDAD_EJECUTORA`) |
 | `nombre` | varchar(255) | No | Nombre |
 | `codigo` | varchar(50) | Sí | Código presupuestal de la unidad ejecutora |
 | `direccion` | varchar(500) | Sí | Dirección |
@@ -164,7 +182,7 @@ Jerarquía: **GORE → Órgano Regional (GERESA/DIRESA/DIRIS) → Unidad Ejecuto
 | Columna | Tipo | Null | Descripción |
 |---------|------|------|-------------|
 | `id` | PK | No | |
-| `tipo_organo_minsa_id` | FK → `tipo_organo_minsa` | No | DIGEP / OGAJ / SG / VICEPAS |
+| `tipo_organo_id` | FK → `tipo_organo` (PROTECT) | No | DIGEP / OGAJ / SG / VICEPAS (discriminador `MINSA`) |
 | `nombre` | varchar(255) | No | Nombre del órgano |
 | `siglas` | varchar(50) | Sí | Siglas |
 | `activo` | bool | No | |
@@ -198,7 +216,7 @@ Los miembros de CONAPRES se registran en la tabla genérica `representante` (sec
 | `nombre` | varchar(255) | No | Nombre de la universidad |
 | `siglas` | varchar(50) | Sí | Siglas |
 | `tipo_gestion_id` | FK → `tipo_gestion_universidad` | No | Pública / privada |
-| `tipo_entidad_id` | FK → `tipo_entidad_universidad` | No | Universidad / Escuela posgrado / Escuela superior / Instituto |
+| `tipo_entidad_id` | FK → `tipo_organo` (PROTECT) | No | Universidad / Escuela posgrado / Escuela superior / Instituto (discriminador `UNIVERSIDAD`) |
 | `tipo_autorizacion_id` | FK → `tipo_autorizacion` | No | Licenciada / Denegada / Pendiente |
 | `codigo_inei` | varchar(20) | Sí | Código INEI |
 | `fecha_constitucion` | date | Sí | Fecha de constitución |
@@ -553,19 +571,19 @@ Se adjunta a: `convenio`, `evaluacion_tecnica`, `opinion_conapres`, `campo_clini
 ubigeo (distrito INEI) >──< organo_regional / unidad_ejecutora / ipress / universidad / local_universidad   (también estudiante / tutor del módulo 2)
 gobierno_regional ──< organo_regional ──< unidad_ejecutora ──< ipress
 gobierno_regional >── region
-organo_regional >── tipo_organo_regional
-unidad_ejecutora >── tipo_unidad_ejecutora
+organo_regional >── tipo_organo (discriminador ORGANO_REGIONAL)
+unidad_ejecutora >── tipo_organo (discriminador UNIDAD_EJECUTORA)
 ipress >── ambito_geografico_sanitario
 ambito_geografico_sanitario ──< red ──< microred ──< ipress
 ipress >── categoria / tipo_clasificacion / microred
 
-organo_minsa >── tipo_organo_minsa
+organo_minsa >── tipo_organo (discriminador MINSA)
 conapres
 
 representante >── django_content_type (entidad representada: organo_minsa / organo_regional / unidad_ejecutora / ipress / conapres)
 representante >── cargo_ejecutivo
 
-universidad >── tipo_gestion_universidad / tipo_entidad_universidad / tipo_autorizacion
+universidad >── tipo_gestion_universidad / tipo_organo (discriminador UNIVERSIDAD) / tipo_autorizacion
 universidad ──< autoridad_universidad
 universidad ──< facultad
 carrera_profesional >── nivel_academico
@@ -600,7 +618,7 @@ bitacora_auditoria >── django_content_type   (genérico → cualquier entida
 ## 13. Trazabilidad de requerimientos
 
 - **RN-3 (Específico requiere Marco vigente):** `convenio.convenio_marco_id`. **Excepción DIRIS:** solicitan Específico sin Marco (`convenio_marco_id` nulo).
-- **Solicitud de Convenio Marco (solo GERESA/DIRESA):** validación sobre la entidad solicitante (`organo_regional → tipo_organo_regional`).
+- **Solicitud de Convenio Marco (solo GERESA/DIRESA):** validación sobre la entidad solicitante (`organo_regional → tipo_organo`, discriminador `ORGANO_REGIONAL`).
 - **CONAPRES y campos clínicos solo en Específico:** tablas `opinion_conapres`, `campo_clinico_ipress` y `campo_clinico_ipress_universidad`; estados con `aplica_a = ESPECIFICO`.
 - **Opinión jurídica (OGAJ) solo para Marco:** `opinion_juridica` se registra únicamente cuando `convenio.tipo_convenio = MARCO`.
 - **Opinión favorable (CONAPRES) solo para Específico:** `opinion_conapres`.

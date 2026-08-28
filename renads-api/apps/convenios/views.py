@@ -473,7 +473,6 @@ CATALOG_VIEWSETS = {
     "university-management-types": _catalog_viewset(m.UniversityManagementType),
     "specialties": _catalog_viewset(m.Specialty),
     "signing-authority-types": _catalog_viewset(m.SigningAuthorityType),
-    "executing-unit-types": _catalog_viewset(m.ExecutingUnitType),
     "executive-positions": _catalog_viewset(m.ExecutivePosition),
     "observation-reasons": _catalog_viewset(m.ObservationReason),
     "rejection-reasons": _catalog_viewset(m.RejectionReason),
@@ -489,20 +488,16 @@ ENTITY_VIEWSETS = {
     "document-types": _entity_viewset(
         m.DocumentType, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
     ),
-    "university-entity-types": _entity_viewset(
-        m.UniversityEntityType, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
-    ),
     "authorization-types": _entity_viewset(
         m.AuthorizationType, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
     ),
     "academic-levels": _entity_viewset(
         m.AcademicLevel, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
     ),
-    "regional-organ-types": _entity_viewset(
-        m.RegionalOrganType, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
-    ),
-    "minsa-organ-types": _entity_viewset(
-        m.MinsaOrganType, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
+    "organ-types": _entity_viewset(
+        m.OrganType,
+        filterset_fields=["organo", "activo"],
+        search_fields=["codigo", "nombre"],
     ),
     "categories": _entity_viewset(
         m.Category, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
@@ -523,19 +518,19 @@ ENTITY_VIEWSETS = {
     ),
     "regional-organs": _entity_viewset(
         m.RegionalOrgan,
-        filterset_fields=["gobierno_regional", "tipo_organo_regional", "activo"],
+        filterset_fields=["gobierno_regional", "tipo_organo", "activo"],
         search_fields=["nombre", "siglas"],
         logo=True,
     ),
     "executing-units": _entity_viewset(
         m.ExecutingUnit,
-        filterset_fields=["organo_regional", "tipo_unidad_ejecutora", "activo"],
+        filterset_fields=["organo_regional", "tipo_organo", "activo"],
         search_fields=["nombre", "codigo"],
         logo=True,
     ),
     "ipress": IpressViewSet,
     "minsa-organs": _entity_viewset(
-        m.MinsaOrgan, filterset_fields=["tipo_organo_minsa", "activo"], search_fields=["nombre", "siglas"]
+        m.MinsaOrgan, filterset_fields=["tipo_organo", "activo"], search_fields=["nombre", "siglas"]
     ),
     "conapres": _entity_viewset(m.Conapres, filterset_fields=["activo"], search_fields=["nombre"]),
     "universities": _entity_viewset(

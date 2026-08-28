@@ -39,7 +39,7 @@ class ConventionReadSerializer(serializers.ModelSerializer):
     # (no se almacena en `convenio`), evitando redundancia en el esquema.
     organo_regional_nombre = serializers.CharField(source="organo_regional.nombre", read_only=True)
     tipo_organo_regional = serializers.CharField(
-        source="organo_regional.tipo_organo_regional.nombre", read_only=True
+        source="organo_regional.tipo_organo.nombre", read_only=True
     )
     universidad_nombre = serializers.CharField(source="universidad.nombre", read_only=True)
     tipo_entidad_universidad = serializers.CharField(

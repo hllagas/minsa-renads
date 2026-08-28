@@ -91,7 +91,7 @@ Sistema de información del MINSA (Perú) para registrar, controlar y dar seguim
 - **Expiración automática de sesión** (RNF-SEG-07).
 - **Filtros eficientes** por convenio, universidad, región, sede, estudiante y periodo (RNF-REN-02).
 - **Exportación** de reportes en PDF y Excel (RNF-INT-03).
-- **Catálogos parametrizables** sin cambios de código (RNF-MAN-01/02/03). Los catálogos maestros con **CRUD** (escritura solo `Administrador RENADS`, con auditoría) son: `health-geographic-scopes`, `document-types`, `university-entity-types`, `authorization-types`, `academic-levels`, `regional-organ-types`, `minsa-organ-types`, `categories`, `classification-types`, más la jerarquía geográfica `networks` (`red`) y `micro-networks` (`microred`) (todos en `apps/convenios`, promovidos de solo lectura a `ENTITY_VIEWSETS`) y `annex-documents` (`apps/internados`, filtrable por `tipo_actor`). El resto de catálogos siguen de solo lectura.
+- **Catálogos parametrizables** sin cambios de código (RNF-MAN-01/02/03). Los catálogos maestros con **CRUD** (escritura solo `Administrador RENADS`, con auditoría) son: `health-geographic-scopes`, `document-types`, `organ-types` (filtrable por `organo`; unifica `university-entity-types`, `regional-organ-types`, `minsa-organ-types` y el antiguo `executing-unit-types`), `authorization-types`, `academic-levels`, `categories`, `classification-types`, más la jerarquía geográfica `networks` (`red`) y `micro-networks` (`microred`) (todos en `apps/convenios`, promovidos de solo lectura a `ENTITY_VIEWSETS`) y `annex-documents` (`apps/internados`, filtrable por `tipo_actor`). El resto de catálogos siguen de solo lectura.
 
 ### Documentación de referencia
 

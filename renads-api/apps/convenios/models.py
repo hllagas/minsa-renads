@@ -132,12 +132,6 @@ class UniversityManagementType(Catalog):
         verbose_name = "tipo de gestión de universidad"
 
 
-class UniversityEntityType(Catalog):
-    class Meta:
-        db_table = "tipo_entidad_universidad"
-        verbose_name = "tipo de entidad de universidad"
-
-
 class AuthorizationType(Catalog):
     class Meta:
         db_table = "tipo_autorizacion"
@@ -162,22 +156,39 @@ class SigningAuthorityType(Catalog):
         verbose_name = "tipo de autoridad firmante"
 
 
-class RegionalOrganType(Catalog):
+class OrganCategory(models.TextChoices):
+    MINSA = "MINSA", "MINSA"
+    UNIVERSIDAD = "UNIVERSIDAD", "Universidad"
+    ORGANO_REGIONAL = "ORGANO_REGIONAL", "Órgano regional"
+    UNIDAD_EJECUTORA = "UNIDAD_EJECUTORA", "Unidad ejecutora"
+
+
+class OrganType(models.Model):
+    """Tipo de órgano/entidad institucional (unifica cuatro tablas de catálogo previas).
+
+    No hereda de ``Catalog`` porque la unicidad de ``codigo`` es por
+    ``organo``, no global — ver ``unique_together``.
+    """
+
+    organo = models.CharField(
+        "categoría de órgano",
+        max_length=20,
+        choices=OrganCategory.choices,
+        help_text="Categoría del órgano: MINSA, UNIVERSIDAD, ORGANO_REGIONAL o UNIDAD_EJECUTORA",
+    )
+    codigo = models.CharField("código", max_length=50, help_text="Código del tipo (único dentro de la categoría)")
+    nombre = models.CharField("nombre", max_length=255, help_text="Nombre")
+    activo = models.BooleanField("activo", default=True, help_text="Indica si está activo")
+
     class Meta:
-        db_table = "tipo_organo_regional"
-        verbose_name = "tipo de órgano regional"
+        db_table = "tipo_organo"
+        verbose_name = "tipo de órgano"
+        verbose_name_plural = "tipos de órgano"
+        unique_together = (("organo", "codigo"),)
+        ordering = ["organo", "codigo"]
 
-
-class ExecutingUnitType(Catalog):
-    class Meta:
-        db_table = "tipo_unidad_ejecutora"
-        verbose_name = "tipo de unidad ejecutora"
-
-
-class MinsaOrganType(Catalog):
-    class Meta:
-        db_table = "tipo_organo_minsa"
-        verbose_name = "tipo de órgano del MINSA"
+    def __str__(self):
+        return self.nombre
 
 
 class ExecutivePosition(Catalog):
@@ -264,9 +275,9 @@ class RegionalOrgan(models.Model):
         RegionalGovernment, on_delete=models.PROTECT, db_column="gobierno_regional_id",
         related_name="organos", help_text="GORE al que pertenece",
     )
-    tipo_organo_regional = models.ForeignKey(
-        RegionalOrganType, on_delete=models.PROTECT, db_column="tipo_organo_regional_id",
-        help_text="GERESA / DIRESA / DIRIS",
+    tipo_organo = models.ForeignKey(
+        OrganType, on_delete=models.PROTECT, db_column="tipo_organo_id",
+        help_text="GERESA / DIRESA / DIRIS (discriminador: ORGANO_REGIONAL)",
     )
     nombre = models.CharField("nombre", max_length=255, help_text="Nombre del órgano")
     siglas = models.CharField("siglas", max_length=50, blank=True, help_text="Siglas")
@@ -294,9 +305,9 @@ class ExecutingUnit(models.Model):
         RegionalOrgan, on_delete=models.PROTECT, db_column="organo_regional_id",
         related_name="unidades_ejecutoras", help_text="Órgano regional que la administra",
     )
-    tipo_unidad_ejecutora = models.ForeignKey(
-        ExecutingUnitType, on_delete=models.PROTECT, db_column="tipo_unidad_ejecutora_id",
-        help_text="Hospital / Instituto / Red",
+    tipo_organo = models.ForeignKey(
+        OrganType, on_delete=models.PROTECT, db_column="tipo_organo_id",
+        help_text="Hospital / Instituto especializado / Red de salud (discriminador: UNIDAD_EJECUTORA)",
     )
     nombre = models.CharField("nombre", max_length=255, help_text="Nombre")
     codigo = models.CharField("código", max_length=50, blank=True, help_text="Código presupuestal")
@@ -386,9 +397,9 @@ class Ipress(models.Model):
 # Entidades — MINSA
 # ---------------------------------------------------------------------------
 class MinsaOrgan(models.Model):
-    tipo_organo_minsa = models.ForeignKey(
-        MinsaOrganType, on_delete=models.PROTECT, db_column="tipo_organo_minsa_id",
-        help_text="DIGEP / OGAJ / SG / VICEPAS",
+    tipo_organo = models.ForeignKey(
+        OrganType, on_delete=models.PROTECT, db_column="tipo_organo_id",
+        help_text="DIGEP / OGAJ / SG / VICEPAS (discriminador: MINSA)",
     )
     nombre = models.CharField("nombre", max_length=255, help_text="Nombre del órgano")
     siglas = models.CharField("siglas", max_length=50, blank=True, help_text="Siglas")
@@ -466,8 +477,8 @@ class University(models.Model):
         help_text="Pública / privada",
     )
     tipo_entidad = models.ForeignKey(
-        UniversityEntityType, on_delete=models.PROTECT, db_column="tipo_entidad_id",
-        help_text="Universidad / Escuela posgrado / Escuela superior / Instituto",
+        OrganType, on_delete=models.PROTECT, db_column="tipo_entidad_id",
+        help_text="Universidad / Escuela posgrado / Escuela superior / Instituto (discriminador: UNIVERSIDAD)",
     )
     tipo_autorizacion = models.ForeignKey(
         AuthorizationType, on_delete=models.PROTECT, db_column="tipo_autorizacion_id",
