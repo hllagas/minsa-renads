@@ -156,11 +156,23 @@ class SigningAuthorityType(Catalog):
         verbose_name = "tipo de autoridad firmante"
 
 
-class OrganCategory(models.TextChoices):
-    MINSA = "MINSA", "MINSA"
-    UNIVERSIDAD = "UNIVERSIDAD", "Universidad"
-    ORGANO_REGIONAL = "ORGANO_REGIONAL", "Órgano regional"
-    UNIDAD_EJECUTORA = "UNIDAD_EJECUTORA", "Unidad ejecutora"
+class Organ(models.Model):
+    """Categoría de órgano institucional (tabla normalizada que reemplaza el CharField discriminador).
+
+    Las cuatro categorías canónicas son: Órgano del MINSA, Universidad,
+    Órgano Regional y Unidad Ejecutora.
+    """
+
+    nombre = models.CharField("nombre", max_length=255, help_text="Nombre del órgano")
+    estado = models.BooleanField("estado", default=True, help_text="Indica si está activo")
+
+    class Meta:
+        db_table = "organo"
+        verbose_name = "órgano"
+        verbose_name_plural = "órganos"
+
+    def __str__(self):
+        return self.nombre
 
 
 class OrganType(models.Model):
@@ -170,11 +182,13 @@ class OrganType(models.Model):
     ``organo``, no global — ver ``unique_together``.
     """
 
-    organo = models.CharField(
-        "categoría de órgano",
-        max_length=20,
-        choices=OrganCategory.choices,
-        help_text="Categoría del órgano: MINSA, UNIVERSIDAD, ORGANO_REGIONAL o UNIDAD_EJECUTORA",
+    organo = models.ForeignKey(
+        "Organ",
+        on_delete=models.PROTECT,
+        verbose_name="órgano",
+        db_column="organo_id",
+        related_name="tipos",
+        help_text="Categoría del órgano (Órgano del MINSA / Universidad / Órgano Regional / Unidad Ejecutora)",
     )
     codigo = models.CharField("código", max_length=50, help_text="Código del tipo (único dentro de la categoría)")
     nombre = models.CharField("nombre", max_length=255, help_text="Nombre")

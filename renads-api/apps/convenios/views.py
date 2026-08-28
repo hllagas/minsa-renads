@@ -482,6 +482,7 @@ CATALOG_VIEWSETS = {
 # Entidades (CRUD): basename -> ViewSet
 ENTITY_VIEWSETS = {
     # Catálogos maestros con CRUD (escritura solo Administrador RENADS; con auditoría).
+    "organs": _entity_viewset(m.Organ, filterset_fields=["estado"], search_fields=["nombre"]),
     "health-geographic-scopes": _entity_viewset(
         m.HealthGeographicScope, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
     ),

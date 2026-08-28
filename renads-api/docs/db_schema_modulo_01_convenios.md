@@ -75,25 +75,37 @@ Tablas paramétricas (RNF-MAN-01). Patrón común: `id` (PK), `codigo` (varchar,
 
 `unique_together = (red, codigo)`.
 
-### `tipo_organo` — catálogo unificado de tipos de órgano
+### `organo` — categorías de órgano (tabla normalizada)
 
-No hereda de `Catalog` (unicidad por `(organo, codigo)`, no global). Reemplaza las cuatro tablas `tipo_entidad_universidad`, `tipo_organo_regional`, `tipo_unidad_ejecutora` y `tipo_organo_minsa`.
+Reemplaza el campo discriminador `VARCHAR` que tenía `tipo_organo.organo`. Contiene las cuatro categorías canónicas. Endpoint: `/api/v1/organs/` (CRUD, escritura solo `Administrador RENADS`).
 
 | Columna | Tipo | Null | Descripción |
 |---------|------|------|-------------|
 | `id` | PK | No | |
-| `organo` | varchar(20) | No | Categoría: `MINSA`, `UNIVERSIDAD`, `ORGANO_REGIONAL`, `UNIDAD_EJECUTORA` |
+| `nombre` | varchar(255) | No | Nombre del órgano |
+| `estado` | bool | No | Indica si está activo (default `true`) |
+
+Seed: 4 registros — `Órgano del MINSA`, `Universidad`, `Órgano Regional`, `Unidad Ejecutora`.
+
+### `tipo_organo` — catálogo unificado de tipos de órgano
+
+No hereda de `Catalog` (unicidad por `(organo_id, codigo)`, no global). Reemplaza las cuatro tablas `tipo_entidad_universidad`, `tipo_organo_regional`, `tipo_unidad_ejecutora` y `tipo_organo_minsa`.
+
+| Columna | Tipo | Null | Descripción |
+|---------|------|------|-------------|
+| `id` | PK | No | |
+| `organo_id` | FK → `organo` (PROTECT) | No | Categoría del órgano |
 | `codigo` | varchar(50) | No | Código del tipo (único dentro de la categoría) |
 | `nombre` | varchar(255) | No | Nombre |
 | `activo` | bool | No | |
 
-`unique_together = (organo, codigo)`. Seed: 14 registros canónicos.
+`unique_together = (organo_id, codigo)`. Seed: 14 registros canónicos.
 
-Valores por categoría:
-- `UNIVERSIDAD`: `UNIVERSIDAD`, `ESCUELA_POSGRADO`, `ESCUELA_SUPERIOR`, `INSTITUTO`
-- `ORGANO_REGIONAL`: `GERESA`, `DIRESA`, `DIRIS`
-- `UNIDAD_EJECUTORA`: `HOSPITAL`, `INSTITUTO_ESPECIALIZADO`, `RED_SALUD`
-- `MINSA`: `DIGEP`, `OGAJ`, `SG`, `VICEPAS`
+Valores por categoría (filtrar con `?organo=<id>` en `/api/v1/organ-types/`):
+- Órgano del MINSA: `DIGEP`, `OGAJ`, `SG`, `VICEPAS`
+- Universidad: `UNIVERSIDAD`, `ESCUELA_POSGRADO`, `ESCUELA_SUPERIOR`, `INSTITUTO`
+- Órgano Regional: `GERESA`, `DIRESA`, `DIRIS`
+- Unidad Ejecutora: `HOSPITAL`, `INSTITUTO_ESPECIALIZADO`, `RED_SALUD`
 
 ---
 
