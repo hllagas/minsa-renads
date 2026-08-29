@@ -25,7 +25,7 @@ campos, roles, estados) sin necesidad de abrir el repo del backend:
 | `docs/api-almacenamiento.md` | **Transversal** — adjuntos reales: logos de entidades (`upload-logo`/`logo-url`) y PDFs de anexos por actor (`annex-checklist`/`annex-upload`), sobre GCS + signed URLs; incluye Feature F3 (contraseña temporal + declaraciones juradas) |
 | `docs/frontend-conventions.md` | Idioma, SDD, cliente HTTP, gating por rol, estructura propuesta |
 
-### Estado de módulos (actualizado 2026-08-28)
+### Estado de módulos (actualizado 2026-08-29)
 
 | # | Módulo | Ruta front | Estado | Spec / Validación |
 |---|--------|-----------|--------|-------------------|
@@ -46,7 +46,8 @@ campos, roles, estados) sin necesidad de abrir el repo del backend:
 
 1. **Gestionar Convenios** (`apps/convenios`) — convenios Marco/Específicos, evaluaciones, opiniones (DIGEP/CONAPRES/OGAJ), firmas, publicación, vigencia.
    - **CRUD transversales del Módulo 1** (`apps/convenios` + `apps/common`): catálogos, entidades organizacionales/académicas (CRUD, escritura `Administrador RENADS`), representantes, `user-entity-profiles`, **documentos** (`documents`, gestión documental polimórfica con versionado) y **bitácora de auditoría** (`audit-logs`, solo lectura, `Administrador RENADS`/Auditor). Contrato: `docs/api-catalogos.md`. Rutas front: `/catalogos` y `/usuarios`.
-   - **Catálogos con CRUD completo** (escritura `Administrador RENADS`, filtro `activo`, search `codigo`/`nombre`): `document-types`, `university-entity-types`, `authorization-types`, `academic-levels`, `regional-organ-types`, `minsa-organ-types`, `categories`, `classification-types`, `health-geographic-scopes` (9 catálogos). Los demás son solo lectura.
+   - **Catálogos con CRUD completo** (escritura `Administrador RENADS`, filtro `activo`, search `codigo`/`nombre`): `authorization-types`, `academic-levels`, `organ-types` (unifica los antiguos `regional-organ-types`/`minsa-organ-types`/`executing-unit-types`, FK `organo`), `executive-positions` (FK `organo`), `categories`, `classification-types`, `health-geographic-scopes` (7 catálogos). `organs` (4 categorías canónicas) es solo lectura. Los demás son solo lectura.
+   - **Refactor 2026-08 — tabla de órganos unificada:** el backend eliminó las tablas `regional-organs`, `minsa-organs`, `regional-organ-types`, `minsa-organ-types`, `executing-unit-types`, `document-types`, `university-entity-types` y las reemplazó con: `organs` (categoría: MINSA/Universidad/Órgano Regional/UE), `organ-types` (tipo dentro de la categoría), `organ-directories` (directorio unificado de órganos, discriminado por `organo` FK). `executing-units` cambió FK de `organo_regional`→`organo_directorio` y `tipo_unidad_ejecutora`→`tipo_organo`. `Convention` cambió campo `organo_regional`→`organo_directorio`. `University.tipo_entidad` ahora apunta a `OrganType` (no `UniversityEntityType`). Representantes renombrados de `representatives`→`organ-representatives`. `university-authorities` eliminado.
    - **Estructura sanitaria (CRUD `Administrador RENADS`):** `networks` (`Red`, FK `ambito_geografico_sanitario` → `health-geographic-scopes`) y `micro-networks` (`Microred`, FK `red`). Jerarquía ámbito → red → microrred. **Config de front implementada** en `lib/catalogos/entities.ts` (`SANITARY_ENTITY_CONFIGS`); accesibles desde `/catalogos/entidades/networks` y `/catalogos/entidades/micro-networks`. El alta de microrred usa selector virtual de ámbito que filtra `red` en cascada (campo virtual `_ambito`, `N9-N11`). Contrato: `docs/api-catalogos.md` §1.2.
    - **Sede docente IPRESS:** campo booleano `ipress.es_sede_docente`; acción `POST /ipress/{id}/autorizar-sede-docente/` solo rol `CONAPRES`. UI en `components/catalogos/ipress-sede-docente-action.tsx`. Requisito para registrar campos clínicos.
    - **Borrado protegido → HTTP 409** (`ProtectedDeleteConflict`): al eliminar un registro referenciado por FK protegida, el backend devuelve 409 con mensaje legible. El front muestra el detalle (`extractApiError`).
@@ -70,10 +71,11 @@ campos, roles, estados) sin necesidad de abrir el repo del backend:
 5. **Calendario de Actividades** (`/calendario`, `apps/calendario`) — programación de actividades administrativas del proceso docencia-servicio. **Solo rol `Administrador RENADS`.** Implementado en `lib/calendario/activities.ts` + páginas en `app/(app)/calendario/`. El campo `responsables` es texto libre (sin M2M).
 
 **Adjuntos reales (transversal, Módulos 1–2):** subida/visualización de **logos** de entidades
-(`universities`, `regional-governments`, `regional-organs`, `executing-units`, `ipress`) con fallback
-institucional, y **anexos PDF** (declaraciones juradas por actor: `interns`, `university-authorities`,
-`representatives`). Contrato: `docs/api-almacenamiento.md`. Capa API en `lib/api/storage.ts`; UI en
-`components/ui/entity-logo.tsx`, `components/catalogos/logo-upload-dialog.tsx`,
+(`universities`, `regional-governments`, `organ-directories`, `executing-units`, `ipress`) con fallback
+institucional, y **anexos PDF** (declaraciones juradas por actor: `interns` (INTERNO),
+`organ-representatives` (REPRESENTANTE)). Contrato: `docs/api-almacenamiento.md`. Capa API en
+`lib/api/storage.ts`; UI en `components/ui/entity-logo.tsx`,
+`components/catalogos/logo-upload-dialog.tsx`,
 `components/almacenamiento/annex-checklist-dialog.tsx`.
 
 Más auth/transversal (`apps/common`): login JWT, `/auth/me`, alcance institucional, auditoría, y
@@ -157,6 +159,13 @@ Librerías del proyecto (rol fijo por convención):
 - `lib/api/flow.ts` — `useResourceAction` (acciones de flujo genéricas), `useResourceSubList`.
 - `components/form/entity-combobox.tsx` — select FK server-side con búsqueda.
 - `components/form/multi-entity-combobox.tsx` — select múltiple server-side.
+
+## Refactors de backend aplicados al frontend
+
+| Fecha | Cambio | Archivos front afectados |
+|-------|--------|--------------------------|
+| 2026-08-29 | `regional-organs`/`minsa-organs` → `organ-directories`; `regional-organ-types`/`minsa-organ-types`/`executing-unit-types` → `organ-types`; `organs` (tabla de categorías); `executive-positions` ahora writable con FK `organo`; `document-types`/`university-entity-types`/`university-authorities` eliminados; `representatives` → `organ-representatives`; `Convention.organo_regional` → `organo_directorio`; `TechnicalEvaluation.organo_minsa` → `organo_directorio`; `ExecutingUnit.organo_regional`/`tipo_unidad_ejecutora` → `organo_directorio`/`tipo_organo`; `University.tipo_entidad` FK → `OrganType` | `lib/convenios/entities.ts`, `lib/catalogos/catalogs.ts`, `lib/catalogos/entities.ts`, `lib/convenios/convention-fields.ts`, `lib/convenios/flow-actions.ts`, `lib/convenios/solicitante.ts`, `lib/usuarios/entity-endpoints.ts`, `lib/api/storage.ts`, `components/convenios/convenio-create-form.tsx`, páginas de convenio |
+| 2026-07 | DJ del interno movidas de `students` → `interns` (`annex-upload`/`annex-checklist`) | `lib/api/storage.ts`, `spec/almacenamiento.md`, `docs/api-almacenamiento.md` |
 
 ## Requerimientos pendientes al backend
 
