@@ -26,6 +26,28 @@ export interface FieldConfig {
   optionsEndpoint?: string;
   /** Filtros fijos para el endpoint de opciones (p. ej. `{ activo: "true" }`). */
   optionsParams?: Record<string, string>;
+  /**
+   * Para `type: "select"` con `optionsEndpoint`: calcula los `optionsParams` a partir de los valores
+   * **en vivo** del formulario (selects dependientes en cascada). Tiene prioridad sobre
+   * `optionsParams` estático si ambos existen. P. ej. filtrar `red` por el ámbito elegido.
+   */
+  optionsParamsFrom?: (values: Record<string, unknown>) => Record<string, string>;
+  /**
+   * Nombres de los campos padre; al cambiar cualquiera, este campo se resetea a su valor vacío
+   * (para no dejar seleccionada una opción que ya no es válida tras cambiar el filtro padre).
+   */
+  resetsOn?: string[];
+  /**
+   * El campo se renderiza y valida en el formulario pero **se excluye del payload** enviado al
+   * backend (campo auxiliar de UI, p. ej. el ámbito que filtra la red en el alta de microrred).
+   */
+  virtual?: boolean;
+  /**
+   * Condición de visibilidad dinámica. Recibe los valores actuales del formulario; si retorna
+   * `false`, el campo se oculta (y no se incluye en el payload). P. ej. mostrar `content_types`
+   * solo cuando `controla_acceso === true`.
+   */
+  showWhen?: (values: Record<string, unknown>) => boolean;
   /** Etiqueta de cada opción (por defecto `nombre`/`titulo`). */
   optionsToLabel?: (row: WithId) => string;
   /** Solo para `type: "select"`: opciones estáticas (enum). Si está, no usa endpoint. */
@@ -45,6 +67,11 @@ export interface FieldConfig {
   uppercase?: boolean;
   /** Deshabilita el campo (solo lectura en el formulario). */
   disabled?: boolean;
+  /**
+   * Fuerza el campo a ocupar todo el ancho en el formulario de 2 columnas (p. ej. nombres largos,
+   * direcciones, descripciones). Los tipos `custom`/`multiselect` ya ocupan todo el ancho.
+   */
+  fullWidth?: boolean;
   /**
    * Para `type: "custom"`: render propio del campo (recibe el `control` de react-hook-form).
    * El componente gestiona sus propios `Controller`/`useController`; útil para controles

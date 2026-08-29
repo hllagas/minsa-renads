@@ -10,7 +10,24 @@ router = DefaultRouter()
 # Núcleo
 router.register("conventions", views.ConventionViewSet, basename="convention")
 router.register("convention-templates", views.ConventionTemplateViewSet)
-router.register("representatives", views.RepresentativeViewSet)
+router.register(
+    "clinical-field-registrations",
+    views.ClinicalFieldRegistrationViewSet,
+    basename="clinical-field-registration",
+)
+router.register(
+    "clinical-field-allocations",
+    views.ClinicalFieldAllocationViewSet,
+    basename="clinical-field-allocation",
+)
+router.register(
+    "organ-representatives", views.OrganRepresentativeViewSet, basename="organ-representative"
+)
+router.register(
+    "organ-representative-history",
+    views.OrganRepresentativeHistoryViewSet,
+    basename="organ-representative-history",
+)
 router.register("ubigeos", views.UbigeoViewSet)
 router.register("documents", views.DocumentViewSet, basename="document")
 router.register("audit-logs", views.AuditLogViewSet, basename="audit-log")

@@ -8,10 +8,20 @@ from apps.common.selectors import entidades_del_usuario
 from apps.convenios.models import ConventionParticipant
 
 ROL_ADMIN = "Administrador RENADS"
+ROL_CONAPRES = "CONAPRES"
+ROL_GOBIERNO_REGIONAL = "Gobierno Regional"
 
 
 def _es_admin(user) -> bool:
     return bool(user and user.is_authenticated and (user.is_superuser or user.groups.filter(name=ROL_ADMIN).exists()))
+
+
+def _en_grupo(user, grupo: str) -> bool:
+    return bool(
+        user
+        and user.is_authenticated
+        and (user.is_superuser or user.groups.filter(name=grupo).exists())
+    )
 
 
 class IsAdminRole(BasePermission):
@@ -35,6 +45,34 @@ class IsAdminRoleOrReadOnly(BasePermission):
         if request.method in SAFE_METHODS:
             return True
         return _es_admin(user)
+
+
+class IsConapresOrReadOnly(BasePermission):
+    """Lectura para autenticados; escritura solo superusuario o grupo `CONAPRES`."""
+
+    message = "La escritura requiere el rol CONAPRES."
+
+    def has_permission(self, request, view) -> bool:
+        user = request.user
+        if not (user and user.is_authenticated):
+            return False
+        if request.method in SAFE_METHODS:
+            return True
+        return _en_grupo(user, ROL_CONAPRES)
+
+
+class IsRegionalOrganOrReadOnly(BasePermission):
+    """Lectura para autenticados; escritura solo superusuario o grupo `Gobierno Regional`."""
+
+    message = "La escritura requiere el rol Gobierno Regional."
+
+    def has_permission(self, request, view) -> bool:
+        user = request.user
+        if not (user and user.is_authenticated):
+            return False
+        if request.method in SAFE_METHODS:
+            return True
+        return _en_grupo(user, ROL_GOBIERNO_REGIONAL)
 
 
 class ConventionScope(BasePermission):

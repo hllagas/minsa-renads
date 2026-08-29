@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from django.contrib.contenttypes.models import ContentType
 
-from apps.common.permissions import IsInstitutionalMember, exigir_ambito
+from apps.common.permissions import IsInstitutionalMember, IsModuleEnabled, exigir_ambito
 from apps.common.services import registrar_auditoria
 from apps.convenios.mixins import AnnexAttachmentMixin
 from apps.convenios.models import University
@@ -39,10 +39,17 @@ from apps.internados.serializers import (
 )
 
 
-class InternshipViewSet(viewsets.ModelViewSet):
-    """CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors."""
+class InternshipViewSet(AnnexAttachmentMixin, viewsets.ModelViewSet):
+    """CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors.
 
-    permission_classes = [IsAuthenticated, IsInstitutionalMember, InternshipScope]
+    Adjunto real de anexos (declaraciones juradas) del interno (actor `INTERNO`) vía
+    `annex-upload`/`annex-checklist` (mixin transversal `AnnexAttachmentMixin`, T-F2.2):
+    los PDFs se guardan como `Document` versionado por `(interno, documento_anexo)`.
+    """
+
+    permission_classes = [IsAuthenticated, IsInstitutionalMember, InternshipScope, IsUniversityOrReadOnly, IsModuleEnabled]
+    module_content_type = ("internados", "internship")
+    annex_actor = "INTERNO"
     filterset_class = InternshipFilter
     search_fields = ["estudiante__numero_documento", "estudiante__nombres", "estudiante__apellido_paterno"]
     ordering_fields = ["fecha_inicio", "fecha_fin", "id"]
@@ -141,6 +148,23 @@ class InternshipViewSet(viewsets.ModelViewSet):
         qs = selectors.rotaciones_de(internado)
         return Response(RotationReadSerializer(qs, many=True).data)
 
+    @extend_schema(request=AnnexUploadSerializer, responses=DocumentSerializer)
+    @action(
+        detail=True, methods=["post"], url_path="annex-upload",
+        parser_classes=[MultiPartParser, FormParser],
+    )
+    def annex_upload(self, request, pk=None):
+        """Adjunta el PDF de un anexo del interno y recalcula el estado de sus DJ (RN-23).
+
+        Reutiliza la lógica del `AnnexAttachmentMixin` (adjunto versionado por
+        `(interno, documento_anexo)`) y, tras adjuntar, recalcula
+        `estado_declaraciones` del internado.
+        """
+        respuesta = AnnexAttachmentMixin.annex_upload(self, request, pk=pk)
+        if respuesta.status_code == 201:
+            services.recalcular_estado_declaraciones(self.get_object(), usuario=request.user)
+        return respuesta
+
 
 class RotationViewSet(viewsets.ReadOnlyModelViewSet):
     """Lectura de rotaciones y acciones de autorización/inicio/estado."""
@@ -201,17 +225,16 @@ class RotationViewSet(viewsets.ReadOnlyModelViewSet):
 # ---------------------------------------------------------------------------
 # Bloque 2 — Catálogos (solo lectura) y personas (Student / Tutor)
 # ---------------------------------------------------------------------------
-class StudentViewSet(AnnexAttachmentMixin, AuditedModelViewSet):
-    """CRUD de estudiantes + adjunto real de anexos (declaraciones juradas) del interno.
+class StudentViewSet(AuditedModelViewSet):
+    """CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad.
 
-    Escritura por rol Universidad/Administrador; alcance por universidad. Las
-    acciones `annex-upload`/`annex-checklist` (actor `INTERNO`) las aporta el mixin
-    transversal `AnnexAttachmentMixin` (T-F2.2).
+    El adjunto real de anexos (declaraciones juradas) del interno se realiza sobre
+    el internado (`InternshipViewSet`, acciones `annex-upload`/`annex-checklist`),
+    no sobre el estudiante.
     """
 
     serializer_class = StudentSerializer
     permission_classes = [IsAuthenticated, IsInstitutionalMember, IsUniversityOrReadOnly]
-    annex_actor = "INTERNO"
     filterset_fields = [
         "universidad", "carrera_profesional", "periodo_academico", "especialidad",
         "numero_documento", "activo",
@@ -233,28 +256,6 @@ class StudentViewSet(AnnexAttachmentMixin, AuditedModelViewSet):
         exigir_ambito(request.user, ct_uni, ser.validated_data["universidad"].id)
         self.perform_create(ser)
         return Response(ser.data, status=201)
-
-    @extend_schema(request=AnnexUploadSerializer, responses=DocumentSerializer)
-    @action(
-        detail=True, methods=["post"], url_path="annex-upload",
-        parser_classes=[MultiPartParser, FormParser],
-    )
-    def annex_upload(self, request, pk=None):
-        """Adjunta el PDF de un anexo del interno y recalcula el estado de sus DJ (RN-23).
-
-        Reutiliza la lógica del `AnnexAttachmentMixin` y, tras adjuntar, recalcula
-        `estado_declaraciones` de los internados vigentes del estudiante.
-        """
-        respuesta = AnnexAttachmentMixin.annex_upload(self, request, pk=pk)
-        if respuesta.status_code == 201:
-            estudiante = self.get_object()
-            internados = im.Internship.objects.filter(
-                estudiante=estudiante,
-                estado_actual__codigo__in=services.ESTADOS_INTERNADO_BLOQUEANTES,
-            )
-            for internado in internados:
-                services.recalcular_estado_declaraciones(internado, usuario=request.user)
-        return respuesta
 
     @action(
         detail=False, methods=["post"], url_path="bulk-upload",
@@ -278,10 +279,10 @@ class StudentViewSet(AnnexAttachmentMixin, AuditedModelViewSet):
 class TutorViewSet(AuditedModelViewSet):
     """CRUD de tutores/docentes. Escritura por rol Universidad/Administrador."""
 
-    queryset = im.Tutor.objects.select_related("especialidad", "ipress")
+    queryset = im.Tutor.objects.select_related("especialidad", "ipress").prefetch_related("universidades")
     serializer_class = TutorSerializer
     permission_classes = [IsAuthenticated, IsInstitutionalMember, IsUniversityOrReadOnly]
-    filterset_fields = ["especialidad", "ipress", "numero_documento", "activo"]
+    filterset_fields = ["especialidad", "ipress", "universidades", "numero_documento", "activo"]
     search_fields = ["numero_documento", "nombres", "apellido_paterno"]
     ordering = ["id"]
 

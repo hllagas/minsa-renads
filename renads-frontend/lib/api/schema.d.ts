@@ -11,9 +11,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         get: operations["academic_levels_list"];
         put?: never;
-        post?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        post: operations["academic_levels_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -27,13 +29,55 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         get: operations["academic_levels_retrieve"];
-        put?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        put: operations["academic_levels_update"];
         post?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        delete: operations["academic_levels_destroy"];
+        options?: never;
+        head?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        patch: operations["academic_levels_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/academic-periods/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["academic_periods_list"];
+        put?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        post: operations["academic_periods_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academic-periods/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["academic_periods_retrieve"];
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        put: operations["academic_periods_update"];
+        post?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        delete: operations["academic_periods_destroy"];
+        options?: never;
+        head?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        patch: operations["academic_periods_partial_update"];
         trace?: never;
     };
     "/api/v1/activity-statuses/": {
@@ -100,6 +144,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/annex-documents/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["annex_documents_list"];
+        put?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        post: operations["annex_documents_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/annex-documents/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["annex_documents_retrieve"];
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        put: operations["annex_documents_update"];
+        post?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        delete: operations["annex_documents_destroy"];
+        options?: never;
+        head?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        patch: operations["annex_documents_partial_update"];
+        trace?: never;
+    };
     "/api/v1/audit-logs/": {
         parameters: {
             query?: never;
@@ -151,6 +233,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/me/cambiar-password/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Cambio de la propia contraseña (RN-22): limpia `debe_cambiar_password`. */
+        post: operations["auth_me_cambiar_password_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/token/": {
         parameters: {
             query?: never;
@@ -195,9 +294,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         get: operations["authorization_types_list"];
         put?: never;
-        post?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        post: operations["authorization_types_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -211,13 +312,363 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         get: operations["authorization_types_retrieve"];
-        put?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        put: operations["authorization_types_update"];
         post?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        delete: operations["authorization_types_destroy"];
+        options?: never;
+        head?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        patch: operations["authorization_types_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/calendar-activities/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description CRUD de actividades de calendario.
+         *
+         *     Escritura solo superusuario / `Administrador RENADS` (`IsAdminRoleOrReadOnly`);
+         *     lectura para autenticados. La escritura delega en los services, que fijan
+         *     `creado_por`/`actualizado_por` y registran la auditoría; por eso se
+         *     sobrescriben `perform_create`/`perform_update` evitando la doble auditoría de
+         *     `AuditedModelViewSet`. Este viewset **no** se gatea con `IsModuleEnabled`
+         *     (el propio calendario no está sujeto a ventanas).
+         */
+        get: operations["calendar_activities_list"];
+        put?: never;
+        /**
+         * @description CRUD de actividades de calendario.
+         *
+         *     Escritura solo superusuario / `Administrador RENADS` (`IsAdminRoleOrReadOnly`);
+         *     lectura para autenticados. La escritura delega en los services, que fijan
+         *     `creado_por`/`actualizado_por` y registran la auditoría; por eso se
+         *     sobrescriben `perform_create`/`perform_update` evitando la doble auditoría de
+         *     `AuditedModelViewSet`. Este viewset **no** se gatea con `IsModuleEnabled`
+         *     (el propio calendario no está sujeto a ventanas).
+         */
+        post: operations["calendar_activities_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/calendar-activities/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description CRUD de actividades de calendario.
+         *
+         *     Escritura solo superusuario / `Administrador RENADS` (`IsAdminRoleOrReadOnly`);
+         *     lectura para autenticados. La escritura delega en los services, que fijan
+         *     `creado_por`/`actualizado_por` y registran la auditoría; por eso se
+         *     sobrescriben `perform_create`/`perform_update` evitando la doble auditoría de
+         *     `AuditedModelViewSet`. Este viewset **no** se gatea con `IsModuleEnabled`
+         *     (el propio calendario no está sujeto a ventanas).
+         */
+        get: operations["calendar_activities_retrieve"];
+        /**
+         * @description CRUD de actividades de calendario.
+         *
+         *     Escritura solo superusuario / `Administrador RENADS` (`IsAdminRoleOrReadOnly`);
+         *     lectura para autenticados. La escritura delega en los services, que fijan
+         *     `creado_por`/`actualizado_por` y registran la auditoría; por eso se
+         *     sobrescriben `perform_create`/`perform_update` evitando la doble auditoría de
+         *     `AuditedModelViewSet`. Este viewset **no** se gatea con `IsModuleEnabled`
+         *     (el propio calendario no está sujeto a ventanas).
+         */
+        put: operations["calendar_activities_update"];
+        post?: never;
+        /**
+         * @description CRUD de actividades de calendario.
+         *
+         *     Escritura solo superusuario / `Administrador RENADS` (`IsAdminRoleOrReadOnly`);
+         *     lectura para autenticados. La escritura delega en los services, que fijan
+         *     `creado_por`/`actualizado_por` y registran la auditoría; por eso se
+         *     sobrescriben `perform_create`/`perform_update` evitando la doble auditoría de
+         *     `AuditedModelViewSet`. Este viewset **no** se gatea con `IsModuleEnabled`
+         *     (el propio calendario no está sujeto a ventanas).
+         */
+        delete: operations["calendar_activities_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * @description CRUD de actividades de calendario.
+         *
+         *     Escritura solo superusuario / `Administrador RENADS` (`IsAdminRoleOrReadOnly`);
+         *     lectura para autenticados. La escritura delega en los services, que fijan
+         *     `creado_por`/`actualizado_por` y registran la auditoría; por eso se
+         *     sobrescriben `perform_create`/`perform_update` evitando la doble auditoría de
+         *     `AuditedModelViewSet`. Este viewset **no** se gatea con `IsModuleEnabled`
+         *     (el propio calendario no está sujeto a ventanas).
+         */
+        patch: operations["calendar_activities_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/categories/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["categories_list"];
+        put?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        post: operations["categories_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/categories/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["categories_retrieve"];
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        put: operations["categories_update"];
+        post?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        delete: operations["categories_destroy"];
+        options?: never;
+        head?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        patch: operations["categories_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/classification-types/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["classification_types_list"];
+        put?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        post: operations["classification_types_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/classification-types/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["classification_types_retrieve"];
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        put: operations["classification_types_update"];
+        post?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        delete: operations["classification_types_destroy"];
+        options?: never;
+        head?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        patch: operations["classification_types_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/clinical-field-allocations/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description CRUD de la asignación (Órgano Regional) de campos clínicos por universidad.
+         *
+         *     Escritura solo grupo `Gobierno Regional`; lectura para autenticados. La
+         *     escritura delega en los services (`crear_/actualizar_/eliminar_asignacion_campo_clinico`),
+         *     que recalculan el acumulador del registro padre y registran la auditoría; se
+         *     sobrescriben `perform_create`/`perform_update`/`perform_destroy` para no duplicar
+         *     la auditoría de `AuditedModelViewSet`. El `PROTECT` de `Internship` sobre la
+         *     asignación se traduce a 409 vía `ProtectedDeleteConflict`.
+         */
+        get: operations["clinical_field_allocations_list"];
+        put?: never;
+        /**
+         * @description CRUD de la asignación (Órgano Regional) de campos clínicos por universidad.
+         *
+         *     Escritura solo grupo `Gobierno Regional`; lectura para autenticados. La
+         *     escritura delega en los services (`crear_/actualizar_/eliminar_asignacion_campo_clinico`),
+         *     que recalculan el acumulador del registro padre y registran la auditoría; se
+         *     sobrescriben `perform_create`/`perform_update`/`perform_destroy` para no duplicar
+         *     la auditoría de `AuditedModelViewSet`. El `PROTECT` de `Internship` sobre la
+         *     asignación se traduce a 409 vía `ProtectedDeleteConflict`.
+         */
+        post: operations["clinical_field_allocations_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/clinical-field-allocations/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description CRUD de la asignación (Órgano Regional) de campos clínicos por universidad.
+         *
+         *     Escritura solo grupo `Gobierno Regional`; lectura para autenticados. La
+         *     escritura delega en los services (`crear_/actualizar_/eliminar_asignacion_campo_clinico`),
+         *     que recalculan el acumulador del registro padre y registran la auditoría; se
+         *     sobrescriben `perform_create`/`perform_update`/`perform_destroy` para no duplicar
+         *     la auditoría de `AuditedModelViewSet`. El `PROTECT` de `Internship` sobre la
+         *     asignación se traduce a 409 vía `ProtectedDeleteConflict`.
+         */
+        get: operations["clinical_field_allocations_retrieve"];
+        /**
+         * @description CRUD de la asignación (Órgano Regional) de campos clínicos por universidad.
+         *
+         *     Escritura solo grupo `Gobierno Regional`; lectura para autenticados. La
+         *     escritura delega en los services (`crear_/actualizar_/eliminar_asignacion_campo_clinico`),
+         *     que recalculan el acumulador del registro padre y registran la auditoría; se
+         *     sobrescriben `perform_create`/`perform_update`/`perform_destroy` para no duplicar
+         *     la auditoría de `AuditedModelViewSet`. El `PROTECT` de `Internship` sobre la
+         *     asignación se traduce a 409 vía `ProtectedDeleteConflict`.
+         */
+        put: operations["clinical_field_allocations_update"];
+        post?: never;
+        /**
+         * @description CRUD de la asignación (Órgano Regional) de campos clínicos por universidad.
+         *
+         *     Escritura solo grupo `Gobierno Regional`; lectura para autenticados. La
+         *     escritura delega en los services (`crear_/actualizar_/eliminar_asignacion_campo_clinico`),
+         *     que recalculan el acumulador del registro padre y registran la auditoría; se
+         *     sobrescriben `perform_create`/`perform_update`/`perform_destroy` para no duplicar
+         *     la auditoría de `AuditedModelViewSet`. El `PROTECT` de `Internship` sobre la
+         *     asignación se traduce a 409 vía `ProtectedDeleteConflict`.
+         */
+        delete: operations["clinical_field_allocations_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * @description CRUD de la asignación (Órgano Regional) de campos clínicos por universidad.
+         *
+         *     Escritura solo grupo `Gobierno Regional`; lectura para autenticados. La
+         *     escritura delega en los services (`crear_/actualizar_/eliminar_asignacion_campo_clinico`),
+         *     que recalculan el acumulador del registro padre y registran la auditoría; se
+         *     sobrescriben `perform_create`/`perform_update`/`perform_destroy` para no duplicar
+         *     la auditoría de `AuditedModelViewSet`. El `PROTECT` de `Internship` sobre la
+         *     asignación se traduce a 409 vía `ProtectedDeleteConflict`.
+         */
+        patch: operations["clinical_field_allocations_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/clinical-field-registrations/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description CRUD del registro (CONAPRES) del total de campos clínicos por sede + carrera.
+         *
+         *     Escritura solo CONAPRES; lectura para autenticados. La escritura delega en los
+         *     services (`crear_/actualizar_registro_campo_clinico`), que fijan
+         *     `creado_por`/`actualizado_por` y registran la auditoría. Por eso se sobrescriben
+         *     `perform_create`/`perform_update` (llaman al service) evitando la doble auditoría
+         *     de `AuditedModelViewSet`.
+         */
+        get: operations["clinical_field_registrations_list"];
+        put?: never;
+        /**
+         * @description CRUD del registro (CONAPRES) del total de campos clínicos por sede + carrera.
+         *
+         *     Escritura solo CONAPRES; lectura para autenticados. La escritura delega en los
+         *     services (`crear_/actualizar_registro_campo_clinico`), que fijan
+         *     `creado_por`/`actualizado_por` y registran la auditoría. Por eso se sobrescriben
+         *     `perform_create`/`perform_update` (llaman al service) evitando la doble auditoría
+         *     de `AuditedModelViewSet`.
+         */
+        post: operations["clinical_field_registrations_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/clinical-field-registrations/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description CRUD del registro (CONAPRES) del total de campos clínicos por sede + carrera.
+         *
+         *     Escritura solo CONAPRES; lectura para autenticados. La escritura delega en los
+         *     services (`crear_/actualizar_registro_campo_clinico`), que fijan
+         *     `creado_por`/`actualizado_por` y registran la auditoría. Por eso se sobrescriben
+         *     `perform_create`/`perform_update` (llaman al service) evitando la doble auditoría
+         *     de `AuditedModelViewSet`.
+         */
+        get: operations["clinical_field_registrations_retrieve"];
+        /**
+         * @description CRUD del registro (CONAPRES) del total de campos clínicos por sede + carrera.
+         *
+         *     Escritura solo CONAPRES; lectura para autenticados. La escritura delega en los
+         *     services (`crear_/actualizar_registro_campo_clinico`), que fijan
+         *     `creado_por`/`actualizado_por` y registran la auditoría. Por eso se sobrescriben
+         *     `perform_create`/`perform_update` (llaman al service) evitando la doble auditoría
+         *     de `AuditedModelViewSet`.
+         */
+        put: operations["clinical_field_registrations_update"];
+        post?: never;
+        /**
+         * @description CRUD del registro (CONAPRES) del total de campos clínicos por sede + carrera.
+         *
+         *     Escritura solo CONAPRES; lectura para autenticados. La escritura delega en los
+         *     services (`crear_/actualizar_registro_campo_clinico`), que fijan
+         *     `creado_por`/`actualizado_por` y registran la auditoría. Por eso se sobrescriben
+         *     `perform_create`/`perform_update` (llaman al service) evitando la doble auditoría
+         *     de `AuditedModelViewSet`.
+         */
+        delete: operations["clinical_field_registrations_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * @description CRUD del registro (CONAPRES) del total de campos clínicos por sede + carrera.
+         *
+         *     Escritura solo CONAPRES; lectura para autenticados. La escritura delega en los
+         *     services (`crear_/actualizar_registro_campo_clinico`), que fijan
+         *     `creado_por`/`actualizado_por` y registran la auditoría. Por eso se sobrescriben
+         *     `perform_create`/`perform_update` (llaman al service) evitando la doble auditoría
+         *     de `AuditedModelViewSet`.
+         */
+        patch: operations["clinical_field_registrations_partial_update"];
         trace?: never;
     };
     "/api/v1/closure-reasons/": {
@@ -288,6 +739,54 @@ export interface paths {
         head?: never;
         /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         patch: operations["conapres_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/content-types/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Catálogo de `ContentType` de Django (solo lectura) para selectores del frontend.
+         *
+         *     Paginado y con `?search=` (por `app_label`/`model`), compatible con el combobox
+         *     genérico. Alimenta el selector `content_types[]` del CRUD de `calendar-activities`
+         *     e interpreta `modulos_habilitados`/`modulos_bloqueados` de `/auth/me/`. El
+         *     `verbose_name` es el nombre legible del modelo (fallback a `ct.name` si es huérfano).
+         */
+        get: operations["content_types_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content-types/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Catálogo de `ContentType` de Django (solo lectura) para selectores del frontend.
+         *
+         *     Paginado y con `?search=` (por `app_label`/`model`), compatible con el combobox
+         *     genérico. Alimenta el selector `content_types[]` del CRUD de `calendar-activities`
+         *     e interpreta `modulos_habilitados`/`modulos_bloqueados` de `/auth/me/`. El
+         *     `verbose_name` es el nombre legible del modelo (fallback a `ct.name` si es huérfano).
+         */
+        get: operations["content_types_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/convention-statuses/": {
@@ -447,24 +946,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/conventions/{id}/campos-clinicos/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors. */
-        get: operations["conventions_campos_clinicos_retrieve"];
-        put?: never;
-        /** @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors. */
-        post: operations["conventions_campos_clinicos_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/conventions/{id}/evaluacion-tecnica/": {
         parameters: {
             query?: never;
@@ -585,38 +1066,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/document-types/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["document_types_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/document-types/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["document_types_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/documents/": {
         parameters: {
             query?: never;
@@ -695,32 +1144,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/executing-unit-types/": {
+    "/api/v1/documents/upload/": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["executing_unit_types_list"];
+        get?: never;
         put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/executing-unit-types/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["executing_unit_types_retrieve"];
-        put?: never;
-        post?: never;
+        /**
+         * @description Sube el binario al backend y adjunta el documento versionado.
+         *
+         *     Flujo: valida tipo/tamaño → sube vía `storage.subir(...)` (obtiene la key
+         *     como `referencia_externa`) → `adjuntar_documento(...)` (versionado +
+         *     auditoría, ya cubiertos por el service). Ruta: `POST /api/v1/documents/upload/`
+         *     (multipart/form-data).
+         */
+        post: operations["documents_upload_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -734,10 +1175,36 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
+         */
         get: operations["executing_units_list"];
         put?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
+         */
         post: operations["executing_units_create"];
         delete?: never;
         options?: never;
@@ -752,17 +1219,116 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
+         */
         get: operations["executing_units_retrieve"];
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
+         */
         put: operations["executing_units_update"];
         post?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
+         */
         delete: operations["executing_units_destroy"];
         options?: never;
         head?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
+         */
         patch: operations["executing_units_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/executing-units/{id}/logo-url/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obtener la URL del logo de la entidad
+         * @description Devuelve la URL (signed URL efímero) del logo, o 404 si no hay logo cargado.
+         */
+        get: operations["executing_units_logo_url_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/executing-units/{id}/upload-logo/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Subir/reemplazar el logo de la entidad
+         * @description Sube (o reemplaza) el logo de la entidad y devuelve su URL.
+         *
+         *     Asigna el archivo al `ImageField` y guarda; Django escribe el binario en
+         *     `STORAGES["default"]` usando el `upload_to` de la entidad. Si ya existía un
+         *     logo distinto, se borra el binario anterior **después** de guardar el nuevo
+         *     (no dejar la entidad sin logo si la subida falla). Persiste el path en
+         *     `referencia_logo` y registra auditoría. Responde `{referencia_logo, url}`
+         *     (`url` = signed URL efímero del campo).
+         */
+        post: operations["executing_units_upload_logo_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/executive-positions/": {
@@ -772,9 +1338,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         get: operations["executive_positions_list"];
         put?: never;
-        post?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        post: operations["executive_positions_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -788,13 +1356,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         get: operations["executive_positions_retrieve"];
-        put?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        put: operations["executive_positions_update"];
         post?: never;
-        delete?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        delete: operations["executive_positions_destroy"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        patch: operations["executive_positions_partial_update"];
         trace?: never;
     };
     "/api/v1/faculties/": {
@@ -880,9 +1452,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         get: operations["health_geographic_scopes_list"];
         put?: never;
-        post?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        post: operations["health_geographic_scopes_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -896,13 +1470,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         get: operations["health_geographic_scopes_retrieve"];
-        put?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        put: operations["health_geographic_scopes_update"];
         post?: never;
-        delete?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        delete: operations["health_geographic_scopes_destroy"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        patch: operations["health_geographic_scopes_partial_update"];
         trace?: never;
     };
     "/api/v1/identity-document-types/": {
@@ -944,10 +1522,22 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     Adjunto real de anexos (declaraciones juradas) del interno (actor `INTERNO`) vía
+         *     `annex-upload`/`annex-checklist` (mixin transversal `AnnexAttachmentMixin`, T-F2.2):
+         *     los PDFs se guardan como `Document` versionado por `(interno, documento_anexo)`.
+         */
         get: operations["interns_list"];
         put?: never;
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     Adjunto real de anexos (declaraciones juradas) del interno (actor `INTERNO`) vía
+         *     `annex-upload`/`annex-checklist` (mixin transversal `AnnexAttachmentMixin`, T-F2.2):
+         *     los PDFs se guardan como `Document` versionado por `(interno, documento_anexo)`.
+         */
         post: operations["interns_create"];
         delete?: never;
         options?: never;
@@ -962,17 +1552,89 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     Adjunto real de anexos (declaraciones juradas) del interno (actor `INTERNO`) vía
+         *     `annex-upload`/`annex-checklist` (mixin transversal `AnnexAttachmentMixin`, T-F2.2):
+         *     los PDFs se guardan como `Document` versionado por `(interno, documento_anexo)`.
+         */
         get: operations["interns_retrieve"];
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     Adjunto real de anexos (declaraciones juradas) del interno (actor `INTERNO`) vía
+         *     `annex-upload`/`annex-checklist` (mixin transversal `AnnexAttachmentMixin`, T-F2.2):
+         *     los PDFs se guardan como `Document` versionado por `(interno, documento_anexo)`.
+         */
         put: operations["interns_update"];
         post?: never;
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     Adjunto real de anexos (declaraciones juradas) del interno (actor `INTERNO`) vía
+         *     `annex-upload`/`annex-checklist` (mixin transversal `AnnexAttachmentMixin`, T-F2.2):
+         *     los PDFs se guardan como `Document` versionado por `(interno, documento_anexo)`.
+         */
         delete: operations["interns_destroy"];
         options?: never;
         head?: never;
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     Adjunto real de anexos (declaraciones juradas) del interno (actor `INTERNO`) vía
+         *     `annex-upload`/`annex-checklist` (mixin transversal `AnnexAttachmentMixin`, T-F2.2):
+         *     los PDFs se guardan como `Document` versionado por `(interno, documento_anexo)`.
+         */
         patch: operations["interns_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/interns/{id}/annex-checklist/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Checklist de anexos requeridos vs. adjuntados
+         * @description Lista los anexos activos del actor con su estado de adjunto por versión activa.
+         *
+         *     Cruza el catálogo maestro (`AnnexDocument` activos de `tipo_actor ==
+         *     annex_actor`) con los `Document` `ACTIVO` de esta entidad que apuntan a
+         *     cada anexo. Es la base del checklist requeridos (`obligatorio=True`) vs.
+         *     adjuntados.
+         */
+        get: operations["interns_annex_checklist_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interns/{id}/annex-upload/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Adjunta el PDF de un anexo del interno y recalcula el estado de sus DJ (RN-23).
+         *
+         *     Reutiliza la lógica del `AnnexAttachmentMixin` (adjunto versionado por
+         *     `(interno, documento_anexo)`) y, tras adjuntar, recalcula
+         *     `estado_declaraciones` del internado.
+         */
+        post: operations["interns_annex_upload_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/interns/{id}/cambiar-estado/": {
@@ -984,7 +1646,13 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     Adjunto real de anexos (declaraciones juradas) del interno (actor `INTERNO`) vía
+         *     `annex-upload`/`annex-checklist` (mixin transversal `AnnexAttachmentMixin`, T-F2.2):
+         *     los PDFs se guardan como `Document` versionado por `(interno, documento_anexo)`.
+         */
         post: operations["interns_cambiar_estado_create"];
         delete?: never;
         options?: never;
@@ -1001,7 +1669,13 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     Adjunto real de anexos (declaraciones juradas) del interno (actor `INTERNO`) vía
+         *     `annex-upload`/`annex-checklist` (mixin transversal `AnnexAttachmentMixin`, T-F2.2):
+         *     los PDFs se guardan como `Document` versionado por `(interno, documento_anexo)`.
+         */
         post: operations["interns_cambiar_tutor_create"];
         delete?: never;
         options?: never;
@@ -1016,10 +1690,37 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     Adjunto real de anexos (declaraciones juradas) del interno (actor `INTERNO`) vía
+         *     `annex-upload`/`annex-checklist` (mixin transversal `AnnexAttachmentMixin`, T-F2.2):
+         *     los PDFs se guardan como `Document` versionado por `(interno, documento_anexo)`.
+         */
         get: operations["interns_historial_retrieve"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interns/{id}/revisar-declaraciones/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Revisión humana de las declaraciones juradas del interno (RN-23).
+         *
+         *     Rol `Universidad`/`Administrador RENADS`. `resultado` ∈ {VALIDADAS, OBSERVADAS}.
+         */
+        post: operations["interns_revisar_declaraciones_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1033,10 +1734,22 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     Adjunto real de anexos (declaraciones juradas) del interno (actor `INTERNO`) vía
+         *     `annex-upload`/`annex-checklist` (mixin transversal `AnnexAttachmentMixin`, T-F2.2):
+         *     los PDFs se guardan como `Document` versionado por `(interno, documento_anexo)`.
+         */
         get: operations["interns_rotaciones_retrieve"];
         put?: never;
-        /** @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     Adjunto real de anexos (declaraciones juradas) del interno (actor `INTERNO`) vía
+         *     `annex-upload`/`annex-checklist` (mixin transversal `AnnexAttachmentMixin`, T-F2.2):
+         *     los PDFs se guardan como `Document` versionado por `(interno, documento_anexo)`.
+         */
         post: operations["interns_rotaciones_create"];
         delete?: never;
         options?: never;
@@ -1083,10 +1796,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES. */
+        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES + logo. */
         get: operations["ipress_list"];
         put?: never;
-        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES. */
+        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES + logo. */
         post: operations["ipress_create"];
         delete?: never;
         options?: never;
@@ -1101,16 +1814,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES. */
+        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES + logo. */
         get: operations["ipress_retrieve"];
-        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES. */
+        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES + logo. */
         put: operations["ipress_update"];
         post?: never;
-        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES. */
+        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES + logo. */
         delete: operations["ipress_destroy"];
         options?: never;
         head?: never;
-        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES. */
+        /** @description CRUD de IPRESS + autorización como sede docente por CONAPRES + logo. */
         patch: operations["ipress_partial_update"];
         trace?: never;
     };
@@ -1131,14 +1844,18 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/minsa-organ-types/": {
+    "/api/v1/ipress/{id}/logo-url/": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["minsa_organ_types_list"];
+        /**
+         * Obtener la URL del logo de la entidad
+         * @description Devuelve la URL (signed URL efímero) del logo, o 404 si no hay logo cargado.
+         */
+        get: operations["ipress_logo_url_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1147,23 +1864,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/minsa-organ-types/{id}/": {
+    "/api/v1/ipress/{id}/upload-logo/": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["minsa_organ_types_retrieve"];
+        get?: never;
         put?: never;
-        post?: never;
+        /**
+         * Subir/reemplazar el logo de la entidad
+         * @description Sube (o reemplaza) el logo de la entidad y devuelve su URL.
+         *
+         *     Asigna el archivo al `ImageField` y guarda; Django escribe el binario en
+         *     `STORAGES["default"]` usando el `upload_to` de la entidad. Si ya existía un
+         *     logo distinto, se borra el binario anterior **después** de guardar el nuevo
+         *     (no dejar la entidad sin logo si la subida falla). Persiste el path en
+         *     `referencia_logo` y registra auditoría. Responde `{referencia_logo, url}`
+         *     (`url` = signed URL efímero del campo).
+         */
+        post: operations["ipress_upload_logo_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/minsa-organs/": {
+    "/api/v1/micro-networks/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1171,17 +1899,17 @@ export interface paths {
             cookie?: never;
         };
         /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        get: operations["minsa_organs_list"];
+        get: operations["micro_networks_list"];
         put?: never;
         /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        post: operations["minsa_organs_create"];
+        post: operations["micro_networks_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/minsa-organs/{id}/": {
+    "/api/v1/micro-networks/{id}/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1189,16 +1917,54 @@ export interface paths {
             cookie?: never;
         };
         /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        get: operations["minsa_organs_retrieve"];
+        get: operations["micro_networks_retrieve"];
         /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        put: operations["minsa_organs_update"];
+        put: operations["micro_networks_update"];
         post?: never;
         /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        delete: operations["minsa_organs_destroy"];
+        delete: operations["micro_networks_destroy"];
         options?: never;
         head?: never;
         /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        patch: operations["minsa_organs_partial_update"];
+        patch: operations["micro_networks_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/networks/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["networks_list"];
+        put?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        post: operations["networks_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/networks/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["networks_retrieve"];
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        put: operations["networks_update"];
+        post?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        delete: operations["networks_destroy"];
+        options?: never;
+        head?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        patch: operations["networks_partial_update"];
         trace?: never;
     };
     "/api/v1/observation-reasons/": {
@@ -1231,6 +1997,415 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organ-directories/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
+         */
+        get: operations["organ_directories_list"];
+        put?: never;
+        /**
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
+         */
+        post: operations["organ_directories_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organ-directories/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
+         */
+        get: operations["organ_directories_retrieve"];
+        /**
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
+         */
+        put: operations["organ_directories_update"];
+        post?: never;
+        /**
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
+         */
+        delete: operations["organ_directories_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
+         */
+        patch: operations["organ_directories_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/organ-directories/{id}/logo-url/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obtener la URL del logo de la entidad
+         * @description Devuelve la URL (signed URL efímero) del logo, o 404 si no hay logo cargado.
+         */
+        get: operations["organ_directories_logo_url_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organ-directories/{id}/upload-logo/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Subir/reemplazar el logo de la entidad
+         * @description Sube (o reemplaza) el logo de la entidad y devuelve su URL.
+         *
+         *     Asigna el archivo al `ImageField` y guarda; Django escribe el binario en
+         *     `STORAGES["default"]` usando el `upload_to` de la entidad. Si ya existía un
+         *     logo distinto, se borra el binario anterior **después** de guardar el nuevo
+         *     (no dejar la entidad sin logo si la subida falla). Persiste el path en
+         *     `referencia_logo` y registra auditoría. Responde `{referencia_logo, url}`
+         *     (`url` = signed URL efímero del campo).
+         */
+        post: operations["organ_directories_upload_logo_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organ-representative-history/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Histórico de bajas de representantes de órgano (solo lectura). */
+        get: operations["organ_representative_history_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organ-representative-history/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Histórico de bajas de representantes de órgano (solo lectura). */
+        get: operations["organ_representative_history_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organ-representatives/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description CRUD de representantes de órgano (FK directo al directorio) + adjunto real de anexos.
+         *
+         *     Escritura solo Administrador RENADS. Al crear, delega en el service
+         *     `registrar_organo_representante` (da de baja al anterior activo del mismo par
+         *     `(organo_directorio, cargo_ejecutivo)` y lo copia al histórico). Adjunta PDFs
+         *     de anexos del actor `REPRESENTANTE` (resolución del cargo, documento de
+         *     identidad) vía `annex-upload`/`annex-checklist`.
+         */
+        get: operations["organ_representatives_list"];
+        put?: never;
+        /**
+         * @description CRUD de representantes de órgano (FK directo al directorio) + adjunto real de anexos.
+         *
+         *     Escritura solo Administrador RENADS. Al crear, delega en el service
+         *     `registrar_organo_representante` (da de baja al anterior activo del mismo par
+         *     `(organo_directorio, cargo_ejecutivo)` y lo copia al histórico). Adjunta PDFs
+         *     de anexos del actor `REPRESENTANTE` (resolución del cargo, documento de
+         *     identidad) vía `annex-upload`/`annex-checklist`.
+         */
+        post: operations["organ_representatives_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organ-representatives/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description CRUD de representantes de órgano (FK directo al directorio) + adjunto real de anexos.
+         *
+         *     Escritura solo Administrador RENADS. Al crear, delega en el service
+         *     `registrar_organo_representante` (da de baja al anterior activo del mismo par
+         *     `(organo_directorio, cargo_ejecutivo)` y lo copia al histórico). Adjunta PDFs
+         *     de anexos del actor `REPRESENTANTE` (resolución del cargo, documento de
+         *     identidad) vía `annex-upload`/`annex-checklist`.
+         */
+        get: operations["organ_representatives_retrieve"];
+        /**
+         * @description CRUD de representantes de órgano (FK directo al directorio) + adjunto real de anexos.
+         *
+         *     Escritura solo Administrador RENADS. Al crear, delega en el service
+         *     `registrar_organo_representante` (da de baja al anterior activo del mismo par
+         *     `(organo_directorio, cargo_ejecutivo)` y lo copia al histórico). Adjunta PDFs
+         *     de anexos del actor `REPRESENTANTE` (resolución del cargo, documento de
+         *     identidad) vía `annex-upload`/`annex-checklist`.
+         */
+        put: operations["organ_representatives_update"];
+        post?: never;
+        /**
+         * @description CRUD de representantes de órgano (FK directo al directorio) + adjunto real de anexos.
+         *
+         *     Escritura solo Administrador RENADS. Al crear, delega en el service
+         *     `registrar_organo_representante` (da de baja al anterior activo del mismo par
+         *     `(organo_directorio, cargo_ejecutivo)` y lo copia al histórico). Adjunta PDFs
+         *     de anexos del actor `REPRESENTANTE` (resolución del cargo, documento de
+         *     identidad) vía `annex-upload`/`annex-checklist`.
+         */
+        delete: operations["organ_representatives_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * @description CRUD de representantes de órgano (FK directo al directorio) + adjunto real de anexos.
+         *
+         *     Escritura solo Administrador RENADS. Al crear, delega en el service
+         *     `registrar_organo_representante` (da de baja al anterior activo del mismo par
+         *     `(organo_directorio, cargo_ejecutivo)` y lo copia al histórico). Adjunta PDFs
+         *     de anexos del actor `REPRESENTANTE` (resolución del cargo, documento de
+         *     identidad) vía `annex-upload`/`annex-checklist`.
+         */
+        patch: operations["organ_representatives_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/organ-representatives/{id}/annex-checklist/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Checklist de anexos requeridos vs. adjuntados
+         * @description Lista los anexos activos del actor con su estado de adjunto por versión activa.
+         *
+         *     Cruza el catálogo maestro (`AnnexDocument` activos de `tipo_actor ==
+         *     annex_actor`) con los `Document` `ACTIVO` de esta entidad que apuntan a
+         *     cada anexo. Es la base del checklist requeridos (`obligatorio=True`) vs.
+         *     adjuntados.
+         */
+        get: operations["organ_representatives_annex_checklist_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organ-representatives/{id}/annex-upload/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Adjuntar el PDF de un anexo (declaración jurada)
+         * @description Sube el PDF de un anexo y lo adjunta versionado a la entidad.
+         *
+         *     Valida (solo PDF, tamaño), verifica que el `documento_anexo` sea del
+         *     `tipo_actor` de este ViewSet (`annex_actor`), sube el binario al backend
+         *     seleccionado por settings y llama `adjuntar_documento(..., documento_anexo=...)`
+         *     (versionado por anexo + auditoría). Responde `201` con el `Document`.
+         */
+        post: operations["organ_representatives_annex_upload_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organ-types/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["organ_types_list"];
+        put?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        post: operations["organ_types_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organ-types/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["organ_types_retrieve"];
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        put: operations["organ_types_update"];
+        post?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        delete: operations["organ_types_destroy"];
+        options?: never;
+        head?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        patch: operations["organ_types_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/organs/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["organs_list"];
+        put?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        post: operations["organs_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organs/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["organs_retrieve"];
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        put: operations["organs_update"];
+        post?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        delete: operations["organs_destroy"];
+        options?: never;
+        head?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        patch: operations["organs_partial_update"];
         trace?: never;
     };
     "/api/v1/permissions/": {
@@ -1305,6 +2480,26 @@ export interface paths {
         patch: operations["professional_careers_partial_update"];
         trace?: never;
     };
+    "/api/v1/profile-entity-types/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tipos de entidad asignables a perfiles
+         * @description Lista los tipos de entidad institucional sobre los que se puede otorgar un perfil (scope por objeto) a un usuario. El campo `tipo_entidad` es el valor que espera el POST de perfiles; `label` es la etiqueta legible en español (verbose_name del modelo). Restringido a superadministrador.
+         */
+        get: operations["profile_entity_types_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/regional-governments/": {
         parameters: {
             query?: never;
@@ -1312,10 +2507,36 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
+         */
         get: operations["regional_governments_list"];
         put?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
+         */
         post: operations["regional_governments_create"];
         delete?: never;
         options?: never;
@@ -1330,27 +2551,83 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
+         */
         get: operations["regional_governments_retrieve"];
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
+         */
         put: operations["regional_governments_update"];
         post?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
+         */
         delete: operations["regional_governments_destroy"];
         options?: never;
         head?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
+         */
         patch: operations["regional_governments_partial_update"];
         trace?: never;
     };
-    "/api/v1/regional-organ-types/": {
+    "/api/v1/regional-governments/{id}/logo-url/": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["regional_organ_types_list"];
+        /**
+         * Obtener la URL del logo de la entidad
+         * @description Devuelve la URL (signed URL efímero) del logo, o 404 si no hay logo cargado.
+         */
+        get: operations["regional_governments_logo_url_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1359,58 +2636,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/regional-organ-types/{id}/": {
+    "/api/v1/regional-governments/{id}/upload-logo/": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["regional_organ_types_retrieve"];
+        get?: never;
         put?: never;
-        post?: never;
+        /**
+         * Subir/reemplazar el logo de la entidad
+         * @description Sube (o reemplaza) el logo de la entidad y devuelve su URL.
+         *
+         *     Asigna el archivo al `ImageField` y guarda; Django escribe el binario en
+         *     `STORAGES["default"]` usando el `upload_to` de la entidad. Si ya existía un
+         *     logo distinto, se borra el binario anterior **después** de guardar el nuevo
+         *     (no dejar la entidad sin logo si la subida falla). Persiste el path en
+         *     `referencia_logo` y registra auditoría. Responde `{referencia_logo, url}`
+         *     (`url` = signed URL efímero del campo).
+         */
+        post: operations["regional_governments_upload_logo_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
-        trace?: never;
-    };
-    "/api/v1/regional-organs/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        get: operations["regional_organs_list"];
-        put?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        post: operations["regional_organs_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/regional-organs/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        get: operations["regional_organs_retrieve"];
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        put: operations["regional_organs_update"];
-        post?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        delete: operations["regional_organs_destroy"];
-        options?: never;
-        head?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        patch: operations["regional_organs_partial_update"];
         trace?: never;
     };
     "/api/v1/regions/": {
@@ -1507,44 +2757,6 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
-        trace?: never;
-    };
-    "/api/v1/representatives/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description CRUD de representantes (relación polimórfica validada). Escritura solo Administrador RENADS. */
-        get: operations["representatives_list"];
-        put?: never;
-        /** @description CRUD de representantes (relación polimórfica validada). Escritura solo Administrador RENADS. */
-        post: operations["representatives_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/representatives/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description CRUD de representantes (relación polimórfica validada). Escritura solo Administrador RENADS. */
-        get: operations["representatives_retrieve"];
-        /** @description CRUD de representantes (relación polimórfica validada). Escritura solo Administrador RENADS. */
-        put: operations["representatives_update"];
-        post?: never;
-        /** @description CRUD de representantes (relación polimórfica validada). Escritura solo Administrador RENADS. */
-        delete: operations["representatives_destroy"];
-        options?: never;
-        head?: never;
-        /** @description CRUD de representantes (relación polimórfica validada). Escritura solo Administrador RENADS. */
-        patch: operations["representatives_partial_update"];
         trace?: never;
     };
     "/api/v1/rotation-statuses/": {
@@ -1804,10 +3016,22 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad. */
+        /**
+         * @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad.
+         *
+         *     El adjunto real de anexos (declaraciones juradas) del interno se realiza sobre
+         *     el internado (`InternshipViewSet`, acciones `annex-upload`/`annex-checklist`),
+         *     no sobre el estudiante.
+         */
         get: operations["students_list"];
         put?: never;
-        /** @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad. */
+        /**
+         * @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad.
+         *
+         *     El adjunto real de anexos (declaraciones juradas) del interno se realiza sobre
+         *     el internado (`InternshipViewSet`, acciones `annex-upload`/`annex-checklist`),
+         *     no sobre el estudiante.
+         */
         post: operations["students_create"];
         delete?: never;
         options?: never;
@@ -1822,16 +3046,40 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad. */
+        /**
+         * @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad.
+         *
+         *     El adjunto real de anexos (declaraciones juradas) del interno se realiza sobre
+         *     el internado (`InternshipViewSet`, acciones `annex-upload`/`annex-checklist`),
+         *     no sobre el estudiante.
+         */
         get: operations["students_retrieve"];
-        /** @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad. */
+        /**
+         * @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad.
+         *
+         *     El adjunto real de anexos (declaraciones juradas) del interno se realiza sobre
+         *     el internado (`InternshipViewSet`, acciones `annex-upload`/`annex-checklist`),
+         *     no sobre el estudiante.
+         */
         put: operations["students_update"];
         post?: never;
-        /** @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad. */
+        /**
+         * @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad.
+         *
+         *     El adjunto real de anexos (declaraciones juradas) del interno se realiza sobre
+         *     el internado (`InternshipViewSet`, acciones `annex-upload`/`annex-checklist`),
+         *     no sobre el estudiante.
+         */
         delete: operations["students_destroy"];
         options?: never;
         head?: never;
-        /** @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad. */
+        /**
+         * @description CRUD de estudiantes. Escritura por rol Universidad/Administrador; alcance por universidad.
+         *
+         *     El adjunto real de anexos (declaraciones juradas) del interno se realiza sobre
+         *     el internado (`InternshipViewSet`, acciones `annex-upload`/`annex-checklist`),
+         *     no sobre el estudiante.
+         */
         patch: operations["students_partial_update"];
         trace?: never;
     };
@@ -2042,10 +3290,36 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
+         */
         get: operations["universities_list"];
         put?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
+         */
         post: operations["universities_create"];
         delete?: never;
         options?: never;
@@ -2060,55 +3334,116 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
+         */
         get: operations["universities_retrieve"];
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
+         */
         put: operations["universities_update"];
         post?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
+         */
         delete: operations["universities_destroy"];
         options?: never;
         head?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
+         *
+         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+         *
+         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
+         */
         patch: operations["universities_partial_update"];
         trace?: never;
     };
-    "/api/v1/university-authorities/": {
+    "/api/v1/universities/{id}/logo-url/": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        get: operations["university_authorities_list"];
+        /**
+         * Obtener la URL del logo de la entidad
+         * @description Devuelve la URL (signed URL efímero) del logo, o 404 si no hay logo cargado.
+         */
+        get: operations["universities_logo_url_retrieve"];
         put?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        post: operations["university_authorities_create"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/university-authorities/{id}/": {
+    "/api/v1/universities/{id}/upload-logo/": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        get: operations["university_authorities_retrieve"];
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        put: operations["university_authorities_update"];
-        post?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        delete: operations["university_authorities_destroy"];
+        get?: never;
+        put?: never;
+        /**
+         * Subir/reemplazar el logo de la entidad
+         * @description Sube (o reemplaza) el logo de la entidad y devuelve su URL.
+         *
+         *     Asigna el archivo al `ImageField` y guarda; Django escribe el binario en
+         *     `STORAGES["default"]` usando el `upload_to` de la entidad. Si ya existía un
+         *     logo distinto, se borra el binario anterior **después** de guardar el nuevo
+         *     (no dejar la entidad sin logo si la subida falla). Persiste el path en
+         *     `referencia_logo` y registra auditoría. Responde `{referencia_logo, url}`
+         *     (`url` = signed URL efímero del campo).
+         */
+        post: operations["universities_upload_logo_create"];
+        delete?: never;
         options?: never;
         head?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        patch: operations["university_authorities_partial_update"];
+        patch?: never;
         trace?: never;
     };
     "/api/v1/university-campuses/": {
@@ -2147,38 +3482,6 @@ export interface paths {
         head?: never;
         /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         patch: operations["university_campuses_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/university-entity-types/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["university_entity_types_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/university-entity-types/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["university_entity_types_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
         trace?: never;
     };
     "/api/v1/university-management-types/": {
@@ -2289,6 +3592,52 @@ export interface paths {
         patch: operations["users_partial_update"];
         trace?: never;
     };
+    "/api/v1/users/{id}/profiles/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Gestiona el alcance por objeto (`UserEntityProfile`) del usuario objetivo.
+         *
+         *     - GET: lista los perfiles del usuario; por defecto solo los activos,
+         *       salvo ``?incluir_inactivos=true``.
+         *     - POST: otorga/reactiva de forma idempotente el acceso a una o varias
+         *       entidades bajo un rol (una fila por cada id de ``ids``).
+         *     - DELETE: da de baja lógica (``activo=False``) un perfil concreto indicado
+         *       por ``profile_id`` (query param o body).
+         */
+        get: operations["users_profiles_list"];
+        put?: never;
+        /**
+         * @description Gestiona el alcance por objeto (`UserEntityProfile`) del usuario objetivo.
+         *
+         *     - GET: lista los perfiles del usuario; por defecto solo los activos,
+         *       salvo ``?incluir_inactivos=true``.
+         *     - POST: otorga/reactiva de forma idempotente el acceso a una o varias
+         *       entidades bajo un rol (una fila por cada id de ``ids``).
+         *     - DELETE: da de baja lógica (``activo=False``) un perfil concreto indicado
+         *       por ``profile_id`` (query param o body).
+         */
+        post: operations["users_profiles_create"];
+        /**
+         * @description Gestiona el alcance por objeto (`UserEntityProfile`) del usuario objetivo.
+         *
+         *     - GET: lista los perfiles del usuario; por defecto solo los activos,
+         *       salvo ``?incluir_inactivos=true``.
+         *     - POST: otorga/reactiva de forma idempotente el acceso a una o varias
+         *       entidades bajo un rol (una fila por cada id de ``ids``).
+         *     - DELETE: da de baja lógica (``activo=False``) un perfil concreto indicado
+         *       por ``profile_id`` (query param o body).
+         */
+        delete: operations["users_profiles_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/{id}/set-password/": {
         parameters: {
             query?: never;
@@ -2311,6 +3660,18 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         AcademicLevelAuto: {
+            readonly id: number;
+            /**
+             * Código
+             * @description Código único
+             */
+            codigo: string;
+            /** @description Nombre */
+            nombre: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+        };
+        AcademicPeriodAuto: {
             readonly id: number;
             /**
              * Código
@@ -2351,12 +3712,82 @@ export interface components {
             /** @description Indica si está activo */
             activo?: boolean;
         };
+        AnnexChecklistItem: {
+            documento_anexo: number;
+            codigo: string;
+            nombre: string;
+            obligatorio: boolean;
+            adjuntado: boolean;
+            documento_id: number | null;
+            version: number | null;
+            referencia_externa: string | null;
+        };
+        AnnexDocumentAuto: {
+            readonly id: number;
+            /**
+             * Código
+             * @description Código único
+             */
+            codigo: string;
+            /** @description Nombre */
+            nombre: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+            /**
+             * Tipo de actor
+             * @description Actor que debe presentar el documento (vacío para tipos genéricos)
+             *
+             *     * `INTERNO` - Interno / estudiante
+             *     * `AUTORIDAD_UNIVERSIDAD` - Autoridad de universidad
+             *     * `REPRESENTANTE` - Representante / autoridad (incluye CONAPRES)
+             */
+            tipo_actor?: components["schemas"]["TipoActorEnum"] | components["schemas"]["BlankEnum"];
+            /** @description Indica si el documento es de presentación obligatoria */
+            obligatorio?: boolean;
+        };
+        /**
+         * @description Subida del PDF de un anexo (declaración jurada) por actor (multipart).
+         *
+         *     Solo acepta `application/pdf`. El anexo (`documento_anexo`) referencia el
+         *     catálogo maestro `internados.AnnexDocument`; el enforcement de que su
+         *     `tipo_actor` coincide con la entidad destino lo hace el mixin (necesita el
+         *     `annex_actor` del ViewSet). El versionado por `(objeto, documento_anexo)` lo
+         *     resuelve el service `adjuntar_documento`. La ruta de storage se deriva del
+         *     archivo subido dentro del mixin. Mensajes de error en español.
+         */
+        AnnexUpload: {
+            /** @description Anexo del catálogo maestro (documento_anexo) que se adjunta */
+            documento_anexo: number;
+            /**
+             * Format: uri
+             * @description Archivo PDF del anexo
+             */
+            archivo: string;
+        };
         /**
          * @description * `TODOS` - Todos
          *     * `ESPECIFICO` - Específico
          * @enum {string}
          */
         AplicaAEnum: "TODOS" | "ESPECIFICO";
+        /**
+         * @description Tipo de entidad elegible para asignar un perfil de usuario (scope por objeto).
+         *
+         *     Alimenta el selector «Tipo de entidad» del alta de perfiles. El campo
+         *     ``tipo_entidad`` es exactamente el string que espera el POST de perfiles (T10);
+         *     ``id`` (ContentType) se expone solo por paridad con el precedente y como dato
+         *     informativo — el frontend debe reenviar ``tipo_entidad``, no ``id``.
+         */
+        AssignableEntityType: {
+            /** @description ID del ContentType (informativo; el write usa tipo_entidad). */
+            id: number;
+            /** @description Nombre de modelo en minúscula; valor que espera el POST de perfiles (p. ej. university, student). */
+            tipo_entidad: string;
+            /** @description Etiqueta legible en español (verbose_name del modelo). */
+            label: string;
+            /** @description App de Django (p. ej. convenios, internados). */
+            app_label: string;
+        };
         /** @description Lectura de la bitácora de auditoría (RNF-AUD-01/02). Todos los campos read-only. */
         AuditLog: {
             readonly id: number;
@@ -2407,6 +3838,220 @@ export interface components {
         };
         /** @enum {unknown} */
         BlankEnum: "";
+        /** @description Lectura de actividades de calendario: campos legibles + detalles de M2M. */
+        CalendarActivityRead: {
+            readonly id: number;
+            /** @description Nombre de la actividad de calendario */
+            readonly nombre: string;
+            /** @description Descripción o detalle de la actividad */
+            readonly detalle: string;
+            /**
+             * Número de orden
+             * @description Orden de presentación (no único; usado en el ordenamiento por defecto)
+             */
+            readonly numero_orden: number;
+            /**
+             * Fecha de inicio
+             * Format: date
+             * @description Fecha de inicio de la ventana
+             */
+            readonly fecha_inicio: string;
+            /**
+             * Fecha de fin
+             * Format: date
+             * @description Fecha de fin de la ventana. NULL = ventana abierta (sin fecha de cierre)
+             */
+            readonly fecha_fin: string | null;
+            /** @description Si es verdadero, la actividad gobierna la escritura de sus content_types */
+            readonly controla_acceso: boolean;
+            /** @description Activación / baja lógica de la actividad */
+            readonly activo: boolean;
+            /** @description Responsables de la actividad (texto libre) */
+            readonly responsables: string;
+            /** @description Módulos/modelos que la actividad referencia y, si controla_acceso=True, gobierna */
+            readonly content_types: number[];
+            readonly content_types_detalle: {
+                [key: string]: unknown;
+            }[];
+            /** Format: date-time */
+            readonly creado_en: string;
+            /** @description Usuario que creó la actividad */
+            readonly creado_por: number | null;
+            /** Format: date-time */
+            readonly actualizado_en: string;
+            /** @description Usuario que actualizó la actividad por última vez */
+            readonly actualizado_por: number | null;
+        };
+        /**
+         * @description Escritura de actividades de calendario.
+         *
+         *     Recibe `responsables` como texto libre y `content_types` por id. Los campos de
+         *     auditoría los fija el ViewSet (`creado_por`/`actualizado_por`); las marcas de
+         *     tiempo son automáticas.
+         */
+        CalendarActivityWrite: {
+            readonly id: number;
+            /** @description Nombre de la actividad de calendario */
+            nombre: string;
+            /** @description Descripción o detalle de la actividad */
+            detalle?: string;
+            /**
+             * Número de orden
+             * Format: int64
+             * @description Orden de presentación (no único; usado en el ordenamiento por defecto)
+             */
+            numero_orden?: number;
+            /**
+             * Fecha de inicio
+             * Format: date
+             * @description Fecha de inicio de la ventana
+             */
+            fecha_inicio: string;
+            /**
+             * Fecha de fin
+             * Format: date
+             * @description Fecha de fin de la ventana. NULL = ventana abierta (sin fecha de cierre)
+             */
+            fecha_fin?: string | null;
+            /** @description Si es verdadero, la actividad gobierna la escritura de sus content_types */
+            controla_acceso?: boolean;
+            /** @description Activación / baja lógica de la actividad */
+            activo?: boolean;
+            /** @description Responsables de la actividad (texto libre) */
+            responsables?: string;
+            content_types?: number[];
+        };
+        CategoryAuto: {
+            readonly id: number;
+            /**
+             * Código
+             * @description Código único
+             */
+            codigo: string;
+            /** @description Nombre */
+            nombre: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+        };
+        /**
+         * @description Cambio de la propia contraseña: exige la clave actual y valida la nueva.
+         *
+         *     Usada por el interno para reemplazar su contraseña temporal (RN-22): al hacerlo
+         *     se limpia el flag ``debe_cambiar_password``.
+         */
+        ChangeOwnPassword: {
+            password_actual: string;
+            password_nueva: string;
+        };
+        ClassificationTypeAuto: {
+            readonly id: number;
+            /**
+             * Código
+             * @description Código único
+             */
+            codigo: string;
+            /** @description Nombre */
+            nombre: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+        };
+        /**
+         * @description Asignación (Órgano Regional) de campos clínicos por universidad.
+         *
+         *     El cliente solo envía `campo_clinico_ipress`, `convenio`, las fechas y
+         *     `campos_clinicos_autorizados`. La sede (`ipress`), la carrera, la especialidad y
+         *     la `universidad` se **derivan** en el service (del registro padre y del convenio),
+         *     por lo que aquí son de solo lectura. La disponibilidad, la coherencia con el
+         *     registro y el convenio vigente se validan en el service.
+         */
+        ClinicalFieldAllocation: {
+            readonly id: number;
+            /** @description Registro de campos clínicos (sede + carrera) */
+            campo_clinico_ipress: number;
+            /** @description Convenio Específico vigente que respalda la asignación */
+            convenio: number;
+            /** @description Sede docente (establecimiento) */
+            readonly ipress: number;
+            /** @description Carrera / programa académico */
+            readonly carrera_profesional: number;
+            /** @description Especialidad */
+            readonly especialidad: number | null;
+            /** @description Universidad a la que se asignan los cupos */
+            readonly universidad: number;
+            /**
+             * Fecha de inicio
+             * Format: date
+             * @description Inicio de vigencia de la asignación
+             */
+            fecha_inicio: string;
+            /**
+             * Fecha de fin
+             * Format: date
+             * @description Fin de vigencia de la asignación
+             */
+            fecha_fin: string;
+            /**
+             * Campos clínicos autorizados
+             * Format: int64
+             * @description Cupos autorizados para la universidad
+             */
+            campos_clinicos_autorizados: number;
+            readonly convenio_detalle: string;
+            readonly ipress_detalle: string;
+            readonly carrera_profesional_detalle: string;
+            readonly especialidad_detalle: string;
+            readonly universidad_detalle: string;
+            /** Format: date-time */
+            readonly creado_en: string;
+            /** @description Usuario que creó la asignación */
+            readonly creado_por: number | null;
+            /** Format: date-time */
+            readonly actualizado_en: string;
+            /** @description Usuario que actualizó la asignación */
+            readonly actualizado_por: number | null;
+        };
+        /**
+         * @description Registro (CONAPRES) del total de campos clínicos por sede + carrera.
+         *
+         *     `campos_clinicos_asignados` es un acumulador de solo lectura (lo mantiene el
+         *     service); `disponibilidad` = registrados − asignados. Los campos `*_detalle`
+         *     son de solo lectura para poblar los listados del frontend.
+         */
+        ClinicalFieldRegistration: {
+            readonly id: number;
+            /** @description Convenio (solo Específico) */
+            convenio: number;
+            /** @description Sede docente (establecimiento) */
+            ipress: number;
+            /** @description Carrera / programa académico */
+            carrera_profesional: number;
+            /** @description Especialidad */
+            especialidad?: number | null;
+            /**
+             * Campos clínicos registrados
+             * Format: int64
+             * @description Total de campos clínicos registrados por CONAPRES para la sede y carrera
+             */
+            campos_clinicos_registrados: number;
+            /**
+             * Campos clínicos asignados
+             * @description Acumulador Σ de los campos autorizados en las asignaciones por universidad; recalculado por el service (solo lectura en la API)
+             */
+            readonly campos_clinicos_asignados: number;
+            readonly disponibilidad: number;
+            readonly convenio_detalle: string;
+            readonly ipress_detalle: string;
+            readonly carrera_profesional_detalle: string;
+            readonly especialidad_detalle: string;
+            /** Format: date-time */
+            readonly creado_en: string;
+            /** @description Usuario que creó el registro */
+            readonly creado_por: number | null;
+            /** Format: date-time */
+            readonly actualizado_en: string;
+            /** @description Usuario que actualizó el registro */
+            readonly actualizado_por: number | null;
+        };
         ClosureReasonAuto: {
             readonly id: number;
             /**
@@ -2429,6 +4074,23 @@ export interface components {
              */
             descripcion?: string;
             activo?: boolean;
+        };
+        /**
+         * @description Tipo de contenido (`ContentType`) de Django, para poblar selectores del frontend.
+         *
+         *     Serializa instancias de `ContentType`. El frontend usa esta lista (paginada,
+         *     con `?search=`) para el selector `content_types[]` del CRUD de `calendar-activities`
+         *     y para interpretar `modulos_habilitados`/`modulos_bloqueados` de `/auth/me/`.
+         */
+        ContentType: {
+            /** @description ID del ContentType */
+            readonly id: number;
+            /** @description App de Django (p. ej. convenios) */
+            readonly app_label: string;
+            /** @description Modelo de Django en minúscula (p. ej. convention) */
+            readonly model: string;
+            /** @description Nombre legible en español del modelo */
+            readonly verbose_name: string;
         };
         ConventionRead: {
             readonly id: number;
@@ -2456,10 +4118,10 @@ export interface components {
              */
             solicitante_id_objeto: number;
             readonly solicitante: string;
-            /** @description Órgano regional (GERESA/DIRESA/DIRIS) parte del convenio. Su tipo se deriva de esta relación. */
-            organo_regional: number;
-            readonly organo_regional_nombre: string;
-            readonly tipo_organo_regional: string;
+            /** @description Órgano del directorio (GERESA/DIRESA/DIRIS) parte del convenio. */
+            organo_directorio: number;
+            readonly organo_directorio_nombre: string;
+            readonly tipo_organo_directorio: string | null;
             /** @description Universidad parte del convenio. Su tipo de entidad se deriva de esta relación. */
             universidad: number;
             readonly universidad_nombre: string;
@@ -2582,8 +4244,8 @@ export interface components {
              * @description Identificador de la entidad solicitante
              */
             solicitante_id_objeto: number;
-            /** @description Órgano regional (GERESA/DIRESA/DIRIS) parte del convenio. Su tipo se deriva de esta relación. */
-            organo_regional: number;
+            /** @description Órgano del directorio (GERESA/DIRESA/DIRIS) parte del convenio. */
+            organo_directorio: number;
             /** @description Universidad parte del convenio. Su tipo de entidad se deriva de esta relación. */
             universidad: number;
             /**
@@ -2621,12 +4283,12 @@ export interface components {
             username: string;
             password: string;
         };
-        /** @description Lectura de documentos: incluye etiquetas legibles del tipo y la entidad destino. */
+        /** @description Lectura de documentos: incluye etiquetas legibles del anexo y la entidad destino. */
         Document: {
             readonly id: number;
-            /** @description Tipo de documento */
-            tipo_documento: number;
-            readonly tipo_documento_nombre: string;
+            /** @description Anexo/tipo al que corresponde este documento (único discriminador de versionado) */
+            documento_anexo: number;
+            readonly documento_anexo_nombre: string;
             /** @description Tabla destino */
             tipo_contenido: number;
             readonly tipo_contenido_label: string;
@@ -2637,11 +4299,6 @@ export interface components {
             id_objeto: number;
             /** @description Clave/URL del archivo en el repositorio externo */
             referencia_externa: string;
-            /**
-             * Nombre del archivo
-             * @description Nombre del archivo
-             */
-            nombre_archivo: string;
             /**
              * Versión
              * @description Versión
@@ -2667,17 +4324,30 @@ export interface components {
              */
             readonly cargado_en: string;
         };
-        DocumentTypeAuto: {
-            readonly id: number;
+        /**
+         * @description Subida real de un documento (multipart): valida tipo y tamaño del binario.
+         *
+         *     Recibe el binario en `archivo` junto con los metadatos necesarios para
+         *     adjuntarlo a un objeto (relación genérica). El discriminador de versionado es
+         *     el `documento_anexo` (obligatorio). El `nombre_archivo` se usa solo como ruta
+         *     de storage; no se persiste en `Document`. El versionado y la auditoría los
+         *     resuelve el service `adjuntar_documento`; este serializer solo valida la
+         *     entrada. Mensajes de error en español.
+         */
+        DocumentUpload: {
             /**
-             * Código
-             * @description Código único
+             * Format: uri
+             * @description Binario a subir (PDF o imagen)
              */
-            codigo: string;
-            /** @description Nombre */
-            nombre: string;
-            /** @description Indica si está activo */
-            activo?: boolean;
+            archivo: string;
+            /** @description Anexo/tipo del catálogo maestro (documento_anexo) que se adjunta */
+            documento_anexo: number;
+            /** @description Tabla destino */
+            tipo_contenido: number;
+            /** @description Registro destino */
+            id_objeto: number;
+            /** @description Nombre del archivo (si falta, se deriva del archivo subido) */
+            nombre_archivo?: string;
         };
         /** @description Escritura de documentos: el versionado y el estado los fija el service. */
         DocumentWrite: {
@@ -2688,16 +4358,19 @@ export interface components {
              * @description Registro destino
              */
             id_objeto: number;
-            /** @description Tipo de documento */
-            tipo_documento: number;
-            /**
-             * Nombre del archivo
-             * @description Nombre del archivo
-             */
-            nombre_archivo: string;
+            /** @description Anexo/tipo al que corresponde este documento (único discriminador de versionado) */
+            documento_anexo: number;
             /** @description Clave/URL del archivo en el repositorio externo */
             referencia_externa: string;
         };
+        /**
+         * @description * `PENDIENTE` - Pendiente
+         *     * `COMPLETAS` - Completas
+         *     * `OBSERVADAS` - Observadas
+         *     * `VALIDADAS` - Validadas
+         * @enum {string}
+         */
+        EstadoDeclaracionesEnum: "PENDIENTE" | "COMPLETAS" | "OBSERVADAS" | "VALIDADAS";
         /**
          * @description * `ACTIVO` - Activo
          *     * `REEMPLAZADO` - Reemplazado
@@ -2709,6 +4382,7 @@ export interface components {
         EstadoEnum: "ACTIVO" | "REEMPLAZADO" | "ANULADO" | "OBSERVADO" | "VALIDADO";
         ExecutingUnitAuto: {
             readonly id: number;
+            readonly referencia_logo: string;
             /** @description Nombre */
             nombre: string;
             /**
@@ -2721,42 +4395,30 @@ export interface components {
              * @description Dirección
              */
             direccion?: string;
-            /**
-             * Referencia del logo
-             * @description Referencia externa del logo (repositorio externo)
-             */
-            referencia_logo?: string;
             activo?: boolean;
-            /** @description Órgano regional que la administra */
-            organo_regional: number;
-            /** @description Hospital / Instituto / Red */
-            tipo_unidad_ejecutora: number;
+            /** @description Órgano del directorio que la administra */
+            organo_directorio: number;
+            /** @description Hospital / Instituto especializado / Red de salud (discriminador: UNIDAD_EJECUTORA) */
+            tipo_organo: number;
             /** @description Ubicación geográfica (UBIGEO) */
             ubigeo?: number | null;
-        };
-        ExecutingUnitTypeAuto: {
-            readonly id: number;
-            /**
-             * Código
-             * @description Código único
-             */
-            codigo: string;
-            /** @description Nombre */
-            nombre: string;
-            /** @description Indica si está activo */
-            activo?: boolean;
         };
         ExecutivePositionAuto: {
             readonly id: number;
             /**
              * Código
-             * @description Código único
+             * @description Código del cargo (único dentro del órgano)
              */
             codigo: string;
-            /** @description Nombre */
+            /** @description Nombre del cargo */
             nombre: string;
             /** @description Indica si está activo */
             activo?: boolean;
+            /**
+             * Órgano
+             * @description Categoría del órgano al que pertenece el cargo
+             */
+            organo: number;
         };
         FacultyAuto: {
             readonly id: number;
@@ -2808,7 +4470,7 @@ export interface components {
             readonly id: number;
             readonly estudiante: string;
             readonly convenio: string;
-            /** @description Campo clínico autorizado asignado */
+            /** @description Asignación de campos clínicos por universidad */
             campo_clinico: number;
             readonly ipress: string;
             readonly tutor: string;
@@ -2816,6 +4478,28 @@ export interface components {
             ambito_geografico_sanitario: number;
             readonly estado_actual: string;
             readonly estado_codigo: string;
+            /**
+             * Estado de declaraciones juradas
+             * @description Estado de las declaraciones juradas del interno (RN-23)
+             *
+             *     * `PENDIENTE` - Pendiente
+             *     * `COMPLETAS` - Completas
+             *     * `OBSERVADAS` - Observadas
+             *     * `VALIDADAS` - Validadas
+             */
+            estado_declaraciones?: components["schemas"]["EstadoDeclaracionesEnum"];
+            /**
+             * Contacto de emergencia - nombre
+             * @description Nombre del contacto de emergencia
+             */
+            contacto_emergencia_nombre?: string;
+            /**
+             * Contacto de emergencia - teléfono
+             * @description Teléfono del contacto de emergencia
+             */
+            contacto_emergencia_telefono?: string;
+            /** @description Parentesco del contacto de emergencia */
+            contacto_emergencia_parentesco?: number | null;
             /**
              * Fecha de inicio
              * Format: date
@@ -2858,7 +4542,7 @@ export interface components {
             estudiante: number;
             /** @description Convenio Específico vigente que lo respalda */
             convenio: number;
-            /** @description Campo clínico autorizado asignado */
+            /** @description Asignación de campos clínicos por universidad */
             campo_clinico: number;
             /** @description Sede docente principal */
             ipress: number;
@@ -2880,9 +4564,27 @@ export interface components {
             fecha_fin: string;
             /** @description Observaciones */
             observaciones?: string;
+            /**
+             * Contacto de emergencia - nombre
+             * @description Nombre del contacto de emergencia
+             */
+            contacto_emergencia_nombre?: string;
+            /**
+             * Contacto de emergencia - teléfono
+             * @description Teléfono del contacto de emergencia
+             */
+            contacto_emergencia_telefono?: string;
+            /** @description Parentesco del contacto de emergencia */
+            contacto_emergencia_parentesco?: number | null;
         };
         IpressAuto: {
             readonly id: number;
+            readonly referencia_logo: string;
+            readonly categoria_detalle: string;
+            readonly tipo_clasificacion_detalle: string;
+            readonly ambito_geografico_sanitario_detalle: string;
+            readonly microred_detalle: string;
+            readonly ubigeo_detalle: string;
             /** @description Nombre del establecimiento */
             nombre: string;
             /**
@@ -2895,6 +4597,27 @@ export interface components {
              * @description Dirección
              */
             direccion?: string;
+            /**
+             * Format: decimal
+             * @description Latitud (coordenada geográfica)
+             */
+            latitud?: string | null;
+            /**
+             * Format: decimal
+             * @description Longitud (coordenada geográfica)
+             */
+            longitud?: string | null;
+            /**
+             * Cantidad de camas
+             * Format: int64
+             * @description Número de camas del establecimiento
+             */
+            cantidad_camas?: number | null;
+            /**
+             * Número de RUC
+             * @description RUC (11 dígitos; texto para conservar ceros a la izquierda)
+             */
+            numero_ruc?: string;
             /** @description Autorizada por CONAPRES como sede docente (asistencial, MINSA/FF.AA.-FF.PP., pública) */
             es_sede_docente?: boolean;
             activo?: boolean;
@@ -2904,6 +4627,33 @@ export interface components {
             ubigeo?: number | null;
             /** @description Ámbito geográfico sanitario */
             ambito_geografico_sanitario: number;
+            /** @description Categoría del establecimiento */
+            categoria?: number | null;
+            /** @description Tipo de clasificación del establecimiento */
+            tipo_clasificacion?: number | null;
+            /** @description Microred a la que pertenece el establecimiento */
+            microred?: number | null;
+        };
+        /**
+         * @description Subida del logo de una entidad (multipart): valida tipo y tamaño del binario.
+         *
+         *     Solo acepta imágenes (`image/png`, `image/jpeg`, `image/webp`); rechaza PDF.
+         *     El logo se guarda como una única key en `referencia_logo` de la entidad (sin
+         *     versionado, sin `Document`). Mensajes de error en español.
+         */
+        LogoUpload: {
+            /**
+             * Format: uri
+             * @description Imagen del logo (PNG, JPEG o WEBP)
+             */
+            archivo: string;
+        };
+        LogoUploadResponse: {
+            referencia_logo: string;
+            url: string;
+        };
+        LogoUrlResponse: {
+            url: string;
         };
         /** @description Datos del usuario autenticado: identidad, roles y perfiles institucionales. */
         Me: {
@@ -2913,32 +4663,30 @@ export interface components {
             email: string;
             readonly nombre: string;
             es_superusuario: boolean;
+            readonly debe_cambiar_password: boolean;
             readonly grupos: string[];
             readonly perfiles: {
                 [key: string]: unknown;
             }[];
+            readonly modulos_habilitados: {
+                [key: string]: unknown;
+            }[];
+            readonly modulos_bloqueados: {
+                [key: string]: unknown;
+            }[];
         };
-        MinsaOrganAuto: {
-            readonly id: number;
-            /** @description Nombre del órgano */
-            nombre: string;
-            /** @description Siglas */
-            siglas?: string;
-            activo?: boolean;
-            /** @description DIGEP / OGAJ / SG / VICEPAS */
-            tipo_organo_minsa: number;
-        };
-        MinsaOrganTypeAuto: {
+        MicroredAuto: {
             readonly id: number;
             /**
              * Código
-             * @description Código único
+             * @description Código de la microred (único dentro de la red)
              */
             codigo: string;
-            /** @description Nombre */
+            /** @description Nombre de la microred */
             nombre: string;
-            /** @description Indica si está activo */
             activo?: boolean;
+            /** @description Red a la que pertenece la microred */
+            red: number;
         };
         ObservationReasonAuto: {
             readonly id: number;
@@ -2952,13 +4700,170 @@ export interface components {
             /** @description Indica si está activo */
             activo?: boolean;
         };
+        OrganAuto: {
+            readonly id: number;
+            /** @description Nombre del órgano */
+            nombre: string;
+            /** @description Indica si está activo */
+            estado?: boolean;
+        };
+        OrganDirectoryAuto: {
+            readonly id: number;
+            readonly referencia_logo: string;
+            /** @description Nombre del órgano */
+            nombre: string;
+            /** @description Siglas */
+            siglas?: string;
+            /**
+             * Dirección
+             * @description Dirección
+             */
+            direccion?: string;
+            /**
+             * Número de RUC
+             * @description RUC (11 dígitos; texto para conservar ceros a la izquierda)
+             */
+            numero_ruc?: string;
+            /**
+             * Format: email
+             * @description Correo institucional
+             */
+            correo?: string;
+            /**
+             * Teléfono institucional
+             * @description Teléfono institucional
+             */
+            telefono_institucional?: string;
+            activo?: boolean;
+            /**
+             * Órgano
+             * @description Categoría del órgano (discriminador)
+             */
+            organo: number;
+            /** @description Tipo de órgano (GERESA/DIRESA/DIGEP…); nulo para órganos sin tipo */
+            tipo_organo?: number | null;
+            /** @description GORE (solo órganos regionales) */
+            gobierno_regional?: number | null;
+            /** @description Ubicación geográfica (UBIGEO) */
+            ubigeo?: number | null;
+        };
         /**
-         * @description * `MINSA` - MINSA
-         *     * `GOBIERNO_REGIONAL` - Gobierno Regional
-         *     * `ASOCIACION_FACULTADES` - Asociación de Facultades
-         * @enum {string}
+         * @description Representante de un órgano del directorio (FK directo).
+         *
+         *     Valida la unicidad del documento entre representantes activos y la coherencia
+         *     del cargo con el órgano del directorio. La baja del representante anterior
+         *     (histórico) la resuelve el service ``registrar_organo_representante``.
          */
-        OrigenEnum: "MINSA" | "GOBIERNO_REGIONAL" | "ASOCIACION_FACULTADES";
+        OrganRepresentative: {
+            readonly id: number;
+            /** @description Nombre del representante */
+            nombre: string;
+            /**
+             * Número de documento de identidad
+             * @description Número de documento de identidad
+             */
+            numero_documento_identidad: string;
+            /**
+             * @description Sexo (M/F)
+             *
+             *     * `M` - Masculino
+             *     * `F` - Femenino
+             */
+            sexo: components["schemas"]["SexoEnum"];
+            /**
+             * Fecha de inicio de designación
+             * Format: date
+             * @description Inicio de la designación
+             */
+            fecha_inicio_designacion: string;
+            /**
+             * Número de resolución de designación
+             * @description Número de resolución de designación
+             */
+            numero_resolucion_designacion?: string;
+            /**
+             * Fecha de inicio de facultades
+             * Format: date
+             * @description Otorgamiento de facultades
+             */
+            fecha_inicio_facultades?: string | null;
+            activo?: boolean;
+            /** @description Órgano del directorio representado */
+            organo_directorio: number;
+            /** @description Tipo de documento de identidad */
+            tipo_documento_identidad: number;
+            /** @description Cargo ejecutivo */
+            cargo_ejecutivo: number;
+        };
+        OrganRepresentativeHistoryAuto: {
+            readonly id: number;
+            /** @description Nombre del representante */
+            nombre: string;
+            /**
+             * Número de documento de identidad
+             * @description Número de documento de identidad
+             */
+            numero_documento_identidad: string;
+            /**
+             * @description Sexo (M/F)
+             *
+             *     * `M` - Masculino
+             *     * `F` - Femenino
+             */
+            sexo: components["schemas"]["SexoEnum"];
+            /**
+             * Fecha de inicio de designación
+             * Format: date
+             * @description Inicio de la designación
+             */
+            fecha_inicio_designacion: string;
+            /**
+             * Número de resolución de designación
+             * @description Número de resolución de designación
+             */
+            numero_resolucion_designacion?: string;
+            /**
+             * Fecha de inicio de facultades
+             * Format: date
+             * @description Otorgamiento de facultades
+             */
+            fecha_inicio_facultades?: string | null;
+            /**
+             * Fecha de baja
+             * Format: date
+             * @description Fecha en que se dio de baja al representante
+             */
+            fecha_baja: string;
+            /** @description Motivo de la baja */
+            motivo?: string;
+            /** Format: date-time */
+            readonly creado_en: string;
+            /** @description Representante dado de baja */
+            representante: number;
+            /** @description Órgano del directorio representado */
+            organo_directorio: number;
+            /** @description Tipo de documento de identidad */
+            tipo_documento_identidad: number;
+            /** @description Cargo ejecutivo */
+            cargo_ejecutivo: number;
+        };
+        OrganTypeAuto: {
+            readonly id: number;
+            /**
+             * Código
+             * @description Código del tipo (único dentro de la categoría)
+             */
+            codigo: string;
+            /** @description Nombre */
+            nombre: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+            /**
+             * Órgano
+             * @description Categoría del órgano (Órgano del MINSA / Universidad / Órgano Regional / Unidad Ejecutora)
+             */
+            organo: number;
+        };
         PaginatedAcademicLevelAutoList: {
             /** @example 123 */
             count: number;
@@ -2973,6 +4878,21 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["AcademicLevelAuto"][];
+        };
+        PaginatedAcademicPeriodAutoList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["AcademicPeriodAuto"][];
         };
         PaginatedActivityStatusAutoList: {
             /** @example 123 */
@@ -3004,6 +4924,21 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["ActivityTypeAuto"][];
         };
+        PaginatedAnnexDocumentAutoList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["AnnexDocumentAuto"][];
+        };
         PaginatedAuditLogList: {
             /** @example 123 */
             count: number;
@@ -3034,6 +4969,81 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["AuthorizationTypeAuto"][];
         };
+        PaginatedCalendarActivityReadList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["CalendarActivityRead"][];
+        };
+        PaginatedCategoryAutoList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["CategoryAuto"][];
+        };
+        PaginatedClassificationTypeAutoList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["ClassificationTypeAuto"][];
+        };
+        PaginatedClinicalFieldAllocationList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["ClinicalFieldAllocation"][];
+        };
+        PaginatedClinicalFieldRegistrationList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["ClinicalFieldRegistration"][];
+        };
         PaginatedClosureReasonAutoList: {
             /** @example 123 */
             count: number;
@@ -3063,6 +5073,21 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["ConapresAuto"][];
+        };
+        PaginatedContentTypeList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["ContentType"][];
         };
         PaginatedConventionReadList: {
             /** @example 123 */
@@ -3139,21 +5164,6 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["Document"][];
         };
-        PaginatedDocumentTypeAutoList: {
-            /** @example 123 */
-            count: number;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=4
-             */
-            next?: string | null;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=2
-             */
-            previous?: string | null;
-            results: components["schemas"]["DocumentTypeAuto"][];
-        };
         PaginatedExecutingUnitAutoList: {
             /** @example 123 */
             count: number;
@@ -3168,21 +5178,6 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["ExecutingUnitAuto"][];
-        };
-        PaginatedExecutingUnitTypeAutoList: {
-            /** @example 123 */
-            count: number;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=4
-             */
-            next?: string | null;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=2
-             */
-            previous?: string | null;
-            results: components["schemas"]["ExecutingUnitTypeAuto"][];
         };
         PaginatedExecutivePositionAutoList: {
             /** @example 123 */
@@ -3304,7 +5299,7 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["IpressAuto"][];
         };
-        PaginatedMinsaOrganAutoList: {
+        PaginatedMicroredAutoList: {
             /** @example 123 */
             count: number;
             /**
@@ -3317,22 +5312,7 @@ export interface components {
              * @example http://api.example.org/accounts/?page=2
              */
             previous?: string | null;
-            results: components["schemas"]["MinsaOrganAuto"][];
-        };
-        PaginatedMinsaOrganTypeAutoList: {
-            /** @example 123 */
-            count: number;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=4
-             */
-            next?: string | null;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=2
-             */
-            previous?: string | null;
-            results: components["schemas"]["MinsaOrganTypeAuto"][];
+            results: components["schemas"]["MicroredAuto"][];
         };
         PaginatedObservationReasonAutoList: {
             /** @example 123 */
@@ -3348,6 +5328,81 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["ObservationReasonAuto"][];
+        };
+        PaginatedOrganAutoList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["OrganAuto"][];
+        };
+        PaginatedOrganDirectoryAutoList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["OrganDirectoryAuto"][];
+        };
+        PaginatedOrganRepresentativeHistoryAutoList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["OrganRepresentativeHistoryAuto"][];
+        };
+        PaginatedOrganRepresentativeList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["OrganRepresentative"][];
+        };
+        PaginatedOrganTypeAutoList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["OrganTypeAuto"][];
         };
         PaginatedPermissionList: {
             /** @example 123 */
@@ -3379,6 +5434,21 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["ProfessionalCareerAuto"][];
         };
+        PaginatedRedAutoList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["RedAuto"][];
+        };
         PaginatedRegionAutoList: {
             /** @example 123 */
             count: number;
@@ -3409,36 +5479,6 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["RegionalGovernmentAuto"][];
         };
-        PaginatedRegionalOrganAutoList: {
-            /** @example 123 */
-            count: number;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=4
-             */
-            next?: string | null;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=2
-             */
-            previous?: string | null;
-            results: components["schemas"]["RegionalOrganAuto"][];
-        };
-        PaginatedRegionalOrganTypeAutoList: {
-            /** @example 123 */
-            count: number;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=4
-             */
-            next?: string | null;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=2
-             */
-            previous?: string | null;
-            results: components["schemas"]["RegionalOrganTypeAuto"][];
-        };
         PaginatedRejectionReasonAutoList: {
             /** @example 123 */
             count: number;
@@ -3468,21 +5508,6 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["RelationshipTypeAuto"][];
-        };
-        PaginatedRepresentativeList: {
-            /** @example 123 */
-            count: number;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=4
-             */
-            next?: string | null;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=2
-             */
-            previous?: string | null;
-            results: components["schemas"]["Representative"][];
         };
         PaginatedRotationReadList: {
             /** @example 123 */
@@ -3619,21 +5644,6 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["UbigeoAuto"][];
         };
-        PaginatedUniversityAuthorityAutoList: {
-            /** @example 123 */
-            count: number;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=4
-             */
-            next?: string | null;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=2
-             */
-            previous?: string | null;
-            results: components["schemas"]["UniversityAuthorityAuto"][];
-        };
         PaginatedUniversityAutoList: {
             /** @example 123 */
             count: number;
@@ -3663,21 +5673,6 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["UniversityCampusAuto"][];
-        };
-        PaginatedUniversityEntityTypeAutoList: {
-            /** @example 123 */
-            count: number;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=4
-             */
-            next?: string | null;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=2
-             */
-            previous?: string | null;
-            results: components["schemas"]["UniversityEntityTypeAuto"][];
         };
         PaginatedUniversityManagementTypeAutoList: {
             /** @example 123 */
@@ -3709,6 +5704,21 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["UserEntityProfileAuto"][];
         };
+        PaginatedUserEntityProfileWriteReadList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["UserEntityProfileWriteRead"][];
+        };
         PaginatedUserReadList: {
             /** @example 123 */
             count: number;
@@ -3723,6 +5733,225 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["UserRead"][];
+        };
+        PatchedAcademicLevelAuto: {
+            readonly id?: number;
+            /**
+             * Código
+             * @description Código único
+             */
+            codigo?: string;
+            /** @description Nombre */
+            nombre?: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+        };
+        PatchedAcademicPeriodAuto: {
+            readonly id?: number;
+            /**
+             * Código
+             * @description Código único
+             */
+            codigo?: string;
+            /** @description Nombre */
+            nombre?: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+        };
+        PatchedAnnexDocumentAuto: {
+            readonly id?: number;
+            /**
+             * Código
+             * @description Código único
+             */
+            codigo?: string;
+            /** @description Nombre */
+            nombre?: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+            /**
+             * Tipo de actor
+             * @description Actor que debe presentar el documento (vacío para tipos genéricos)
+             *
+             *     * `INTERNO` - Interno / estudiante
+             *     * `AUTORIDAD_UNIVERSIDAD` - Autoridad de universidad
+             *     * `REPRESENTANTE` - Representante / autoridad (incluye CONAPRES)
+             */
+            tipo_actor?: components["schemas"]["TipoActorEnum"] | components["schemas"]["BlankEnum"];
+            /** @description Indica si el documento es de presentación obligatoria */
+            obligatorio?: boolean;
+        };
+        PatchedAuthorizationTypeAuto: {
+            readonly id?: number;
+            /**
+             * Código
+             * @description Código único
+             */
+            codigo?: string;
+            /** @description Nombre */
+            nombre?: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+        };
+        /**
+         * @description Escritura de actividades de calendario.
+         *
+         *     Recibe `responsables` como texto libre y `content_types` por id. Los campos de
+         *     auditoría los fija el ViewSet (`creado_por`/`actualizado_por`); las marcas de
+         *     tiempo son automáticas.
+         */
+        PatchedCalendarActivityWrite: {
+            readonly id?: number;
+            /** @description Nombre de la actividad de calendario */
+            nombre?: string;
+            /** @description Descripción o detalle de la actividad */
+            detalle?: string;
+            /**
+             * Número de orden
+             * Format: int64
+             * @description Orden de presentación (no único; usado en el ordenamiento por defecto)
+             */
+            numero_orden?: number;
+            /**
+             * Fecha de inicio
+             * Format: date
+             * @description Fecha de inicio de la ventana
+             */
+            fecha_inicio?: string;
+            /**
+             * Fecha de fin
+             * Format: date
+             * @description Fecha de fin de la ventana. NULL = ventana abierta (sin fecha de cierre)
+             */
+            fecha_fin?: string | null;
+            /** @description Si es verdadero, la actividad gobierna la escritura de sus content_types */
+            controla_acceso?: boolean;
+            /** @description Activación / baja lógica de la actividad */
+            activo?: boolean;
+            /** @description Responsables de la actividad (texto libre) */
+            responsables?: string;
+            content_types?: number[];
+        };
+        PatchedCategoryAuto: {
+            readonly id?: number;
+            /**
+             * Código
+             * @description Código único
+             */
+            codigo?: string;
+            /** @description Nombre */
+            nombre?: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+        };
+        PatchedClassificationTypeAuto: {
+            readonly id?: number;
+            /**
+             * Código
+             * @description Código único
+             */
+            codigo?: string;
+            /** @description Nombre */
+            nombre?: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+        };
+        /**
+         * @description Asignación (Órgano Regional) de campos clínicos por universidad.
+         *
+         *     El cliente solo envía `campo_clinico_ipress`, `convenio`, las fechas y
+         *     `campos_clinicos_autorizados`. La sede (`ipress`), la carrera, la especialidad y
+         *     la `universidad` se **derivan** en el service (del registro padre y del convenio),
+         *     por lo que aquí son de solo lectura. La disponibilidad, la coherencia con el
+         *     registro y el convenio vigente se validan en el service.
+         */
+        PatchedClinicalFieldAllocation: {
+            readonly id?: number;
+            /** @description Registro de campos clínicos (sede + carrera) */
+            campo_clinico_ipress?: number;
+            /** @description Convenio Específico vigente que respalda la asignación */
+            convenio?: number;
+            /** @description Sede docente (establecimiento) */
+            readonly ipress?: number;
+            /** @description Carrera / programa académico */
+            readonly carrera_profesional?: number;
+            /** @description Especialidad */
+            readonly especialidad?: number | null;
+            /** @description Universidad a la que se asignan los cupos */
+            readonly universidad?: number;
+            /**
+             * Fecha de inicio
+             * Format: date
+             * @description Inicio de vigencia de la asignación
+             */
+            fecha_inicio?: string;
+            /**
+             * Fecha de fin
+             * Format: date
+             * @description Fin de vigencia de la asignación
+             */
+            fecha_fin?: string;
+            /**
+             * Campos clínicos autorizados
+             * Format: int64
+             * @description Cupos autorizados para la universidad
+             */
+            campos_clinicos_autorizados?: number;
+            readonly convenio_detalle?: string;
+            readonly ipress_detalle?: string;
+            readonly carrera_profesional_detalle?: string;
+            readonly especialidad_detalle?: string;
+            readonly universidad_detalle?: string;
+            /** Format: date-time */
+            readonly creado_en?: string;
+            /** @description Usuario que creó la asignación */
+            readonly creado_por?: number | null;
+            /** Format: date-time */
+            readonly actualizado_en?: string;
+            /** @description Usuario que actualizó la asignación */
+            readonly actualizado_por?: number | null;
+        };
+        /**
+         * @description Registro (CONAPRES) del total de campos clínicos por sede + carrera.
+         *
+         *     `campos_clinicos_asignados` es un acumulador de solo lectura (lo mantiene el
+         *     service); `disponibilidad` = registrados − asignados. Los campos `*_detalle`
+         *     son de solo lectura para poblar los listados del frontend.
+         */
+        PatchedClinicalFieldRegistration: {
+            readonly id?: number;
+            /** @description Convenio (solo Específico) */
+            convenio?: number;
+            /** @description Sede docente (establecimiento) */
+            ipress?: number;
+            /** @description Carrera / programa académico */
+            carrera_profesional?: number;
+            /** @description Especialidad */
+            especialidad?: number | null;
+            /**
+             * Campos clínicos registrados
+             * Format: int64
+             * @description Total de campos clínicos registrados por CONAPRES para la sede y carrera
+             */
+            campos_clinicos_registrados?: number;
+            /**
+             * Campos clínicos asignados
+             * @description Acumulador Σ de los campos autorizados en las asignaciones por universidad; recalculado por el service (solo lectura en la API)
+             */
+            readonly campos_clinicos_asignados?: number;
+            readonly disponibilidad?: number;
+            readonly convenio_detalle?: string;
+            readonly ipress_detalle?: string;
+            readonly carrera_profesional_detalle?: string;
+            readonly especialidad_detalle?: string;
+            /** Format: date-time */
+            readonly creado_en?: string;
+            /** @description Usuario que creó el registro */
+            readonly creado_por?: number | null;
+            /** Format: date-time */
+            readonly actualizado_en?: string;
+            /** @description Usuario que actualizó el registro */
+            readonly actualizado_por?: number | null;
         };
         PatchedConapresAuto: {
             readonly id?: number;
@@ -3778,8 +6007,8 @@ export interface components {
              * @description Identificador de la entidad solicitante
              */
             solicitante_id_objeto?: number;
-            /** @description Órgano regional (GERESA/DIRESA/DIRIS) parte del convenio. Su tipo se deriva de esta relación. */
-            organo_regional?: number;
+            /** @description Órgano del directorio (GERESA/DIRESA/DIRIS) parte del convenio. */
+            organo_directorio?: number;
             /** @description Universidad parte del convenio. Su tipo de entidad se deriva de esta relación. */
             universidad?: number;
             /**
@@ -3809,6 +6038,7 @@ export interface components {
         };
         PatchedExecutingUnitAuto: {
             readonly id?: number;
+            readonly referencia_logo?: string;
             /** @description Nombre */
             nombre?: string;
             /**
@@ -3821,18 +6051,30 @@ export interface components {
              * @description Dirección
              */
             direccion?: string;
-            /**
-             * Referencia del logo
-             * @description Referencia externa del logo (repositorio externo)
-             */
-            referencia_logo?: string;
             activo?: boolean;
-            /** @description Órgano regional que la administra */
-            organo_regional?: number;
-            /** @description Hospital / Instituto / Red */
-            tipo_unidad_ejecutora?: number;
+            /** @description Órgano del directorio que la administra */
+            organo_directorio?: number;
+            /** @description Hospital / Instituto especializado / Red de salud (discriminador: UNIDAD_EJECUTORA) */
+            tipo_organo?: number;
             /** @description Ubicación geográfica (UBIGEO) */
             ubigeo?: number | null;
+        };
+        PatchedExecutivePositionAuto: {
+            readonly id?: number;
+            /**
+             * Código
+             * @description Código del cargo (único dentro del órgano)
+             */
+            codigo?: string;
+            /** @description Nombre del cargo */
+            nombre?: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+            /**
+             * Órgano
+             * @description Categoría del órgano al que pertenece el cargo
+             */
+            organo?: number;
         };
         PatchedFacultyAuto: {
             readonly id?: number;
@@ -3850,12 +6092,24 @@ export interface components {
             permissions?: number[];
             readonly permissions_detalle?: components["schemas"]["Permission"][];
         };
+        PatchedHealthGeographicScopeAuto: {
+            readonly id?: number;
+            /**
+             * Código
+             * @description Código único
+             */
+            codigo?: string;
+            /** @description Nombre */
+            nombre?: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+        };
         PatchedInternshipWrite: {
             /** @description Estudiante */
             estudiante?: number;
             /** @description Convenio Específico vigente que lo respalda */
             convenio?: number;
-            /** @description Campo clínico autorizado asignado */
+            /** @description Asignación de campos clínicos por universidad */
             campo_clinico?: number;
             /** @description Sede docente principal */
             ipress?: number;
@@ -3877,9 +6131,27 @@ export interface components {
             fecha_fin?: string;
             /** @description Observaciones */
             observaciones?: string;
+            /**
+             * Contacto de emergencia - nombre
+             * @description Nombre del contacto de emergencia
+             */
+            contacto_emergencia_nombre?: string;
+            /**
+             * Contacto de emergencia - teléfono
+             * @description Teléfono del contacto de emergencia
+             */
+            contacto_emergencia_telefono?: string;
+            /** @description Parentesco del contacto de emergencia */
+            contacto_emergencia_parentesco?: number | null;
         };
         PatchedIpressAuto: {
             readonly id?: number;
+            readonly referencia_logo?: string;
+            readonly categoria_detalle?: string;
+            readonly tipo_clasificacion_detalle?: string;
+            readonly ambito_geografico_sanitario_detalle?: string;
+            readonly microred_detalle?: string;
+            readonly ubigeo_detalle?: string;
             /** @description Nombre del establecimiento */
             nombre?: string;
             /**
@@ -3892,6 +6164,27 @@ export interface components {
              * @description Dirección
              */
             direccion?: string;
+            /**
+             * Format: decimal
+             * @description Latitud (coordenada geográfica)
+             */
+            latitud?: string | null;
+            /**
+             * Format: decimal
+             * @description Longitud (coordenada geográfica)
+             */
+            longitud?: string | null;
+            /**
+             * Cantidad de camas
+             * Format: int64
+             * @description Número de camas del establecimiento
+             */
+            cantidad_camas?: number | null;
+            /**
+             * Número de RUC
+             * @description RUC (11 dígitos; texto para conservar ceros a la izquierda)
+             */
+            numero_ruc?: string;
             /** @description Autorizada por CONAPRES como sede docente (asistencial, MINSA/FF.AA.-FF.PP., pública) */
             es_sede_docente?: boolean;
             activo?: boolean;
@@ -3901,44 +6194,36 @@ export interface components {
             ubigeo?: number | null;
             /** @description Ámbito geográfico sanitario */
             ambito_geografico_sanitario?: number;
+            /** @description Categoría del establecimiento */
+            categoria?: number | null;
+            /** @description Tipo de clasificación del establecimiento */
+            tipo_clasificacion?: number | null;
+            /** @description Microred a la que pertenece el establecimiento */
+            microred?: number | null;
         };
-        PatchedMinsaOrganAuto: {
+        PatchedMicroredAuto: {
+            readonly id?: number;
+            /**
+             * Código
+             * @description Código de la microred (único dentro de la red)
+             */
+            codigo?: string;
+            /** @description Nombre de la microred */
+            nombre?: string;
+            activo?: boolean;
+            /** @description Red a la que pertenece la microred */
+            red?: number;
+        };
+        PatchedOrganAuto: {
             readonly id?: number;
             /** @description Nombre del órgano */
             nombre?: string;
-            /** @description Siglas */
-            siglas?: string;
-            activo?: boolean;
-            /** @description DIGEP / OGAJ / SG / VICEPAS */
-            tipo_organo_minsa?: number;
+            /** @description Indica si está activo */
+            estado?: boolean;
         };
-        PatchedProfessionalCareerAuto: {
+        PatchedOrganDirectoryAuto: {
             readonly id?: number;
-            /** @description Nombre de la carrera o programa */
-            nombre?: string;
-            activo?: boolean;
-            /** @description Facultad */
-            facultad?: number;
-            /** @description Carrera profesional / segunda especialidad / maestría / doctorado */
-            nivel_academico?: number;
-            /** @description Especialidad asociada */
-            especialidad?: number | null;
-        };
-        PatchedRegionalGovernmentAuto: {
-            readonly id?: number;
-            /** @description Nombre del gobierno regional */
-            nombre?: string;
-            /**
-             * Referencia del logo
-             * @description Referencia externa del logo (repositorio externo)
-             */
-            referencia_logo?: string;
-            activo?: boolean;
-            /** @description Región */
-            region?: number;
-        };
-        PatchedRegionalOrganAuto: {
-            readonly id?: number;
+            readonly referencia_logo?: string;
             /** @description Nombre del órgano */
             nombre?: string;
             /** @description Siglas */
@@ -3949,53 +6234,127 @@ export interface components {
              */
             direccion?: string;
             /**
-             * Referencia del logo
-             * @description Referencia externa del logo (repositorio externo)
+             * Número de RUC
+             * @description RUC (11 dígitos; texto para conservar ceros a la izquierda)
              */
-            referencia_logo?: string;
+            numero_ruc?: string;
+            /**
+             * Format: email
+             * @description Correo institucional
+             */
+            correo?: string;
+            /**
+             * Teléfono institucional
+             * @description Teléfono institucional
+             */
+            telefono_institucional?: string;
             activo?: boolean;
-            /** @description GORE al que pertenece */
-            gobierno_regional?: number;
-            /** @description GERESA / DIRESA / DIRIS */
-            tipo_organo_regional?: number;
+            /**
+             * Órgano
+             * @description Categoría del órgano (discriminador)
+             */
+            organo?: number;
+            /** @description Tipo de órgano (GERESA/DIRESA/DIGEP…); nulo para órganos sin tipo */
+            tipo_organo?: number | null;
+            /** @description GORE (solo órganos regionales) */
+            gobierno_regional?: number | null;
             /** @description Ubicación geográfica (UBIGEO) */
             ubigeo?: number | null;
         };
-        /** @description Representante polimórfico; valida que apunte a una entidad permitida. */
-        PatchedRepresentative: {
+        /**
+         * @description Representante de un órgano del directorio (FK directo).
+         *
+         *     Valida la unicidad del documento entre representantes activos y la coherencia
+         *     del cargo con el órgano del directorio. La baja del representante anterior
+         *     (histórico) la resuelve el service ``registrar_organo_representante``.
+         */
+        PatchedOrganRepresentative: {
             readonly id?: number;
-            /**
-             * Format: int64
-             * @description Identificador de la entidad representada
-             */
-            id_objeto?: number;
             /** @description Nombre del representante */
             nombre?: string;
             /**
-             * @description Solo para CONAPRES: MINSA / Gobierno Regional / Asociación de Facultades
+             * Número de documento de identidad
+             * @description Número de documento de identidad
+             */
+            numero_documento_identidad?: string;
+            /**
+             * @description Sexo (M/F)
              *
-             *     * `MINSA` - MINSA
-             *     * `GOBIERNO_REGIONAL` - Gobierno Regional
-             *     * `ASOCIACION_FACULTADES` - Asociación de Facultades
+             *     * `M` - Masculino
+             *     * `F` - Femenino
              */
-            origen?: components["schemas"]["OrigenEnum"] | components["schemas"]["BlankEnum"];
+            sexo?: components["schemas"]["SexoEnum"];
             /**
-             * Fecha de inicio
+             * Fecha de inicio de designación
              * Format: date
-             * @description Inicio de participación/cargo
+             * @description Inicio de la designación
              */
-            fecha_inicio?: string | null;
+            fecha_inicio_designacion?: string;
             /**
-             * Fecha de fin
-             * Format: date
-             * @description Fin de participación/cargo
+             * Número de resolución de designación
+             * @description Número de resolución de designación
              */
-            fecha_fin?: string | null;
+            numero_resolucion_designacion?: string;
+            /**
+             * Fecha de inicio de facultades
+             * Format: date
+             * @description Otorgamiento de facultades
+             */
+            fecha_inicio_facultades?: string | null;
             activo?: boolean;
-            /** @description Tipo de entidad representada */
-            tipo_contenido?: number;
-            /** @description Cargo (catálogo) */
+            /** @description Órgano del directorio representado */
+            organo_directorio?: number;
+            /** @description Tipo de documento de identidad */
+            tipo_documento_identidad?: number;
+            /** @description Cargo ejecutivo */
             cargo_ejecutivo?: number;
+        };
+        PatchedOrganTypeAuto: {
+            readonly id?: number;
+            /**
+             * Código
+             * @description Código del tipo (único dentro de la categoría)
+             */
+            codigo?: string;
+            /** @description Nombre */
+            nombre?: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+            /**
+             * Órgano
+             * @description Categoría del órgano (Órgano del MINSA / Universidad / Órgano Regional / Unidad Ejecutora)
+             */
+            organo?: number;
+        };
+        PatchedProfessionalCareerAuto: {
+            readonly id?: number;
+            /** @description Nombre de la carrera o programa */
+            nombre?: string;
+            activo?: boolean;
+            /** @description Carrera profesional / segunda especialidad / maestría / doctorado */
+            nivel_academico?: number;
+        };
+        PatchedRedAuto: {
+            readonly id?: number;
+            /**
+             * Código
+             * @description Código de la red (único dentro del ámbito)
+             */
+            codigo?: string;
+            /** @description Nombre de la red */
+            nombre?: string;
+            activo?: boolean;
+            /** @description Ámbito geográfico sanitario al que pertenece la red */
+            ambito_geografico_sanitario?: number;
+        };
+        PatchedRegionalGovernmentAuto: {
+            readonly id?: number;
+            readonly referencia_logo?: string;
+            /** @description Nombre del gobierno regional */
+            nombre?: string;
+            activo?: boolean;
+            /** @description Región */
+            region?: number;
         };
         PatchedStudent: {
             readonly id?: number;
@@ -4041,26 +6400,10 @@ export interface components {
              */
             codigo_universitario?: string;
             /**
-             * Año académico
-             * Format: int64
-             * @description Año académico
-             */
-            anio_academico?: number | null;
-            /**
              * Format: decimal
              * @description Nota promedio ponderado (escala 0–20)
              */
             nota_promedio_ponderado?: string | null;
-            /**
-             * Contacto de emergencia - nombre
-             * @description Nombre del contacto de emergencia
-             */
-            contacto_emergencia_nombre?: string;
-            /**
-             * Contacto de emergencia - teléfono
-             * @description Teléfono del contacto de emergencia
-             */
-            contacto_emergencia_telefono?: string;
             activo?: boolean;
             /** Format: date-time */
             readonly creado_en?: string;
@@ -4072,8 +6415,10 @@ export interface components {
             universidad?: number;
             /** @description Carrera / programa */
             carrera_profesional?: number;
-            /** @description Parentesco del contacto de emergencia */
-            contacto_emergencia_parentesco?: number | null;
+            /** @description Periodo académico (obligatorio para Pregrado — RN-19) */
+            periodo_academico?: number | null;
+            /** @description Especialidad (obligatoria para niveles distintos de Pregrado — RN-19) */
+            especialidad?: number | null;
             readonly creado_por?: number;
         };
         PatchedTeachingActivityUpdate: {
@@ -4092,8 +6437,11 @@ export interface components {
             /** @description Servicio, área o unidad */
             servicio_area?: number;
         };
+        /** @description CRUD de tutores. `universidades` (RN-24): de 1 a 2 universidades por tutor. */
         PatchedTutor: {
             readonly id?: number;
+            /** @description Universidades del tutor (de 1 a 2 — RN-24) */
+            universidades?: number[];
             /**
              * Número de documento
              * @description Número de documento de identidad
@@ -4132,40 +6480,9 @@ export interface components {
             /** @description Establecimiento al que pertenece */
             ipress?: number | null;
         };
-        PatchedUniversityAuthorityAuto: {
-            readonly id?: number;
-            /** @description Nombre de la autoridad */
-            nombre?: string;
-            /** @description Cargo */
-            cargo?: string;
-            /**
-             * Fecha de inicio del cargo
-             * Format: date
-             * @description Inicio del cargo
-             */
-            fecha_inicio_cargo?: string;
-            /**
-             * Fecha de fin del cargo
-             * Format: date
-             * @description Fin del cargo
-             */
-            fecha_fin_cargo?: string | null;
-            /**
-             * Número de resolución
-             * @description Número de resolución de designación
-             */
-            numero_resolucion?: string;
-            /**
-             * Referencia del documento de resolución
-             * @description Referencia externa del PDF de la resolución
-             */
-            referencia_documento_resolucion?: string;
-            activo?: boolean;
-            /** @description Universidad */
-            universidad?: number;
-        };
         PatchedUniversityAuto: {
             readonly id?: number;
+            readonly referencia_logo?: string;
             /** @description Nombre de la universidad */
             nombre?: string;
             /** @description Siglas */
@@ -4204,15 +6521,10 @@ export interface components {
             telefono?: string;
             /** @description Correo institucional */
             correo_institucional?: string;
-            /**
-             * Referencia del logo
-             * @description Referencia externa del logo (repositorio externo)
-             */
-            referencia_logo?: string;
             activo?: boolean;
             /** @description Pública / privada */
             tipo_gestion?: number;
-            /** @description Universidad / Escuela posgrado / Escuela superior / Instituto */
+            /** @description Universidad / Escuela posgrado / Escuela superior / Instituto (discriminador: UNIVERSIDAD) */
             tipo_entidad?: number;
             /** @description Licenciada / Denegada / Pendiente */
             tipo_autorizacion?: number;
@@ -4299,12 +6611,21 @@ export interface components {
             /** @description Nombre de la carrera o programa */
             nombre: string;
             activo?: boolean;
-            /** @description Facultad */
-            facultad: number;
             /** @description Carrera profesional / segunda especialidad / maestría / doctorado */
             nivel_academico: number;
-            /** @description Especialidad asociada */
-            especialidad?: number | null;
+        };
+        RedAuto: {
+            readonly id: number;
+            /**
+             * Código
+             * @description Código de la red (único dentro del ámbito)
+             */
+            codigo: string;
+            /** @description Nombre de la red */
+            nombre: string;
+            activo?: boolean;
+            /** @description Ámbito geográfico sanitario al que pertenece la red */
+            ambito_geografico_sanitario: number;
         };
         RegionAuto: {
             readonly id: number;
@@ -4320,52 +6641,12 @@ export interface components {
         };
         RegionalGovernmentAuto: {
             readonly id: number;
+            readonly referencia_logo: string;
             /** @description Nombre del gobierno regional */
             nombre: string;
-            /**
-             * Referencia del logo
-             * @description Referencia externa del logo (repositorio externo)
-             */
-            referencia_logo?: string;
             activo?: boolean;
             /** @description Región */
             region: number;
-        };
-        RegionalOrganAuto: {
-            readonly id: number;
-            /** @description Nombre del órgano */
-            nombre: string;
-            /** @description Siglas */
-            siglas?: string;
-            /**
-             * Dirección
-             * @description Dirección
-             */
-            direccion?: string;
-            /**
-             * Referencia del logo
-             * @description Referencia externa del logo (repositorio externo)
-             */
-            referencia_logo?: string;
-            activo?: boolean;
-            /** @description GORE al que pertenece */
-            gobierno_regional: number;
-            /** @description GERESA / DIRESA / DIRIS */
-            tipo_organo_regional: number;
-            /** @description Ubicación geográfica (UBIGEO) */
-            ubigeo?: number | null;
-        };
-        RegionalOrganTypeAuto: {
-            readonly id: number;
-            /**
-             * Código
-             * @description Código único
-             */
-            codigo: string;
-            /** @description Nombre */
-            nombre: string;
-            /** @description Indica si está activo */
-            activo?: boolean;
         };
         RejectionReasonAuto: {
             readonly id: number;
@@ -4391,41 +6672,17 @@ export interface components {
             /** @description Indica si está activo */
             activo?: boolean;
         };
-        /** @description Representante polimórfico; valida que apunte a una entidad permitida. */
-        Representative: {
-            readonly id: number;
-            /**
-             * Format: int64
-             * @description Identificador de la entidad representada
-             */
-            id_objeto: number;
-            /** @description Nombre del representante */
-            nombre: string;
-            /**
-             * @description Solo para CONAPRES: MINSA / Gobierno Regional / Asociación de Facultades
-             *
-             *     * `MINSA` - MINSA
-             *     * `GOBIERNO_REGIONAL` - Gobierno Regional
-             *     * `ASOCIACION_FACULTADES` - Asociación de Facultades
-             */
-            origen?: components["schemas"]["OrigenEnum"] | components["schemas"]["BlankEnum"];
-            /**
-             * Fecha de inicio
-             * Format: date
-             * @description Inicio de participación/cargo
-             */
-            fecha_inicio?: string | null;
-            /**
-             * Fecha de fin
-             * Format: date
-             * @description Fin de participación/cargo
-             */
-            fecha_fin?: string | null;
-            activo?: boolean;
-            /** @description Tipo de entidad representada */
-            tipo_contenido: number;
-            /** @description Cargo (catálogo) */
-            cargo_ejecutivo: number;
+        /**
+         * @description * `VALIDADAS` - VALIDADAS
+         *     * `OBSERVADAS` - OBSERVADAS
+         * @enum {string}
+         */
+        ResultadoEnum: "VALIDADAS" | "OBSERVADAS";
+        /** @description Entrada de la revisión de declaraciones juradas (RN-23). */
+        RevisarDeclaraciones: {
+            resultado: components["schemas"]["ResultadoEnum"];
+            /** @default  */
+            observacion: string;
         };
         RotationRead: {
             readonly id: number;
@@ -4584,26 +6841,10 @@ export interface components {
              */
             codigo_universitario?: string;
             /**
-             * Año académico
-             * Format: int64
-             * @description Año académico
-             */
-            anio_academico?: number | null;
-            /**
              * Format: decimal
              * @description Nota promedio ponderado (escala 0–20)
              */
             nota_promedio_ponderado?: string | null;
-            /**
-             * Contacto de emergencia - nombre
-             * @description Nombre del contacto de emergencia
-             */
-            contacto_emergencia_nombre?: string;
-            /**
-             * Contacto de emergencia - teléfono
-             * @description Teléfono del contacto de emergencia
-             */
-            contacto_emergencia_telefono?: string;
             activo?: boolean;
             /** Format: date-time */
             readonly creado_en: string;
@@ -4615,8 +6856,10 @@ export interface components {
             universidad: number;
             /** @description Carrera / programa */
             carrera_profesional: number;
-            /** @description Parentesco del contacto de emergencia */
-            contacto_emergencia_parentesco?: number | null;
+            /** @description Periodo académico (obligatorio para Pregrado — RN-19) */
+            periodo_academico?: number | null;
+            /** @description Especialidad (obligatoria para niveles distintos de Pregrado — RN-19) */
+            especialidad?: number | null;
             readonly creado_por: number;
         };
         /** @description Entrada de la carga masiva de estudiantes (RN-16): archivo Excel `.xlsx`. */
@@ -4711,12 +6954,22 @@ export interface components {
              */
             carga_horaria?: string | null;
         };
+        /**
+         * @description * `INTERNO` - Interno / estudiante
+         *     * `AUTORIDAD_UNIVERSIDAD` - Autoridad de universidad
+         *     * `REPRESENTANTE` - Representante / autoridad (incluye CONAPRES)
+         * @enum {string}
+         */
+        TipoActorEnum: "INTERNO" | "AUTORIDAD_UNIVERSIDAD" | "REPRESENTANTE";
         TokenRefresh: {
             readonly access: string;
             refresh: string;
         };
+        /** @description CRUD de tutores. `universidades` (RN-24): de 1 a 2 universidades por tutor. */
         Tutor: {
             readonly id: number;
+            /** @description Universidades del tutor (de 1 a 2 — RN-24) */
+            universidades: number[];
             /**
              * Número de documento
              * @description Número de documento de identidad
@@ -4770,40 +7023,9 @@ export interface components {
             distrito: string;
             activo?: boolean;
         };
-        UniversityAuthorityAuto: {
-            readonly id: number;
-            /** @description Nombre de la autoridad */
-            nombre: string;
-            /** @description Cargo */
-            cargo: string;
-            /**
-             * Fecha de inicio del cargo
-             * Format: date
-             * @description Inicio del cargo
-             */
-            fecha_inicio_cargo: string;
-            /**
-             * Fecha de fin del cargo
-             * Format: date
-             * @description Fin del cargo
-             */
-            fecha_fin_cargo?: string | null;
-            /**
-             * Número de resolución
-             * @description Número de resolución de designación
-             */
-            numero_resolucion?: string;
-            /**
-             * Referencia del documento de resolución
-             * @description Referencia externa del PDF de la resolución
-             */
-            referencia_documento_resolucion?: string;
-            activo?: boolean;
-            /** @description Universidad */
-            universidad: number;
-        };
         UniversityAuto: {
             readonly id: number;
+            readonly referencia_logo: string;
             /** @description Nombre de la universidad */
             nombre: string;
             /** @description Siglas */
@@ -4842,15 +7064,10 @@ export interface components {
             telefono?: string;
             /** @description Correo institucional */
             correo_institucional?: string;
-            /**
-             * Referencia del logo
-             * @description Referencia externa del logo (repositorio externo)
-             */
-            referencia_logo?: string;
             activo?: boolean;
             /** @description Pública / privada */
             tipo_gestion: number;
-            /** @description Universidad / Escuela posgrado / Escuela superior / Instituto */
+            /** @description Universidad / Escuela posgrado / Escuela superior / Instituto (discriminador: UNIVERSIDAD) */
             tipo_entidad: number;
             /** @description Licenciada / Denegada / Pendiente */
             tipo_autorizacion: number;
@@ -4873,18 +7090,6 @@ export interface components {
             region?: number | null;
             /** @description Ubicación geográfica (UBIGEO) */
             ubigeo?: number | null;
-        };
-        UniversityEntityTypeAuto: {
-            readonly id: number;
-            /**
-             * Código
-             * @description Código único
-             */
-            codigo: string;
-            /** @description Nombre */
-            nombre: string;
-            /** @description Indica si está activo */
-            activo?: boolean;
         };
         UniversityManagementTypeAuto: {
             readonly id: number;
@@ -4944,6 +7149,37 @@ export interface components {
             tipo_contenido: number;
             /** @description Rol institucional */
             grupo: number;
+        };
+        /**
+         * @description Entrada para otorgar a un usuario acceso a una o varias entidades bajo un rol.
+         *
+         *     Payload genérico ``{ "rol": <group_id>, "tipo_entidad": "university",
+         *     "ids": [3, 7] }``. El vínculo del modelo es polimórfico
+         *     (``tipo_contenido`` → ``ContentType``), por lo que el mismo endpoint sirve
+         *     para cualquier entidad admitida (universidades, IPRESS, sedes, etc.).
+         */
+        UserEntityProfileWrite: {
+            /** @description Identificador (PK) del rol (Group) a otorgar. */
+            rol: number;
+            /** @description Nombre del modelo de la entidad en minúscula (p. ej. 'university'). */
+            tipo_entidad: string;
+            /** @description Lista de identificadores (PK) de las entidades a otorgar. */
+            ids: number[];
+        };
+        /**
+         * @description Salida de la gestión de perfiles: forma de lectura más `id` y `activo`.
+         *
+         *     Reutiliza los 4 campos publicados por ``UserEntityProfileSerializer``
+         *     (``tipo_entidad``, ``id_objeto``, ``entidad``, ``rol``) y añade ``id`` (PK del
+         *     perfil) y ``activo`` para permitir la baja lógica y la re-alta.
+         */
+        UserEntityProfileWriteRead: {
+            tipo_entidad: string;
+            id_objeto: number;
+            readonly entidad: string;
+            rol: string;
+            readonly id: number;
+            readonly activo: boolean;
         };
         /** @description Lectura de usuarios: nunca expone la contraseña ni su hash. */
         UserRead: {
@@ -5061,6 +7297,31 @@ export interface operations {
             };
         };
     };
+    academic_levels_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcademicLevelAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["AcademicLevelAuto"];
+                "multipart/form-data": components["schemas"]["AcademicLevelAuto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicLevelAuto"];
+                };
+            };
+        };
+    };
     academic_levels_retrieve: {
         parameters: {
             query?: never;
@@ -5079,6 +7340,234 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AcademicLevelAuto"];
+                };
+            };
+        };
+    };
+    academic_levels_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este nivel académico. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcademicLevelAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["AcademicLevelAuto"];
+                "multipart/form-data": components["schemas"]["AcademicLevelAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicLevelAuto"];
+                };
+            };
+        };
+    };
+    academic_levels_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este nivel académico. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    academic_levels_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este nivel académico. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedAcademicLevelAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedAcademicLevelAuto"];
+                "multipart/form-data": components["schemas"]["PatchedAcademicLevelAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicLevelAuto"];
+                };
+            };
+        };
+    };
+    academic_periods_list: {
+        parameters: {
+            query?: {
+                activo?: boolean;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedAcademicPeriodAutoList"];
+                };
+            };
+        };
+    };
+    academic_periods_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcademicPeriodAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["AcademicPeriodAuto"];
+                "multipart/form-data": components["schemas"]["AcademicPeriodAuto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicPeriodAuto"];
+                };
+            };
+        };
+    };
+    academic_periods_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este periodo académico. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicPeriodAuto"];
+                };
+            };
+        };
+    };
+    academic_periods_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este periodo académico. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcademicPeriodAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["AcademicPeriodAuto"];
+                "multipart/form-data": components["schemas"]["AcademicPeriodAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicPeriodAuto"];
+                };
+            };
+        };
+    };
+    academic_periods_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este periodo académico. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    academic_periods_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este periodo académico. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedAcademicPeriodAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedAcademicPeriodAuto"];
+                "multipart/form-data": components["schemas"]["PatchedAcademicPeriodAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicPeriodAuto"];
                 };
             };
         };
@@ -5181,6 +7670,166 @@ export interface operations {
             };
         };
     };
+    annex_documents_list: {
+        parameters: {
+            query?: {
+                activo?: boolean;
+                obligatorio?: boolean;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+                /**
+                 * @description Actor que debe presentar el documento (vacío para tipos genéricos)
+                 *
+                 *     * `INTERNO` - Interno / estudiante
+                 *     * `AUTORIDAD_UNIVERSIDAD` - Autoridad de universidad
+                 *     * `REPRESENTANTE` - Representante / autoridad (incluye CONAPRES)
+                 */
+                tipo_actor?: "AUTORIDAD_UNIVERSIDAD" | "INTERNO" | "REPRESENTANTE";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedAnnexDocumentAutoList"];
+                };
+            };
+        };
+    };
+    annex_documents_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnnexDocumentAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["AnnexDocumentAuto"];
+                "multipart/form-data": components["schemas"]["AnnexDocumentAuto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnnexDocumentAuto"];
+                };
+            };
+        };
+    };
+    annex_documents_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este documento anexo. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnnexDocumentAuto"];
+                };
+            };
+        };
+    };
+    annex_documents_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este documento anexo. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnnexDocumentAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["AnnexDocumentAuto"];
+                "multipart/form-data": components["schemas"]["AnnexDocumentAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnnexDocumentAuto"];
+                };
+            };
+        };
+    };
+    annex_documents_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este documento anexo. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    annex_documents_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este documento anexo. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedAnnexDocumentAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedAnnexDocumentAuto"];
+                "multipart/form-data": components["schemas"]["PatchedAnnexDocumentAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnnexDocumentAuto"];
+                };
+            };
+        };
+    };
     audit_logs_list: {
         parameters: {
             query?: {
@@ -5244,6 +7893,31 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+        };
+    };
+    auth_me_cambiar_password_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeOwnPassword"];
+                "application/x-www-form-urlencoded": components["schemas"]["ChangeOwnPassword"];
+                "multipart/form-data": components["schemas"]["ChangeOwnPassword"];
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -5332,6 +8006,31 @@ export interface operations {
             };
         };
     };
+    authorization_types_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthorizationTypeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["AuthorizationTypeAuto"];
+                "multipart/form-data": components["schemas"]["AuthorizationTypeAuto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorizationTypeAuto"];
+                };
+            };
+        };
+    };
     authorization_types_retrieve: {
         parameters: {
             query?: never;
@@ -5350,6 +8049,851 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuthorizationTypeAuto"];
+                };
+            };
+        };
+    };
+    authorization_types_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de autorización. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthorizationTypeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["AuthorizationTypeAuto"];
+                "multipart/form-data": components["schemas"]["AuthorizationTypeAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorizationTypeAuto"];
+                };
+            };
+        };
+    };
+    authorization_types_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de autorización. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    authorization_types_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de autorización. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedAuthorizationTypeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedAuthorizationTypeAuto"];
+                "multipart/form-data": components["schemas"]["PatchedAuthorizationTypeAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorizationTypeAuto"];
+                };
+            };
+        };
+    };
+    calendar_activities_list: {
+        parameters: {
+            query?: {
+                activo?: boolean;
+                content_types?: number[];
+                controla_acceso?: boolean;
+                fecha_desde?: string;
+                fecha_fin_desde?: string;
+                fecha_fin_hasta?: string;
+                fecha_hasta?: string;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedCalendarActivityReadList"];
+                };
+            };
+        };
+    };
+    calendar_activities_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CalendarActivityWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["CalendarActivityWrite"];
+                "multipart/form-data": components["schemas"]["CalendarActivityWrite"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarActivityWrite"];
+                };
+            };
+        };
+    };
+    calendar_activities_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este actividad de calendario. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarActivityRead"];
+                };
+            };
+        };
+    };
+    calendar_activities_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este actividad de calendario. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CalendarActivityWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["CalendarActivityWrite"];
+                "multipart/form-data": components["schemas"]["CalendarActivityWrite"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarActivityWrite"];
+                };
+            };
+        };
+    };
+    calendar_activities_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este actividad de calendario. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    calendar_activities_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este actividad de calendario. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedCalendarActivityWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedCalendarActivityWrite"];
+                "multipart/form-data": components["schemas"]["PatchedCalendarActivityWrite"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarActivityWrite"];
+                };
+            };
+        };
+    };
+    categories_list: {
+        parameters: {
+            query?: {
+                activo?: boolean;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedCategoryAutoList"];
+                };
+            };
+        };
+    };
+    categories_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["CategoryAuto"];
+                "multipart/form-data": components["schemas"]["CategoryAuto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryAuto"];
+                };
+            };
+        };
+    };
+    categories_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este categoría. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryAuto"];
+                };
+            };
+        };
+    };
+    categories_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este categoría. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["CategoryAuto"];
+                "multipart/form-data": components["schemas"]["CategoryAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryAuto"];
+                };
+            };
+        };
+    };
+    categories_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este categoría. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    categories_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este categoría. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedCategoryAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedCategoryAuto"];
+                "multipart/form-data": components["schemas"]["PatchedCategoryAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryAuto"];
+                };
+            };
+        };
+    };
+    classification_types_list: {
+        parameters: {
+            query?: {
+                activo?: boolean;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedClassificationTypeAutoList"];
+                };
+            };
+        };
+    };
+    classification_types_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClassificationTypeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["ClassificationTypeAuto"];
+                "multipart/form-data": components["schemas"]["ClassificationTypeAuto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassificationTypeAuto"];
+                };
+            };
+        };
+    };
+    classification_types_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de clasificación. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassificationTypeAuto"];
+                };
+            };
+        };
+    };
+    classification_types_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de clasificación. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClassificationTypeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["ClassificationTypeAuto"];
+                "multipart/form-data": components["schemas"]["ClassificationTypeAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassificationTypeAuto"];
+                };
+            };
+        };
+    };
+    classification_types_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de clasificación. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    classification_types_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de clasificación. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedClassificationTypeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedClassificationTypeAuto"];
+                "multipart/form-data": components["schemas"]["PatchedClassificationTypeAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassificationTypeAuto"];
+                };
+            };
+        };
+    };
+    clinical_field_allocations_list: {
+        parameters: {
+            query?: {
+                campo_clinico_ipress?: number;
+                carrera_profesional?: number;
+                convenio?: number;
+                ipress?: number;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+                universidad?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedClinicalFieldAllocationList"];
+                };
+            };
+        };
+    };
+    clinical_field_allocations_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClinicalFieldAllocation"];
+                "application/x-www-form-urlencoded": components["schemas"]["ClinicalFieldAllocation"];
+                "multipart/form-data": components["schemas"]["ClinicalFieldAllocation"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClinicalFieldAllocation"];
+                };
+            };
+        };
+    };
+    clinical_field_allocations_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este asignación de campos clínicos por universidad. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClinicalFieldAllocation"];
+                };
+            };
+        };
+    };
+    clinical_field_allocations_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este asignación de campos clínicos por universidad. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClinicalFieldAllocation"];
+                "application/x-www-form-urlencoded": components["schemas"]["ClinicalFieldAllocation"];
+                "multipart/form-data": components["schemas"]["ClinicalFieldAllocation"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClinicalFieldAllocation"];
+                };
+            };
+        };
+    };
+    clinical_field_allocations_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este asignación de campos clínicos por universidad. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    clinical_field_allocations_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este asignación de campos clínicos por universidad. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedClinicalFieldAllocation"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedClinicalFieldAllocation"];
+                "multipart/form-data": components["schemas"]["PatchedClinicalFieldAllocation"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClinicalFieldAllocation"];
+                };
+            };
+        };
+    };
+    clinical_field_registrations_list: {
+        parameters: {
+            query?: {
+                carrera_profesional?: number;
+                convenio?: number;
+                especialidad?: number;
+                ipress?: number;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedClinicalFieldRegistrationList"];
+                };
+            };
+        };
+    };
+    clinical_field_registrations_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClinicalFieldRegistration"];
+                "application/x-www-form-urlencoded": components["schemas"]["ClinicalFieldRegistration"];
+                "multipart/form-data": components["schemas"]["ClinicalFieldRegistration"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClinicalFieldRegistration"];
+                };
+            };
+        };
+    };
+    clinical_field_registrations_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este registro de campos clínicos por sede. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClinicalFieldRegistration"];
+                };
+            };
+        };
+    };
+    clinical_field_registrations_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este registro de campos clínicos por sede. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClinicalFieldRegistration"];
+                "application/x-www-form-urlencoded": components["schemas"]["ClinicalFieldRegistration"];
+                "multipart/form-data": components["schemas"]["ClinicalFieldRegistration"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClinicalFieldRegistration"];
+                };
+            };
+        };
+    };
+    clinical_field_registrations_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este registro de campos clínicos por sede. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    clinical_field_registrations_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este registro de campos clínicos por sede. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedClinicalFieldRegistration"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedClinicalFieldRegistration"];
+                "multipart/form-data": components["schemas"]["PatchedClinicalFieldRegistration"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClinicalFieldRegistration"];
                 };
             };
         };
@@ -5550,6 +9094,55 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ConapresAuto"];
+                };
+            };
+        };
+    };
+    content_types_list: {
+        parameters: {
+            query?: {
+                app_label?: string;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedContentTypeList"];
+                };
+            };
+        };
+    };
+    content_types_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de contenido. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentType"];
                 };
             };
         };
@@ -5975,54 +9568,6 @@ export interface operations {
             };
         };
     };
-    conventions_campos_clinicos_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConventionWrite"];
-                };
-            };
-        };
-    };
-    conventions_campos_clinicos_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ConventionWrite"];
-                "application/x-www-form-urlencoded": components["schemas"]["ConventionWrite"];
-                "multipart/form-data": components["schemas"]["ConventionWrite"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConventionWrite"];
-                };
-            };
-        };
-    };
     conventions_evaluacion_tecnica_create: {
         parameters: {
             query?: never;
@@ -6227,58 +9772,10 @@ export interface operations {
             };
         };
     };
-    document_types_list: {
-        parameters: {
-            query?: {
-                activo?: boolean;
-                /** @description Qué campo usar para ordenar los resultados. */
-                ordering?: string;
-                /** @description Un número de página dentro del conjunto de resultados paginado. */
-                page?: number;
-                /** @description Un término de búsqueda. */
-                search?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedDocumentTypeAutoList"];
-                };
-            };
-        };
-    };
-    document_types_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este tipo de documento. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DocumentTypeAuto"];
-                };
-            };
-        };
-    };
     documents_list: {
         parameters: {
             query?: {
+                documento_anexo?: number;
                 /**
                  * @description Estado
                  *
@@ -6297,7 +9794,6 @@ export interface operations {
                 /** @description Un término de búsqueda. */
                 search?: string;
                 tipo_contenido?: number;
-                tipo_documento?: number;
             };
             header?: never;
             path?: never;
@@ -6345,7 +9841,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este documento. */
+                /** @description Un valor de entero único que identifique este documento adjunto. */
                 id: number;
             };
             cookie?: never;
@@ -6367,7 +9863,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este documento. */
+                /** @description Un valor de entero único que identifique este documento adjunto. */
                 id: number;
             };
             cookie?: never;
@@ -6388,7 +9884,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este documento. */
+                /** @description Un valor de entero único que identifique este documento adjunto. */
                 id: number;
             };
             cookie?: never;
@@ -6405,51 +9901,26 @@ export interface operations {
             };
         };
     };
-    executing_unit_types_list: {
+    documents_upload_create: {
         parameters: {
-            query?: {
-                activo?: boolean;
-                /** @description Qué campo usar para ordenar los resultados. */
-                ordering?: string;
-                /** @description Un número de página dentro del conjunto de resultados paginado. */
-                page?: number;
-                /** @description Un término de búsqueda. */
-                search?: string;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["DocumentUpload"];
+                "application/x-www-form-urlencoded": components["schemas"]["DocumentUpload"];
+            };
+        };
         responses: {
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PaginatedExecutingUnitTypeAutoList"];
-                };
-            };
-        };
-    };
-    executing_unit_types_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este tipo de unidad ejecutora. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExecutingUnitTypeAuto"];
+                    "application/json": components["schemas"]["Document"];
                 };
             };
         };
@@ -6460,12 +9931,12 @@ export interface operations {
                 activo?: boolean;
                 /** @description Qué campo usar para ordenar los resultados. */
                 ordering?: string;
-                organo_regional?: number;
+                organo_directorio?: number;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
                 page?: number;
                 /** @description Un término de búsqueda. */
                 search?: string;
-                tipo_unidad_ejecutora?: number;
+                tipo_organo?: number;
             };
             header?: never;
             path?: never;
@@ -6607,12 +10078,62 @@ export interface operations {
             };
         };
     };
+    executing_units_logo_url_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este unidad ejecutora. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogoUrlResponse"];
+                };
+            };
+        };
+    };
+    executing_units_upload_logo_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este unidad ejecutora. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["LogoUpload"];
+                "application/x-www-form-urlencoded": components["schemas"]["LogoUpload"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogoUploadResponse"];
+                };
+            };
+        };
+    };
     executive_positions_list: {
         parameters: {
             query?: {
                 activo?: boolean;
                 /** @description Qué campo usar para ordenar los resultados. */
                 ordering?: string;
+                organo?: number;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
                 page?: number;
                 /** @description Un término de búsqueda. */
@@ -6634,6 +10155,31 @@ export interface operations {
             };
         };
     };
+    executive_positions_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExecutivePositionAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["ExecutivePositionAuto"];
+                "multipart/form-data": components["schemas"]["ExecutivePositionAuto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExecutivePositionAuto"];
+                };
+            };
+        };
+    };
     executive_positions_retrieve: {
         parameters: {
             query?: never;
@@ -6645,6 +10191,83 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExecutivePositionAuto"];
+                };
+            };
+        };
+    };
+    executive_positions_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este cargo ejecutivo. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExecutivePositionAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["ExecutivePositionAuto"];
+                "multipart/form-data": components["schemas"]["ExecutivePositionAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExecutivePositionAuto"];
+                };
+            };
+        };
+    };
+    executive_positions_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este cargo ejecutivo. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    executive_positions_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este cargo ejecutivo. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedExecutivePositionAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedExecutivePositionAuto"];
+                "multipart/form-data": components["schemas"]["PatchedExecutivePositionAuto"];
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -6985,6 +10608,31 @@ export interface operations {
             };
         };
     };
+    health_geographic_scopes_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HealthGeographicScopeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["HealthGeographicScopeAuto"];
+                "multipart/form-data": components["schemas"]["HealthGeographicScopeAuto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthGeographicScopeAuto"];
+                };
+            };
+        };
+    };
     health_geographic_scopes_retrieve: {
         parameters: {
             query?: never;
@@ -6996,6 +10644,83 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthGeographicScopeAuto"];
+                };
+            };
+        };
+    };
+    health_geographic_scopes_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este ámbito geográfico sanitario. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HealthGeographicScopeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["HealthGeographicScopeAuto"];
+                "multipart/form-data": components["schemas"]["HealthGeographicScopeAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthGeographicScopeAuto"];
+                };
+            };
+        };
+    };
+    health_geographic_scopes_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este ámbito geográfico sanitario. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    health_geographic_scopes_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este ámbito geográfico sanitario. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedHealthGeographicScopeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedHealthGeographicScopeAuto"];
+                "multipart/form-data": components["schemas"]["PatchedHealthGeographicScopeAuto"];
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -7202,6 +10927,54 @@ export interface operations {
             };
         };
     };
+    interns_annex_checklist_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lista de anexos requeridos del actor con su estado de adjunto. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnnexChecklistItem"];
+                };
+            };
+        };
+    };
+    interns_annex_upload_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["AnnexUpload"];
+                "application/x-www-form-urlencoded": components["schemas"]["AnnexUpload"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Document"];
+                };
+            };
+        };
+    };
     interns_cambiar_estado_create: {
         parameters: {
             query?: never;
@@ -7273,6 +11046,33 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InternshipWrite"];
+                };
+            };
+        };
+    };
+    interns_revisar_declaraciones_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RevisarDeclaraciones"];
+                "application/x-www-form-urlencoded": components["schemas"]["RevisarDeclaraciones"];
+                "multipart/form-data": components["schemas"]["RevisarDeclaraciones"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternshipRead"];
                 };
             };
         };
@@ -7379,13 +11179,16 @@ export interface operations {
             query?: {
                 activo?: boolean;
                 ambito_geografico_sanitario?: number;
+                categoria?: number;
                 es_sede_docente?: boolean;
+                microred?: number;
                 /** @description Qué campo usar para ordenar los resultados. */
                 ordering?: string;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
                 page?: number;
                 /** @description Un término de búsqueda. */
                 search?: string;
+                tipo_clasificacion?: number;
                 unidad_ejecutora?: number;
             };
             header?: never;
@@ -7556,39 +11359,12 @@ export interface operations {
             };
         };
     };
-    minsa_organ_types_list: {
-        parameters: {
-            query?: {
-                activo?: boolean;
-                /** @description Qué campo usar para ordenar los resultados. */
-                ordering?: string;
-                /** @description Un número de página dentro del conjunto de resultados paginado. */
-                page?: number;
-                /** @description Un término de búsqueda. */
-                search?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedMinsaOrganTypeAutoList"];
-                };
-            };
-        };
-    };
-    minsa_organ_types_retrieve: {
+    ipress_logo_url_retrieve: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este tipo de órgano del MINSA. */
+                /** @description Un valor de entero único que identifique este IPRESS. */
                 id: number;
             };
             cookie?: never;
@@ -7600,12 +11376,39 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MinsaOrganTypeAuto"];
+                    "application/json": components["schemas"]["LogoUrlResponse"];
                 };
             };
         };
     };
-    minsa_organs_list: {
+    ipress_upload_logo_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este IPRESS. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["LogoUpload"];
+                "application/x-www-form-urlencoded": components["schemas"]["LogoUpload"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogoUploadResponse"];
+                };
+            };
+        };
+    };
+    micro_networks_list: {
         parameters: {
             query?: {
                 activo?: boolean;
@@ -7613,9 +11416,9 @@ export interface operations {
                 ordering?: string;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
                 page?: number;
+                red?: number;
                 /** @description Un término de búsqueda. */
                 search?: string;
-                tipo_organo_minsa?: number;
             };
             header?: never;
             path?: never;
@@ -7628,12 +11431,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PaginatedMinsaOrganAutoList"];
+                    "application/json": components["schemas"]["PaginatedMicroredAutoList"];
                 };
             };
         };
     };
-    minsa_organs_create: {
+    micro_networks_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -7642,9 +11445,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["MinsaOrganAuto"];
-                "application/x-www-form-urlencoded": components["schemas"]["MinsaOrganAuto"];
-                "multipart/form-data": components["schemas"]["MinsaOrganAuto"];
+                "application/json": components["schemas"]["MicroredAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["MicroredAuto"];
+                "multipart/form-data": components["schemas"]["MicroredAuto"];
             };
         };
         responses: {
@@ -7653,17 +11456,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MinsaOrganAuto"];
+                    "application/json": components["schemas"]["MicroredAuto"];
                 };
             };
         };
     };
-    minsa_organs_retrieve: {
+    micro_networks_retrieve: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este órgano del MINSA. */
+                /** @description Un valor de entero único que identifique este microred. */
                 id: number;
             };
             cookie?: never;
@@ -7675,26 +11478,26 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MinsaOrganAuto"];
+                    "application/json": components["schemas"]["MicroredAuto"];
                 };
             };
         };
     };
-    minsa_organs_update: {
+    micro_networks_update: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este órgano del MINSA. */
+                /** @description Un valor de entero único que identifique este microred. */
                 id: number;
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["MinsaOrganAuto"];
-                "application/x-www-form-urlencoded": components["schemas"]["MinsaOrganAuto"];
-                "multipart/form-data": components["schemas"]["MinsaOrganAuto"];
+                "application/json": components["schemas"]["MicroredAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["MicroredAuto"];
+                "multipart/form-data": components["schemas"]["MicroredAuto"];
             };
         };
         responses: {
@@ -7703,17 +11506,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MinsaOrganAuto"];
+                    "application/json": components["schemas"]["MicroredAuto"];
                 };
             };
         };
     };
-    minsa_organs_destroy: {
+    micro_networks_destroy: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este órgano del MINSA. */
+                /** @description Un valor de entero único que identifique este microred. */
                 id: number;
             };
             cookie?: never;
@@ -7729,21 +11532,21 @@ export interface operations {
             };
         };
     };
-    minsa_organs_partial_update: {
+    micro_networks_partial_update: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este órgano del MINSA. */
+                /** @description Un valor de entero único que identifique este microred. */
                 id: number;
             };
             cookie?: never;
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["PatchedMinsaOrganAuto"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedMinsaOrganAuto"];
-                "multipart/form-data": components["schemas"]["PatchedMinsaOrganAuto"];
+                "application/json": components["schemas"]["PatchedMicroredAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedMicroredAuto"];
+                "multipart/form-data": components["schemas"]["PatchedMicroredAuto"];
             };
         };
         responses: {
@@ -7752,7 +11555,159 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MinsaOrganAuto"];
+                    "application/json": components["schemas"]["MicroredAuto"];
+                };
+            };
+        };
+    };
+    networks_list: {
+        parameters: {
+            query?: {
+                activo?: boolean;
+                ambito_geografico_sanitario?: number;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedRedAutoList"];
+                };
+            };
+        };
+    };
+    networks_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RedAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["RedAuto"];
+                "multipart/form-data": components["schemas"]["RedAuto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RedAuto"];
+                };
+            };
+        };
+    };
+    networks_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este red. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RedAuto"];
+                };
+            };
+        };
+    };
+    networks_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este red. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RedAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["RedAuto"];
+                "multipart/form-data": components["schemas"]["RedAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RedAuto"];
+                };
+            };
+        };
+    };
+    networks_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este red. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    networks_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este red. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedRedAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedRedAuto"];
+                "multipart/form-data": components["schemas"]["PatchedRedAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RedAuto"];
                 };
             };
         };
@@ -7802,6 +11757,766 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ObservationReasonAuto"];
+                };
+            };
+        };
+    };
+    organ_directories_list: {
+        parameters: {
+            query?: {
+                activo?: boolean;
+                gobierno_regional?: number;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                organo?: number;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+                tipo_organo?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedOrganDirectoryAutoList"];
+                };
+            };
+        };
+    };
+    organ_directories_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganDirectoryAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["OrganDirectoryAuto"];
+                "multipart/form-data": components["schemas"]["OrganDirectoryAuto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganDirectoryAuto"];
+                };
+            };
+        };
+    };
+    organ_directories_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este órgano del directorio. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganDirectoryAuto"];
+                };
+            };
+        };
+    };
+    organ_directories_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este órgano del directorio. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganDirectoryAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["OrganDirectoryAuto"];
+                "multipart/form-data": components["schemas"]["OrganDirectoryAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganDirectoryAuto"];
+                };
+            };
+        };
+    };
+    organ_directories_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este órgano del directorio. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    organ_directories_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este órgano del directorio. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedOrganDirectoryAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedOrganDirectoryAuto"];
+                "multipart/form-data": components["schemas"]["PatchedOrganDirectoryAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganDirectoryAuto"];
+                };
+            };
+        };
+    };
+    organ_directories_logo_url_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este órgano del directorio. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogoUrlResponse"];
+                };
+            };
+        };
+    };
+    organ_directories_upload_logo_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este órgano del directorio. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["LogoUpload"];
+                "application/x-www-form-urlencoded": components["schemas"]["LogoUpload"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogoUploadResponse"];
+                };
+            };
+        };
+    };
+    organ_representative_history_list: {
+        parameters: {
+            query?: {
+                cargo_ejecutivo?: number;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                organo_directorio?: number;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                representante?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedOrganRepresentativeHistoryAutoList"];
+                };
+            };
+        };
+    };
+    organ_representative_history_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este historial de representante de órgano. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganRepresentativeHistoryAuto"];
+                };
+            };
+        };
+    };
+    organ_representatives_list: {
+        parameters: {
+            query?: {
+                activo?: boolean;
+                cargo_ejecutivo?: number;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                organo_directorio?: number;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedOrganRepresentativeList"];
+                };
+            };
+        };
+    };
+    organ_representatives_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganRepresentative"];
+                "application/x-www-form-urlencoded": components["schemas"]["OrganRepresentative"];
+                "multipart/form-data": components["schemas"]["OrganRepresentative"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganRepresentative"];
+                };
+            };
+        };
+    };
+    organ_representatives_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este representante de órgano. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganRepresentative"];
+                };
+            };
+        };
+    };
+    organ_representatives_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este representante de órgano. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganRepresentative"];
+                "application/x-www-form-urlencoded": components["schemas"]["OrganRepresentative"];
+                "multipart/form-data": components["schemas"]["OrganRepresentative"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganRepresentative"];
+                };
+            };
+        };
+    };
+    organ_representatives_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este representante de órgano. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    organ_representatives_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este representante de órgano. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedOrganRepresentative"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedOrganRepresentative"];
+                "multipart/form-data": components["schemas"]["PatchedOrganRepresentative"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganRepresentative"];
+                };
+            };
+        };
+    };
+    organ_representatives_annex_checklist_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este representante de órgano. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lista de anexos requeridos del actor con su estado de adjunto. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnnexChecklistItem"];
+                };
+            };
+        };
+    };
+    organ_representatives_annex_upload_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este representante de órgano. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["AnnexUpload"];
+                "application/x-www-form-urlencoded": components["schemas"]["AnnexUpload"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Document"];
+                };
+            };
+        };
+    };
+    organ_types_list: {
+        parameters: {
+            query?: {
+                activo?: boolean;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                organo?: number;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedOrganTypeAutoList"];
+                };
+            };
+        };
+    };
+    organ_types_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganTypeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["OrganTypeAuto"];
+                "multipart/form-data": components["schemas"]["OrganTypeAuto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganTypeAuto"];
+                };
+            };
+        };
+    };
+    organ_types_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de órgano. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganTypeAuto"];
+                };
+            };
+        };
+    };
+    organ_types_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de órgano. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganTypeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["OrganTypeAuto"];
+                "multipart/form-data": components["schemas"]["OrganTypeAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganTypeAuto"];
+                };
+            };
+        };
+    };
+    organ_types_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de órgano. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    organ_types_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de órgano. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedOrganTypeAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedOrganTypeAuto"];
+                "multipart/form-data": components["schemas"]["PatchedOrganTypeAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganTypeAuto"];
+                };
+            };
+        };
+    };
+    organs_list: {
+        parameters: {
+            query?: {
+                estado?: boolean;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedOrganAutoList"];
+                };
+            };
+        };
+    };
+    organs_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["OrganAuto"];
+                "multipart/form-data": components["schemas"]["OrganAuto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganAuto"];
+                };
+            };
+        };
+    };
+    organs_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este órgano. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganAuto"];
+                };
+            };
+        };
+    };
+    organs_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este órgano. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["OrganAuto"];
+                "multipart/form-data": components["schemas"]["OrganAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganAuto"];
+                };
+            };
+        };
+    };
+    organs_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este órgano. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    organs_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este órgano. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedOrganAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedOrganAuto"];
+                "multipart/form-data": components["schemas"]["PatchedOrganAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganAuto"];
                 };
             };
         };
@@ -7860,8 +12575,6 @@ export interface operations {
         parameters: {
             query?: {
                 activo?: boolean;
-                especialidad?: number;
-                facultad?: number;
                 nivel_academico?: number;
                 /** @description Qué campo usar para ordenar los resultados. */
                 ordering?: string;
@@ -8006,6 +12719,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProfessionalCareerAuto"];
+                };
+            };
+        };
+    };
+    profile_entity_types_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignableEntityType"][];
                 };
             };
         };
@@ -8162,39 +12894,12 @@ export interface operations {
             };
         };
     };
-    regional_organ_types_list: {
-        parameters: {
-            query?: {
-                activo?: boolean;
-                /** @description Qué campo usar para ordenar los resultados. */
-                ordering?: string;
-                /** @description Un número de página dentro del conjunto de resultados paginado. */
-                page?: number;
-                /** @description Un término de búsqueda. */
-                search?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedRegionalOrganTypeAutoList"];
-                };
-            };
-        };
-    };
-    regional_organ_types_retrieve: {
+    regional_governments_logo_url_retrieve: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este tipo de órgano regional. */
+                /** @description Un valor de entero único que identifique este gobierno regional. */
                 id: number;
             };
             cookie?: never;
@@ -8206,102 +12911,25 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RegionalOrganTypeAuto"];
+                    "application/json": components["schemas"]["LogoUrlResponse"];
                 };
             };
         };
     };
-    regional_organs_list: {
-        parameters: {
-            query?: {
-                activo?: boolean;
-                gobierno_regional?: number;
-                /** @description Qué campo usar para ordenar los resultados. */
-                ordering?: string;
-                /** @description Un número de página dentro del conjunto de resultados paginado. */
-                page?: number;
-                /** @description Un término de búsqueda. */
-                search?: string;
-                tipo_organo_regional?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedRegionalOrganAutoList"];
-                };
-            };
-        };
-    };
-    regional_organs_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RegionalOrganAuto"];
-                "application/x-www-form-urlencoded": components["schemas"]["RegionalOrganAuto"];
-                "multipart/form-data": components["schemas"]["RegionalOrganAuto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RegionalOrganAuto"];
-                };
-            };
-        };
-    };
-    regional_organs_retrieve: {
+    regional_governments_upload_logo_create: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este órgano regional. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RegionalOrganAuto"];
-                };
-            };
-        };
-    };
-    regional_organs_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este órgano regional. */
+                /** @description Un valor de entero único que identifique este gobierno regional. */
                 id: number;
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RegionalOrganAuto"];
-                "application/x-www-form-urlencoded": components["schemas"]["RegionalOrganAuto"];
-                "multipart/form-data": components["schemas"]["RegionalOrganAuto"];
+                "multipart/form-data": components["schemas"]["LogoUpload"];
+                "application/x-www-form-urlencoded": components["schemas"]["LogoUpload"];
             };
         };
         responses: {
@@ -8310,56 +12938,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RegionalOrganAuto"];
-                };
-            };
-        };
-    };
-    regional_organs_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este órgano regional. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    regional_organs_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este órgano regional. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedRegionalOrganAuto"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedRegionalOrganAuto"];
-                "multipart/form-data": components["schemas"]["PatchedRegionalOrganAuto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RegionalOrganAuto"];
+                    "application/json": components["schemas"]["LogoUploadResponse"];
                 };
             };
         };
@@ -8507,160 +13086,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RelationshipTypeAuto"];
-                };
-            };
-        };
-    };
-    representatives_list: {
-        parameters: {
-            query?: {
-                activo?: boolean;
-                cargo_ejecutivo?: number;
-                id_objeto?: number;
-                /** @description Qué campo usar para ordenar los resultados. */
-                ordering?: string;
-                /** @description Un número de página dentro del conjunto de resultados paginado. */
-                page?: number;
-                /** @description Un término de búsqueda. */
-                search?: string;
-                tipo_contenido?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedRepresentativeList"];
-                };
-            };
-        };
-    };
-    representatives_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Representative"];
-                "application/x-www-form-urlencoded": components["schemas"]["Representative"];
-                "multipart/form-data": components["schemas"]["Representative"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Representative"];
-                };
-            };
-        };
-    };
-    representatives_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este representante. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Representative"];
-                };
-            };
-        };
-    };
-    representatives_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este representante. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Representative"];
-                "application/x-www-form-urlencoded": components["schemas"]["Representative"];
-                "multipart/form-data": components["schemas"]["Representative"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Representative"];
-                };
-            };
-        };
-    };
-    representatives_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este representante. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    representatives_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este representante. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedRepresentative"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedRepresentative"];
-                "multipart/form-data": components["schemas"]["PatchedRepresentative"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Representative"];
                 };
             };
         };
@@ -9460,6 +13885,7 @@ export interface operations {
                 page?: number;
                 /** @description Un término de búsqueda. */
                 search?: string;
+                universidades?: number[];
             };
             header?: never;
             path?: never;
@@ -9807,65 +14233,12 @@ export interface operations {
             };
         };
     };
-    university_authorities_list: {
-        parameters: {
-            query?: {
-                activo?: boolean;
-                /** @description Qué campo usar para ordenar los resultados. */
-                ordering?: string;
-                /** @description Un número de página dentro del conjunto de resultados paginado. */
-                page?: number;
-                /** @description Un término de búsqueda. */
-                search?: string;
-                universidad?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedUniversityAuthorityAutoList"];
-                };
-            };
-        };
-    };
-    university_authorities_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UniversityAuthorityAuto"];
-                "application/x-www-form-urlencoded": components["schemas"]["UniversityAuthorityAuto"];
-                "multipart/form-data": components["schemas"]["UniversityAuthorityAuto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UniversityAuthorityAuto"];
-                };
-            };
-        };
-    };
-    university_authorities_retrieve: {
+    universities_logo_url_retrieve: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este autoridad de universidad. */
+                /** @description Un valor de entero único que identifique este universidad. */
                 id: number;
             };
             cookie?: never;
@@ -9877,26 +14250,25 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UniversityAuthorityAuto"];
+                    "application/json": components["schemas"]["LogoUrlResponse"];
                 };
             };
         };
     };
-    university_authorities_update: {
+    universities_upload_logo_create: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este autoridad de universidad. */
+                /** @description Un valor de entero único que identifique este universidad. */
                 id: number;
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UniversityAuthorityAuto"];
-                "application/x-www-form-urlencoded": components["schemas"]["UniversityAuthorityAuto"];
-                "multipart/form-data": components["schemas"]["UniversityAuthorityAuto"];
+                "multipart/form-data": components["schemas"]["LogoUpload"];
+                "application/x-www-form-urlencoded": components["schemas"]["LogoUpload"];
             };
         };
         responses: {
@@ -9905,56 +14277,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UniversityAuthorityAuto"];
-                };
-            };
-        };
-    };
-    university_authorities_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este autoridad de universidad. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    university_authorities_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este autoridad de universidad. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedUniversityAuthorityAuto"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedUniversityAuthorityAuto"];
-                "multipart/form-data": components["schemas"]["PatchedUniversityAuthorityAuto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UniversityAuthorityAuto"];
+                    "application/json": components["schemas"]["LogoUploadResponse"];
                 };
             };
         };
@@ -10108,55 +14431,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UniversityCampusAuto"];
-                };
-            };
-        };
-    };
-    university_entity_types_list: {
-        parameters: {
-            query?: {
-                activo?: boolean;
-                /** @description Qué campo usar para ordenar los resultados. */
-                ordering?: string;
-                /** @description Un número de página dentro del conjunto de resultados paginado. */
-                page?: number;
-                /** @description Un término de búsqueda. */
-                search?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedUniversityEntityTypeAutoList"];
-                };
-            };
-        };
-    };
-    university_entity_types_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este tipo de entidad de universidad. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UniversityEntityTypeAuto"];
                 };
             };
         };
@@ -10514,6 +14788,110 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["UserUpdate"];
                 };
+            };
+        };
+    };
+    users_profiles_list: {
+        parameters: {
+            query?: {
+                groups?: number[];
+                is_active?: boolean;
+                is_staff?: boolean;
+                is_superuser?: boolean;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este usuario. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedUserEntityProfileWriteReadList"];
+                };
+            };
+        };
+    };
+    users_profiles_create: {
+        parameters: {
+            query?: {
+                groups?: number[];
+                is_active?: boolean;
+                is_staff?: boolean;
+                is_superuser?: boolean;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este usuario. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserEntityProfileWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["UserEntityProfileWrite"];
+                "multipart/form-data": components["schemas"]["UserEntityProfileWrite"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedUserEntityProfileWriteReadList"];
+                };
+            };
+        };
+    };
+    users_profiles_destroy: {
+        parameters: {
+            query?: {
+                groups?: number[];
+                is_active?: boolean;
+                is_staff?: boolean;
+                is_superuser?: boolean;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este usuario. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

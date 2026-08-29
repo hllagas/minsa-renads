@@ -485,3 +485,262 @@ requisito para que la IPRESS pueda usarse en campos clínicos de convenios (regl
 
 > **Aprobación humana requerida:** esta lista de tareas delta (U1–U4, con las 3 decisiones
 > marcadas) debe ser aprobada antes de pasar al agente Implement.
+
+---
+
+## Actualización de contrato — Catálogos maestros con CRUD (2026-07-22)
+
+Delta del backend (`docs/modulo_01_crud_transversales.md` §Catálogos maestros; `spec/convenios.md`
+T8). Seis catálogos pasan de solo lectura a **CRUD** (escritura solo `Administrador RENADS` +
+auditoría). Modelo base `Catalog`: `codigo` (único, obligatorio), `nombre` (obligatorio), `activo`.
+Fuente de verdad: `lib/api/schema.d.ts` regenerado — confirma `*_create/update/partial_update/destroy`
+para los seis basenames.
+
+Basenames: `document-types`, `university-entity-types`, `authorization-types`, `academic-levels`,
+`regional-organ-types`, `minsa-organ-types`.
+
+- [x] **W1** `lib/catalogos/catalogs.ts`: nuevo helper `writableCatalog(endpoint, title, singular)`
+  (columnas/búsqueda del catálogo estándar + `fields` `codigo`/`nombre`/`activo` y
+  `writeRoles: ["Administrador RENADS"]`, sin `readOnly`). Los seis basenames pasan de
+  `readOnlyCatalog(...)` a `writableCatalog(...)`; los 12 restantes no cambian.
+  - **Criterio:** en `/catalogos/listas/<slug>` un `Administrador RENADS` ve «Nuevo»/editar/eliminar
+    y persiste contra `/<slug>/`; otros roles siguen en solo lectura (canWrite = false).
+- [x] **W2** Docs: `docs/api-catalogos.md` §1 dividido en 12 de solo lectura + §1.1 los seis CRUD.
+- [x] **W3** Verificación: `npx tsc --noEmit` y `npm run lint` limpios.
+
+> Sincronización directa de contrato ya mergeado en el backend; implementado en el mismo ciclo.
+
+## Actualización de contrato — Categorías / Clasificaciones / Redes / Microrredes (2026-08-13)
+
+> **Estado: APROBADO (humano) — 2026-08-13.** Lista N1–N11 aprobada para Implement. Las preguntas
+> abiertas fueron resueltas por el humano (ver «Resoluciones humanas» abajo); la lista pasó de N1–N8 a
+> **N1–N11** (se añadió infra de selects dependientes). Flujo SDD: `spec` → **(APROBADO)** →
+> `implement` → `validator`.
+
+> **Resoluciones humanas (2026-08-13):**
+> 1. **Selects dependientes field→field: SÍ (opción (b)).** Se extiende la infraestructura de fields
+>    para soportar cascada. En el alta de **microrred** se añade un selector **virtual** «Ámbito
+>    geográfico sanitario» (no se envía al backend) que **filtra** el select de `red`. Tareas de infra:
+>    **N9–N11**.
+> 2. **Ubicación:** `networks`/`micro-networks` van en una **constante hermana
+>    `SANITARY_ENTITY_CONFIGS`** en `lib/catalogos/entities.ts`, fusionada igual en
+>    `CATALOGO_ENTITY_CONFIGS` (no dentro de `ACADEMIC_ENTITY_CONFIGS`).
+> 3. **Copia de tarjetas «Catálogos»:** sin cambio (se mantiene el precedente W1); fuera de alcance.
+
+### Contexto / contrato
+
+Delta del backend ya documentado en **`docs/api-catalogos.md` §1.1 y §1.2**. Cuatro recursos nuevos
+pasan a mantenerse desde la UI de `/catalogos`. **Escritura solo `Administrador RENADS`**
+(`IsAdminRoleOrReadOnly`) + auditoría; **ordering** default `id`; **search** `codigo`/`nombre`.
+Fuente de verdad de campos: `lib/api/schema.d.ts` (ya generado). **No traducir claves del API.**
+
+| Recurso (endpoint) | Modelo (schema) | Naturaleza | Campos de **escritura** exactos | Filtros backend | Search |
+|--------------------|-----------------|------------|----------------------------------|-----------------|--------|
+| `categories` | `CategoryAuto` (base `Catalog`) | Catálogo maestro simple | `codigo` (req), `nombre` (req), `activo?` | `activo` | `codigo`, `nombre` |
+| `classification-types` | `ClassificationTypeAuto` (base `Catalog`) | Catálogo maestro simple | `codigo` (req), `nombre` (req), `activo?` | `activo` | `codigo`, `nombre` |
+| `networks` | `RedAuto` | Entidad CRUD con FK | `codigo` (req), `nombre` (req), `activo?`, `ambito_geografico_sanitario` (req, FK → `health-geographic-scopes`) | `ambito_geografico_sanitario`, `activo` | `codigo`, `nombre` |
+| `micro-networks` | `MicroredAuto` | Entidad CRUD con FK | `codigo` (req), `nombre` (req), `activo?`, `red` (req, FK → `networks`) | `red`, `activo` | `codigo`, `nombre` |
+
+> Jerarquía: `health-geographic-scopes` → `networks` → `micro-networks`.
+> Verificado en `lib/api/schema.d.ts`: `RedAuto` = `{ id (ro), codigo, nombre, activo?,
+> ambito_geografico_sanitario }`; `MicroredAuto` = `{ id (ro), codigo, nombre, activo?, red }`.
+> `networks_list` acepta query `activo`, `ambito_geografico_sanitario`, `ordering`, `search`;
+> `micro_networks_list` acepta `activo`, `red`, `ordering`, `search`. (Ambos usan el mismo schema
+> para list/create/update; los `Patched*` confirman los mismos campos opcionales para PATCH.)
+
+### Decisiones de diseño (aprobar)
+
+- **D1 — `categories` y `classification-types` como catálogos maestros simples.** Se registran con
+  `writableCatalog(endpoint, title, singular)` en `lib/catalogos/catalogs.ts` (mismo patrón que los
+  seis basenames de W1) y se listan bajo la sección **«Catálogos»** del índice (ruta
+  `/catalogos/listas/<slug>`). Aunque las tarjetas de catálogos rotulan «Consulta (solo lectura)»,
+  `ResourceCrud` ya muestra alta/edición/baja cuando el rol lo permite (precedente W1: los seis
+  catálogos promovidos conviven con ese mismo rótulo). **No** se cambia la copia de las tarjetas en
+  este delta (se registra como mejora menor en las preguntas abiertas).
+- **D2 — `networks` y `micro-networks` como entidades CRUD con FK.** Se registran como configs en
+  `lib/catalogos/entities.ts` (constante hermana **`SANITARY_ENTITY_CONFIGS`**, ver D4) usando
+  `select` con `optionsEndpoint`, como `faculties` / `professional-careers` (FK vía `EntityCombobox`).
+  Se listan bajo la sección **«Entidades»** (ruta `/catalogos/entidades/<slug>`). **Motivo:** tienen
+  FK de jerarquía; el helper `writableCatalog` no soporta campos FK.
+- **D3 — Selects dependientes field→field: SÍ (opción (b), aprobado por el humano).** Se extiende la
+  infra de fields (N9–N11). En el alta de **microrred**: campo **virtual** `_ambito` (select →
+  `health-geographic-scopes`, **no** se envía en el POST) que filtra el select `red` mediante
+  `?ambito_geografico_sanitario=<id>`; al cambiar `_ambito` se **resetea** `red`.
+- **D4 — Ubicación en `lib/catalogos/entities.ts`: constante hermana `SANITARY_ENTITY_CONFIGS`**
+  (redes/microrredes), fusionada en `CATALOGO_ENTITY_CONFIGS` junto a `ACADEMIC_ENTITY_CONFIGS`.
+
+### Tareas
+
+- [x] **N1 Registrar `categories` como catálogo maestro CRUD.**
+  - Archivo: `lib/catalogos/catalogs.ts`.
+  - En `CATALOG_CONFIGS` añadir
+    `categories: writableCatalog("categories", "Categorías", "categoría")`.
+  - **Criterio:** `/catalogos/listas/categories` lista `codigo`/`nombre`/`activo`, filtro `activo`,
+    búsqueda por `codigo`/`nombre`; un `Administrador RENADS` ve «Nuevo»/editar/eliminar; el alta
+    hace `POST /api/v1/categories/` con body `{ codigo, nombre, activo }` (claves sin traducir);
+    otro rol lo ve en solo lectura (`canWrite = false`). Aparece en `CATALOG_MENU` (se deriva de
+    `CATALOG_CONFIGS`, sin edición manual del menú).
+
+- [x] **N2 Registrar `classification-types` como catálogo maestro CRUD.**
+  - Archivo: `lib/catalogos/catalogs.ts`.
+  - En `CATALOG_CONFIGS` añadir
+    `"classification-types": writableCatalog("classification-types", "Tipos de clasificación", "tipo de clasificación")`.
+  - **Criterio:** idéntico a N1 sobre `/catalogos/listas/classification-types`; el alta hace
+    `POST /api/v1/classification-types/` con `{ codigo, nombre, activo }`.
+
+- [x] **N3 Config CRUD de `networks` (Redes) con FK a ámbito geográfico sanitario.**
+  - Archivo: `lib/catalogos/entities.ts` — nueva constante `SANITARY_ENTITY_CONFIGS` (fusionada en
+    `CATALOGO_ENTITY_CONFIGS`).
+  - `endpoint: "networks"`, `title: "Redes"`, `singular: "red"`,
+    `searchPlaceholder: "Buscar por código o nombre…"`.
+  - **Columns:** `codigo`, `nombre`, `activo` (render `Sí/No`).
+  - **Filters:** `{ name: "ambito_geografico_sanitario", label: "Ámbito geográfico sanitario",
+    type: "select", optionsEndpoint: "health-geographic-scopes" }` + `activoFilter`.
+  - **Fields (orden):** `codigo` (text, req), `nombre` (text, req),
+    `ambito_geografico_sanitario` (select, req, `optionsEndpoint: "health-geographic-scopes"`),
+    `activo` (boolean, `defaultValue: true`). Escritura solo `Administrador RENADS` (default de
+    `ResourceCrud`; no fijar `writeRoles` salvo para explicitarlo).
+  - **Criterio:** `/catalogos/entidades/networks` lista/filtra; el filtro por ámbito emite
+    `?ambito_geografico_sanitario=<id>&activo=true`; el alta hace `POST /api/v1/networks/` con body
+    `{ codigo, nombre, ambito_geografico_sanitario, activo }` (FK como número, claves sin traducir);
+    la edición precarga el ámbito seleccionado (`EntityCombobox` resuelve la etiqueta por id).
+
+- [x] **N4 Config CRUD de `micro-networks` (Microrredes) con FK a red + cascada por ámbito.**
+  - Archivo: `lib/catalogos/entities.ts` (`SANITARY_ENTITY_CONFIGS`). **Depende de N9–N11.**
+  - `endpoint: "micro-networks"`, `title: "Microrredes"`, `singular: "microrred"`,
+    `searchPlaceholder: "Buscar por código o nombre…"`.
+  - **Columns:** `codigo`, `nombre`, `activo` (render `Sí/No`).
+  - **Filters (lista):** `{ name: "red", label: "Red", type: "select", optionsEndpoint: "networks" }`
+    + `activoFilter`. (El filtro de lista queda plano; la cascada es solo del **formulario**.)
+  - **Fields (orden):**
+    - `_ambito` — **virtual** (`virtual: true`, no se envía en el payload): select, `optionsEndpoint:
+      "health-geographic-scopes"`, label «Ámbito geográfico sanitario». No `required` en el envío
+      (es UI), pero se pide primero por UX.
+    - `red` — select, req, `optionsEndpoint: "networks"`,
+      `optionsParamsFrom: (v) => v._ambito ? { ambito_geografico_sanitario: String(v._ambito) } : {}`,
+      `resetsOn: ["_ambito"]` (se limpia al cambiar el ámbito).
+    - `codigo` (text, req), `nombre` (text, req), `activo` (boolean, `defaultValue: true`).
+  - **Criterio:** al elegir un ámbito, el select `red` solo muestra redes de ese ámbito (petición
+    `GET /networks/?ambito_geografico_sanitario=<id>&search=…`); cambiar el ámbito **resetea** `red`;
+    el alta hace `POST /api/v1/micro-networks/` con body **`{ codigo, nombre, red, activo }`**
+    (SIN `_ambito`; FK como número, claves sin traducir). En **edición**, `red` precarga su etiqueta
+    (`EntityCombobox` por id) aunque `_ambito` arranque vacío (no bloquea el guardado). El filtro de
+    lista por red emite `?red=<id>&activo=true`.
+
+- [x] **N5 Añadir Redes y Microrredes al menú de entidades.**
+  - Archivo: `lib/catalogos/entities.ts` (`CATALOGO_ENTITY_MENU`; las configs viven en
+    `SANITARY_ENTITY_CONFIGS`).
+  - Añadir, en orden coherente con la jerarquía (tras IPRESS / bloque sanitario):
+    `{ slug: "networks", title: "Redes" }` y `{ slug: "micro-networks", title: "Microrredes" }`.
+  - **Criterio:** el índice `/catalogos` muestra tarjetas «Redes» y «Microrredes» en la sección
+    **Entidades**, enlazando a `/catalogos/entidades/networks` y `/catalogos/entidades/micro-networks`.
+  - **Nota:** `categories`/`classification-types` NO se añaden aquí; aparecen en la sección
+    «Catálogos» vía `CATALOG_MENU` (derivado de `CATALOG_CONFIGS` en N1/N2).
+
+- [x] **N6 Verificar resolución de slug en las páginas dinámicas (sin cambios de código esperados).**
+  - Archivos: `app/(app)/catalogos/entidades/[entidad]/page.tsx`,
+    `app/(app)/catalogos/listas/[catalogo]/page.tsx`.
+  - Confirmar que `networks`/`micro-networks` resuelven contra `CATALOGO_ENTITY_CONFIGS` y
+    `categories`/`classification-types` contra `CATALOG_CONFIGS`, sin ramas especiales.
+  - **Criterio:** navegar a los 4 slugs no muestra «Entidad/Catálogo no encontrado»; `ResourceCrud`
+    monta la config correcta. No se esperan `rowActions` extra (ninguno de los 4 usa logo/anexos/
+    acción CONAPRES; los condicionales de la página no aplican).
+
+- [x] **N7 Docs: reflejar «config de front implementada».**
+  - Archivo: `docs/api-catalogos.md`.
+  - Ajustar la nota final de §1.2 (hoy dice «Aún sin config de front … pendiente SDD») para indicar
+    que `networks`/`micro-networks` ya tienen config en `lib/catalogos/entities.ts` y que
+    `categories`/`classification-types` están en `lib/catalogos/catalogs.ts` (§1.1).
+  - **Criterio:** la doc no contradice el estado del front tras N1–N5.
+
+#### Infra de selects dependientes (prerequisito de N4; aprobado opción (b))
+
+- [x] **N9 Extender `FieldConfig` con soporte de campo virtual y params dependientes.**
+  - Archivo: `lib/crud/types.ts`.
+  - Añadir a `FieldConfig` (todos opcionales, retrocompatibles):
+    - `virtual?: boolean` — el campo se renderiza y valida en el form pero **se excluye del payload**
+      enviado al backend.
+    - `optionsParamsFrom?: (values: Record<string, unknown>) => Record<string, string>` — calcula los
+      `optionsParams` del select a partir de los valores en vivo del formulario. Tiene prioridad sobre
+      `optionsParams` estático si ambos existen.
+    - `resetsOn?: string[]` — nombres de campos padre; al cambiar cualquiera, este campo se resetea a
+      su valor vacío.
+  - **Criterio:** compila; los campos existentes (sin estas props) no cambian de comportamiento.
+
+- [x] **N10 Consumir params dependientes + reset en el formulario declarativo.**
+  - Archivo: `components/crud/resource-form.tsx`.
+  - En el render del select (`SelectFieldRow`/equivalente): si `field.optionsParamsFrom` existe, usar
+    `useWatch({ control })` para obtener los valores y pasar el resultado como `params`/`optionsParams`
+    a `EntityCombobox` (recalcula al cambiar el padre).
+  - Implementar `resetsOn`: al detectar cambio en un campo padre listado, `setValue(field.name,
+    <vacío>)` (efecto con `useWatch` de los padres). Evitar bucles (solo resetear si el valor actual
+    ya no es válido / cuando el padre cambia de verdad).
+  - **Criterio:** cambiar `_ambito` limpia `red` y refresca sus opciones filtradas; sin `optionsParamsFrom`
+    el comportamiento previo es idéntico (sin regresiones en otros formularios).
+
+- [x] **N11 Excluir campos `virtual` del payload de envío.**
+  - Archivo: `components/crud/resource-form.tsx` (y/o el punto donde se arma el `onSubmit`).
+  - Al construir el body de create/update, **omitir** las claves cuyos `FieldConfig.virtual === true`.
+  - **Criterio:** el POST/PATCH de microrred NO incluye `_ambito`; verificado en Network. Formularios
+    sin campos virtuales envían exactamente lo mismo que antes.
+
+- [x] **N8 Verificación final.**
+  - Ejecutar `npx tsc --noEmit` y `npm run lint`.
+  - **Criterio:** cero errores/warnings nuevos (solo los 2 preexistentes ajenos al módulo). Smoke
+    manual (rol `Administrador RENADS`): alta/edición/baja de una categoría, un tipo de
+    clasificación, una red (con ámbito) y una microrred; en el alta de microrred **verificar la
+    cascada**: elegir ámbito → `red` se filtra (`GET /networks/?ambito_geografico_sanitario=<id>…`),
+    cambiar ámbito resetea `red`, y el `POST /micro-networks/` **no** incluye `_ambito`. Verificar en
+    Network los query params de filtro y los bodies de POST descritos en N1–N4; con un rol no-Admin
+    los 4 recursos se ven en solo lectura.
+
+### Punto abierto — Selects dependientes field→field (RESUELTO: opción (b), 2026-08-13)
+
+> **RESUELTO por el humano:** se aprueba la **opción (b)** — extender la infraestructura de fields
+> (tareas N9–N11) para la cascada ámbito→red en el alta de microrred. El análisis original se conserva
+> abajo como justificación de diseño.
+
+**Hallazgo (infra actual, verificado):** el formulario declarativo (`components/crud/resource-form.tsx`)
+renderiza cada `FieldConfig` de forma aislada (`FieldRow`) y pasa `field.optionsParams` (un
+`Record<string, string>` **estático**) directo a `EntityCombobox`. **No** existe hoy un mecanismo
+para que el `optionsParams` de un campo dependa del **valor en vivo** de otro campo del mismo
+formulario (no se lee el `watch`/`control` de react-hook-form para construir los params). Por tanto,
+**el filtrado en cascada dentro del alta NO está soportado** sin extender la infraestructura.
+
+Consecuencia para este delta: en el **alta de microrred** el select de `red` mostraría **todas** las
+redes (no solo las de un ámbito), pero microrred solo tiene la FK directa `red` (no hay campo
+«ámbito» en su formulario), así que no hay cascada real que perder. Para `networks`, su único FK es
+`health-geographic-scopes` (tampoco encadena). El escenario de cascada solo aplicaría si se quisiera,
+en el alta de microrred, **acotar `red` por un ámbito elegido primero** — algo no requerido por el
+contrato.
+
+**Decisión propuesta (D3): opción (a) — select plano sin dependencia en v1.** Es coherente con todas
+las entidades FK ya existentes (`faculties.universidad`, `professional-careers.nivel_academico`,
+`executing-units.organo_regional`, `regional-organs.gobierno_regional`, etc.), ninguna de las cuales
+encadena selects. El backend valida la integridad (FK requerida) y el `EntityCombobox` tiene búsqueda
+server-side, mitigando listas largas. **No se inventa infraestructura nueva.**
+
+**Alternativa (b) — extender la infra de fields para dependencia** (solo si el humano lo aprueba
+explícitamente): añadir a `FieldConfig` algo como
+`optionsParamsFrom?: (values: FormValues) => Record<string, string>` y hacer que
+`SelectFieldRow`/`MultiSelectFieldRow` usen `useWatch` para recalcular `params` y **resetear** el
+valor del campo dependiente al cambiar el padre. Es un cambio transversal a `lib/crud/types.ts` +
+`components/crud/resource-form.tsx` (+ posiblemente `entity-combobox.tsx`) y **debería ser su propio
+ciclo SDD**, no colarse en este delta.
+
+### Preguntas abiertas para la aprobación humana — RESUELTAS (2026-08-13)
+
+1. **Cascada red↔ámbito en el alta de microrred:** → **(b) aprobada.** Cascada real vía infra N9–N11
+   (dentro de este delta, no un ciclo aparte). Ámbito virtual filtra `red` y la resetea al cambiar.
+2. **Copia de tarjetas de «Catálogos»:** → **sin cambio** (se mantiene el precedente W1).
+3. **Ubicación de `networks`/`micro-networks`:** → **constante hermana `SANITARY_ENTITY_CONFIGS`**
+   fusionada en `CATALOGO_ENTITY_CONFIGS`.
+
+<!-- Redacción original de las preguntas (histórico):
+1. ¿opción (a) select plano o (b) cascada? 2. ¿copia de tarjetas? 3. ¿ACADEMIC vs SANITARY?
+(Cosmético;
+   propuesta: constante hermana para no ampliar la semántica de «academic».)*
+-->
+
+> **Nota de infra (D3 aprobado):** la «Alternativa (b)» de arriba es ahora el plan vigente
+> (tareas N9–N11). El texto de «opción (a)» se conserva solo como contexto de la decisión.

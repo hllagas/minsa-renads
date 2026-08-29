@@ -36,10 +36,10 @@ export const FLOW_ACTIONS: FlowAction[] = [
       },
       { name: "fecha_evaluacion", label: "Fecha de evaluación", type: "date" },
       {
-        name: "organo_minsa",
-        label: "Órgano MINSA",
+        name: "organo_directorio",
+        label: "Órgano del directorio",
         type: "select",
-        optionsEndpoint: "minsa-organs",
+        optionsEndpoint: "organ-directories",
       },
       { name: "observaciones", label: "Observaciones", type: "text" },
       { name: "subsanacion", label: "Subsanación", type: "text" },

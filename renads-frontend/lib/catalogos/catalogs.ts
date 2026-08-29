@@ -3,6 +3,11 @@ import type { WithId } from "@/lib/api/query";
 
 const siNo = (v: unknown) => (v ? "Sí" : "No");
 
+const detalleNombre = (v: unknown): string =>
+  v && typeof v === "object" && "nombre" in v
+    ? String((v as { nombre?: unknown }).nombre ?? "—")
+    : "—";
+
 const activoFilter: FilterConfig = { name: "activo", label: "Activo", type: "boolean" };
 
 /**
@@ -28,6 +33,37 @@ function readOnlyCatalog(
     ],
     filters: [activoFilter],
     fields: [], // sin escritura
+  };
+}
+
+/**
+ * Catálogo maestro con **CRUD** (RNF-MAN-01/02/03): mismas columnas/búsqueda que el de solo
+ * lectura, pero editable. Escritura restringida a `Administrador RENADS` (backend
+ * `IsAdminRoleOrReadOnly` + auditoría). Campos del modelo base `Catalog`: `codigo` (único,
+ * obligatorio), `nombre` (obligatorio) y `activo`.
+ */
+function writableCatalog(
+  endpoint: string,
+  title: string,
+  singular: string,
+): ResourceConfig {
+  return {
+    endpoint,
+    title,
+    singular,
+    writeRoles: ["Administrador RENADS"],
+    searchPlaceholder: "Buscar por código o nombre…",
+    columns: [
+      { key: "codigo", header: "Código" },
+      { key: "nombre", header: "Nombre" },
+      { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
+    ],
+    filters: [activoFilter],
+    fields: [
+      { name: "codigo", label: "Código", type: "text", required: true },
+      { name: "nombre", label: "Nombre", type: "text", required: true },
+      { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
+    ],
   };
 }
 
@@ -58,7 +94,8 @@ const ubigeosConfig: ResourceConfig = {
 /** Registro de los 18 catálogos de solo lectura + `ubigeos`, por slug. */
 export const CATALOG_CONFIGS: Record<string, ResourceConfig> = {
   regions: readOnlyCatalog("regions", "Regiones", "región"),
-  "health-geographic-scopes": readOnlyCatalog(
+  // CRUD (backend lo promovió a ENTITY_VIEWSETS: escritura `Administrador RENADS` + auditoría).
+  "health-geographic-scopes": writableCatalog(
     "health-geographic-scopes",
     "Ámbitos geográficos sanitarios",
     "ámbito geográfico sanitario",
@@ -73,27 +110,17 @@ export const CATALOG_CONFIGS: Record<string, ResourceConfig> = {
     "Estados de convenio",
     "estado de convenio",
   ),
-  "document-types": readOnlyCatalog(
-    "document-types",
-    "Tipos de documento",
-    "tipo de documento",
-  ),
   "university-management-types": readOnlyCatalog(
     "university-management-types",
     "Tipos de gestión universitaria",
     "tipo de gestión universitaria",
   ),
-  "university-entity-types": readOnlyCatalog(
-    "university-entity-types",
-    "Tipos de entidad universitaria",
-    "tipo de entidad universitaria",
-  ),
-  "authorization-types": readOnlyCatalog(
+  "authorization-types": writableCatalog(
     "authorization-types",
     "Tipos de autorización",
     "tipo de autorización",
   ),
-  "academic-levels": readOnlyCatalog(
+  "academic-levels": writableCatalog(
     "academic-levels",
     "Niveles académicos",
     "nivel académico",
@@ -104,26 +131,65 @@ export const CATALOG_CONFIGS: Record<string, ResourceConfig> = {
     "Tipos de autoridad firmante",
     "tipo de autoridad firmante",
   ),
-  "regional-organ-types": readOnlyCatalog(
-    "regional-organ-types",
-    "Tipos de órgano regional",
-    "tipo de órgano regional",
-  ),
-  "executing-unit-types": readOnlyCatalog(
-    "executing-unit-types",
-    "Tipos de unidad ejecutora",
-    "tipo de unidad ejecutora",
-  ),
-  "minsa-organ-types": readOnlyCatalog(
-    "minsa-organ-types",
-    "Tipos de órgano MINSA",
-    "tipo de órgano MINSA",
-  ),
-  "executive-positions": readOnlyCatalog(
-    "executive-positions",
-    "Cargos ejecutivos",
-    "cargo ejecutivo",
-  ),
+  organs: {
+    endpoint: "organs",
+    title: "Categorías de órgano",
+    singular: "categoría de órgano",
+    readOnly: true,
+    searchPlaceholder: "Buscar por nombre…",
+    columns: [
+      { key: "nombre", header: "Nombre" },
+      { key: "estado", header: "Activo", render: (r: WithId) => siNo(r.estado) },
+    ],
+    filters: [{ name: "estado", label: "Activo", type: "boolean" }],
+    fields: [],
+  },
+  "organ-types": {
+    endpoint: "organ-types",
+    title: "Tipos de órgano",
+    singular: "tipo de órgano",
+    writeRoles: ["Administrador RENADS"],
+    searchPlaceholder: "Buscar por código o nombre…",
+    columns: [
+      { key: "organo", header: "Categoría", render: (r: WithId) => detalleNombre(r.organo_detalle) },
+      { key: "codigo", header: "Código" },
+      { key: "nombre", header: "Nombre" },
+      { key: "activo", header: "Activo", render: (r: WithId) => siNo(r.activo) },
+    ],
+    filters: [
+      { name: "organo", label: "Categoría", type: "select", optionsEndpoint: "organs" },
+      activoFilter,
+    ],
+    fields: [
+      { name: "organo", label: "Categoría de órgano", type: "select", required: true, optionsEndpoint: "organs" },
+      { name: "codigo", label: "Código", type: "text", required: true },
+      { name: "nombre", label: "Nombre", type: "text", required: true },
+      { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
+    ],
+  },
+  "executive-positions": {
+    endpoint: "executive-positions",
+    title: "Cargos ejecutivos",
+    singular: "cargo ejecutivo",
+    writeRoles: ["Administrador RENADS"],
+    searchPlaceholder: "Buscar por código o nombre…",
+    columns: [
+      { key: "organo", header: "Categoría", render: (r: WithId) => detalleNombre(r.organo_detalle) },
+      { key: "codigo", header: "Código" },
+      { key: "nombre", header: "Nombre" },
+      { key: "activo", header: "Activo", render: (r: WithId) => siNo(r.activo) },
+    ],
+    filters: [
+      { name: "organo", label: "Categoría", type: "select", optionsEndpoint: "organs" },
+      activoFilter,
+    ],
+    fields: [
+      { name: "organo", label: "Categoría de órgano", type: "select", required: true, optionsEndpoint: "organs" },
+      { name: "codigo", label: "Código", type: "text", required: true },
+      { name: "nombre", label: "Nombre", type: "text", required: true },
+      { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
+    ],
+  },
   "observation-reasons": readOnlyCatalog(
     "observation-reasons",
     "Motivos de observación",
@@ -138,6 +204,12 @@ export const CATALOG_CONFIGS: Record<string, ResourceConfig> = {
     "closure-reasons",
     "Motivos de cierre",
     "motivo de cierre",
+  ),
+  categories: writableCatalog("categories", "Categorías", "categoría"),
+  "classification-types": writableCatalog(
+    "classification-types",
+    "Tipos de clasificación",
+    "tipo de clasificación",
   ),
   ubigeos: ubigeosConfig,
 };

@@ -3,6 +3,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
+import { Pencil, Trash2 } from "lucide-react";
 
 import type { ResourceConfig, RowAction } from "@/lib/crud/types";
 import { createResourceHooks } from "@/lib/crud/hooks";
@@ -41,12 +42,39 @@ export function ResourceCrud<TRead extends WithId>({
   config,
   rowActions,
   headerActions,
+  fixedValues,
+  cardView,
+  renderCard,
+  renderForm,
+  dialogClassName,
 }: {
   config: ResourceConfig<TRead>;
   /** Acciones por fila inyectadas por la página (p. ej. abrir el diálogo de contraseña). */
   rowActions?: RowAction<TRead>[];
   /** Acciones extra en la cabecera, junto al botón «Nuevo» (p. ej. carga masiva). */
   headerActions?: ReactNode;
+  /**
+   * Formulario personalizado del diálogo de alta/edición (reemplaza a `ResourceForm`). Útil para
+   * controles que no encajan en el formulario declarativo (p. ej. la matriz de permisos de un rol).
+   */
+  renderForm?: (args: {
+    editing: TRead | null;
+    submitting: boolean;
+    onSubmit: (payload: Record<string, unknown>) => void;
+    onCancel: () => void;
+  }) => ReactNode;
+  /** Clase del `DialogContent` de alta/edición (por defecto `sm:max-w-2xl`). */
+  dialogClassName?: string;
+  /**
+   * Valores fijos por alcance (p. ej. `{ universidad: 12 }` cuando el usuario tiene una sola
+   * universidad): se aplican al listado (filtro) y a cada alta, y ocultan su campo/filtro en la UI
+   * (no se pide lo que ya se conoce). El backend sigue siendo la autoridad del alcance.
+   */
+  fixedValues?: Record<string, number | string>;
+  /** Renderiza el listado como grilla de tarjetas (en vez de tabla). Requiere `renderCard`. */
+  cardView?: boolean;
+  /** Cuerpo visual de cada tarjeta (p. ej. logo + nombre). Las acciones las añade `ResourceCrud`. */
+  renderCard?: (row: TRead) => ReactNode;
 }) {
   const hooks = useMemo(
     () => createResourceHooks<TRead, Record<string, unknown>>(config.endpoint),
@@ -82,15 +110,77 @@ export function ResourceCrud<TRead extends WithId>({
     setPage(1);
   }
 
+  // Nombres con valor fijo por alcance: se ocultan de filtros/formulario y se inyectan.
+  const fixedNames = fixedValues ? Object.keys(fixedValues) : [];
+  const fixedAsStrings = fixedValues
+    ? Object.fromEntries(Object.entries(fixedValues).map(([k, v]) => [k, String(v)]))
+    : {};
+  const visibleFilters = fixedNames.length
+    ? config.filters?.filter((f) => !fixedNames.includes(f.name))
+    : config.filters;
+  const dropFixed = (fields: typeof config.fields) =>
+    fixedNames.length ? fields.filter((f) => !fixedNames.includes(f.name)) : fields;
+
   const list = hooks.useList({
     page,
     search: debouncedSearch,
     ordering: config.defaultOrdering ?? "id",
-    filters: filterValues,
+    filters: { ...filterValues, ...fixedAsStrings },
   });
   const createM = hooks.useCreate();
   const updateM = hooks.useUpdate();
   const removeM = hooks.useRemove();
+
+  const hasActions = canWrite || (rowActions?.length ?? 0) > 0;
+
+  // Botonera de acciones por fila (editar + acciones inyectadas + eliminar). Reutilizada por la
+  // tabla y por la grilla de tarjetas.
+  function actionButtons(row: TRead): ReactNode {
+    if (!hasActions) return null;
+    return (
+      <div className="flex justify-end gap-2">
+        {canWrite ? (
+          <Button
+            variant="outline"
+            size="icon-sm"
+            aria-label="Editar"
+            title="Editar"
+            onClick={() => {
+              setEditing(row);
+              setDialogOpen(true);
+            }}
+          >
+            <Pencil />
+          </Button>
+        ) : null}
+        {(rowActions ?? []).map((action) =>
+          action.visible && !action.visible(row) ? null : action.render ? (
+            <span key={action.key}>{action.render(row)}</span>
+          ) : (
+            <Button
+              key={action.key}
+              variant={action.variant ?? "outline"}
+              size="sm"
+              onClick={() => action.onClick(row)}
+            >
+              {action.label}
+            </Button>
+          ),
+        )}
+        {canWrite ? (
+          <Button
+            variant="destructive"
+            size="icon-sm"
+            aria-label={config.deleteActionLabel ?? "Eliminar"}
+            title={config.deleteActionLabel ?? "Eliminar"}
+            onClick={() => setDeleting(row)}
+          >
+            <Trash2 />
+          </Button>
+        ) : null}
+      </div>
+    );
+  }
 
   const columns = useMemo<ColumnDef<TRead>[]>(() => {
     const base: ColumnDef<TRead>[] = config.columns.map((c) => ({
@@ -101,52 +191,15 @@ export function ResourceCrud<TRead extends WithId>({
     }));
     // La columna de acciones aparece si hay escritura (editar/eliminar) o acciones por fila
     // inyectadas por la página (p. ej. la acción CONAPRES de sede docente, sin escritura CRUD).
-    if (canWrite || (rowActions?.length ?? 0) > 0) {
+    if (hasActions) {
       base.push({
         id: "acciones",
         header: "",
-        cell: ({ row }) => (
-          <div className="flex justify-end gap-2">
-            {canWrite ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setEditing(row.original);
-                  setDialogOpen(true);
-                }}
-              >
-                Editar
-              </Button>
-            ) : null}
-            {(rowActions ?? []).map((action) =>
-              action.visible && !action.visible(row.original) ? null : action.render ? (
-                <span key={action.key}>{action.render(row.original)}</span>
-              ) : (
-                <Button
-                  key={action.key}
-                  variant={action.variant ?? "outline"}
-                  size="sm"
-                  onClick={() => action.onClick(row.original)}
-                >
-                  {action.label}
-                </Button>
-              ),
-            )}
-            {canWrite ? (
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => setDeleting(row.original)}
-              >
-                {config.deleteActionLabel ?? "Eliminar"}
-              </Button>
-            ) : null}
-          </div>
-        ),
+        cell: ({ row }) => actionButtons(row.original),
       });
     }
     return base;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config.columns, config.deleteActionLabel, canWrite, rowActions]);
 
   function onCreate() {
@@ -168,6 +221,7 @@ export function ResourceCrud<TRead extends WithId>({
   }
 
   function onSubmit(payload: Record<string, unknown>) {
+    const finalPayload = fixedValues ? { ...payload, ...fixedValues } : payload;
     const opts = {
       onSuccess: () => {
         toast.success(editing ? "Cambios guardados." : `${config.singular} creada.`);
@@ -176,8 +230,8 @@ export function ResourceCrud<TRead extends WithId>({
       },
       onError: (e: unknown) => toast.error(extractApiError(e)),
     };
-    if (editing) updateM.mutate({ id: editing.id, payload }, opts);
-    else createM.mutate(payload, opts);
+    if (editing) updateM.mutate({ id: editing.id, payload: finalPayload }, opts);
+    else createM.mutate(finalPayload, opts);
   }
 
   const data = list.data?.results ?? [];
@@ -212,9 +266,9 @@ export function ResourceCrud<TRead extends WithId>({
         ) : null}
       </div>
 
-      {config.filters?.length ? (
+      {visibleFilters?.length ? (
         <ResourceFilters
-          filters={config.filters}
+          filters={visibleFilters}
           values={filterValues}
           onChange={onFilterChange}
           onClear={onClearFilters}
@@ -235,6 +289,36 @@ export function ResourceCrud<TRead extends WithId>({
             {list.isFetching ? "Reintentando…" : "Reintentar"}
           </Button>
         </div>
+      ) : cardView && renderCard ? (
+        <>
+          {list.isLoading ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">Cargando…</p>
+          ) : data.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              Sin resultados.
+            </p>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {data.map((row) => (
+                <div
+                  key={row.id}
+                  className="flex flex-col rounded-lg border bg-card p-4 shadow-sm transition-colors hover:bg-muted/30"
+                >
+                  <div className="flex-1">{renderCard(row)}</div>
+                  {hasActions ? (
+                    <div className="mt-3 border-t pt-3">{actionButtons(row)}</div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          )}
+          <DataTablePagination
+            page={page}
+            count={list.data?.count ?? 0}
+            onPageChange={setPage}
+            isFetching={list.isFetching}
+          />
+        </>
       ) : (
         <>
           <DataTable
@@ -252,10 +336,10 @@ export function ResourceCrud<TRead extends WithId>({
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className={dialogClassName ?? "sm:max-w-2xl"}>
           <DialogHeader>
             <DialogTitle>
-              {editing ? `Editar ${config.singular}` : `Nueva ${config.singular}`}
+              {editing ? `Editar ${config.singular}` : `Nuevo ${config.singular}`}
             </DialogTitle>
           </DialogHeader>
           {editing && config.renderEditInfo ? (
@@ -263,17 +347,26 @@ export function ResourceCrud<TRead extends WithId>({
               {config.renderEditInfo(editing)}
             </div>
           ) : null}
-          <ResourceForm
-            fields={
-              editing
-                ? config.editFields ?? config.fields
-                : config.createFields ?? config.fields
-            }
-            initial={editing as Record<string, unknown> | null}
-            submitting={createM.isPending || updateM.isPending}
-            onSubmit={onSubmit}
-            onCancel={() => setDialogOpen(false)}
-          />
+          {renderForm ? (
+            renderForm({
+              editing,
+              submitting: createM.isPending || updateM.isPending,
+              onSubmit,
+              onCancel: () => setDialogOpen(false),
+            })
+          ) : (
+            <ResourceForm
+              fields={dropFixed(
+                editing
+                  ? config.editFields ?? config.fields
+                  : config.createFields ?? config.fields,
+              )}
+              initial={editing as Record<string, unknown> | null}
+              submitting={createM.isPending || updateM.isPending}
+              onSubmit={onSubmit}
+              onCancel={() => setDialogOpen(false)}
+            />
+          )}
         </DialogContent>
       </Dialog>
 

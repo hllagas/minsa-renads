@@ -1,34 +1,44 @@
 """ViewSets del módulo Convenios (bloque núcleo). Vistas delgadas: delegan en services/selectors."""
 
 from django.contrib.contenttypes.models import ContentType
+from django.db.models import ProtectedError
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers as drf_serializers
 from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import APIException
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.common.permissions import IsInstitutionalMember, exigir_ambito
+from apps.common.permissions import IsInstitutionalMember, IsModuleEnabled, exigir_ambito
 from apps.common.services import adjuntar_documento, registrar_auditoria
 from apps.common.storage import get_document_storage
 from apps.convenios import models as m
 from apps.convenios.mixins import AnnexAttachmentMixin, LogoStorageMixin
 from apps.convenios import selectors, services
-from apps.convenios.filters import AuditLogFilter, ConventionFilter
+from apps.convenios.filters import (
+    AuditLogFilter,
+    ClinicalFieldAllocationFilter,
+    ClinicalFieldRegistrationFilter,
+    ConventionFilter,
+)
 from apps.convenios.models import ConventionTemplate
 from apps.convenios.permissions import (
     ConventionScope,
     IsAdminRole,
     IsAdminRoleOrReadOnly,
+    IsConapresOrReadOnly,
+    IsRegionalOrganOrReadOnly,
     exigir_roles,
 )
 from apps.convenios.serializers import (
     AuditLogSerializer,
     SolicitanteContentTypeSerializer,
     CambiarEstadoSerializer,
-    ClinicalFieldSerializer,
+    ClinicalFieldAllocationSerializer,
+    ClinicalFieldRegistrationSerializer,
     ConapresOpinionSerializer,
     ConventionParticipantSerializer,
     ConventionReadSerializer,
@@ -39,8 +49,8 @@ from apps.convenios.serializers import (
     DocumentUploadSerializer,
     DocumentWriteSerializer,
     LegalOpinionSerializer,
+    OrganRepresentativeSerializer,
     PublicationSerializer,
-    RepresentativeSerializer,
     SignatureSerializer,
     TechnicalEvaluationSerializer,
 )
@@ -49,7 +59,8 @@ from apps.convenios.serializers import (
 class ConventionViewSet(viewsets.ModelViewSet):
     """CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors."""
 
-    permission_classes = [IsAuthenticated, IsInstitutionalMember, ConventionScope]
+    permission_classes = [IsAuthenticated, IsInstitutionalMember, ConventionScope, IsModuleEnabled]
+    module_content_type = ("convenios", "convention")
     filterset_class = ConventionFilter
     search_fields = ["titulo", "codigo"]
     ordering_fields = ["fecha_solicitud", "fecha_inicio", "fecha_fin", "id"]
@@ -124,19 +135,6 @@ class ConventionViewSet(viewsets.ModelViewSet):
         )
         return self._read(convenio)
 
-    @action(detail=True, methods=["get", "post"], url_path="campos-clinicos")
-    def campos_clinicos(self, request, pk=None):
-        convenio = self.get_object()
-        if request.method == "POST":
-            exigir_roles(request, "CONAPRES")
-            ser = ClinicalFieldSerializer(data=request.data)
-            ser.is_valid(raise_exception=True)
-            services.definir_campo_clinico(
-                convenio=convenio, datos=ser.validated_data, usuario=request.user
-            )
-        qs = selectors.campos_clinicos_de(convenio)
-        return Response(ClinicalFieldSerializer(qs, many=True).data)
-
     @action(detail=True, methods=["post"], url_path="opinion-juridica")
     def opinion_juridica(self, request, pk=None):
         convenio = self.get_object()
@@ -186,6 +184,14 @@ class ConventionViewSet(viewsets.ModelViewSet):
         return Response(ConventionStatusHistorySerializer(qs, many=True).data)
 
 
+class ProtectedDeleteConflict(APIException):
+    """El registro no se puede borrar porque otras filas lo referencian con FK protegida (409)."""
+
+    status_code = 409
+    default_detail = "No se puede eliminar: el registro está referenciado por otros datos."
+    default_code = "protected_delete"
+
+
 class AuditedModelViewSet(viewsets.ModelViewSet):
     """ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01)."""
 
@@ -198,8 +204,20 @@ class AuditedModelViewSet(viewsets.ModelViewSet):
         registrar_auditoria(self.request.user, "ACTUALIZAR", objeto)
 
     def perform_destroy(self, instance):
+        # `instance.delete()` lanza ProtectedError si hay FK protegidas → devolver 409 legible
+        # en vez de un 500. Django anula `instance.pk` tras borrar, por eso se restaura para auditar.
+        pk = instance.pk
+        try:
+            instance.delete()
+        except ProtectedError as exc:
+            modelos = sorted({str(obj._meta.verbose_name) for obj in exc.protected_objects})
+            raise ProtectedDeleteConflict(
+                "No se puede eliminar: el registro está referenciado por "
+                + ", ".join(modelos)
+                + ". Elimina o reasigna esos registros primero."
+            )
+        instance.pk = pk
         registrar_auditoria(self.request.user, "ELIMINAR", instance)
-        instance.delete()
 
 
 class ConventionTemplateViewSet(AuditedModelViewSet):
@@ -210,13 +228,141 @@ class ConventionTemplateViewSet(AuditedModelViewSet):
     permission_classes = [IsAuthenticated, IsAdminRoleOrReadOnly]
 
 
+class ClinicalFieldRegistrationViewSet(AuditedModelViewSet):
+    """CRUD del registro (CONAPRES) del total de campos clínicos por sede + carrera.
+
+    Escritura solo CONAPRES; lectura para autenticados. La escritura delega en los
+    services (`crear_/actualizar_registro_campo_clinico`), que fijan
+    `creado_por`/`actualizado_por` y registran la auditoría. Por eso se sobrescriben
+    `perform_create`/`perform_update` (llaman al service) evitando la doble auditoría
+    de `AuditedModelViewSet`.
+    """
+
+    serializer_class = ClinicalFieldRegistrationSerializer
+    permission_classes = [IsAuthenticated, IsConapresOrReadOnly]
+    filterset_class = ClinicalFieldRegistrationFilter
+    ordering = ["id"]
+
+    def get_queryset(self):
+        return selectors.registros_campo_clinico()
+
+    def perform_create(self, serializer):
+        serializer.instance = services.crear_registro_campo_clinico(
+            datos=serializer.validated_data, usuario=self.request.user
+        )
+
+    def perform_update(self, serializer):
+        serializer.instance = services.actualizar_registro_campo_clinico(
+            registro=serializer.instance,
+            datos=serializer.validated_data,
+            usuario=self.request.user,
+        )
+
+
+class ClinicalFieldAllocationViewSet(AuditedModelViewSet):
+    """CRUD de la asignación (Órgano Regional) de campos clínicos por universidad.
+
+    Escritura solo grupo `Gobierno Regional`; lectura para autenticados. La
+    escritura delega en los services (`crear_/actualizar_/eliminar_asignacion_campo_clinico`),
+    que recalculan el acumulador del registro padre y registran la auditoría; se
+    sobrescriben `perform_create`/`perform_update`/`perform_destroy` para no duplicar
+    la auditoría de `AuditedModelViewSet`. El `PROTECT` de `Internship` sobre la
+    asignación se traduce a 409 vía `ProtectedDeleteConflict`.
+    """
+
+    serializer_class = ClinicalFieldAllocationSerializer
+    permission_classes = [IsAuthenticated, IsRegionalOrganOrReadOnly]
+    filterset_class = ClinicalFieldAllocationFilter
+    ordering = ["id"]
+
+    def get_queryset(self):
+        return selectors.asignaciones_campo_clinico()
+
+    def perform_create(self, serializer):
+        serializer.instance = services.crear_asignacion_campo_clinico(
+            datos=serializer.validated_data, usuario=self.request.user
+        )
+
+    def perform_update(self, serializer):
+        serializer.instance = services.actualizar_asignacion_campo_clinico(
+            asignacion=serializer.instance,
+            datos=serializer.validated_data,
+            usuario=self.request.user,
+        )
+
+    def perform_destroy(self, instance):
+        try:
+            services.eliminar_asignacion_campo_clinico(
+                asignacion=instance, usuario=self.request.user
+            )
+        except ProtectedError as exc:
+            modelos = sorted({str(obj._meta.verbose_name) for obj in exc.protected_objects})
+            raise ProtectedDeleteConflict(
+                "No se puede eliminar: el registro está referenciado por "
+                + ", ".join(modelos)
+                + ". Elimina o reasigna esos registros primero."
+            )
+
+
 # ---------------------------------------------------------------------------
 # Bloque 2 — Catálogos (solo lectura) y entidades (CRUD)
 # ---------------------------------------------------------------------------
-def _auto_serializer(model):
-    """Crea un ModelSerializer con todos los campos del modelo."""
+def _detalle_nombre(rel):
+    """Detalle legible de una FK con `nombre` (catálogos, entidades).
+
+    Incluye `codigo` cuando el modelo relacionado lo tiene (todos los que derivan de
+    `Catalog`: categoría, clasificación, ámbito, microrred), para que el listado pueda
+    mostrar el código o el nombre según convenga.
+    """
+    return {"id": rel.id, "codigo": getattr(rel, "codigo", None), "nombre": rel.nombre}
+
+
+def _detalle_ubigeo(rel):
+    """Detalle legible de un UBIGEO (no tiene `nombre`)."""
+    return {
+        "id": rel.id,
+        "codigo": getattr(rel, "codigo", None),
+        "distrito": rel.distrito,
+        "provincia": rel.provincia,
+        "departamento": rel.departamento,
+    }
+
+
+def _auto_serializer(model, detalles=None):
+    """Crea un ModelSerializer con todos los campos del modelo.
+
+    Para las entidades con logo (`ImageField` `referencia_logo`), expone el campo
+    como URL de solo lectura (`.url` = signed URL efímero con django-storages, o
+    `None` si no hay logo). El logo NO se sube por el CRUD, sino por `upload-logo`.
+
+    `detalles` (opcional): mapa `{nombre_fk: extractor}` que añade un campo de solo
+    lectura `{nombre_fk}_detalle` con el detalle legible de esa FK (p. ej. `{id, nombre}`),
+    sin alterar los campos de escritura (la FK sigue enviándose por id). Útil para que
+    los listados muestren nombres sin resolver ids en el frontend.
+    """
     meta = type("Meta", (), {"model": model, "fields": "__all__"})
-    return type(f"{model.__name__}AutoSerializer", (drf_serializers.ModelSerializer,), {"Meta": meta})
+    atributos = {"Meta": meta}
+
+    campos = {f.name for f in model._meta.get_fields()}
+    if "referencia_logo" in campos:
+        def _get_referencia_logo(self, obj):
+            """URL del logo institucional (o `None` si no hay logo cargado)."""
+            return obj.referencia_logo.url if obj.referencia_logo else None
+
+        atributos["referencia_logo"] = drf_serializers.SerializerMethodField()
+        atributos["get_referencia_logo"] = _get_referencia_logo
+
+    for nombre_fk, extractor in (detalles or {}).items():
+        def _make_getter(field_name, extract):
+            def getter(self, obj):
+                rel = getattr(obj, field_name, None)
+                return extract(rel) if rel is not None else None
+            return getter
+
+        atributos[f"{nombre_fk}_detalle"] = drf_serializers.SerializerMethodField()
+        atributos[f"get_{nombre_fk}_detalle"] = _make_getter(nombre_fk, extractor)
+
+    return type(f"{model.__name__}AutoSerializer", (drf_serializers.ModelSerializer,), atributos)
 
 
 def _catalog_viewset(model):
@@ -277,11 +423,34 @@ class IpressViewSet(
     LogoStorageMixin,
     _entity_viewset(
         m.Ipress,
-        filterset_fields=["unidad_ejecutora", "ambito_geografico_sanitario", "es_sede_docente", "activo"],
+        filterset_fields=[
+            "unidad_ejecutora", "ambito_geografico_sanitario", "es_sede_docente",
+            "categoria", "tipo_clasificacion", "microred", "activo",
+        ],
         search_fields=["nombre", "codigo_renipress"],
     ),
 ):
     """CRUD de IPRESS + autorización como sede docente por CONAPRES + logo."""
+
+    # Lectura con detalle legible de las FKs (los listados muestran nombres, no ids). La escritura
+    # sigue igual (cada FK se envía por id). `select_related` evita N+1 al serializar el detalle.
+    queryset = m.Ipress._default_manager.select_related(
+        "categoria",
+        "tipo_clasificacion",
+        "ambito_geografico_sanitario",
+        "microred",
+        "ubigeo",
+    ).all()
+    serializer_class = _auto_serializer(
+        m.Ipress,
+        detalles={
+            "categoria": _detalle_nombre,
+            "tipo_clasificacion": _detalle_nombre,
+            "ambito_geografico_sanitario": _detalle_nombre,
+            "microred": _detalle_nombre,
+            "ubigeo": _detalle_ubigeo,
+        },
+    )
 
     @action(detail=True, methods=["post"], url_path="autorizar-sede-docente")
     def autorizar_sede_docente(self, request, pk=None):
@@ -298,20 +467,11 @@ class IpressViewSet(
 # Catálogos (solo lectura): basename -> ViewSet
 CATALOG_VIEWSETS = {
     "regions": _catalog_viewset(m.Region),
-    "health-geographic-scopes": _catalog_viewset(m.HealthGeographicScope),
     "convention-types": _catalog_viewset(m.ConventionType),
     "convention-statuses": _catalog_viewset(m.ConventionStatus),
-    "document-types": _catalog_viewset(m.DocumentType),
     "university-management-types": _catalog_viewset(m.UniversityManagementType),
-    "university-entity-types": _catalog_viewset(m.UniversityEntityType),
-    "authorization-types": _catalog_viewset(m.AuthorizationType),
-    "academic-levels": _catalog_viewset(m.AcademicLevel),
     "specialties": _catalog_viewset(m.Specialty),
     "signing-authority-types": _catalog_viewset(m.SigningAuthorityType),
-    "regional-organ-types": _catalog_viewset(m.RegionalOrganType),
-    "executing-unit-types": _catalog_viewset(m.ExecutingUnitType),
-    "minsa-organ-types": _catalog_viewset(m.MinsaOrganType),
-    "executive-positions": _catalog_viewset(m.ExecutivePosition),
     "observation-reasons": _catalog_viewset(m.ObservationReason),
     "rejection-reasons": _catalog_viewset(m.RejectionReason),
     "closure-reasons": _catalog_viewset(m.ClosureReason),
@@ -319,37 +479,61 @@ CATALOG_VIEWSETS = {
 
 # Entidades (CRUD): basename -> ViewSet
 ENTITY_VIEWSETS = {
+    # Catálogos maestros con CRUD (escritura solo Administrador RENADS; con auditoría).
+    "organs": _entity_viewset(m.Organ, filterset_fields=["estado"], search_fields=["nombre"]),
+    "health-geographic-scopes": _entity_viewset(
+        m.HealthGeographicScope, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
+    ),
+    "executive-positions": _entity_viewset(
+        m.ExecutivePosition, filterset_fields=["organo", "activo"], search_fields=["codigo", "nombre"]
+    ),
+    "authorization-types": _entity_viewset(
+        m.AuthorizationType, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
+    ),
+    "academic-levels": _entity_viewset(
+        m.AcademicLevel, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
+    ),
+    "organ-types": _entity_viewset(
+        m.OrganType,
+        filterset_fields=["organo", "activo"],
+        search_fields=["codigo", "nombre"],
+    ),
+    "categories": _entity_viewset(
+        m.Category, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
+    ),
+    "classification-types": _entity_viewset(
+        m.ClassificationType, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
+    ),
+    "networks": _entity_viewset(
+        m.Red,
+        filterset_fields=["ambito_geografico_sanitario", "activo"],
+        search_fields=["codigo", "nombre"],
+    ),
+    "micro-networks": _entity_viewset(
+        m.Microred, filterset_fields=["red", "activo"], search_fields=["codigo", "nombre"]
+    ),
     "regional-governments": _entity_viewset(
         m.RegionalGovernment, filterset_fields=["region", "activo"], search_fields=["nombre"], logo=True
     ),
-    "regional-organs": _entity_viewset(
-        m.RegionalOrgan,
-        filterset_fields=["gobierno_regional", "tipo_organo_regional", "activo"],
-        search_fields=["nombre", "siglas"],
+    "organ-directories": _entity_viewset(
+        m.OrganDirectory,
+        filterset_fields=["organo", "tipo_organo", "gobierno_regional", "activo"],
+        search_fields=["nombre", "siglas", "numero_ruc"],
         logo=True,
     ),
     "executing-units": _entity_viewset(
         m.ExecutingUnit,
-        filterset_fields=["organo_regional", "tipo_unidad_ejecutora", "activo"],
+        filterset_fields=["organo_directorio", "tipo_organo", "activo"],
         search_fields=["nombre", "codigo"],
         logo=True,
     ),
     "ipress": IpressViewSet,
-    "minsa-organs": _entity_viewset(
-        m.MinsaOrgan, filterset_fields=["tipo_organo_minsa", "activo"], search_fields=["nombre", "siglas"]
-    ),
     "conapres": _entity_viewset(m.Conapres, filterset_fields=["activo"], search_fields=["nombre"]),
     "universities": _entity_viewset(
         m.University,
         filterset_fields=["tipo_gestion", "tipo_entidad", "tipo_autorizacion", "activo"],
         search_fields=["nombre", "siglas"],
         logo=True,
-    ),
-    "university-authorities": _entity_viewset(
-        m.UniversityAuthority,
-        filterset_fields=["universidad", "activo"],
-        search_fields=["nombre", "cargo"],
-        annex_actor="AUTORIDAD_UNIVERSIDAD",
     ),
     "faculties": _entity_viewset(
         m.Faculty, filterset_fields=["universidad", "activo"], search_fields=["nombre"]
@@ -382,20 +566,42 @@ class UbigeoViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ["codigo"]
 
 
-class RepresentativeViewSet(AnnexAttachmentMixin, AuditedModelViewSet):
-    """CRUD de representantes (relación polimórfica validada) + adjunto real de anexos.
+class OrganRepresentativeViewSet(AnnexAttachmentMixin, AuditedModelViewSet):
+    """CRUD de representantes de órgano (FK directo al directorio) + adjunto real de anexos.
 
-    Escritura solo Administrador RENADS. Adjunta PDFs de anexos del actor
-    `REPRESENTANTE` (resolución del cargo, documento de identidad) vía
-    `annex-upload`/`annex-checklist`.
+    Escritura solo Administrador RENADS. Al crear, delega en el service
+    `registrar_organo_representante` (da de baja al anterior activo del mismo par
+    `(organo_directorio, cargo_ejecutivo)` y lo copia al histórico). Adjunta PDFs
+    de anexos del actor `REPRESENTANTE` (resolución del cargo, documento de
+    identidad) vía `annex-upload`/`annex-checklist`.
     """
 
-    queryset = m.Representative.objects.select_related("tipo_contenido", "cargo_ejecutivo")
-    serializer_class = RepresentativeSerializer
+    queryset = m.OrganRepresentative.objects.select_related(
+        "organo_directorio", "cargo_ejecutivo", "tipo_documento_identidad"
+    )
+    serializer_class = OrganRepresentativeSerializer
     permission_classes = [IsAuthenticated, IsAdminRoleOrReadOnly]
-    filterset_fields = ["tipo_contenido", "id_objeto", "cargo_ejecutivo", "activo"]
+    filterset_fields = ["organo_directorio", "cargo_ejecutivo", "activo"]
+    search_fields = ["nombre", "numero_documento_identidad"]
     ordering = ["id"]
     annex_actor = "REPRESENTANTE"
+
+    def perform_create(self, serializer):
+        serializer.instance = services.registrar_organo_representante(
+            datos=serializer.validated_data, usuario=self.request.user
+        )
+
+
+class OrganRepresentativeHistoryViewSet(viewsets.ReadOnlyModelViewSet):
+    """Histórico de bajas de representantes de órgano (solo lectura)."""
+
+    queryset = m.OrganRepresentativeHistory.objects.select_related(
+        "representante", "organo_directorio", "cargo_ejecutivo"
+    ).all()
+    serializer_class = _auto_serializer(m.OrganRepresentativeHistory)
+    permission_classes = [IsAuthenticated]
+    filterset_fields = ["organo_directorio", "cargo_ejecutivo", "representante"]
+    ordering = ["-fecha_baja", "-id"]
 
 
 # ---------------------------------------------------------------------------
@@ -409,10 +615,10 @@ class DocumentViewSet(AuditedModelViewSet):
     """
 
     queryset = m.Document.objects.select_related(
-        "tipo_documento", "tipo_contenido", "version_anterior", "cargado_por"
+        "documento_anexo", "tipo_contenido", "version_anterior", "cargado_por"
     )
     permission_classes = [IsAuthenticated, IsInstitutionalMember]
-    filterset_fields = ["tipo_contenido", "id_objeto", "tipo_documento", "estado"]
+    filterset_fields = ["tipo_contenido", "id_objeto", "documento_anexo", "estado"]
     ordering = ["-id"]
     http_method_names = ["get", "post", "delete", "head", "options"]
 
@@ -435,10 +641,9 @@ class DocumentViewSet(AuditedModelViewSet):
         objeto = tipo_contenido.get_object_for_this_type(pk=ser.validated_data["id_objeto"])
         documento = adjuntar_documento(
             objeto,
-            tipo_documento=ser.validated_data["tipo_documento"],
-            nombre_archivo=ser.validated_data["nombre_archivo"],
             referencia_externa=ser.validated_data["referencia_externa"],
             usuario=request.user,
+            documento_anexo=ser.validated_data["documento_anexo"],
         )
         return Response(DocumentSerializer(documento).data, status=201)
 
@@ -462,13 +667,13 @@ class DocumentViewSet(AuditedModelViewSet):
         datos = ser.validated_data
         tipo_contenido = datos["tipo_contenido"]
         objeto = tipo_contenido.get_object_for_this_type(pk=datos["id_objeto"])
-        referencia = self.storage.subir(datos["archivo"], ruta=datos["nombre_archivo"])
+        archivo = datos["archivo"]
+        referencia = self.storage.subir(archivo, ruta=datos["nombre_archivo"])
         documento = adjuntar_documento(
             objeto,
-            tipo_documento=datos["tipo_documento"],
-            nombre_archivo=datos["nombre_archivo"],
             referencia_externa=referencia,
             usuario=request.user,
+            documento_anexo=datos["documento_anexo"],
         )
         return Response(DocumentSerializer(documento).data, status=201)
 
@@ -501,8 +706,7 @@ SOLICITANTE_MODELS = (
     m.Ipress,
     m.RegionalGovernment,
     m.ExecutingUnit,
-    m.RegionalOrgan,
-    m.MinsaOrgan,
+    m.OrganDirectory,
     m.Conapres,
 )
 

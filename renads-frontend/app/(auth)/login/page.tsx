@@ -35,6 +35,10 @@ const loginSchema = z.object({
 
 type LoginValues = z.infer<typeof loginSchema>;
 
+/** Estilo translúcido compartido para los inputs sobre el cristal (legibles sobre la imagen). */
+const GLASS_INPUT =
+  "border-white/25 bg-white/10 text-white placeholder:text-white/50 focus-visible:ring-white/40";
+
 export default function LoginPage() {
   const router = useRouter();
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -60,17 +64,26 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-background p-0 sm:p-6">
-      {/* Capa de gradiente moderno (decorativa). Usa tokens --chart-* para coherencia claro/oscuro. */}
+    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden p-4 sm:p-6 lg:justify-start lg:pl-16 xl:pl-24">
+      {/* Imagen de fondo institucional (RENADS 2.0). */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_55%_at_80%_15%,color-mix(in_oklch,var(--color-chart-1),transparent_82%),transparent_70%),radial-gradient(55%_55%_at_12%_92%,color-mix(in_oklch,var(--color-chart-5),transparent_85%),transparent_70%)]"
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: "url('/portada_login.png')" }}
+      />
+      {/* Velo suave para dar contraste al formulario sin ocultar la imagen. */}
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-gradient-to-br from-slate-950/60 via-slate-900/35 to-slate-950/60"
       />
 
-      <Card className="relative z-10 flex min-h-dvh w-full max-w-sm flex-col justify-center rounded-none border-0 bg-transparent shadow-none sm:min-h-0 sm:block sm:rounded-xl sm:border sm:bg-card sm:shadow-xl">
-        <CardHeader>
-          <CardTitle className="text-xl">RENADS</CardTitle>
-          <CardDescription>Inicia sesión para continuar.</CardDescription>
+      {/* Tarjeta «flotante» de cristal: fondo translúcido + desenfoque + sombra amplia. */}
+      <Card className="relative z-10 w-full max-w-md rounded-2xl border border-white/15 bg-white/10 text-white shadow-2xl ring-1 ring-white/10 backdrop-blur-xl backdrop-saturate-150">
+        <CardHeader className="items-center text-center">
+          <CardTitle className="text-2xl tracking-wide text-white">Bienvenido</CardTitle>
+          <CardDescription className="text-white/75">
+            Registro Nacional de Articulación Docencia–Servicio en Salud
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -80,9 +93,14 @@ export default function LoginPage() {
                 name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Usuario</FormLabel>
+                    <FormLabel className="text-white/90">Usuario</FormLabel>
                     <FormControl>
-                      <Input autoComplete="username" autoFocus {...field} />
+                      <Input
+                        autoComplete="username"
+                        autoFocus
+                        className={GLASS_INPUT}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -93,13 +111,13 @@ export default function LoginPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Contraseña</FormLabel>
+                    <FormLabel className="text-white/90">Contraseña</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Input
                           type={showPassword ? "text" : "password"}
                           autoComplete="current-password"
-                          className="pr-10"
+                          className={`pr-10 ${GLASS_INPUT}`}
                           {...field}
                         />
                         <Button
@@ -112,7 +130,7 @@ export default function LoginPage() {
                               : "Mostrar contraseña"
                           }
                           aria-pressed={showPassword}
-                          className="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground"
+                          className="absolute top-1/2 right-1 -translate-y-1/2 text-white/70 hover:bg-white/10 hover:text-white"
                           onClick={() => setShowPassword((v) => !v)}
                         >
                           {showPassword ? <EyeOffIcon /> : <EyeIcon />}
@@ -123,7 +141,7 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isPending}>
+              <Button type="submit" className="mt-1 w-full" disabled={isPending}>
                 {isPending ? "Ingresando…" : "Ingresar"}
               </Button>
             </form>

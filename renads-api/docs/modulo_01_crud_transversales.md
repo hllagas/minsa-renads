@@ -22,8 +22,12 @@ implementada y validada**. Solo restan dos brechas reales.
 
 | Bloque | Tablas / endpoints | Estado |
 |--------|--------------------|--------|
-| **Catálogos** (solo lectura) | 18 catálogos (`region`, `tipo_convenio`, `estado_convenio`, …) + `ubigeo` | ✅ Implementado (`CATALOG_VIEWSETS`, `UbigeoViewSet`) |
-| **Entidades — Gobiernos Regionales** | `gobierno_regional`, `organo_regional`, `unidad_ejecutora`, `ipress` | ✅ Implementado (`ENTITY_VIEWSETS`) |
+| **Catálogos** (solo lectura) | 11 catálogos (`region`, `tipo_convenio`, `estado_convenio`, `specialties`, …) + `ubigeo` | ✅ Implementado (`CATALOG_VIEWSETS`, `UbigeoViewSet`) |
+| **Catálogos maestros** (CRUD, Administrador RENADS) | `health-geographic-scopes` (`ambito_geografico_sanitario`), `document-types`, `university-entity-types`, `authorization-types`, `academic-levels`, `regional-organ-types`, `minsa-organ-types`, `categories`, `classification-types` (+ `annex-documents` en `internados`) | ✅ Implementado (`ENTITY_VIEWSETS`, escritura solo Administrador RENADS + auditoría) |
+| **Jerarquía geográfica sanitaria** (CRUD, Administrador RENADS) | `networks` (`red`), `micro-networks` (`microred`) — jerarquía `ambito_geografico_sanitario → red → microred`; `codigo` único por padre | ✅ Implementado (`ENTITY_VIEWSETS`, escritura solo Administrador RENADS + auditoría) |
+| **Entidades — Gobiernos Regionales** | `gobierno_regional`, `organo_regional`, `unidad_ejecutora`, `ipress` (con `categoria`, `tipo_clasificacion`, `microred`, `latitud`, `longitud`, `cantidad_camas`, `numero_ruc`; filtrable por `categoria`/`tipo_clasificacion`/`microred`) | ✅ Implementado (`ENTITY_VIEWSETS`) |
+| **Campos clínicos — registro** (CRUD, escritura **CONAPRES**) | `clinical-field-registrations` (`campo_clinico_ipress`) — total por sede docente + carrera; filtros `convenio`, `ipress`, `carrera_profesional`, `especialidad`; el serializer expone `disponibilidad` (computed) y `campos_clinicos_asignados` (solo lectura) | ✅ Implementado (`ClinicalFieldRegistrationViewSet`, `IsConapresOrReadOnly`; escritura vía service + auditoría). **Reemplaza** la action anidada `conventions/{id}/campos-clinicos` (retirada) |
+| **Campos clínicos — asignación** (CRUD, escritura **Gobierno Regional**) | `clinical-field-allocations` (`campo_clinico_ipress_universidad`) — cupos por universidad contra un registro; filtros `campo_clinico_ipress`, `convenio`, `ipress`, `carrera_profesional`, `universidad`; valida disponibilidad y recalcula el acumulador del registro padre | ✅ Implementado (`ClinicalFieldAllocationViewSet`, `IsRegionalOrganOrReadOnly`; escritura vía service + auditoría) |
 | **Entidades — MINSA** | `organo_minsa` | ✅ Implementado (`minsa-organs`) |
 | **Entidades — CONAPRES** | `conapres` | ✅ Implementado (`conapres`) |
 | **Entidades — Universidades** | `universidad`, `autoridad_universidad`, `facultad`, `carrera_profesional`, `local_universidad` | ✅ Implementado |

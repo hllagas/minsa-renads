@@ -5,6 +5,12 @@ anexos por actor), servidos sobre el backend de almacenamiento (Google Cloud
 Storage en producción; stub por referencia externa en desarrollo). Todas las rutas
 cuelgan de `/api/v1/` y requieren autenticación (JWT institucional).
 
+> **Versionado por anexo:** cada adjunto se guarda como `documento_adjunto` (tabla
+> `documento_adjunto`, ex `documento`) versionado por el par `(objeto,
+> documento_anexo)`. La FK `documento_anexo` es **obligatoria** (único
+> discriminador). El nombre de archivo se usa solo como ruta de storage; no se
+> persiste en `documento_adjunto`.
+
 > **Seguridad:** los binarios se guardan en un bucket **privado** (sin acceso
 > público). La única forma de leerlos es un **signed URL V4 de corta duración**
 > (`GCS_SIGNED_URL_EXPIRATION`, 15 min por defecto). Nunca se expone una URL
@@ -21,19 +27,54 @@ cuelgan de `/api/v1/` y requieren autenticación (JWT institucional).
 - Tamaño máximo por archivo: **25 MiB** (`GCS_MAX_UPLOAD_BYTES`).
 - Las subidas van como **`multipart/form-data`**.
 
+## Autenticación
+
+Todas las rutas requieren el header `Authorization: Bearer <access>`. El token se obtiene en
+`POST /api/v1/auth/token/`:
+
+```bash
+curl -X POST https://api.renads.minsa.gob.pe/api/v1/auth/token/ \
+  -H "Content-Type: application/json" \
+  -d '{"username": "12345678", "password": "mi-clave"}'
+# → { "access": "...", "refresh": "...", "debe_cambiar_password": false }
+```
+
+```js
+const { access } = await fetch("/api/v1/auth/token/", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ username: "12345678", password: "mi-clave" }),
+}).then((r) => r.json());
+```
+
+> En los ejemplos siguientes, `$TOKEN` / `access` es ese `access` token. En `multipart/form-data`
+> **no** fijes manualmente `Content-Type`: el navegador (o curl con `-F`) pone el `boundary`.
+
 ---
 
 ## Logos institucionales (5 entidades)
 
-El logo se guarda como una única clave (`referencia_logo`) en la entidad: **no hay
-versionado**. Al subir uno nuevo se reemplaza y se borra la clave anterior.
+El logo se guarda en un campo **`ImageField`** (`referencia_logo`) de la entidad:
+**no hay versionado**. Al subir uno nuevo se reemplaza y se borra el binario
+anterior. Desde la Etapa 4 el binario lo escribe Django a través de
+`STORAGES["default"]` (django-storages sobre el bucket privado de GCS en producción;
+`FileSystemStorage` en dev), usando una carpeta por entidad (`upload_to`). El valor
+`referencia_logo` que devuelve el API es ahora el **path/URL del `ImageField`** (ya no
+una clave opaca), y `url` es su `.url` = un **signed URL V4 efímero**. **El contrato de
+los endpoints no cambia:** `upload-logo` sigue devolviendo `{referencia_logo, url}` y
+`logo-url` sigue devolviendo `{url}`.
+
+> Cambio de forma del campo: en los **serializers CRUD** de las 5 entidades,
+> `referencia_logo` se serializa ahora como **URL de lectura** (`.url` o `null` si no
+> hay logo), no como clave. El logo **no** se sube por el CRUD (`POST/PUT` de la
+> entidad ignoran ese campo): se sube por `upload-logo`.
 
 Entidades con logo: `universities`, `regional-governments`, `regional-organs`,
 `executing-units`, `ipress`.
 
 | Método | Ruta | Cuerpo (multipart) | Respuesta |
 |--------|------|--------------------|-----------|
-| `POST` | `/api/v1/{entidad}/{id}/upload-logo/` | `archivo`: imagen (PNG/JPEG/WEBP) | `200` `{ "referencia_logo": "...", "url": "https://storage.googleapis.com/..." }` |
+| `POST` | `/api/v1/{entidad}/{id}/upload-logo/` | `archivo`: imagen (PNG/JPEG/WEBP) | `200` `{ "referencia_logo": "<path>", "url": "https://storage.googleapis.com/..." }` |
 | `GET`  | `/api/v1/{entidad}/{id}/logo-url/` | — | `200` `{ "url": "https://storage.googleapis.com/..." }` o `404` |
 
 ### Flujo de logo
@@ -42,20 +83,50 @@ Entidades con logo: `universities`, `regional-governments`, `regional-organs`,
 2. `GET .../logo-url/` cada vez que se necesite renderizar el logo (el signed URL
    caduca; se vuelve a pedir bajo demanda).
 
+Ejemplo de request de `upload-logo` (subir logo de la universidad `10`):
+
+```bash
+curl -X POST https://api.renads.minsa.gob.pe/api/v1/universities/10/upload-logo/ \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "archivo=@logo-unmsm.png;type=image/png"
+```
+
+```js
+const fd = new FormData();
+fd.append("archivo", fileInput.files[0]); // File PNG/JPEG/WEBP
+const res = await fetch("/api/v1/universities/10/upload-logo/", {
+  method: "POST",
+  headers: { Authorization: `Bearer ${access}` }, // sin Content-Type manual
+  body: fd,
+}).then((r) => r.json());
+// res.url → signed URL listo para <img src>
+```
+
+Obtener el signed URL bajo demanda (`logo-url`):
+
+```bash
+curl https://api.renads.minsa.gob.pe/api/v1/universities/10/logo-url/ \
+  -H "Authorization: Bearer $TOKEN"
+```
+
 Ejemplo de respuesta de `upload-logo`:
 
 ```json
 {
-  "referencia_logo": "a1b2c3d4-uuid-logo.png",
-  "url": "https://storage.googleapis.com/renads-cloud-media-prod/a1b2c3d4-uuid-logo.png?X-Goog-Signature=..."
+  "referencia_logo": "logos/universidad/logo-unmsm.png",
+  "url": "https://storage.googleapis.com/renads-cloud-media-prod/logos/universidad/logo-unmsm.png?X-Goog-Signature=..."
 }
 ```
 
+> `referencia_logo` es el path del `ImageField` (prefijo `GS_LOCATION` = `logos/` +
+> `upload_to` de la entidad, p. ej. `universidad/`). `url` es un signed URL V4 que
+> caduca (`GS_EXPIRATION`); vuelve a pedirse por `logo-url` cuando expire.
+
 ---
 
-## Anexos (PDFs de declaraciones juradas por actor, 3 entidades)
+## Anexos (PDFs de declaraciones juradas por actor, 2 entidades)
 
-Cada anexo se guarda como un **`Document` versionado** por el par
+Cada anexo se guarda como un **`documento_adjunto` versionado** por el par
 `(entidad, documento_anexo)`: re-subir el **mismo** `documento_anexo` a la misma
 entidad crea una **nueva versión** (`version = n+1`) y marca la anterior como
 `REEMPLAZADO`. Anexos distintos mantienen cadenas de versión independientes.
@@ -64,9 +135,12 @@ Entidades con anexos y su actor:
 
 | Entidad (`{entidad}`) | `tipo_actor` (anexos aceptados) |
 |-----------------------|---------------------------------|
-| `students`            | `INTERNO` |
-| `university-authorities` | `AUTORIDAD_UNIVERSIDAD` |
-| `representatives`     | `REPRESENTANTE` |
+| `interns`             | `INTERNO` |
+| `organ-representatives` | `REPRESENTANTE` (cubre autoridades de universidad y CONAPRES) |
+
+> **Cambio de refactor:** las declaraciones juradas del interno (actor `INTERNO`) se
+> adjuntan sobre el **internado** (`interns/{id}/…`), **no** sobre el estudiante
+> (`students/{id}/…`). El endpoint de estudiantes ya **no** expone `annex-upload`/`annex-checklist`.
 
 El `documento_anexo` sale del catálogo maestro `/api/v1/annex-documents/`
 (filtrable por `?tipo_actor=`). Solo se aceptan anexos **activos** cuyo `tipo_actor`
@@ -74,14 +148,41 @@ coincida con la entidad.
 
 | Método | Ruta | Cuerpo (multipart) | Respuesta |
 |--------|------|--------------------|-----------|
-| `POST` | `/api/v1/{entidad}/{id}/annex-upload/` | `documento_anexo`: id del anexo; `archivo`: PDF; `nombre_archivo` (opcional) | `201` `Document` |
+| `POST` | `/api/v1/{entidad}/{id}/annex-upload/` | `documento_anexo`: id del anexo; `archivo`: PDF | `201` `documento_adjunto` |
 | `GET`  | `/api/v1/{entidad}/{id}/annex-checklist/` | — | `200` lista de anexos con su estado |
 
 ### Flujo de anexos
 1. `GET .../annex-checklist/` → devuelve **qué anexos requiere** el actor y cuáles
    están ya adjuntados (resaltar los `obligatorio=true` con `adjuntado=false`).
 2. `POST .../annex-upload/` con `documento_anexo` + `archivo` (PDF) → adjunta.
-3. Re-subir el mismo `documento_anexo` genera una **nueva versión** del `Document`.
+3. Re-subir el mismo `documento_anexo` genera una **nueva versión** del `documento_adjunto`.
+
+Ejemplo de request de `annex-upload` (internado `55` adjunta el anexo `3`, PDF):
+
+```bash
+curl -X POST https://api.renads.minsa.gob.pe/api/v1/interns/55/annex-upload/ \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "documento_anexo=3" \
+  -F "archivo=@declaracion-salud.pdf;type=application/pdf"
+```
+
+```js
+const fd = new FormData();
+fd.append("documento_anexo", 3);
+fd.append("archivo", pdfInput.files[0]); // File application/pdf
+const doc = await fetch("/api/v1/interns/55/annex-upload/", {
+  method: "POST",
+  headers: { Authorization: `Bearer ${access}` },
+  body: fd,
+}).then((r) => r.json());
+```
+
+Consultar el checklist (`annex-checklist`):
+
+```bash
+curl https://api.renads.minsa.gob.pe/api/v1/interns/55/annex-checklist/ \
+  -H "Authorization: Bearer $TOKEN"
+```
 
 Ejemplo de respuesta de `annex-checklist`:
 
@@ -110,18 +211,17 @@ Ejemplo de respuesta de `annex-checklist`:
 ]
 ```
 
-Ejemplo de respuesta de `annex-upload` (`Document`):
+Ejemplo de respuesta de `annex-upload` (`documento_adjunto`):
 
 ```json
 {
   "id": 129,
-  "tipo_documento": 7,
-  "tipo_documento_nombre": "Declaración jurada / anexo",
+  "documento_anexo": 3,
+  "documento_anexo_nombre": "Declaración jurada de aptitud de salud",
   "tipo_contenido": 42,
-  "tipo_contenido_label": "student",
+  "tipo_contenido_label": "internship",
   "id_objeto": 55,
   "referencia_externa": "9a8b-uuid-dj.pdf",
-  "nombre_archivo": "declaracion.pdf",
   "version": 1,
   "estado": "ACTIVO",
   "version_anterior": null,
@@ -136,7 +236,7 @@ Ejemplo de respuesta de `annex-upload` (`Document`):
 
 | Método | Ruta | Cuerpo | Respuesta |
 |--------|------|--------|-----------|
-| `POST` | `/api/v1/documents/upload/` | multipart: `archivo`, `tipo_documento`, `tipo_contenido`, `id_objeto`, `nombre_archivo?` | `201` `Document` |
+| `POST` | `/api/v1/documents/upload/` | multipart: `archivo`, `documento_anexo`, `tipo_contenido`, `id_objeto`, `nombre_archivo?` (solo ruta de storage) | `201` `documento_adjunto` |
 | `GET`  | `/api/v1/documents/{id}/url-descarga/` | — | `200` `{ "url": "..." }` (signed URL) |
 
 ---
@@ -159,8 +259,8 @@ Ejemplo de respuesta de `annex-upload` (`Document`):
 |--------|-----------|---------|
 | `upload-logo` (5 entidades) | `Administrador RENADS` | — |
 | `logo-url` | — | Autenticados |
-| `annex-upload` (students) | `Universidad` / `Administrador RENADS` (alcance por la universidad del estudiante) | — |
-| `annex-upload` (university-authorities, representatives) | `Administrador RENADS` | — |
+| `annex-upload` (interns) | `Universidad` / `Administrador RENADS` (alcance por la universidad del estudiante) o el propio `Interno` (RN-22) | — |
+| `annex-upload` (organ-representatives) | `Administrador RENADS` | — |
 | `annex-checklist` | — | Autenticados con alcance |
 | `documents/upload` | Miembro institucional autenticado | — |
 | `revisar-declaraciones` (interns) | `Universidad` / `Administrador RENADS` | — |
@@ -190,18 +290,48 @@ El interno recibe una contraseña temporal y **debe** cambiarla. El flag es cons
 
   Responde `200` con el payload de `/me/` (ya con `debe_cambiar_password=false`).
 
+  ```bash
+  curl -X POST https://api.renads.minsa.gob.pe/api/v1/auth/me/cambiar-password/ \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"password_actual": "clave-temporal", "password_nueva": "mi-clave-nueva-fuerte"}'
+  ```
+
+  ```js
+  await fetch("/api/v1/auth/me/cambiar-password/", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${access}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ password_actual: "clave-temporal", password_nueva: "mi-clave-nueva-fuerte" }),
+  });
+  ```
+
 > El bloqueo efectivo de endpoints hasta cambiar la clave es refuerzo del front (MVP): el backend
 > solo expone el flag y el endpoint de cambio.
 
 ### Estado de las declaraciones juradas — `revisar-declaraciones`
 
 `interno.estado_declaraciones` ∈ {`PENDIENTE`, `COMPLETAS`, `OBSERVADAS`, `VALIDADAS`}. Pasa de
-`PENDIENTE` a `COMPLETAS` **automáticamente** al completar (vía `students/{id}/annex-upload/`) todas
+`PENDIENTE` a `COMPLETAS` **automáticamente** al completar (vía `interns/{id}/annex-upload/`) todas
 las DJ obligatorias de `tipo_actor="INTERNO"`. La revisión humana la hace el rol `Universidad`/`Administrador RENADS`:
 
 | Método | Ruta | Cuerpo | Respuesta |
 |--------|------|--------|-----------|
 | `POST` | `/api/v1/interns/{id}/revisar-declaraciones/` | `resultado`: `VALIDADAS`\|`OBSERVADAS`; `observacion` (opcional) | `200` internado |
+
+```bash
+curl -X POST https://api.renads.minsa.gob.pe/api/v1/interns/8/revisar-declaraciones/ \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"resultado": "VALIDADAS", "observacion": "Conforme."}'
+```
+
+```js
+await fetch("/api/v1/interns/8/revisar-declaraciones/", {
+  method: "POST",
+  headers: { Authorization: `Bearer ${access}`, "Content-Type": "application/json" },
+  body: JSON.stringify({ resultado: "OBSERVADAS", observacion: "Falta la firma en la DJ de salud." }),
+});
+```
 
 `OBSERVADAS` vuelve a `COMPLETAS` al re-adjuntar y cumplir el checklist. **Gate:** el internado no
 pasa a `ACTIVO` (`interns/{id}/cambiar-estado/`) salvo que `estado_declaraciones == "VALIDADAS"` (`400`).

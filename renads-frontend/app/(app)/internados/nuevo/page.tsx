@@ -16,18 +16,18 @@ export default function NuevoInternadoPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <PageHeader title="Nuevo internado" />
+      <PageHeader title="Nuevo interno" />
       <Card>
         <CardContent className="pt-6">
           <ResourceForm
             fields={INTERNSHIP_FIELDS}
             initial={null}
             submitting={createM.isPending}
-            onCancel={() => router.push("/internados")}
+            onCancel={() => router.push("/internados/internos")}
             onSubmit={(payload) =>
               createM.mutate(payload as InternshipWrite, {
                 onSuccess: (it) => {
-                  toast.success("Internado creado.");
+                  toast.success("Interno creado.");
                   router.push(`/internados/${it.id}`);
                 },
                 onError: (e) => toast.error(extractApiError(e)),

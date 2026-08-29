@@ -1,6 +1,7 @@
 "use client";
 
-import { useForm, Controller, type Control } from "react-hook-form";
+import { useEffect, useRef } from "react";
+import { useForm, Controller, useWatch, type Control } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 
 import type { FieldConfig } from "@/lib/crud/types";
@@ -23,6 +24,39 @@ import {
 
 type FormValues = Record<string, unknown>;
 
+/** Campos de texto cuyo contenido suele ser largo → ocupan todo el ancho aunque no se marquen. */
+const AUTO_FULL_WIDTH_NAMES =
+  /^(nombre|denominacion|descripcion|direccion|observacion|observaciones|justificacion|motivo)/;
+
+/** ¿El campo ocupa las 2 columnas del formulario? `custom`/`multiselect` y textos largos sí. */
+function isFullWidth(field: FieldConfig): boolean {
+  if (field.fullWidth) return true;
+  if (field.type === "custom" || field.type === "multiselect") return true;
+  if (
+    (field.type === "text" || field.type === "email") &&
+    AUTO_FULL_WIDTH_NAMES.test(field.name)
+  )
+    return true;
+  return false;
+}
+
+/** Selecciona el control adecuado para un campo (sin envoltorio de columna). */
+function FieldRow({
+  field,
+  control,
+}: {
+  field: FieldConfig;
+  control: Control<FormValues>;
+}) {
+  if (field.type === "custom") return <>{field.render?.(control)}</>;
+  if (field.type === "select") return <SelectFieldRow field={field} control={control} />;
+  if (field.type === "multiselect")
+    return <MultiSelectFieldRow field={field} control={control} />;
+  if (field.type === "boolean")
+    return <BooleanFieldRow field={field} control={control} />;
+  return <InputFieldRow field={field} control={control} />;
+}
+
 function defaultFor(field: FieldConfig, initial: FormValues | null): unknown {
   if (field.type === "multiselect") {
     const v = initial?.[field.name];
@@ -41,6 +75,10 @@ function defaultFor(field: FieldConfig, initial: FormValues | null): unknown {
 function buildPayload(fields: FieldConfig[], values: FormValues): FormValues {
   const out: FormValues = {};
   for (const f of fields) {
+    // Campos virtuales: solo UI (p. ej. filtro de cascada). No se envían al backend.
+    if (f.virtual) continue;
+    // Campos ocultos por `showWhen`: se excluyen del payload.
+    if (f.showWhen && !f.showWhen(values)) continue;
     const v = values[f.name];
     if (f.type === "boolean") {
       out[f.name] = Boolean(v);
@@ -101,22 +139,12 @@ export function ResourceForm({
   return (
     <form
       onSubmit={handleSubmit((values) => onSubmit(buildPayload(fields, values)))}
-      className="grid max-h-[60vh] gap-4 overflow-y-auto px-1"
+      className="grid max-h-[75vh] grid-cols-1 gap-x-5 gap-y-4 overflow-x-hidden overflow-y-auto px-2 py-2 sm:grid-cols-2"
     >
-      {fields.map((field) =>
-        field.type === "custom" ? (
-          <div key={field.name}>{field.render?.(control)}</div>
-        ) : field.type === "select" ? (
-          <SelectFieldRow key={field.name} field={field} control={control} />
-        ) : field.type === "multiselect" ? (
-          <MultiSelectFieldRow key={field.name} field={field} control={control} />
-        ) : field.type === "boolean" ? (
-          <BooleanFieldRow key={field.name} field={field} control={control} />
-        ) : (
-          <InputFieldRow key={field.name} field={field} control={control} />
-        ),
-      )}
-      <div className="flex justify-end gap-2 pt-2">
+      {fields.map((field) => (
+        <ConditionalFieldWrapper key={field.name} field={field} control={control} />
+      ))}
+      <div className="flex justify-end gap-2 pt-2 sm:col-span-2">
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancelar
         </Button>
@@ -125,6 +153,24 @@ export function ResourceForm({
         </Button>
       </div>
     </form>
+  );
+}
+
+/** Envuelve un campo con visibilidad condicional (`showWhen`). Sin condición = siempre visible. */
+function ConditionalFieldWrapper({
+  field,
+  control,
+}: {
+  field: FieldConfig;
+  control: Control<FormValues>;
+}) {
+  const watchedValues = useWatch({ control, disabled: !field.showWhen }) as FormValues;
+  const visible = field.showWhen ? field.showWhen(watchedValues ?? {}) : true;
+  if (!visible) return null;
+  return (
+    <div className={isFullWidth(field) ? "sm:col-span-2" : undefined}>
+      <FieldRow field={field} control={control} />
+    </div>
   );
 }
 
@@ -154,25 +200,30 @@ function InputFieldRow({
       rules={{ required: field.required ? "Campo obligatorio." : false }}
       render={({ field: f, fieldState }) => (
         <div className="grid gap-1.5">
-          <Label htmlFor={field.name}>
+          <Label htmlFor={`f-${field.name}`}>
             {field.label}
             {field.required ? " *" : ""}
           </Label>
           {field.type === "date" ? (
             <DatePicker
-              id={field.name}
+              id={`f-${field.name}`}
               value={(f.value as string | null) ?? ""}
               onChange={(iso) => f.onChange(iso)}
               ariaInvalid={!!fieldState.error}
             />
           ) : (
             <Input
-              id={field.name}
-              type={inputType}
-              // Permite decimales en campos numéricos (p. ej. nota 0–20, carga horaria).
-              step={inputType === "number" ? "any" : undefined}
+              id={`f-${field.name}`}
+              // `type="number"` activa heurísticas de pago en Chrome (muestra aviso en HTTP).
+              // Usar `type="text"` + `inputMode` evita la clasificación sin perder UX numérica.
+              // Prefijo «f-» en el id: rompe el match de id="numero_orden" con heurísticas de pago.
+              type={inputType === "number" ? "text" : inputType}
+              inputMode={inputType === "number" ? "decimal" : undefined}
               disabled={field.disabled}
-              autoComplete={field.type === "password" ? "new-password" : undefined}
+              autoComplete={field.type === "password" ? "new-password" : "off"}
+              // Excluye el campo del pipeline de detección de pago de Chrome/gestores de contraseñas.
+              data-form-type="other"
+              data-lpignore="true"
               value={(f.value as string | number | null) ?? ""}
               onChange={(e) =>
                 f.onChange(toUpper ? e.target.value.toUpperCase() : e.target.value)
@@ -243,9 +294,9 @@ function BooleanFieldRow({
       name={field.name}
       render={({ field: f }) => (
         <div className="flex items-center justify-between gap-2">
-          <Label htmlFor={field.name}>{field.label}</Label>
+          <Label htmlFor={`f-${field.name}`}>{field.label}</Label>
           <Switch
-            id={field.name}
+            id={`f-${field.name}`}
             checked={Boolean(f.value)}
             onCheckedChange={(checked) => f.onChange(checked)}
           />
@@ -262,6 +313,15 @@ function SelectFieldRow({
   field: FieldConfig;
   control: Control<FormValues>;
 }) {
+  // Valores en vivo del formulario, solo si el campo depende de otros (cascada). Sin
+  // `optionsParamsFrom`/`resetsOn` no se observa nada y el comportamiento es idéntico al previo.
+  const watchesValues = !!field.optionsParamsFrom;
+  const watchedValues = useWatch({ control, disabled: !watchesValues }) as FormValues;
+  // Params dinámicos: prioridad de `optionsParamsFrom` sobre `optionsParams` estático.
+  const dynamicParams = field.optionsParamsFrom
+    ? field.optionsParamsFrom(watchedValues ?? {})
+    : field.optionsParams;
+
   return (
     <Controller
       control={control}
@@ -278,6 +338,13 @@ function SelectFieldRow({
             {field.label}
             {field.required ? " *" : ""}
           </Label>
+          {field.resetsOn?.length ? (
+            <ResetOnParentChange
+              control={control}
+              parents={field.resetsOn}
+              onReset={() => f.onChange(null)}
+            />
+          ) : null}
           {field.choices ? (
             <Select
               items={field.choices.map((c) => ({ value: c.value, label: c.label }))}
@@ -298,7 +365,7 @@ function SelectFieldRow({
           ) : field.optionsValueKey ? (
             <CodeSelect
               endpoint={field.optionsEndpoint!}
-              params={field.optionsParams}
+              params={dynamicParams}
               valueKey={field.optionsValueKey}
               toLabel={field.optionsToLabel}
               value={(f.value as string | null) ?? null}
@@ -307,7 +374,7 @@ function SelectFieldRow({
           ) : (
             <EntityCombobox
               endpoint={field.optionsEndpoint!}
-              params={field.optionsParams}
+              params={dynamicParams}
               toLabel={field.optionsToLabel}
               value={f.value as number | null}
               onChange={(val) => f.onChange(val)}
@@ -320,6 +387,39 @@ function SelectFieldRow({
       )}
     />
   );
+}
+
+/**
+ * Resetea un campo dependiente cuando **cambia** (tras el montaje) alguno de sus campos padre.
+ * No dispara en el primer render, para no borrar un valor precargado en edición; solo reacciona a
+ * cambios reales del padre, evitando bucles.
+ */
+function ResetOnParentChange({
+  control,
+  parents,
+  onReset,
+}: {
+  control: Control<FormValues>;
+  parents: string[];
+  onReset: () => void;
+}) {
+  const parentValues = useWatch({ control, name: parents }) as unknown[];
+  const previous = useRef<unknown[] | null>(null);
+
+  useEffect(() => {
+    if (previous.current === null) {
+      // Primer render: fija la línea base sin resetear (respeta valores precargados en edición).
+      previous.current = parentValues;
+      return;
+    }
+    const changed = parentValues.some((v, i) => v !== previous.current![i]);
+    previous.current = parentValues;
+    if (changed) onReset();
+    // `onReset` es estable por render del Controller; se omite para evitar re-ejecuciones.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parentValues]);
+
+  return null;
 }
 
 /**

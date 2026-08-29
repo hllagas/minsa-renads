@@ -2,13 +2,34 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
-import { fetchMe, login, type LoginCredentials } from "@/lib/api/auth";
+import {
+  changePassword,
+  fetchMe,
+  login,
+  type ChangePasswordPayload,
+  type LoginCredentials,
+} from "@/lib/api/auth";
 import { useAuthStore } from "@/lib/auth/store";
 
 /** Query key del usuario actual. */
 export const meQueryKey = ["auth", "me"] as const;
+
+/**
+ * ¿Terminó `zustand/persist` de rehidratar la sesión desde `localStorage`?
+ * En SSR devuelve `false` (snapshot de servidor), evitando el mismatch de hidratación; en cliente
+ * refleja `persist.hasHydrated()` y se actualiza al terminar. Los guards deben esperar esto antes de
+ * redirigir por falta de token: en una recarga (F5) de una URL profunda el token llega de forma
+ * asíncrona, y sin esta espera el guard rebotaría a `/login` (y de ahí a `/inicio`).
+ */
+export function useAuthHydrated(): boolean {
+  return useSyncExternalStore(
+    (onChange) => useAuthStore.persist.onFinishHydration(onChange),
+    () => useAuthStore.persist.hasHydrated(),
+    () => false,
+  );
+}
 
 /**
  * Login: obtiene tokens, los guarda en el store y precarga `me`.
@@ -48,6 +69,23 @@ export function useMe() {
   }, [query.data, setUser]);
 
   return query;
+}
+
+/**
+ * Cambia la propia contraseña (RN-22). Al éxito hidrata `store.user` con el `me` devuelto
+ * (ya con `debe_cambiar_password=false`) e invalida la query de `me`.
+ */
+export function useChangePassword() {
+  const setUser = useAuthStore((s) => s.setUser);
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: ChangePasswordPayload) => changePassword(payload),
+    onSuccess: (user) => {
+      setUser(user);
+      queryClient.setQueryData(meQueryKey, user);
+    },
+  });
 }
 
 /** Logout: limpia sesión y cache, redirige a /login. */

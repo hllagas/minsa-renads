@@ -5,7 +5,8 @@ from django.db.models import Q, QuerySet
 
 from apps.common.selectors import entidades_del_usuario
 from apps.convenios.models import (
-    ClinicalField,
+    ClinicalFieldAllocation,
+    ClinicalFieldRegistration,
     Convention,
     ConventionParticipant,
     ConventionStatusHistory,
@@ -21,7 +22,7 @@ def convenios_visibles(usuario) -> QuerySet[Convention]:
     """
     qs = Convention.objects.select_related(
         "tipo_convenio", "estado_actual", "convenio_marco",
-        "organo_regional__tipo_organo_regional", "universidad__tipo_entidad",
+        "organo_directorio__tipo_organo", "universidad__tipo_entidad",
     )
     if usuario.is_superuser:
         return qs
@@ -51,9 +52,18 @@ def historial_convenio(convenio: Convention) -> QuerySet[ConventionStatusHistory
     )
 
 
-def campos_clinicos_de(convenio: Convention) -> QuerySet[ClinicalField]:
-    return convenio.campos_clinicos.select_related(
-        "ipress", "carrera_profesional", "especialidad", "ambito_geografico_sanitario"
+def registros_campo_clinico() -> QuerySet[ClinicalFieldRegistration]:
+    """Registros de campos clínicos por sede (a), con FKs precargadas."""
+    return ClinicalFieldRegistration.objects.select_related(
+        "convenio", "ipress", "carrera_profesional", "especialidad"
+    )
+
+
+def asignaciones_campo_clinico() -> QuerySet[ClinicalFieldAllocation]:
+    """Asignaciones de campos clínicos por universidad (b), con FKs precargadas."""
+    return ClinicalFieldAllocation.objects.select_related(
+        "campo_clinico_ipress", "convenio", "ipress", "carrera_profesional",
+        "especialidad", "universidad",
     )
 
 
@@ -66,4 +76,4 @@ def documentos_de(objeto) -> QuerySet[Document]:
     return Document.objects.filter(
         tipo_contenido=ContentType.objects.get_for_model(type(objeto)),
         id_objeto=objeto.pk,
-    ).select_related("tipo_documento")
+    ).select_related("documento_anexo")

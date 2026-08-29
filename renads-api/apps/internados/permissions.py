@@ -5,7 +5,7 @@ from rest_framework.permissions import SAFE_METHODS, BasePermission
 
 from apps.common.selectors import entidades_del_usuario
 from apps.convenios.models import Ipress, University
-from apps.internados.models import Internship
+from apps.internados.models import Internship, Student
 
 ROLES_ESCRITURA_PERSONAS = ("Universidad", "Administrador RENADS")
 
@@ -14,8 +14,8 @@ class IsUniversityOrReadOnly(BasePermission):
     """Lectura para autenticados; escritura solo `Universidad` o `Administrador RENADS`.
 
     Excepción (RN-22): el rol `Interno` puede usar las acciones de adjunto de sus
-    declaraciones juradas (`annex-upload`/`annex-checklist`) de su propio `Student`,
-    aunque no pueda editar datos personales (CRUD).
+    declaraciones juradas (`annex-upload`/`annex-checklist`) de su propio internado
+    (`Internship`), aunque no pueda editar datos (CRUD).
     """
 
     message = "La escritura requiere el rol Universidad o Administrador RENADS."
@@ -41,6 +41,9 @@ class InternshipScope(BasePermission):
     """Alcance a nivel de objeto: la universidad del estudiante debe estar en el ámbito del usuario.
 
     Aplica tanto a `Internship` como a `Rotation` (resuelve el internado). Superusuario pasa.
+
+    Excepción (RN-22): el rol `Interno` accede a su propio internado (perfil sobre
+    su `Student`) para adjuntar sus declaraciones juradas.
     """
 
     message = "El internado/rotación está fuera del ámbito institucional del usuario."
@@ -55,4 +58,9 @@ class InternshipScope(BasePermission):
             return False
         ct_uni = ContentType.objects.get_for_model(University).id
         ct_ip = ContentType.objects.get_for_model(Ipress).id
-        return (ct_uni, internado.estudiante.universidad_id) in refs or (ct_ip, internado.ipress_id) in refs
+        ct_student = ContentType.objects.get_for_model(Student).id
+        return (
+            (ct_uni, internado.estudiante.universidad_id) in refs
+            or (ct_ip, internado.ipress_id) in refs
+            or (ct_student, internado.estudiante_id) in refs
+        )

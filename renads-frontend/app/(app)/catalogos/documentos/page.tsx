@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
+import { Eye, Download, Trash2 } from "lucide-react";
 
 import {
   useDocumentsList,
@@ -44,6 +45,8 @@ export default function DocumentosPage() {
   const [page, setPage] = useState(1);
   const [filterValues, setFilterValues] = useState<FilterValues>({});
   const [deleting, setDeleting] = useState<Documento | null>(null);
+  // Documento en previsualización (URL firmada resuelta) para verlo dentro de la app.
+  const [viewing, setViewing] = useState<{ doc: Documento; url: string } | null>(null);
 
   const list = useDocumentsList({ page, filters: filterValues });
   const removeM = useRemoveDocument();
@@ -57,6 +60,14 @@ export default function DocumentosPage() {
   function onDownload(doc: Documento) {
     downloadM.mutate(doc.id, {
       onSuccess: ({ url }) => window.open(url, "_blank", "noopener,noreferrer"),
+      onError: (e) => toast.error(extractApiError(e)),
+    });
+  }
+
+  /** Resuelve la URL firmada y muestra el documento dentro de la app (previsualización). */
+  function onView(doc: Documento) {
+    downloadM.mutate(doc.id, {
+      onSuccess: ({ url }) => setViewing({ doc, url }),
       onError: (e) => toast.error(extractApiError(e)),
     });
   }
@@ -95,18 +106,32 @@ export default function DocumentosPage() {
           <div className="flex justify-end gap-2">
             <Button
               variant="outline"
-              size="sm"
+              size="icon-sm"
+              aria-label="Ver"
+              title="Ver"
+              onClick={() => onView(row.original)}
+              disabled={downloadM.isPending}
+            >
+              <Eye />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              aria-label="Descargar"
+              title="Descargar"
               onClick={() => onDownload(row.original)}
               disabled={downloadM.isPending}
             >
-              Descargar
+              <Download />
             </Button>
             <Button
               variant="destructive"
-              size="sm"
+              size="icon-sm"
+              aria-label="Eliminar"
+              title="Eliminar"
               onClick={() => setDeleting(row.original)}
             >
-              Eliminar
+              <Trash2 />
             </Button>
           </div>
         ),
@@ -162,6 +187,44 @@ export default function DocumentosPage() {
           />
         </>
       )}
+
+      <Dialog open={viewing !== null} onOpenChange={(open) => !open && setViewing(null)}>
+        <DialogContent className="flex h-[85vh] w-[95vw] max-w-5xl flex-col sm:max-w-5xl">
+          <DialogHeader>
+            <DialogTitle className="truncate pr-8">
+              {viewing?.doc.nombre_archivo ?? "Documento"}
+            </DialogTitle>
+            <DialogDescription>
+              {viewing
+                ? `${viewing.doc.tipo_documento_nombre || "Documento"} · versión ${viewing.doc.version}`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {viewing ? (
+            <iframe
+              key={viewing.url}
+              src={viewing.url}
+              title={viewing.doc.nombre_archivo}
+              className="min-h-0 w-full flex-1 rounded-md border bg-muted"
+            />
+          ) : null}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              render={
+                viewing ? (
+                  <a href={viewing.url} target="_blank" rel="noopener noreferrer">
+                    Abrir en pestaña nueva
+                  </a>
+                ) : undefined
+              }
+            />
+            <Button variant="outline" onClick={() => setViewing(null)}>
+              Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={deleting !== null} onOpenChange={(open) => !open && setDeleting(null)}>
         <DialogContent>

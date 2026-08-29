@@ -4,8 +4,9 @@ Contrato de los **CRUD de soporte transversales** del Módulo 1 del backend (`ap
 `apps/common`). Alimentan las rutas **`/catalogos`** (mantenimiento de tablas maestras) y, en parte,
 **`/usuarios`** (perfiles institucionales). El núcleo del convenio está en `docs/api-convenios.md`.
 
-> Fuente de verdad backend: `D:\dev\renads\renaes-api\docs\modulo_01_crud_transversales.md` y el
+> Fuente de verdad backend: `D:\dev\renads\renads-api\docs\modulo_01_crud_transversales.md` y el
 > código `apps/convenios/{urls,views,serializers}.py`. Base: `/api/v1/`. JWT en todos los endpoints.
+> Tipos generados del OpenAPI en `lib/api/schema.d.ts` (`npm run gen:api` contra el backend vivo).
 
 ## Mapa UI → recursos
 
@@ -21,17 +22,48 @@ Contrato de los **CRUD de soporte transversales** del Módulo 1 del backend (`ap
 CRUD de solo lectura (`list`/`retrieve`). Patrón común: filtro `activo`, search `codigo`/`nombre`,
 ordering `id`/`codigo`/`nombre` (default `id`). Se usan para poblar selects.
 
-`regions`, `health-geographic-scopes`, `convention-types`, `convention-statuses`, `document-types`,
-`university-management-types`, `university-entity-types`, `authorization-types`, `academic-levels`,
-`specialties`, `signing-authority-types`, `regional-organ-types`, `executing-unit-types`,
-`minsa-organ-types`, `executive-positions`, `observation-reasons`, `rejection-reasons`,
-`closure-reasons` (18 catálogos).
+`regions`, `convention-types`, `convention-statuses`,
+`university-management-types`, `specialties`, `signing-authority-types`, `executing-unit-types`,
+`executive-positions`, `observation-reasons`, `rejection-reasons`, `closure-reasons`
+(11 catálogos de solo lectura).
 
 `ubigeos` — catálogo INEI (solo lectura). Filtros: `departamento`, `provincia`, `distrito`, `activo`;
 search `codigo`/`distrito`/`provincia`/`departamento`.
 
-> Escritura de catálogos: **fuera de alcance** (ya validada/poblada en backend). En `/catalogos` se
-> listan/consultan; el alta/edición real aplica a las **entidades** de abajo.
+### 1.1. Catálogos maestros con CRUD (RNF-MAN-01/02/03)
+
+Seis catálogos dejan de ser de solo lectura y aceptan **CRUD completo** (`create`/`update`/
+`partial_update`/`destroy`) para mantenerlos sin cambios de código. Escritura solo
+**`Administrador RENADS`** (`IsAdminRoleOrReadOnly`) + auditoría. Campos del modelo base `Catalog`:
+`codigo` (único, obligatorio), `nombre` (obligatorio), `activo`.
+
+`document-types`, `university-entity-types`, `authorization-types`, `academic-levels`,
+`regional-organ-types`, `minsa-organ-types`, **`categories`**, **`classification-types`**,
+**`health-geographic-scopes`**.
+
+> `categories`, `classification-types` y `health-geographic-scopes` (modelo base `Catalog`:
+> `codigo`/`nombre`/`activo`) se añadieron como CRUD maestro con el mismo patrón (filtro `activo`,
+> search `codigo`/`nombre`). `health-geographic-scopes` es la cúspide de la jerarquía sanitaria
+> (ámbito → red → microrred, ver §1.2).
+
+> Front: configurados con `writableCatalog()` en `lib/catalogos/catalogs.ts` (los 12 restantes
+> siguen `readOnlyCatalog()`). Se editan desde `/catalogos/listas/<slug>`.
+
+### 1.2. Estructura sanitaria — redes y microrredes (CRUD)
+
+Jerarquía de red asistencial, CRUD (escritura solo **`Administrador RENADS`** + auditoría). Campos
+base `Catalog` (`codigo`/`nombre`/`activo`) más su FK de jerarquía:
+
+| Endpoint | Modelo | Filtros | Search |
+|----------|--------|---------|--------|
+| `networks` | `Red` | `ambito_geografico_sanitario`, `activo` | `codigo`, `nombre` |
+| `micro-networks` | `Microred` | `red`, `activo` | `codigo`, `nombre` |
+
+> `Red` cuelga de `health-geographic-scopes` (ámbito geográfico sanitario) y `Microred` de `Red`.
+> Front: `networks`/`micro-networks` ya tienen config de entidad en `lib/catalogos/entities.ts`
+> (`SANITARY_ENTITY_CONFIGS`), editables desde `/catalogos/entidades/<slug>`. En el alta de
+> microrred, un selector auxiliar de ámbito filtra el select de `red` (cascada). Los catálogos
+> simples `categories`/`classification-types` están en `lib/catalogos/catalogs.ts` (§1.1).
 
 ## 2. Entidades organizacionales / académicas (CRUD)
 

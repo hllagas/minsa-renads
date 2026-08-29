@@ -10,7 +10,7 @@ from django.db import models
 from apps.convenios.models import (
     Catalog,
     Convention,
-    ClinicalField,
+    ClinicalFieldAllocation,
     ConventionParticipant,
     HealthGeographicScope,
     Ipress,
@@ -78,18 +78,15 @@ class AnnexDocument(Catalog):
     resolución del cargo, documento de identidad) a adjuntar tras el registro."""
 
     tipo_actor = models.CharField(
-        "tipo de actor", max_length=30, choices=ANNEX_ACTOR, default="INTERNO",
-        help_text="Actor que debe presentar el documento",
-    )
-    descripcion = models.TextField(
-        "descripción", blank=True, help_text="Descripción del documento / declaración jurada",
+        "tipo de actor", max_length=30, choices=ANNEX_ACTOR, default="INTERNO", blank=True,
+        help_text="Actor que debe presentar el documento (vacío para tipos genéricos)",
     )
     obligatorio = models.BooleanField(
         "obligatorio", default=True, help_text="Indica si el documento es de presentación obligatoria",
     )
 
     class Meta:
-        db_table = "documentos_anexos"
+        db_table = "documento_anexo"
         verbose_name = "documento anexo"
 
 
@@ -136,20 +133,9 @@ class Student(models.Model):
         help_text="Especialidad (obligatoria para niveles distintos de Pregrado — RN-19)",
     )
     codigo_universitario = models.CharField("código universitario", max_length=50, blank=True, help_text="Código universitario / matrícula")
-    anio_academico = models.PositiveSmallIntegerField("año académico", null=True, blank=True, help_text="Año académico")
     nota_promedio_ponderado = models.DecimalField(
         "nota promedio ponderado", max_digits=4, decimal_places=2, null=True, blank=True,
         help_text="Nota promedio ponderado (escala 0–20)",
-    )
-    contacto_emergencia_nombre = models.CharField(
-        "contacto de emergencia - nombre", max_length=255, blank=True, help_text="Nombre del contacto de emergencia",
-    )
-    contacto_emergencia_telefono = models.CharField(
-        "contacto de emergencia - teléfono", max_length=30, blank=True, help_text="Teléfono del contacto de emergencia",
-    )
-    contacto_emergencia_parentesco = models.ForeignKey(
-        RelationshipType, on_delete=models.PROTECT, db_column="contacto_emergencia_parentesco_id",
-        null=True, blank=True, related_name="+", help_text="Parentesco del contacto de emergencia",
     )
     activo = models.BooleanField("activo", default=True)
     creado_por = models.ForeignKey(
@@ -191,6 +177,10 @@ class Tutor(models.Model):
         Ipress, on_delete=models.SET_NULL, db_column="ipress_id", null=True, blank=True,
         related_name="tutores", help_text="Establecimiento al que pertenece",
     )
+    universidades = models.ManyToManyField(
+        University, through="TutorUniversity", related_name="tutores",
+        help_text="Universidades a las que pertenece el tutor (de 1 a 2 — RN-24)",
+    )
     activo = models.BooleanField("activo", default=True)
 
     class Meta:
@@ -199,6 +189,24 @@ class Tutor(models.Model):
 
     def __str__(self):
         return f"{self.apellido_paterno} {self.nombres}"
+
+
+class TutorUniversity(models.Model):
+    """Vínculo tutor ↔ universidad (RN-24: un tutor pertenece de 1 a 2 universidades)."""
+
+    tutor = models.ForeignKey(
+        Tutor, on_delete=models.CASCADE, db_column="tutor_id", related_name="+", help_text="Tutor",
+    )
+    universidad = models.ForeignKey(
+        University, on_delete=models.PROTECT, db_column="universidad_id", related_name="+",
+        help_text="Universidad",
+    )
+
+    class Meta:
+        db_table = "tutor_universidad"
+        verbose_name = "universidad del tutor"
+        verbose_name_plural = "universidades del tutor"
+        unique_together = [("tutor", "universidad")]
 
 
 # ---------------------------------------------------------------------------
@@ -223,8 +231,8 @@ class Internship(models.Model):
         help_text="Convenio Específico vigente que lo respalda",
     )
     campo_clinico = models.ForeignKey(
-        ClinicalField, on_delete=models.PROTECT, db_column="campo_clinico_id", related_name="internos",
-        help_text="Campo clínico autorizado asignado",
+        ClinicalFieldAllocation, on_delete=models.PROTECT, db_column="campo_clinico_id", related_name="internos",
+        help_text="Asignación de campos clínicos por universidad",
     )
     ipress = models.ForeignKey(
         Ipress, on_delete=models.PROTECT, db_column="ipress_id", related_name="internos_principales",
@@ -243,6 +251,16 @@ class Internship(models.Model):
     estado_declaraciones = models.CharField(
         "estado de declaraciones juradas", max_length=20, choices=ANNEX_STATUS, default="PENDIENTE",
         help_text="Estado de las declaraciones juradas del interno (RN-23)",
+    )
+    contacto_emergencia_nombre = models.CharField(
+        "contacto de emergencia - nombre", max_length=255, blank=True, help_text="Nombre del contacto de emergencia",
+    )
+    contacto_emergencia_telefono = models.CharField(
+        "contacto de emergencia - teléfono", max_length=30, blank=True, help_text="Teléfono del contacto de emergencia",
+    )
+    contacto_emergencia_parentesco = models.ForeignKey(
+        RelationshipType, on_delete=models.PROTECT, db_column="contacto_emergencia_parentesco_id",
+        null=True, blank=True, related_name="+", help_text="Parentesco del contacto de emergencia",
     )
     fecha_inicio = models.DateField("fecha de inicio", help_text="Fecha de inicio")
     fecha_fin = models.DateField("fecha de fin", help_text="Fecha de fin (máx. 1 año)")

@@ -16,6 +16,24 @@ export const INTERNSHIP_ACTIONS: FlowAction[] = [
     ],
   },
   {
+    key: "revisar-declaraciones",
+    label: "Revisar declaraciones",
+    roles: ["Universidad", "Administrador RENADS"],
+    fields: [
+      {
+        name: "resultado",
+        label: "Resultado",
+        type: "select",
+        required: true,
+        choices: [
+          { value: "VALIDADAS", label: "Validadas" },
+          { value: "OBSERVADAS", label: "Observadas" },
+        ],
+      },
+      { name: "observacion", label: "Observación", type: "text" },
+    ],
+  },
+  {
     key: "cambiar-tutor",
     label: "Cambiar tutor",
     roles: ["Universidad"],

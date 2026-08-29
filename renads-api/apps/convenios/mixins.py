@@ -15,6 +15,8 @@ Ambos resuelven el backend de almacenamiento por settings (GCS o stub) vía
 Clases/acciones en inglés; docstrings/mensajes de error en español.
 """
 
+import logging
+
 from django.contrib.contenttypes.models import ContentType
 from drf_spectacular.utils import OpenApiResponse, extend_schema, inline_serializer
 from rest_framework import serializers as drf_serializers
@@ -31,19 +33,23 @@ from apps.convenios.serializers import (
     LogoUploadSerializer,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class LogoStorageMixin:
-    """Sube/consulta el logo de una entidad con columna `referencia_logo`.
+    """Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
 
-    La entidad destino es `self.get_object()` (debe exponer `referencia_logo`).
-    El logo se guarda como una única key en `referencia_logo`; al reemplazarlo se
-    borra la key anterior. No versiona ni usa `Document`.
+    La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
+    como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
+    (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
+    el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
+    anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
+
+    Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
+    `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
+    a través del backend de Django Storage. La `.url` del campo entrega un signed URL
+    V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
     """
-
-    @property
-    def storage(self):
-        """Backend de almacenamiento seleccionado por settings (GCS o stub)."""
-        return get_document_storage()
 
     @extend_schema(
         request=LogoUploadSerializer,
@@ -63,26 +69,39 @@ class LogoStorageMixin:
         parser_classes=[MultiPartParser, FormParser],
     )
     def upload_logo(self, request, pk=None):
-        """Sube (o reemplaza) el logo de la entidad y devuelve un signed URL.
+        """Sube (o reemplaza) el logo de la entidad y devuelve su URL.
 
-        Sube la nueva imagen primero; si la entidad ya tenía un logo, se borra la
-        key anterior **después** de subir la nueva (no dejar la entidad sin logo si
-        la subida falla). Persiste la nueva key en `referencia_logo` y registra
-        auditoría. Responde `{referencia_logo, url}` (signed URL efímero).
+        Asigna el archivo al `ImageField` y guarda; Django escribe el binario en
+        `STORAGES["default"]` usando el `upload_to` de la entidad. Si ya existía un
+        logo distinto, se borra el binario anterior **después** de guardar el nuevo
+        (no dejar la entidad sin logo si la subida falla). Persiste el path en
+        `referencia_logo` y registra auditoría. Responde `{referencia_logo, url}`
+        (`url` = signed URL efímero del campo).
         """
         entidad = self.get_object()
         ser = LogoUploadSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         archivo = ser.validated_data["archivo"]
 
-        logo_anterior = entidad.referencia_logo
-        nueva_key = self.storage.subir(archivo, ruta=archivo.name)
-        if logo_anterior:
-            # Tolerante a inexistencia (el backend hace no-op si el objeto ya no está).
-            self.storage.eliminar(logo_anterior)
+        logo_anterior = entidad.referencia_logo.name or None
 
-        entidad.referencia_logo = nueva_key
+        # Django persiste el binario en STORAGES["default"] al guardar el ImageField.
+        entidad.referencia_logo = archivo
         entidad.save(update_fields=["referencia_logo"])
+        nueva_key = entidad.referencia_logo.name
+
+        # El ImageField no borra el binario previo al reemplazarlo: lo hacemos aquí,
+        # después de guardar el nuevo y solo si difiere, tolerando inexistencia.
+        if logo_anterior and logo_anterior != nueva_key:
+            storage = entidad.__class__._meta.get_field("referencia_logo").storage
+            try:
+                storage.delete(logo_anterior)
+            except Exception:  # pragma: no cover - borrado best-effort
+                logger.warning(
+                    "No se pudo borrar el logo anterior '%s'; se continúa.",
+                    logo_anterior,
+                )
+
         registrar_auditoria(
             request.user,
             "ACTUALIZAR",
@@ -92,7 +111,7 @@ class LogoStorageMixin:
             valor_nuevo=nueva_key,
         )
         return Response(
-            {"referencia_logo": nueva_key, "url": self.storage.url_firmada(nueva_key)}
+            {"referencia_logo": nueva_key, "url": entidad.referencia_logo.url}
         )
 
     @extend_schema(
@@ -100,15 +119,15 @@ class LogoStorageMixin:
             name="LogoUrlResponse",
             fields={"url": drf_serializers.CharField()},
         ),
-        summary="Obtener el signed URL del logo de la entidad",
+        summary="Obtener la URL del logo de la entidad",
     )
     @action(detail=True, methods=["get"], url_path="logo-url")
     def logo_url(self, request, pk=None):
-        """Devuelve un signed URL efímero del logo, o 404 si no hay logo cargado."""
+        """Devuelve la URL (signed URL efímero) del logo, o 404 si no hay logo cargado."""
         entidad = self.get_object()
         if not entidad.referencia_logo:
             raise NotFound("La entidad no tiene un logo cargado.")
-        return Response({"url": self.storage.url_firmada(entidad.referencia_logo)})
+        return Response({"url": entidad.referencia_logo.url})
 
 
 class AnnexAttachmentMixin:
@@ -126,12 +145,6 @@ class AnnexAttachmentMixin:
     def storage(self):
         """Backend de almacenamiento seleccionado por settings (GCS o stub)."""
         return get_document_storage()
-
-    def _tipo_documento_anexo(self):
-        """Resuelve el `DocumentType` `ANEXO` por `codigo` (no por PK)."""
-        from apps.convenios.models import DocumentType
-
-        return DocumentType.objects.get(codigo="ANEXO")
 
     @extend_schema(
         request=AnnexUploadSerializer,
@@ -162,12 +175,11 @@ class AnnexAttachmentMixin:
                 {"documento_anexo": "El anexo seleccionado no corresponde a este tipo de actor."}
             )
 
-        nombre_archivo = ser.validated_data["nombre_archivo"]
-        referencia = self.storage.subir(ser.validated_data["archivo"], ruta=nombre_archivo)
+        archivo = ser.validated_data["archivo"]
+        # La ruta de storage se deriva del archivo subido (no se persiste en Document).
+        referencia = self.storage.subir(archivo, ruta=archivo.name)
         documento = adjuntar_documento(
             entidad,
-            tipo_documento=self._tipo_documento_anexo(),
-            nombre_archivo=nombre_archivo,
             referencia_externa=referencia,
             usuario=request.user,
             documento_anexo=anexo,

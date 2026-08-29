@@ -199,6 +199,12 @@
       "skillPath": "skills/upgrade-python-deps/SKILL.md",
       "computedHash": "2bc2f952057e4035083dcb9661a82e84fde6f08d968b317ecec1568cc138a137"
     },
+    "using-superpowers": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "skillPath": "skills/using-superpowers/SKILL.md",
+      "computedHash": "a77a803b7fc1a19c87605cf7a5ef318c5adc233de10b9ebeecb2ee2609f5454e"
+    },
     "vercel-react-best-practices": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",

@@ -1,142 +1,67 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import Link from "next/link";
-import type { ColumnDef } from "@tanstack/react-table";
+import { GraduationCap, Users, ClipboardList } from "lucide-react";
 
-import { internshipHooks, type InternshipRead } from "@/lib/internados/hooks";
-import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import { PageHeader } from "@/components/data/page-header";
-import { DataTable } from "@/components/ui/data-table";
-import { DataTablePagination } from "@/components/data/data-table-pagination";
-import { EntityCombobox } from "@/components/form/entity-combobox";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
-export default function InternadosPage() {
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-  const [convenio, setConvenio] = useState<number | null>(null);
-  const [estado, setEstado] = useState<number | null>(null);
+interface SectionCard {
+  href: string;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+}
 
-  const debouncedSearch = useDebouncedValue(search, 300);
+/** Índice del módulo Internados: tarjetas de Estudiantes, Tutores e Internos. */
+const CARDS: SectionCard[] = [
+  {
+    href: "/internados/personas/students",
+    title: "Estudiantes",
+    description: "Estudiantes en proceso de internado.",
+    icon: <GraduationCap className="size-6 text-primary" />,
+  },
+  {
+    href: "/internados/personas/tutors",
+    title: "Tutores",
+    description: "Docentes/tutores responsables.",
+    icon: <Users className="size-6 text-primary" />,
+  },
+  {
+    href: "/internados/internos",
+    title: "Internos",
+    description: "Internados, rotaciones y autorizaciones.",
+    icon: <ClipboardList className="size-6 text-primary" />,
+  },
+];
 
-  const list = internshipHooks.useList({
-    page,
-    search: debouncedSearch,
-    ordering: "-id",
-    filters: { convenio, estado_actual: estado },
-  });
-
-  const columns = useMemo<ColumnDef<InternshipRead>[]>(
-    () => [
-      { accessorKey: "estudiante", header: "Estudiante" },
-      { accessorKey: "convenio", header: "Convenio" },
-      { accessorKey: "ipress", header: "Sede" },
-      { accessorKey: "tutor", header: "Tutor" },
-      { accessorKey: "estado_actual", header: "Estado" },
-      {
-        accessorKey: "fecha_inicio",
-        header: "Inicio",
-        cell: ({ row }) => row.original.fecha_inicio || "—",
-      },
-      {
-        id: "acciones",
-        header: "",
-        cell: ({ row }) => (
-          <div className="flex justify-end">
-            <Button
-              variant="outline"
-              size="sm"
-              render={<Link href={`/internados/${row.original.id}`}>Ver</Link>}
-            />
-          </div>
-        ),
-      },
-    ],
-    [],
-  );
-
+export default function InternadosIndexPage() {
   return (
-    <div>
+    <div className="grid gap-6">
       <PageHeader
         title="Internados"
-        description="Internados, rotaciones y autorizaciones."
-        actions={
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              render={<Link href="/internados/personas">Personas</Link>}
-            />
-            <Button render={<Link href="/internados/nuevo">Nuevo internado</Link>} />
-          </div>
-        }
+        description="Gestión de estudiantes, tutores e internos."
       />
-
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <Input
-          placeholder="Buscar por estudiante…"
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
-          className="w-full sm:max-w-xs"
-        />
-        <div className="w-full sm:w-56">
-          <EntityCombobox
-            endpoint="conventions"
-            toLabel={(r) => String(r.titulo ?? r.codigo ?? r.id)}
-            value={convenio}
-            onChange={(v) => {
-              setPage(1);
-              setConvenio(v);
-            }}
-            placeholder="Todos los convenios"
-          />
-        </div>
-        <div className="w-full sm:w-56">
-          <EntityCombobox
-            endpoint="internship-statuses"
-            value={estado}
-            onChange={(v) => {
-              setPage(1);
-              setEstado(v);
-            }}
-            placeholder="Todos los estados"
-          />
-        </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {CARDS.map((c) => (
+          <Link key={c.href} href={c.href}>
+            <Card className="h-full transition-colors hover:bg-muted/50">
+              <CardHeader>
+                <div className="mb-2 flex size-11 items-center justify-center rounded-lg bg-primary/10">
+                  {c.icon}
+                </div>
+                <CardTitle>{c.title}</CardTitle>
+                <CardDescription>{c.description}</CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
+        ))}
       </div>
-
-      {list.isError ? (
-        <div className="flex flex-col items-start gap-3 rounded-md border border-destructive/30 p-4">
-          <p className="text-sm text-destructive">
-            No se pudo cargar el listado.
-          </p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => list.refetch()}
-            disabled={list.isFetching}
-          >
-            {list.isFetching ? "Reintentando…" : "Reintentar"}
-          </Button>
-        </div>
-      ) : (
-        <>
-          <DataTable
-            columns={columns as ColumnDef<InternshipRead, unknown>[]}
-            data={list.data?.results ?? []}
-            isLoading={list.isLoading}
-          />
-          <DataTablePagination
-            page={page}
-            count={list.data?.count ?? 0}
-            onPageChange={setPage}
-            isFetching={list.isFetching}
-          />
-        </>
-      )}
     </div>
   );
 }

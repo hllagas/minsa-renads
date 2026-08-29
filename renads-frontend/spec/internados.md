@@ -298,3 +298,47 @@ Segundo delta del backend (commit `fdd5770`). Fuentes de verdad: `docs/api-inter
 
 > **Aprobación humana requerida:** esta lista de tareas delta (U1–U8, con decisión sobre U2) debe
 > ser aprobada antes de pasar al agente Implement.
+
+---
+
+## Actualización de contrato 3 (2026-07-21)
+
+Tercer delta del backend. Fuentes de verdad: `docs/api-internados.md` (**ya sincronizado**) y
+`lib/api/schema.d.ts` (**ya regenerado** del servidor vivo). Dos cambios revierten/mueven contrato
+previo:
+
+1. **Contacto de emergencia movido `Student` → `Internship`** (migración
+   `0015_move_emergency_contact_to_internship`). Los 3 campos (`contacto_emergencia_nombre`,
+   `contacto_emergencia_telefono`, `contacto_emergencia_parentesco`) ahora están en
+   `InternshipWrite`/`InternshipUpdate` (todos opcionales) y ya **no** en `Student`. Esto revierte
+   D6 (contacto) y la parte de contacto de la lectura de estudiante.
+2. **`Student` recupera `especialidad` y expone `periodo_academico`** (RN-19: validados por nivel
+   académico de la carrera). Esto **revierte U1** — el form de estudiante vuelve a incluir
+   `especialidad` (FK `specialties`, opcional) y añade `periodo_academico` (FK `academic-periods`,
+   opcional). Filtros de `students` sin cambios (`universidad`, `carrera_profesional`, `activo`).
+
+### A. Contacto de emergencia → internado
+
+- [x] **V1** `lib/internados/persons.ts`: eliminar del form de `students` los 3 campos
+  `contacto_emergencia_*` (revierte D6). Dejar nota apuntando a `INTERNSHIP_FIELDS`.
+  - **Criterio:** el alta/edición de estudiante ya no envía `contacto_emergencia_*`.
+- [x] **V2** `lib/internados/internship-fields.ts`: añadir los 3 `contacto_emergencia_*` (opcionales)
+  tanto a `INTERNSHIP_FIELDS` (Write) como a `INTERNSHIP_EDIT_FIELDS` (Update). `parentesco` es
+  select con `optionsEndpoint: "relationship-types"`. Factorizados en `EMERGENCY_CONTACT_FIELDS`.
+  - **Criterio:** el alta y la edición del internado persisten los 3 campos contra `/interns/`.
+
+### B. Student recupera `especialidad` + `periodo_academico`
+
+- [x] **V3** `lib/internados/persons.ts`: el form de `students` incluye `especialidad` (FK
+  `specialties`, opcional) y `periodo_academico` (FK `academic-periods`, opcional). *(Ya presente en
+  la config vigente — verificado contra el modelo `Student` y `StudentSerializer` `__all__`.)*
+  - **Criterio:** alta/edición de estudiante persiste ambos campos; el backend valida RN-19.
+
+### C. Verificación
+
+- [x] **V4** `npx tsc --noEmit` y `npm run lint` limpios. Smoke: alta de internado con contacto de
+  emergencia; edición del internado modifica el contacto; alta de estudiante sin campos de contacto.
+  - **Criterio:** cero errores TS/ESLint; los flujos responden 2xx (o error legible del backend).
+
+> **Aprobación humana requerida:** delta V1–V4 debe aprobarse antes de Implement. *(Implementado en
+> el mismo ciclo por ser sincronización directa de contrato ya mergeado en el backend.)*

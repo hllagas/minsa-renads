@@ -7,7 +7,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.common.permissions import IsInstitutionalMember
+from apps.common.permissions import IsInstitutionalMember, IsModuleEnabled
 from apps.common.selectors import usuario_pertenece_a_entidad
 from apps.convenios.models import Ipress, University
 from apps.convenios.permissions import exigir_roles
@@ -30,7 +30,8 @@ from apps.actividades.serializers import (
 class TeachingActivityViewSet(viewsets.ModelViewSet):
     """CRUD de actividades docente-asistenciales y acciones de validación."""
 
-    permission_classes = [IsAuthenticated, IsInstitutionalMember, ActivityScope]
+    permission_classes = [IsAuthenticated, IsInstitutionalMember, ActivityScope, IsModuleEnabled]
+    module_content_type = ("actividades", "teachingactivity")
     filterset_class = TeachingActivityFilter
     search_fields = ["descripcion"]
     ordering_fields = ["fecha_actividad", "id"]

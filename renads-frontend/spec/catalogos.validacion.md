@@ -93,3 +93,47 @@ Sanidad del cambio compartido (`resource-crud.tsx`): la columna de acciones apar
 (`writeRoles` default `Administrador RENADS`), por lo que Editar/Eliminar no se muestran y solo aparece
 la acción «Sede docente» — comportamiento deseado. Sin regresión en el resto de entidades (sin
 `rowActions` la columna solo aparece bajo `canWrite`, como antes).
+
+---
+
+## Validación — Delta Categorías / Clasificaciones / Redes / Microrredes (2026-08-13)
+
+Delta APROBADO (humano) en `spec/catalogos.md` §«Actualización de contrato … (2026-08-13)», tareas
+N1–N11. Verificado contra `docs/api-catalogos.md` §1.1/§1.2 y `lib/api/schema.d.ts`
+(`RedAuto{codigo,nombre,activo?,ambito_geografico_sanitario}`,
+`MicroredAuto{codigo,nombre,activo?,red}`; filtros `networks`=`ambito_geografico_sanitario`/`activo`,
+`micro-networks`=`red`/`activo`). Claves del API sin traducir. **Resultado: APROBADO — sin hallazgos
+altos/medios. N1–N11 marcadas.**
+
+| Tarea | Estado | Evidencia |
+|-------|--------|-----------|
+| N1 `categories` catálogo CRUD | OK | `lib/catalogos/catalogs.ts:173` `writableCatalog("categories","Categorías","categoría")`; `writableCatalog` (l.40–60) genera columnas `codigo`/`nombre`/`activo(siNo)`, filtro `activo`, search, `activo` boolean `defaultValue:true`. Aparece en `CATALOG_MENU` (derivado, l.183–185). |
+| N2 `classification-types` catálogo CRUD | OK | `lib/catalogos/catalogs.ts:174-178` `writableCatalog("classification-types","Tipos de clasificación","tipo de clasificación")`. Mismo patrón que N1. |
+| N3 `networks` CRUD con FK ámbito | OK | `lib/catalogos/entities.ts:176-208`: endpoint/title/singular/searchPlaceholder correctos; columns `codigo`/`nombre`/`activo(siNo)`; filters `ambito_geografico_sanitario`(select→`health-geographic-scopes`)+`activoFilter`; fields orden `codigo`,`nombre`,`ambito_geografico_sanitario`(select req),`activo`(boolean `defaultValue:true`). Sin `writeRoles` (default Admin). |
+| N4 `micro-networks` CRUD + cascada | OK | `lib/catalogos/entities.ts:210-249`: filtro lista plano `red`+`activoFilter` (l.222-225); field virtual `_ambito` (`virtual:true`, l.229-234); `red` (req) con `optionsParamsFrom` que emite `{ambito_geografico_sanitario:String(v._ambito)}` solo si hay `_ambito` (l.241-242) y `resetsOn:["_ambito"]` (l.243); orden `_ambito`,`red`,`codigo`,`nombre`,`activo`. `buildPayload` excluye `_ambito` → POST body `{codigo,nombre,red,activo}`. |
+| N5 Menú entidades | OK | `lib/catalogos/entities.ts:274-275`: `{slug:"networks",title:"Redes"}` y `{slug:"micro-networks",title:"Microrredes"}` tras `minsa-organs` (bloque sanitario), antes de CONAPRES. `categories`/`classification-types` NO se añaden aquí (van por `CATALOG_MENU`). |
+| N6 Resolución de slug | OK | `catalogos/entidades/[entidad]/page.tsx:21` resuelve contra `CATALOGO_ENTITY_CONFIGS` (incluye `...SANITARY_ENTITY_CONFIGS`, entities.ts:259); `catalogos/listas/[catalogo]/page.tsx:13` contra `CATALOG_CONFIGS`. Sin ramas especiales; los 4 slugs montan config. Ninguno de los 4 dispara `rowActions` (no logo/anexos/CONAPRES). |
+| N7 Docs | OK | `docs/api-catalogos.md:60-63`: nota de §1.2 indica que `networks`/`micro-networks` ya tienen config en `lib/catalogos/entities.ts` y `categories`/`classification-types` en `lib/catalogos/catalogs.ts` (§1.1). Sin contradicción con el front. |
+| N9 Extender `FieldConfig` | OK | `lib/crud/types.ts:34` `optionsParamsFrom?`; l.39 `resetsOn?:string[]`; l.44 `virtual?:boolean`. Todos opcionales/retrocompatibles. Compila (tsc limpio). |
+| N10 Consumir params + reset | OK | `components/crud/resource-form.tsx:298-303`: `watchesValues=!!field.optionsParamsFrom`; `useWatch({control, disabled:!watchesValues})`; `dynamicParams` prioriza `optionsParamsFrom` sobre `optionsParams`. Reset vía `ResetOnParentChange` (l.321-327, l.377-403): baseline en primer render (no borra precargados en edición), resetea solo ante cambio real del padre, sin bucles. `EntityCombobox` incluye `params` en su `queryKey` (entity-combobox.tsx:50) → refresca opciones al cambiar el padre. |
+| N11 Excluir `virtual` del payload | OK | `components/crud/resource-form.tsx:78-79` `buildPayload`: `if (f.virtual) continue;`. `buildPayload` se usa en el único `onSubmit` (l.139), común a create y update → `_ambito` excluido en POST y PATCH. |
+| N8 Verificación final | OK | `npx tsc --noEmit` limpio (exit 0). `npm run lint`: 0 errores, 1 warning preexistente ajeno al módulo (`components/ui/data-table.tsx:43`, TanStack Table). |
+
+### Auditoría de puntos críticos
+
+- **N4 cascada:** confirmado que `optionsParamsFrom` filtra `red` por `?ambito_geografico_sanitario=<id>`
+  solo cuando `_ambito` tiene valor (si no, `{}` → todas las redes); `resetsOn:["_ambito"]` limpia `red`
+  al cambiar el ámbito; el POST NO incluye `_ambito` (`buildPayload` salta `virtual`). Payload =
+  `{codigo,nombre,red,activo}`. Coincide con `MicroredAuto` del schema.
+- **N9–N11 retrocompatibilidad:** formularios sin `optionsParamsFrom` → `useWatch` deshabilitado
+  (`disabled:!watchesValues`), params idénticos (`field.optionsParams`), sin observación del form. Sin
+  `resetsOn` → `ResetOnParentChange` no se monta (condicional l.321), no hay reset ni useWatch de padres.
+  Sin `virtual` → payload idéntico. No se detectan bucles de reset ni borrado de valores precargados: el
+  `useRef` de baseline (l.387-393) evita reset en el primer render de edición.
+- **N11 create Y update:** `buildPayload` es el único constructor de body y se invoca en el `onSubmit`
+  compartido, por lo que `virtual` se excluye tanto en alta como en edición.
+
+### Veredicto
+
+**APROBADO.** Las 11 tareas cumplen su criterio de aceptación. No se requieren correcciones. Módulo
+delta cerrado.

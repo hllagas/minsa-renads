@@ -8,11 +8,13 @@ import type { User } from "@/lib/usuarios/types";
 import { ResourceCrud } from "@/components/crud/resource-crud";
 import { UsuariosAccessGuard } from "@/components/usuarios/access-guard";
 import { SetPasswordDialog } from "@/components/usuarios/set-password-dialog";
+import { AssignProfilesDialog } from "@/components/usuarios/assign-profiles-dialog";
 
-/** Cuentas de usuario — CRUD + acción de contraseña. Solo superusuario. */
+/** Cuentas de usuario — CRUD + contraseña + asignación de alcance. Solo superusuario. */
 export default function CuentasPage() {
-  // La página posee el diálogo de contraseña (estado del usuario objetivo).
-  const [target, setTarget] = useState<User | null>(null);
+  // La página posee los diálogos (estado del usuario objetivo de cada uno).
+  const [passwordTarget, setPasswordTarget] = useState<User | null>(null);
+  const [profilesTarget, setProfilesTarget] = useState<User | null>(null);
 
   return (
     <div>
@@ -29,13 +31,25 @@ export default function CuentasPage() {
           config={usersConfig}
           rowActions={[
             {
+              key: "assign-profiles",
+              label: "Entidades",
+              onClick: (row) => setProfilesTarget(row),
+            },
+            {
               key: "set-password",
               label: "Contraseña",
-              onClick: (row) => setTarget(row),
+              onClick: (row) => setPasswordTarget(row),
             },
           ]}
         />
-        <SetPasswordDialog user={target} onClose={() => setTarget(null)} />
+        <SetPasswordDialog
+          user={passwordTarget}
+          onClose={() => setPasswordTarget(null)}
+        />
+        <AssignProfilesDialog
+          user={profilesTarget}
+          onClose={() => setProfilesTarget(null)}
+        />
       </UsuariosAccessGuard>
     </div>
   );

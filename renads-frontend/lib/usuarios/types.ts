@@ -91,3 +91,35 @@ export interface UserEntityProfile extends WithId {
   grupo: number;
   activo: boolean;
 }
+
+/**
+ * Perfil (alcance por objeto) — lectura del sub-recurso `users/{id}/profiles/` (backend T10).
+ * A diferencia de `UserEntityProfile`, expone etiquetas legibles (`tipo_entidad`, `entidad`, `rol`)
+ * además del `id_objeto` crudo. Mismo vocabulario que `GET /auth/me/` (`docs/api_accesos_frontend.md`).
+ */
+export interface UserProfileRead {
+  id: number;
+  tipo_entidad: string;
+  id_objeto: number;
+  entidad: string;
+  rol: string;
+  activo: boolean;
+}
+
+/**
+ * Tipo de entidad asignable a un perfil (`GET /profile-entity-types/`, backend T11).
+ * `tipo_entidad` es el `model` de Django en minúscula (el string que consume el POST de perfiles).
+ */
+export interface AssignableEntityType {
+  id: number;
+  tipo_entidad: string;
+  label: string;
+  app_label: string;
+}
+
+/** Payload de asignación (`POST /users/{id}/profiles/`): rol + tipo + ids de las entidades. */
+export interface AssignProfilesPayload {
+  rol: number;
+  tipo_entidad: string;
+  ids: number[];
+}

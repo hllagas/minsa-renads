@@ -46,10 +46,10 @@ export default function InternadoDetallePage() {
     <div>
       <div className="mb-4">
         <Link
-          href="/internados"
+          href="/internados/internos"
           className="text-sm text-muted-foreground hover:text-foreground"
         >
-          ← Internados
+          ← Internos
         </Link>
       </div>
       <PageHeader
@@ -98,6 +98,26 @@ export default function InternadoDetallePage() {
                 <Dato label="Sede (IPRESS)" value={it.ipress} />
                 <Dato label="Tutor" value={it.tutor} />
                 <Dato label="Estado" value={`${it.estado_actual} (${it.estado_codigo})`} />
+                <Dato
+                  label="Declaraciones juradas"
+                  value={
+                    it.estado_declaraciones ? (
+                      <Badge
+                        variant={
+                          it.estado_declaraciones === "VALIDADAS"
+                            ? "default"
+                            : it.estado_declaraciones === "OBSERVADAS"
+                              ? "destructive"
+                              : "secondary"
+                        }
+                      >
+                        {it.estado_declaraciones}
+                      </Badge>
+                    ) : (
+                      "—"
+                    )
+                  }
+                />
                 <Dato label="Inicio" value={it.fecha_inicio} />
                 <Dato label="Fin" value={it.fecha_fin} />
                 <Dato label="Observaciones" value={it.observaciones} />

@@ -35,7 +35,7 @@ export default function EditarConvenioPage() {
     convenio_marco: c.convenio_marco ?? null,
     solicitante_tipo_contenido: c.solicitante_tipo_contenido,
     solicitante_id_objeto: c.solicitante_id_objeto,
-    organo_regional: c.organo_regional,
+    organo_directorio: c.organo_directorio,
     universidad: c.universidad,
     fecha_solicitud: c.fecha_solicitud,
     fecha_inicio: c.fecha_inicio ?? "",

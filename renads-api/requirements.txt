@@ -18,6 +18,15 @@ openpyxl==3.1.5
 # Almacenamiento documental en Google Cloud Storage (auth keyless: ADC + impersonación de SA)
 google-cloud-storage==3.13.0
 
+# Backend Django Storage para GCS: ImageField de logos (django-storages[google])
+django-storages==1.14.6
+
+# Procesamiento de imágenes: requerido por ImageField (validación de imagen)
+Pillow==11.3.0
+
+# Extracción de texto de PDFs con Document AI (OCR genérico), misma auth keyless
+google-cloud-documentai==3.6.0
+
 # Base de datos / despliegue (Railway)
 psycopg2-binary==2.9.12
 dj-database-url==3.1.2

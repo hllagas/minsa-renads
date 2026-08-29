@@ -1,0 +1,153 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import type { ColumnDef } from "@tanstack/react-table";
+
+import { internshipHooks, type InternshipRead } from "@/lib/internados/hooks";
+import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
+import { useAuthStore, userHasRole } from "@/lib/auth/store";
+import { PageHeader } from "@/components/data/page-header";
+import { DataTable } from "@/components/ui/data-table";
+import { DataTablePagination } from "@/components/data/data-table-pagination";
+import { EntityCombobox } from "@/components/form/entity-combobox";
+import { AnnexChecklistAction } from "@/components/almacenamiento/annex-checklist-dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+
+/** Listado de internos (internados): búsqueda, filtros y acceso al detalle. */
+export default function InternosPage() {
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [convenio, setConvenio] = useState<number | null>(null);
+  const [estado, setEstado] = useState<number | null>(null);
+  const user = useAuthStore((s) => s.user);
+  // Anexos (declaraciones juradas del interno): gestión por Universidad/Administrador RENADS.
+  const canManageAnnexes = userHasRole(user, "Universidad", "Administrador RENADS", "Interno");
+
+  const debouncedSearch = useDebouncedValue(search, 300);
+
+  const list = internshipHooks.useList({
+    page,
+    search: debouncedSearch,
+    ordering: "-id",
+    filters: { convenio, estado_actual: estado },
+  });
+
+  const columns = useMemo<ColumnDef<InternshipRead>[]>(
+    () => [
+      { accessorKey: "estudiante", header: "Estudiante" },
+      { accessorKey: "convenio", header: "Convenio" },
+      { accessorKey: "ipress", header: "Sede" },
+      { accessorKey: "tutor", header: "Tutor" },
+      { accessorKey: "estado_actual", header: "Estado" },
+      {
+        accessorKey: "fecha_inicio",
+        header: "Inicio",
+        cell: ({ row }) => row.original.fecha_inicio || "—",
+      },
+      {
+        id: "acciones",
+        header: "",
+        cell: ({ row }) => (
+          <div className="flex justify-end gap-2">
+            {canManageAnnexes ? (
+              <AnnexChecklistAction entidad="interns" row={row.original} />
+            ) : null}
+            <Button
+              variant="outline"
+              size="sm"
+              render={<Link href={`/internados/${row.original.id}`}>Ver</Link>}
+            />
+          </div>
+        ),
+      },
+    ],
+    [canManageAnnexes],
+  );
+
+  return (
+    <div>
+      <div className="mb-4">
+        <Link
+          href="/internados"
+          className="text-sm text-muted-foreground hover:text-foreground"
+        >
+          ← Internados
+        </Link>
+      </div>
+      <PageHeader
+        title="Internos"
+        description="Internados, rotaciones y autorizaciones."
+        actions={
+          <Button render={<Link href="/internados/nuevo">Nuevo interno</Link>} />
+        }
+      />
+
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <Input
+          placeholder="Buscar por estudiante…"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+          className="w-full sm:max-w-xs"
+        />
+        <div className="w-full sm:w-56">
+          <EntityCombobox
+            endpoint="conventions"
+            toLabel={(r) => String(r.titulo ?? r.codigo ?? r.id)}
+            value={convenio}
+            onChange={(v) => {
+              setPage(1);
+              setConvenio(v);
+            }}
+            placeholder="Todos los convenios"
+          />
+        </div>
+        <div className="w-full sm:w-56">
+          <EntityCombobox
+            endpoint="internship-statuses"
+            value={estado}
+            onChange={(v) => {
+              setPage(1);
+              setEstado(v);
+            }}
+            placeholder="Todos los estados"
+          />
+        </div>
+      </div>
+
+      {list.isError ? (
+        <div className="flex flex-col items-start gap-3 rounded-md border border-destructive/30 p-4">
+          <p className="text-sm text-destructive">
+            No se pudo cargar el listado.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => list.refetch()}
+            disabled={list.isFetching}
+          >
+            {list.isFetching ? "Reintentando…" : "Reintentar"}
+          </Button>
+        </div>
+      ) : (
+        <>
+          <DataTable
+            columns={columns as ColumnDef<InternshipRead, unknown>[]}
+            data={list.data?.results ?? []}
+            isLoading={list.isLoading}
+          />
+          <DataTablePagination
+            page={page}
+            count={list.data?.count ?? 0}
+            onPageChange={setPage}
+            isFetching={list.isFetching}
+          />
+        </>
+      )}
+    </div>
+  );
+}

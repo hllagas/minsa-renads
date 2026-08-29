@@ -16,6 +16,7 @@ Esta carpeta contiene el contexto necesario para construir la app sin tener que 
 | [api-convenios.md](api-convenios.md) | Módulo 1 — Gestionar Convenios: recursos, flujo, campos |
 | [api-internados.md](api-internados.md) | Módulo 2 — Registrar Internados: internos, tutores, rotaciones |
 | [api-actividades.md](api-actividades.md) | Módulo 3 — Registrar Actividades docente-asistenciales |
+| [api-almacenamiento.md](api-almacenamiento.md) | Adjuntos reales (transversal) — logos de entidades y PDFs de anexos por actor (GCS + signed URLs) |
 | [frontend-conventions.md](frontend-conventions.md) | Reglas de idioma/código, metodología SDD, estructura propuesta del front |
 
 ## Fuentes de verdad

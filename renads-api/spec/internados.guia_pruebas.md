@@ -338,9 +338,9 @@ Confirmar que `GET /api/v1/annex-documents/` documenta el parámetro de query `t
 
 ## Flujo F2 — Adjunto real de declaraciones juradas del interno
 
-5. Checklist del interno:
+5. Checklist del interno (`{id}` = id del **internado**, no del estudiante):
    ```
-   GET /api/v1/students/{id}/annex-checklist/
+   GET /api/v1/interns/{id}/annex-checklist/
    ```
    Esperado: `200` con los anexos `INTERNO` activos; inicialmente todos `adjuntado=false`.
    Rol: cualquier autenticado con alcance (Universidad/Administrador o el propio Interno).
@@ -348,7 +348,7 @@ Confirmar que `GET /api/v1/annex-documents/` documenta el parámetro de query `t
 6. Adjuntar cada DJ obligatoria (multipart). Rol `Universidad`/`Administrador` o el
    propio `Interno`:
    ```
-   POST /api/v1/students/{id}/annex-upload/
+   POST /api/v1/interns/{id}/annex-upload/
    documento_anexo=<id de un anexo INTERNO>
    archivo=@declaracion.pdf
    ```
@@ -411,12 +411,339 @@ Confirmar que `GET /api/v1/annex-documents/` documenta el parámetro de query `t
     - `GET /api/v1/students/{su_id}/` → `200` (solo lectura de sus datos).
     - `GET /api/v1/students/{otro_id}/` → `404` (fuera de su alcance).
     - `PATCH /api/v1/students/{su_id}/` → `403` (no puede editar datos personales).
-    - `POST /api/v1/students/{su_id}/annex-upload/` y `GET .../annex-checklist/` → permitidos.
+    - `GET/POST /api/v1/interns/{su_internado_id}/annex-checklist/` y `.../annex-upload/` → permitidos (adjunto de sus DJ sobre su propio internado).
 
 ## Roles por endpoint (resumen)
 - `POST /interns/` (registro): `Universidad` + alcance por universidad del estudiante.
 - `POST /interns/{id}/revisar-declaraciones/`: `Universidad` o `Administrador RENADS`.
 - `POST /interns/{id}/cambiar-estado/`: `Administrador RENADS` (gate RN-23 aplica).
-- `POST /students/{id}/annex-upload/`, `GET .../annex-checklist/`: `Universidad`/
+- `POST /interns/{id}/annex-upload/`, `GET /interns/{id}/annex-checklist/`: `Universidad`/
   `Administrador RENADS` (con alcance) o el propio `Interno`.
 - `POST /auth/me/cambiar-password/`: cualquier usuario autenticado (sobre sí mismo).
+
+---
+
+# Feature F4 — Universidades del tutor (RN-24)
+
+Sección añadida tras validar la Feature F4. El recurso `tutors` incorpora la relación M2M
+`universidades` (de **1 a 2** universidades por tutor — RN-24), escribible y filtrable.
+Prerrequisitos, URL base y token JWT igual que en las secciones anteriores
+(`POST /api/v1/auth/token/` → `Authorization: Bearer <access>`).
+
+## Datos previos (F4)
+
+- Deben existir al menos **3 universidades** para poder probar el tope. Listarlas:
+  ```
+  GET /api/v1/universities/                 → 200 (anota 3 ids, p. ej. 1, 2, 3)
+  ```
+  (Si no hay universidades, créalas primero como `Administrador RENADS` vía
+  `POST /api/v1/universities/`, o revisa el seed del módulo 1.)
+- Un `identity-document-types` válido para el tutor:
+  ```
+  GET /api/v1/identity-document-types/      → 200 (anota un id, p. ej. 1 = DNI)
+  ```
+- Rol requerido para escritura: **`Universidad`** o **`Administrador RENADS`** (lectura: cualquier autenticado).
+
+## 1. Crear tutor con 1 universidad (rol `Universidad`/`Administrador RENADS`)
+```
+POST /api/v1/tutors/
+{ "tipo_documento_identidad": 1, "numero_documento": "40123456",
+  "nombres": "Ana", "apellido_paterno": "Quispe", "apellido_materno": "Ramos",
+  "correo": "ana.quispe@example.com", "universidades": [1] }
+→ 201   (la respuesta incluye "universidades": [1] y el "id" del tutor; anótalo)
+```
+
+## 2. Crear tutor con 2 universidades
+```
+POST /api/v1/tutors/
+{ "tipo_documento_identidad": 1, "numero_documento": "40987654",
+  "nombres": "Luis", "apellido_paterno": "Torres",
+  "universidades": [1, 2] }
+→ 201   ("universidades": [1, 2])
+```
+
+## 3. Actualizar las universidades de un tutor (PATCH)
+```
+PATCH /api/v1/tutors/{id}/
+{ "universidades": [2, 3] }
+→ 200   (se reemplaza el conjunto: la respuesta muestra "universidades": [2, 3])
+```
+Nota: en `PATCH` sin la clave `universidades`, la relación **no** se modifica.
+
+## 4. Filtro por universidad (lectura, cualquier autenticado)
+```
+GET /api/v1/tutors/?universidades=1     → 200 (solo tutores vinculados a la universidad 1)
+GET /api/v1/tutors/?universidades=3     → 200 (solo los vinculados a la universidad 3)
+```
+
+## Casos que deben fallar (RN-24)
+
+**1) Ninguna universidad (0):**
+```
+POST /api/v1/tutors/   { ..., "universidades": [] }
+→ 400  {"universidades": ["El tutor debe pertenecer al menos a una universidad."]}
+```
+
+**2) Más de 2 universidades (3):**
+```
+POST /api/v1/tutors/   { ..., "universidades": [1, 2, 3] }
+→ 400  {"universidades": ["El tutor no puede pertenecer a más de 2 universidades."]}
+```
+
+**3) Universidades repetidas:**
+```
+POST /api/v1/tutors/   { ..., "universidades": [1, 1] }
+→ 400  {"universidades": ["Hay universidades repetidas en la lista."]}
+```
+
+**4) Falta el campo `universidades` (requerido):**
+```
+POST /api/v1/tutors/   { ...sin "universidades"... }
+→ 400  {"universidades": ["Este campo es requerido."]}
+```
+
+**5) Escritura sin rol (usuario autenticado sin `Universidad`/`Administrador RENADS`):**
+```
+POST /api/v1/tutors/   { ..., "universidades": [1] }
+→ 403
+```
+
+## Verificación en Swagger (`/api/v1/docs/`)
+
+Confirmar que el cuerpo de `POST/PUT/PATCH /api/v1/tutors/` incluye `universidades`
+(array de enteros, requerido) y que `GET /api/v1/tutors/` documenta el parámetro de query
+`universidades`.
+
+## Rol/permiso por endpoint (F4)
+
+| Endpoint | Método | Rol requerido |
+|----------|--------|---------------|
+| `/api/v1/tutors/` | GET (lista, incl. `?universidades=`) | Cualquier autenticado |
+| `/api/v1/tutors/{id}/` | GET (detalle) | Cualquier autenticado |
+| `/api/v1/tutors/` | POST | `Universidad` / `Administrador RENADS` |
+| `/api/v1/tutors/{id}/` | PUT / PATCH / DELETE | `Universidad` / `Administrador RENADS` |
+
+---
+
+# Feature F5 — Contacto de emergencia y anexos del interno en `interno`
+
+Sección añadida tras validar la Feature F5 (refactor 2026-07). El **contacto de emergencia** y el **adjunto real de las declaraciones juradas** del actor `INTERNO` se registran ahora sobre el **internado** (`interns/{id}`), no sobre el estudiante. Las acciones `students/{id}/annex-upload` y `students/{id}/annex-checklist` **ya no existen**; usar `interns/{id}/annex-upload` y `interns/{id}/annex-checklist`. Prerrequisitos y token JWT igual que en las secciones anteriores (`POST /api/v1/auth/token/`, cabecera `Authorization: Bearer <access>`, Swagger en `/api/v1/docs/`).
+
+## Datos previos necesarios
+
+- Los mismos del registro de internos (Feature F3): un `Convenio` Específico vigente, un `campo_clinico` con cupo, un `Student` de la universidad en tu ámbito, un `Tutor`, `ambito_geografico_sanitario` coherente con el campo clínico, y un catálogo `relationship-types` (parentesco) seedeado.
+- Catálogo `annex-documents` con anexos `tipo_actor=INTERNO` (`DJ_DATOS`, `DJ_ANTECEDENTES`, `DJ_SALUD`, `DJ_CONFIDENCIALIDAD`), ya seedeados.
+- Consultar un parentesco: `GET /api/v1/relationship-types/` → tomar un `id`.
+
+## 1) Crear un internado con contacto de emergencia (rol `Universidad`)
+
+```
+POST /api/v1/interns/
+{
+  "estudiante": 1,
+  "convenio": 5,
+  "campo_clinico": 3,
+  "ipress": 8,
+  "tutor": 2,
+  "ambito_geografico_sanitario": 4,
+  "fecha_inicio": "2026-08-01",
+  "fecha_fin": "2027-01-31",
+  "observaciones": "",
+  "contacto_emergencia_nombre": "María Pérez",
+  "contacto_emergencia_telefono": "987654321",
+  "contacto_emergencia_parentesco": 2
+}
+→ 201 Created
+```
+
+Respuesta (`InternshipReadSerializer`): incluye `estado_actual="Registrado"`, `estado_declaraciones="PENDIENTE"` y los tres campos `contacto_emergencia_*`. Guardar `id` del internado (p. ej. `10`). Al registrarse se aprovisiona el usuario `Interno` (username = DNI del estudiante) y se envía el correo de onboarding (en `dev` aparece en la consola, con las URLs `interns/10/annex-checklist/` y `interns/10/annex-upload/`).
+
+Los 3 campos de contacto son **opcionales**: un `POST` sin ellos también responde `201` (quedan vacíos / nulos).
+
+## 2) Consultar el checklist de declaraciones juradas del internado
+
+```
+GET /api/v1/interns/10/annex-checklist/
+→ 200
+[
+  {"documento_anexo": 1, "codigo": "DJ_DATOS", "nombre": "...", "obligatorio": true, "adjuntado": false, "documento_id": null, "version": null, "referencia_externa": null},
+  ...
+]
+```
+
+Todos los anexos `INTERNO` activos aparecen con `adjuntado: false` inicialmente.
+
+## 3) Adjuntar un PDF de declaración jurada (multipart)
+
+```
+POST /api/v1/interns/10/annex-upload/   (multipart/form-data)
+  documento_anexo = 1        (un anexo tipo_actor=INTERNO)
+  archivo         = <PDF>
+  nombre_archivo  = dj_datos.pdf   (opcional)
+→ 201 Created  (DocumentSerializer: version=1, estado="ACTIVO", documento_anexo=1)
+```
+
+- Tras adjuntar, el backend recalcula `estado_declaraciones` del internado. Al completar **todas** las DJ obligatorias (`DJ_DATOS`, `DJ_ANTECEDENTES`, `DJ_SALUD`, `DJ_CONFIDENCIALIDAD`), `estado_declaraciones` pasa automáticamente de `PENDIENTE` a `COMPLETAS` (verificar con `GET /api/v1/interns/10/`).
+- Re-subir el mismo `documento_anexo` del mismo internado crea `version=2` y marca la anterior `REEMPLAZADO`.
+
+## 4) Actualizar el contacto de emergencia (PATCH)
+
+```
+PATCH /api/v1/interns/10/
+{ "contacto_emergencia_telefono": "912345678" }
+→ 200  (InternshipReadSerializer con el teléfono actualizado)
+```
+
+## 5) Revisar las declaraciones juradas y activar (rol `Universidad`/`Administrador RENADS`)
+
+```
+POST /api/v1/interns/10/revisar-declaraciones/   {"resultado": "VALIDADAS"}
+→ 200  (estado_declaraciones="VALIDADAS")
+
+POST /api/v1/interns/10/cambiar-estado/   {"estado_codigo": "ACTIVO"}
+→ 200  (permitido solo porque estado_declaraciones == VALIDADAS — RN-23)
+```
+
+## Casos que DEBEN fallar
+
+1. **Acción de anexo del estudiante retirada** — `POST /api/v1/students/{id}/annex-upload/` o `GET /api/v1/students/{id}/annex-checklist/` → **404** (la ruta ya no existe; usar `interns/{id}/...`).
+2. **Anexo de otro actor** — `POST /api/v1/interns/10/annex-upload/` con un `documento_anexo` de `tipo_actor=AUTORIDAD_UNIVERSIDAD` o `REPRESENTANTE` → **400** ("El anexo seleccionado no corresponde a este tipo de actor.").
+3. **Archivo no PDF** — `annex-upload` con un `.png`/`.docx` → **400** (validado por `AnnexUploadSerializer`).
+4. **Interno sobre internado ajeno (RN-22)** — un usuario `Interno` intentando `GET`/`annex-upload` sobre `interns/{id}/` de otro estudiante → **404/403** (fuera de su alcance; `internados_visibles` + `InternshipScope`).
+5. **Interno intentando editar el internado (RN-22)** — un usuario `Interno` con `PATCH /api/v1/interns/10/` → **403** (`IsUniversityOrReadOnly`: solo puede `annex-upload`/`annex-checklist`, no CRUD).
+6. **Gate de `ACTIVO` (RN-23)** — `cambiar-estado` a `ACTIVO` con `estado_declaraciones != VALIDADAS` → **400**.
+7. **Cross-tenant en creación (RN-20)** — usuario `Universidad` A creando un internado de un estudiante de la universidad B (sin perfil sobre B) → **403**.
+
+## Rol/permiso por endpoint (F5)
+
+| Endpoint | Método | Rol requerido |
+|----------|--------|---------------|
+| `/api/v1/interns/` | POST (incl. contacto de emergencia) | `Universidad` (con alcance sobre la universidad del estudiante) |
+| `/api/v1/interns/{id}/` | GET | `Universidad`/`Administrador RENADS`/sede en alcance, o el `Interno` dueño |
+| `/api/v1/interns/{id}/` | PATCH/PUT (incl. contacto de emergencia) | `Universidad` / `Administrador RENADS` |
+| `/api/v1/interns/{id}/annex-upload/` | POST | `Universidad`/`Administrador RENADS`, o el `Interno` dueño (RN-22) |
+| `/api/v1/interns/{id}/annex-checklist/` | GET | `Universidad`/`Administrador RENADS`/sede en alcance, o el `Interno` dueño |
+| `/api/v1/interns/{id}/revisar-declaraciones/` | POST | `Universidad` / `Administrador RENADS` |
+| `/api/v1/students/{id}/annex-upload/`, `.../annex-checklist/` | — | **Retiradas** (404) — usar `interns/{id}/...` |
+
+
+---
+
+# Guía de pruebas F6 — `estudiante` sin `anio_academico`
+
+F6 elimina el campo `anio_academico` del modelo `Student`. Estas pruebas confirman que el API ya no lo expone, que la carga masiva tolera la columna extra en el Excel y que `periodo_academico` sigue operando.
+
+## Prerrequisitos
+
+1. Servidor levantado por el usuario: `python manage.py runserver` — base `http://localhost:8000/api/v1/`.
+2. Obtener token JWT:
+
+```
+POST http://localhost:8000/api/v1/auth/token/
+Content-Type: application/json
+
+{ "username": "<usuario>", "password": "<clave>" }
+```
+
+Usar `Authorization: Bearer <access>` en las siguientes llamadas. Alternativa interactiva: `http://localhost:8000/api/v1/docs/` (Swagger).
+
+3. Rol requerido: `Universidad` (con alcance sobre la universidad del estudiante) o `Administrador RENADS`.
+
+## Datos previos
+
+- Catálogos ya seedeados: tipos de documento, universidades, carreras, periodos académicos (`academic-periods`), especialidades.
+- Ten a mano un `periodo_academico` (id o código) válido para una carrera de nivel `PREGRADO`.
+
+## Paso 1 — El `Student` del API ya no expone `anio_academico`
+
+```
+GET http://localhost:8000/api/v1/students/{id}/
+Authorization: Bearer <access>
+```
+
+Esperado: **200**. El JSON del estudiante **no** contiene la clave `anio_academico`. Sí contiene `periodo_academico`.
+
+## Paso 2 — Crear estudiante sin el campo (individual)
+
+```
+POST http://localhost:8000/api/v1/students/
+Authorization: Bearer <access>
+Content-Type: application/json
+
+{
+  "tipo_documento_identidad": 1,
+  "numero_documento": "70123456",
+  "nombres": "Ana",
+  "apellido_paterno": "Rojas",
+  "apellido_materno": "Diaz",
+  "universidad": 1,
+  "carrera_profesional": 1,
+  "periodo_academico": 1
+}
+```
+
+Esperado: **201**. La respuesta refleja `periodo_academico` y no incluye `anio_academico`. Guarda el `id` devuelto.
+
+## Paso 3 — Enviar `anio_academico` en el payload es ignorado (no rompe)
+
+```
+POST http://localhost:8000/api/v1/students/
+Authorization: Bearer <access>
+Content-Type: application/json
+
+{
+  "tipo_documento_identidad": 1,
+  "numero_documento": "70123457",
+  "nombres": "Luis",
+  "apellido_paterno": "Vega",
+  "universidad": 1,
+  "carrera_profesional": 1,
+  "periodo_academico": 1,
+  "anio_academico": 2025
+}
+```
+
+Esperado: **201**. El campo extra `anio_academico` se ignora (no existe en el serializer); la respuesta no lo devuelve.
+
+## Paso 4 — Carga masiva con columna `anio_academico` en la trama
+
+Prepara un `.xlsx` con la estructura de `TramaCargaEstudiante.xlsx` incluyendo la columna `anio_academico` (con o sin valores). Encabezados mínimos requeridos: `tipo_documento`, `numero_documento`, `nombres`, `apellido_paterno`, `universidad`, `carrera_profesional` (o sus alias `_id`).
+
+```
+POST http://localhost:8000/api/v1/students/bulk-upload/
+Authorization: Bearer <access>
+Content-Type: multipart/form-data
+
+archivo=<TramaCargaEstudiante.xlsx>
+```
+
+Esperado: **200/201** con resumen `{ "creados": N, "omitidos": M, "errores": [...] }`. La columna `anio_academico` se **ignora silenciosamente**: no genera error ni afecta el conteo. Los estudiantes creados no tienen ningún dato de año académico.
+
+## Paso 5 — RN-19 sigue vigente (regresión)
+
+Caso que **debe fallar**: estudiante de carrera `PREGRADO` sin `periodo_academico`.
+
+```
+POST http://localhost:8000/api/v1/students/
+Authorization: Bearer <access>
+Content-Type: application/json
+
+{
+  "tipo_documento_identidad": 1,
+  "numero_documento": "70123458",
+  "nombres": "Sofia",
+  "apellido_paterno": "Luna",
+  "universidad": 1,
+  "carrera_profesional": 1
+}
+```
+
+Esperado: **400** — mensaje indicando que `periodo_academico` es obligatorio para Pregrado (RN-19). Confirma que el flujo de validación no depende de `anio_academico`.
+
+## Rol/permiso por endpoint (F6)
+
+| Endpoint | Método | Rol requerido |
+|----------|--------|---------------|
+| `/api/v1/students/{id}/` | GET | `Universidad`/`Administrador RENADS` (con alcance) |
+| `/api/v1/students/` | POST | `Universidad` (con alcance) / `Administrador RENADS` |
+| `/api/v1/students/bulk-upload/` | POST | `Universidad` (con alcance) / `Administrador RENADS` |

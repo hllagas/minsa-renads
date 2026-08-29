@@ -34,57 +34,43 @@ def registrar_auditoria(
 def adjuntar_documento(
     objeto,
     *,
-    tipo_documento,
-    nombre_archivo,
     referencia_externa,
     usuario,
-    documento_anexo=None,
+    documento_anexo,
 ) -> Document:
     """Adjunta un documento versionado a `objeto` (relación genérica, RNF-DOC-04).
 
-    Versionado: si ya existe un documento `ACTIVO` para el mismo objeto, el nuevo
-    documento toma la versión siguiente, enlaza al anterior en `version_anterior`
-    y marca al anterior como `REEMPLAZADO`. El **discriminador** de la cadena de
-    versiones depende de si se adjunta un anexo:
-
-    - Si `documento_anexo` es `None` (comportamiento por defecto / retrocompatible):
-      el activo previo se busca por `(tipo_contenido, id_objeto, tipo_documento)`.
-    - Si `documento_anexo` no es `None` (flujo de anexos por actor): el activo
-      previo se busca por `(tipo_contenido, id_objeto, documento_anexo)`, de modo
-      que cada anexo mantiene su propia cadena de versiones independiente.
+    Versionado: si ya existe un documento `ACTIVO` para el mismo objeto y
+    `documento_anexo`, el nuevo documento toma la versión siguiente, enlaza al
+    anterior en `version_anterior` y marca al anterior como `REEMPLAZADO`. El
+    **único discriminador** de la cadena de versiones es `documento_anexo`
+    (obligatorio): cada anexo/tipo mantiene su propia cadena de versiones
+    independiente. El nombre de archivo se usa solo como ruta de storage en la
+    vista/mixin que sube el binario; no se persiste en `Document`.
 
     Todo dentro de `transaction.atomic()` y con registro de auditoría. Devuelve la
     nueva instancia `Document` creada.
     """
     tipo_contenido = ContentType.objects.get_for_model(type(objeto))
 
-    # Documento activo previo del mismo objeto. A lo sumo uno; si hubiera varios,
-    # se toma el de mayor versión. select_for_update evita carreras. El
-    # discriminador es el anexo cuando se adjunta uno, o el tipo de documento en
-    # caso contrario (retrocompatible).
-    filtros = {
-        "tipo_contenido": tipo_contenido,
-        "id_objeto": objeto.pk,
-        "estado": "ACTIVO",
-    }
-    if documento_anexo is not None:
-        filtros["documento_anexo"] = documento_anexo
-    else:
-        filtros["tipo_documento"] = tipo_documento
-
+    # Documento activo previo del mismo objeto y anexo. A lo sumo uno; si hubiera
+    # varios, se toma el de mayor versión. select_for_update evita carreras.
     anterior = (
         Document.objects.select_for_update()
-        .filter(**filtros)
+        .filter(
+            tipo_contenido=tipo_contenido,
+            id_objeto=objeto.pk,
+            estado="ACTIVO",
+            documento_anexo=documento_anexo,
+        )
         .order_by("-version")
         .first()
     )
 
     documento = Document.objects.create(
-        tipo_documento=tipo_documento,
         tipo_contenido=tipo_contenido,
         id_objeto=objeto.pk,
         referencia_externa=referencia_externa,
-        nombre_archivo=nombre_archivo,
         version=(anterior.version + 1) if anterior else 1,
         estado="ACTIVO",
         version_anterior=anterior,

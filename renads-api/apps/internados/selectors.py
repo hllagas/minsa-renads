@@ -18,8 +18,11 @@ from apps.internados.models import (
 def estudiantes_visibles(usuario) -> QuerySet[Student]:
     """Estudiantes dentro del ámbito del usuario (RNF-SEG-04).
 
-    - Universidad/Administrador: los estudiantes de sus universidades.
+    - Superusuario: todos los estudiantes.
+    - Usuario con perfil de universidad (p. ej. rol ``Universidad``): los
+      estudiantes de sus universidades.
     - Interno (RN-22): únicamente su propio ``Student`` (perfil sobre ``Student``).
+    - Sin perfil relevante: ninguno.
     """
     qs = Student.objects.select_related("universidad", "carrera_profesional")
     if usuario.is_superuser:
@@ -40,7 +43,11 @@ def estudiantes_visibles(usuario) -> QuerySet[Student]:
 def internados_visibles(usuario) -> QuerySet[Internship]:
     """Internados dentro del alcance institucional: universidad del estudiante o sede (IPRESS).
 
-    Superusuario ve todo. Sin perfiles relevantes → ninguno.
+    - Superusuario: todos.
+    - Universidad/sede: internados de sus universidades o sedes (IPRESS).
+    - Interno (RN-22): únicamente los internados de su propio ``Student`` (perfil
+      sobre ``Student``) — habilita el adjunto de sus declaraciones juradas.
+    - Sin perfiles relevantes → ninguno.
     """
     qs = Internship.objects.select_related(
         "estudiante", "convenio", "campo_clinico", "ipress", "tutor", "estado_actual"
@@ -52,15 +59,19 @@ def internados_visibles(usuario) -> QuerySet[Internship]:
         return qs.none()
     ct_uni = ContentType.objects.get_for_model(University).id
     ct_ip = ContentType.objects.get_for_model(Ipress).id
+    ct_student = ContentType.objects.get_for_model(Student).id
     universidades = [oid for (tc, oid) in refs if tc == ct_uni]
     sedes = [oid for (tc, oid) in refs if tc == ct_ip]
-    if not universidades and not sedes:
+    propios = [oid for (tc, oid) in refs if tc == ct_student]
+    if not universidades and not sedes and not propios:
         return qs.none()
     condicion = Q()
     if universidades:
         condicion |= Q(estudiante__universidad_id__in=universidades)
     if sedes:
         condicion |= Q(ipress_id__in=sedes)
+    if propios:
+        condicion |= Q(estudiante_id__in=propios)
     return qs.filter(condicion)
 
 

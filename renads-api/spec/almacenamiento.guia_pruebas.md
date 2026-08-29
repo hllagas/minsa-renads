@@ -294,8 +294,16 @@ un signed URL). Esto confirma que deshabilitar GCS no rompe el flujo.
 - Una autoridad de universidad (`GET /api/v1/university-authorities/` → `id`) y un
   representante (`GET /api/v1/representatives/` → `id`).
 
-## Flujo A — Logo institucional (imagen)
+## Flujo A — Logo institucional (imagen) — Etapa 4 (`ImageField`)
 Rol requerido: `Administrador RENADS`.
+
+> Desde la Etapa 4 el logo es un `models.ImageField`: el binario se persiste vía
+> `STORAGES["default"]` (django-storages sobre GCS en prod cuando `GCS_ENABLED=True`;
+> `FileSystemStorage` en dev). `referencia_logo` en las respuestas es ahora el **path**
+> del `ImageField` (prefijo `GS_LOCATION=logos/` + `upload_to` de la entidad, p. ej.
+> `universidad/`), y `url` es su `.url` = signed URL V4 (con django-storages) o una URL
+> relativa `MEDIA_URL` (con `FileSystemStorage` en dev). El contrato de los endpoints no
+> cambia. El campo se sube **solo** por `upload-logo`; el CRUD lo expone de solo lectura.
 
 1. Subir/reemplazar logo (multipart):
    ```
@@ -303,23 +311,29 @@ Rol requerido: `Administrador RENADS`.
    Content-Type: multipart/form-data
    archivo=@logo.png
    ```
-   Esperado: `200` con `{"referencia_logo": "<key>", "url": "<signed_url>"}`.
-   Un segundo `upload-logo` reemplaza la key y (con GCS) borra la anterior.
+   Esperado: `200` con `{"referencia_logo": "<path>", "url": "<url>"}`
+   (p. ej. `referencia_logo: "logos/universidad/logo.png"`).
+   Un segundo `upload-logo` reemplaza el archivo y borra el binario anterior
+   (best-effort, solo si el path difiere).
 
-2. Obtener signed URL del logo:
+2. Verificar solo-lectura en el CRUD: `GET /api/v1/universities/{id}/` devuelve
+   `referencia_logo` como **URL** (o `null` si no hay logo). Un `PATCH` que intente
+   escribir `referencia_logo` NO modifica el logo (campo de solo lectura).
+
+3. Obtener la URL del logo:
    ```
    GET /api/v1/universities/{id}/logo-url/
    ```
-   Esperado: `200` con `{"url": "<signed_url>"}`. Si la entidad no tiene logo → `404`
+   Esperado: `200` con `{"url": "<url>"}`. Si la entidad no tiene logo → `404`
    `{"detail": "La entidad no tiene un logo cargado."}`.
 
-3. Caso que debe fallar (tipo no imagen):
+4. Caso que debe fallar (tipo no imagen):
    ```
    POST /api/v1/universities/{id}/upload-logo/  con archivo=@doc.pdf
    ```
    Esperado: `400` "Tipo de imagen no permitido. Se aceptan únicamente: image/png, image/jpeg, image/webp."
 
-4. Caso permiso (RNF-SEG): con token de un usuario NO admin →
+5. Caso permiso (RNF-SEG): con token de un usuario NO admin →
    `POST .../upload-logo/` responde `403`.
 
 ## Flujo B — Anexo (PDF) de autoridad de universidad

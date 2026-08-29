@@ -27,11 +27,13 @@ INSTALLED_APPS = [
     "rest_framework",
     "drf_spectacular",
     "django_filters",
+    "storages",
     # RENADS
     "apps.common",
     "apps.convenios",
     "apps.internados",
     "apps.actividades",
+    "apps.calendario",
 ]
 
 MIDDLEWARE = [
@@ -85,6 +87,18 @@ USE_TZ = True
 # Archivos estáticos
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# Archivos de medios (ImageField de logos con FileSystemStorage en dev/fallback).
+MEDIA_URL = config("MEDIA_URL", default="media/")
+MEDIA_ROOT = config("MEDIA_ROOT", default=str(BASE_DIR / "media"))
+
+# Backends de almacenamiento (Django STORAGES). Por defecto FileSystemStorage; en
+# producción `config/settings/prod.py` sobrescribe "default" con django-storages
+# (GCS) para que los `ImageField` de logos se guarden en el bucket privado.
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -153,6 +167,84 @@ GCS_ALLOWED_CONTENT_TYPES = [
     "image/jpeg",
     "image/webp",
 ]
+
+
+# ---------------------------------------------------------------------------
+# Almacenamiento de imágenes — django-storages sobre GCS (ImageField de logos)
+# ---------------------------------------------------------------------------
+# Los `ImageField` de logos (5 entidades) se persisten vía `STORAGES["default"]`.
+# En producción ese backend es `storages.backends.gcloud.GoogleCloudStorage`
+# (django-storages), que sube al MISMO bucket privado que el backend documental
+# custom, pero bajo el prefijo `GS_LOCATION` (separado de `GCS_OBJECT_PREFIX` de
+# los PDFs). Estas variables solo se usan cuando el backend GCS de django-storages
+# está activo (prod); en dev se usa FileSystemStorage y se ignoran.
+#
+# Autenticación KEYLESS: la MISMA de la Etapa 1 (ADC + impersonación de
+# `GCS_SIGNING_SA` vía IAM SignBlob). Las credenciales impersonadas se inyectan en
+# `config/settings/prod.py` vía `GS_CREDENTIALS` para que `.url` firme signed URLs
+# V4 sin clave JSON de service account.
+#
+# Bucket privado (UBLA + Public Access Prevention enforced): NUNCA ACL pública.
+#   GS_QUERYSTRING_AUTH=True  -> `.url` devuelve un signed URL V4 efímero.
+#   GS_DEFAULT_ACL=None       -> no se aplica ninguna ACL (obligatorio con UBLA).
+GS_BUCKET_NAME = config("GS_BUCKET_NAME", default=GCS_BUCKET_NAME)
+GS_PROJECT_ID = config("GS_PROJECT_ID", default=GCS_PROJECT_ID)
+# Prefijo/carpeta raíz de las imágenes en el bucket (distinto de GCS_OBJECT_PREFIX).
+GS_LOCATION = config("GS_LOCATION", default="logos")
+GS_QUERYSTRING_AUTH = config("GS_QUERYSTRING_AUTH", default=True, cast=bool)
+# `GS_DEFAULT_ACL=None` es obligatorio con UBLA; no se parametriza para evitar ACLs
+# públicas accidentales.
+GS_DEFAULT_ACL = None
+# Vigencia del signed URL de `.url`, en segundos (default = el de la Etapa 1).
+GS_EXPIRATION = config("GS_EXPIRATION", default=GCS_SIGNED_URL_EXPIRATION, cast=int)
+# El archivo se rebobina antes de subir; evita nombres duplicados sobrescribiendo.
+GS_FILE_OVERWRITE = config("GS_FILE_OVERWRITE", default=False, cast=bool)
+
+# Selección del backend de `ImageField` (logos) según `GCS_ENABLED`. Aplica a TODOS
+# los entornos (dev y prod): cuando GCS está habilitado y hay bucket, los logos se
+# guardan en el bucket privado vía django-storages y `.url` firma signed URLs V4
+# keyless (impersonación de `GCS_SIGNING_SA`). Con GCS deshabilitado se mantiene el
+# `FileSystemStorage` por defecto (disco local — solo dev/arranques sin nube).
+# La construcción de credenciales es perezosa: solo corre si el backend GCS activa.
+if GCS_ENABLED and GS_BUCKET_NAME:
+    from apps.common.storage import get_impersonated_credentials
+
+    STORAGES["default"] = {
+        "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
+        "OPTIONS": {
+            "bucket_name": GS_BUCKET_NAME,
+            "project_id": GS_PROJECT_ID,
+            "location": GS_LOCATION,
+            "default_acl": GS_DEFAULT_ACL,
+            "querystring_auth": GS_QUERYSTRING_AUTH,
+            "expiration": GS_EXPIRATION,
+            "file_overwrite": GS_FILE_OVERWRITE,
+            # `GCS_SIGNING_SA` explícito: en import de settings, django.conf.settings
+            # aún no está poblado (no usar el default que lo lee de settings).
+            "credentials": get_impersonated_credentials(GCS_SIGNING_SA),
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
+# Procesamiento de PDFs — Google Cloud Document AI (RNF-DOC-01/02/03)
+# ---------------------------------------------------------------------------
+# Todo PDF adjuntado (anexos y documentos generales) se procesa con un processor
+# de Document AI (OCR genérico / Document OCR) para extraer su texto, que se
+# guarda en `documento.texto_extraido`. El binario sigue en el bucket GCS.
+#
+# Autenticación KEYLESS: misma estrategia que GCS (ADC + impersonación de la SA
+# de firma vía IAM). NO se usan claves JSON de SA.
+#
+# Es BEST-EFFORT: si Document AI está deshabilitado o falla, la subida del PDF NO
+# se bloquea; `texto_extraido` queda vacío y el error se registra en logs.
+DOCAI_ENABLED = config("DOCAI_ENABLED", default=False, cast=bool)
+DOCAI_PROJECT_ID = config("DOCAI_PROJECT_ID", default=GCS_PROJECT_ID)
+# Región del processor (p. ej. "us" o "eu"). Determina el api_endpoint regional.
+DOCAI_LOCATION = config("DOCAI_LOCATION", default="us")
+# ID del processor de Document OCR ya creado en el proyecto (obligatorio si
+# DOCAI_ENABLED). Se define por .env, nunca se hardcodea aquí.
+DOCAI_PROCESSOR_ID = config("DOCAI_PROCESSOR_ID", default="")
 
 
 # ---------------------------------------------------------------------------

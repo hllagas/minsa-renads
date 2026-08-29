@@ -6,6 +6,7 @@ Nombres de clases en inglés; tablas, columnas y descripciones en español.
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from django.core.validators import RegexValidator
 from django.db import models
 
 
@@ -42,6 +43,58 @@ class HealthGeographicScope(Catalog):
         verbose_name = "ámbito geográfico sanitario"
 
 
+class Red(models.Model):
+    """Red de salud que cuelga de un ámbito geográfico sanitario.
+
+    No hereda de ``Catalog`` porque su ``codigo`` no es único global sino por
+    ámbito (``unique_together``).
+    """
+
+    ambito_geografico_sanitario = models.ForeignKey(
+        HealthGeographicScope, on_delete=models.PROTECT,
+        db_column="ambito_geografico_sanitario_id", related_name="redes",
+        help_text="Ámbito geográfico sanitario al que pertenece la red",
+    )
+    codigo = models.CharField("código", max_length=50, help_text="Código de la red (único dentro del ámbito)")
+    nombre = models.CharField("nombre", max_length=255, help_text="Nombre de la red")
+    activo = models.BooleanField("activo", default=True)
+
+    class Meta:
+        db_table = "red"
+        verbose_name = "red"
+        verbose_name_plural = "redes"
+        unique_together = (("ambito_geografico_sanitario", "codigo"),)
+        ordering = ["ambito_geografico_sanitario", "codigo"]
+
+    def __str__(self):
+        return self.nombre
+
+
+class Microred(models.Model):
+    """Microred que cuelga de una red.
+
+    No hereda de ``Catalog``: su ``codigo`` es único por red (``unique_together``).
+    """
+
+    red = models.ForeignKey(
+        Red, on_delete=models.PROTECT, db_column="red_id", related_name="microredes",
+        help_text="Red a la que pertenece la microred",
+    )
+    codigo = models.CharField("código", max_length=50, help_text="Código de la microred (único dentro de la red)")
+    nombre = models.CharField("nombre", max_length=255, help_text="Nombre de la microred")
+    activo = models.BooleanField("activo", default=True)
+
+    class Meta:
+        db_table = "microred"
+        verbose_name = "microred"
+        verbose_name_plural = "microredes"
+        unique_together = (("red", "codigo"),)
+        ordering = ["red", "codigo"]
+
+    def __str__(self):
+        return self.nombre
+
+
 class ConventionType(Catalog):
     anios_vigencia = models.PositiveSmallIntegerField(
         "años de vigencia", help_text="Vigencia en años (Marco=4, Específico=3)"
@@ -67,22 +120,10 @@ class ConventionStatus(Catalog):
         verbose_name = "estado de convenio"
 
 
-class DocumentType(Catalog):
-    class Meta:
-        db_table = "tipo_documento"
-        verbose_name = "tipo de documento"
-
-
 class UniversityManagementType(Catalog):
     class Meta:
         db_table = "tipo_gestion_universidad"
         verbose_name = "tipo de gestión de universidad"
-
-
-class UniversityEntityType(Catalog):
-    class Meta:
-        db_table = "tipo_entidad_universidad"
-        verbose_name = "tipo de entidad de universidad"
 
 
 class AuthorizationType(Catalog):
@@ -109,28 +150,78 @@ class SigningAuthorityType(Catalog):
         verbose_name = "tipo de autoridad firmante"
 
 
-class RegionalOrganType(Catalog):
+class Organ(models.Model):
+    """Categoría de órgano institucional (tabla normalizada que reemplaza el CharField discriminador).
+
+    Las cuatro categorías canónicas son: Órgano del MINSA, Universidad,
+    Órgano Regional y Unidad Ejecutora.
+    """
+
+    nombre = models.CharField("nombre", max_length=255, help_text="Nombre del órgano")
+    estado = models.BooleanField("estado", default=True, help_text="Indica si está activo")
+
     class Meta:
-        db_table = "tipo_organo_regional"
-        verbose_name = "tipo de órgano regional"
+        db_table = "organo"
+        verbose_name = "órgano"
+        verbose_name_plural = "órganos"
+
+    def __str__(self):
+        return self.nombre
 
 
-class ExecutingUnitType(Catalog):
+class OrganType(models.Model):
+    """Tipo de órgano/entidad institucional (unifica cuatro tablas de catálogo previas).
+
+    No hereda de ``Catalog`` porque la unicidad de ``codigo`` es por
+    ``organo``, no global — ver ``unique_together``.
+    """
+
+    organo = models.ForeignKey(
+        "Organ",
+        on_delete=models.PROTECT,
+        verbose_name="órgano",
+        db_column="organo_id",
+        related_name="tipos",
+        help_text="Categoría del órgano (Órgano del MINSA / Universidad / Órgano Regional / Unidad Ejecutora)",
+    )
+    codigo = models.CharField("código", max_length=50, help_text="Código del tipo (único dentro de la categoría)")
+    nombre = models.CharField("nombre", max_length=255, help_text="Nombre")
+    activo = models.BooleanField("activo", default=True, help_text="Indica si está activo")
+
     class Meta:
-        db_table = "tipo_unidad_ejecutora"
-        verbose_name = "tipo de unidad ejecutora"
+        db_table = "tipo_organo"
+        verbose_name = "tipo de órgano"
+        verbose_name_plural = "tipos de órgano"
+        unique_together = (("organo", "codigo"),)
+        ordering = ["organo", "codigo"]
+
+    def __str__(self):
+        return self.nombre
 
 
-class MinsaOrganType(Catalog):
-    class Meta:
-        db_table = "tipo_organo_minsa"
-        verbose_name = "tipo de órgano del MINSA"
+class ExecutivePosition(models.Model):
+    """Cargo ejecutivo, discriminado por órgano.
 
+    No hereda de ``Catalog`` porque su ``codigo`` es único por ``organo``, no
+    global (ver ``unique_together``).
+    """
 
-class ExecutivePosition(Catalog):
+    organo = models.ForeignKey(
+        "Organ", on_delete=models.PROTECT, db_column="organo_id", related_name="cargos",
+        verbose_name="órgano", help_text="Categoría del órgano al que pertenece el cargo",
+    )
+    codigo = models.CharField("código", max_length=50, help_text="Código del cargo (único dentro del órgano)")
+    nombre = models.CharField("nombre", max_length=255, help_text="Nombre del cargo")
+    activo = models.BooleanField("activo", default=True, help_text="Indica si está activo")
+
     class Meta:
         db_table = "cargo_ejecutivo"
         verbose_name = "cargo ejecutivo"
+        unique_together = (("organo", "codigo"),)
+        ordering = ["organo", "codigo"]
+
+    def __str__(self):
+        return self.nombre
 
 
 class ObservationReason(Catalog):
@@ -149,6 +240,20 @@ class ClosureReason(Catalog):
     class Meta:
         db_table = "motivo_cierre"
         verbose_name = "motivo de cierre"
+
+
+class Category(Catalog):
+    class Meta:
+        db_table = "categoria"
+        verbose_name = "categoría"
+        verbose_name_plural = "categorías"
+
+
+class ClassificationType(Catalog):
+    class Meta:
+        db_table = "tipo_clasificacion"
+        verbose_name = "tipo de clasificación"
+        verbose_name_plural = "tipos de clasificación"
 
 
 # ---------------------------------------------------------------------------
@@ -178,9 +283,9 @@ class Ubigeo(models.Model):
 class RegionalGovernment(models.Model):
     nombre = models.CharField("nombre", max_length=255, help_text="Nombre del gobierno regional")
     region = models.ForeignKey(Region, on_delete=models.PROTECT, db_column="region_id", help_text="Región")
-    referencia_logo = models.CharField(
-        "referencia del logo", max_length=500, blank=True,
-        help_text="Referencia externa del logo (repositorio externo)",
+    referencia_logo = models.ImageField(
+        "logo", upload_to="gobierno_regional/", max_length=500, null=True, blank=True,
+        help_text="Logo institucional (imagen almacenada en el repositorio de medios)",
     )
     activo = models.BooleanField("activo", default=True)
 
@@ -192,44 +297,64 @@ class RegionalGovernment(models.Model):
         return self.nombre
 
 
-class RegionalOrgan(models.Model):
+class OrganDirectory(models.Model):
+    """Directorio general de órganos institucionales (standalone), discriminado por ``organo``.
+
+    Unifica los antiguos ``organo_regional`` y ``organo_minsa`` en una única tabla.
+    Los órganos regionales llevan ``gobierno_regional``; los del MINSA lo dejan nulo.
+    """
+
+    organo = models.ForeignKey(
+        "Organ", on_delete=models.PROTECT, db_column="organo_id", related_name="directorios",
+        verbose_name="órgano", help_text="Categoría del órgano (discriminador)",
+    )
+    tipo_organo = models.ForeignKey(
+        OrganType, on_delete=models.PROTECT, db_column="tipo_organo_id", null=True, blank=True,
+        related_name="+", help_text="Tipo de órgano (GERESA/DIRESA/DIGEP…); nulo para órganos sin tipo",
+    )
     gobierno_regional = models.ForeignKey(
         RegionalGovernment, on_delete=models.PROTECT, db_column="gobierno_regional_id",
-        related_name="organos", help_text="GORE al que pertenece",
-    )
-    tipo_organo_regional = models.ForeignKey(
-        RegionalOrganType, on_delete=models.PROTECT, db_column="tipo_organo_regional_id",
-        help_text="GERESA / DIRESA / DIRIS",
+        null=True, blank=True, related_name="organos_directorio",
+        help_text="GORE (solo órganos regionales)",
     )
     nombre = models.CharField("nombre", max_length=255, help_text="Nombre del órgano")
     siglas = models.CharField("siglas", max_length=50, blank=True, help_text="Siglas")
     direccion = models.CharField("dirección", max_length=500, blank=True, help_text="Dirección")
+    numero_ruc = models.CharField(
+        "número de RUC", max_length=11, blank=True,
+        help_text="RUC (11 dígitos; texto para conservar ceros a la izquierda)",
+    )
+    correo = models.EmailField("correo", blank=True, help_text="Correo institucional")
+    telefono_institucional = models.CharField(
+        "teléfono institucional", max_length=30, blank=True, help_text="Teléfono institucional",
+    )
     ubigeo = models.ForeignKey(
         Ubigeo, on_delete=models.PROTECT, db_column="ubigeo_id", null=True, blank=True,
         related_name="+", help_text="Ubicación geográfica (UBIGEO)",
     )
-    referencia_logo = models.CharField(
-        "referencia del logo", max_length=500, blank=True,
-        help_text="Referencia externa del logo (repositorio externo)",
+    referencia_logo = models.ImageField(
+        "logo", upload_to="organo_directorio/", max_length=500, null=True, blank=True,
+        help_text="Logo institucional (imagen almacenada en el repositorio de medios)",
     )
     activo = models.BooleanField("activo", default=True)
 
     class Meta:
-        db_table = "organo_regional"
-        verbose_name = "órgano regional"
+        db_table = "organo_directorio"
+        verbose_name = "órgano del directorio"
+        verbose_name_plural = "órganos del directorio"
 
     def __str__(self):
         return self.nombre
 
 
 class ExecutingUnit(models.Model):
-    organo_regional = models.ForeignKey(
-        RegionalOrgan, on_delete=models.PROTECT, db_column="organo_regional_id",
-        related_name="unidades_ejecutoras", help_text="Órgano regional que la administra",
+    organo_directorio = models.ForeignKey(
+        OrganDirectory, on_delete=models.PROTECT, db_column="organo_directorio_id",
+        related_name="unidades_ejecutoras", help_text="Órgano del directorio que la administra",
     )
-    tipo_unidad_ejecutora = models.ForeignKey(
-        ExecutingUnitType, on_delete=models.PROTECT, db_column="tipo_unidad_ejecutora_id",
-        help_text="Hospital / Instituto / Red",
+    tipo_organo = models.ForeignKey(
+        OrganType, on_delete=models.PROTECT, db_column="tipo_organo_id",
+        help_text="Hospital / Instituto especializado / Red de salud (discriminador: UNIDAD_EJECUTORA)",
     )
     nombre = models.CharField("nombre", max_length=255, help_text="Nombre")
     codigo = models.CharField("código", max_length=50, blank=True, help_text="Código presupuestal")
@@ -238,9 +363,9 @@ class ExecutingUnit(models.Model):
         Ubigeo, on_delete=models.PROTECT, db_column="ubigeo_id", null=True, blank=True,
         related_name="+", help_text="Ubicación geográfica (UBIGEO)",
     )
-    referencia_logo = models.CharField(
-        "referencia del logo", max_length=500, blank=True,
-        help_text="Referencia externa del logo (repositorio externo)",
+    referencia_logo = models.ImageField(
+        "logo", upload_to="unidad_ejecutora/", max_length=500, null=True, blank=True,
+        help_text="Logo institucional (imagen almacenada en el repositorio de medios)",
     )
     activo = models.BooleanField("activo", default=True)
 
@@ -268,13 +393,41 @@ class Ipress(models.Model):
         HealthGeographicScope, on_delete=models.PROTECT, db_column="ambito_geografico_sanitario_id",
         help_text="Ámbito geográfico sanitario",
     )
+    categoria = models.ForeignKey(
+        Category, on_delete=models.PROTECT, db_column="categoria_id", null=True, blank=True,
+        related_name="ipress_por_categoria", help_text="Categoría del establecimiento",
+    )
+    tipo_clasificacion = models.ForeignKey(
+        ClassificationType, on_delete=models.PROTECT, db_column="tipo_clasificacion_id", null=True, blank=True,
+        related_name="ipress_por_clasificacion", help_text="Tipo de clasificación del establecimiento",
+    )
+    microred = models.ForeignKey(
+        Microred, on_delete=models.PROTECT, db_column="microred_id", null=True, blank=True,
+        related_name="ipress_por_microred", help_text="Microred a la que pertenece el establecimiento",
+    )
+    latitud = models.DecimalField(
+        "latitud", max_digits=9, decimal_places=6, null=True, blank=True,
+        help_text="Latitud (coordenada geográfica)",
+    )
+    longitud = models.DecimalField(
+        "longitud", max_digits=9, decimal_places=6, null=True, blank=True,
+        help_text="Longitud (coordenada geográfica)",
+    )
+    cantidad_camas = models.PositiveIntegerField(
+        "cantidad de camas", null=True, blank=True, help_text="Número de camas del establecimiento",
+    )
+    numero_ruc = models.CharField(
+        "número de RUC", max_length=11, blank=True,
+        validators=[RegexValidator(r"^\d{11}$", message="El RUC debe tener exactamente 11 dígitos numéricos.")],
+        help_text="RUC (11 dígitos; texto para conservar ceros a la izquierda)",
+    )
     es_sede_docente = models.BooleanField(
         "es sede docente", default=False,
         help_text="Autorizada por CONAPRES como sede docente (asistencial, MINSA/FF.AA.-FF.PP., pública)",
     )
-    referencia_logo = models.CharField(
-        "referencia del logo", max_length=500, blank=True,
-        help_text="Referencia externa del logo (repositorio externo)",
+    referencia_logo = models.ImageField(
+        "logo", upload_to="ipress/", max_length=500, null=True, blank=True,
+        help_text="Logo institucional (imagen almacenada en el repositorio de medios)",
     )
     activo = models.BooleanField("activo", default=True)
 
@@ -282,26 +435,6 @@ class Ipress(models.Model):
         db_table = "ipress"
         verbose_name = "IPRESS"
         verbose_name_plural = "IPRESS"
-
-    def __str__(self):
-        return self.nombre
-
-
-# ---------------------------------------------------------------------------
-# Entidades — MINSA
-# ---------------------------------------------------------------------------
-class MinsaOrgan(models.Model):
-    tipo_organo_minsa = models.ForeignKey(
-        MinsaOrganType, on_delete=models.PROTECT, db_column="tipo_organo_minsa_id",
-        help_text="DIGEP / OGAJ / SG / VICEPAS",
-    )
-    nombre = models.CharField("nombre", max_length=255, help_text="Nombre del órgano")
-    siglas = models.CharField("siglas", max_length=50, blank=True, help_text="Siglas")
-    activo = models.BooleanField("activo", default=True)
-
-    class Meta:
-        db_table = "organo_minsa"
-        verbose_name = "órgano del MINSA"
 
     def __str__(self):
         return self.nombre
@@ -323,38 +456,105 @@ class Conapres(models.Model):
         return self.nombre
 
 
-REPRESENTATIVE_ORIGIN = [
-    ("MINSA", "MINSA"),
-    ("GOBIERNO_REGIONAL", "Gobierno Regional"),
-    ("ASOCIACION_FACULTADES", "Asociación de Facultades"),
-]
+# ---------------------------------------------------------------------------
+# Representantes de órgano (directorio) y su histórico de bajas
+# ---------------------------------------------------------------------------
+SEX = [("M", "Masculino"), ("F", "Femenino")]
 
 
-class Representative(models.Model):
-    """Representante/autoridad genérico de una entidad (relación polimórfica)."""
+class OrganRepresentative(models.Model):
+    """Representante/autoridad de un órgano del directorio (FK directo, sin relación polimórfica)."""
 
-    tipo_contenido = models.ForeignKey(
-        ContentType, on_delete=models.CASCADE, db_column="tipo_contenido_id",
-        related_name="+", help_text="Tipo de entidad representada",
+    organo_directorio = models.ForeignKey(
+        OrganDirectory, on_delete=models.PROTECT, db_column="organo_directorio_id",
+        related_name="representantes", help_text="Órgano del directorio representado",
     )
-    id_objeto = models.PositiveBigIntegerField("id objeto", help_text="Identificador de la entidad representada")
-    entidad = GenericForeignKey("tipo_contenido", "id_objeto")
     nombre = models.CharField("nombre", max_length=255, help_text="Nombre del representante")
+    tipo_documento_identidad = models.ForeignKey(
+        "internados.IdentityDocumentType", on_delete=models.PROTECT,
+        db_column="tipo_documento_identidad_id", related_name="+",
+        help_text="Tipo de documento de identidad",
+    )
+    numero_documento_identidad = models.CharField(
+        "número de documento de identidad", max_length=20,
+        help_text="Número de documento de identidad",
+    )
+    sexo = models.CharField("sexo", max_length=1, choices=SEX, help_text="Sexo (M/F)")
     cargo_ejecutivo = models.ForeignKey(
         ExecutivePosition, on_delete=models.PROTECT, db_column="cargo_ejecutivo_id",
-        help_text="Cargo (catálogo)",
+        related_name="+", help_text="Cargo ejecutivo",
     )
-    origen = models.CharField(
-        "origen", max_length=30, choices=REPRESENTATIVE_ORIGIN, blank=True,
-        help_text="Solo para CONAPRES: MINSA / Gobierno Regional / Asociación de Facultades",
+    fecha_inicio_designacion = models.DateField(
+        "fecha de inicio de designación", help_text="Inicio de la designación",
     )
-    fecha_inicio = models.DateField("fecha de inicio", null=True, blank=True, help_text="Inicio de participación/cargo")
-    fecha_fin = models.DateField("fecha de fin", null=True, blank=True, help_text="Fin de participación/cargo")
+    numero_resolucion_designacion = models.CharField(
+        "número de resolución de designación", max_length=100, blank=True,
+        help_text="Número de resolución de designación",
+    )
+    fecha_inicio_facultades = models.DateField(
+        "fecha de inicio de facultades", null=True, blank=True,
+        help_text="Otorgamiento de facultades",
+    )
     activo = models.BooleanField("activo", default=True)
 
     class Meta:
-        db_table = "representante"
-        verbose_name = "representante"
+        db_table = "organo_representante"
+        verbose_name = "representante de órgano"
+        verbose_name_plural = "representantes de órgano"
+        ordering = ["id"]
+
+    def __str__(self):
+        return self.nombre
+
+
+class OrganRepresentativeHistory(models.Model):
+    """Snapshot histórico de un representante dado de baja (denormalizado, preserva el estado)."""
+
+    representante = models.ForeignKey(
+        OrganRepresentative, on_delete=models.PROTECT, db_column="representante_id",
+        related_name="historial", help_text="Representante dado de baja",
+    )
+    organo_directorio = models.ForeignKey(
+        OrganDirectory, on_delete=models.PROTECT, db_column="organo_directorio_id",
+        related_name="+", help_text="Órgano del directorio representado",
+    )
+    nombre = models.CharField("nombre", max_length=255, help_text="Nombre del representante")
+    tipo_documento_identidad = models.ForeignKey(
+        "internados.IdentityDocumentType", on_delete=models.PROTECT,
+        db_column="tipo_documento_identidad_id", related_name="+",
+        help_text="Tipo de documento de identidad",
+    )
+    numero_documento_identidad = models.CharField(
+        "número de documento de identidad", max_length=20,
+        help_text="Número de documento de identidad",
+    )
+    sexo = models.CharField("sexo", max_length=1, choices=SEX, help_text="Sexo (M/F)")
+    cargo_ejecutivo = models.ForeignKey(
+        ExecutivePosition, on_delete=models.PROTECT, db_column="cargo_ejecutivo_id",
+        related_name="+", help_text="Cargo ejecutivo",
+    )
+    fecha_inicio_designacion = models.DateField(
+        "fecha de inicio de designación", help_text="Inicio de la designación",
+    )
+    numero_resolucion_designacion = models.CharField(
+        "número de resolución de designación", max_length=100, blank=True,
+        help_text="Número de resolución de designación",
+    )
+    fecha_inicio_facultades = models.DateField(
+        "fecha de inicio de facultades", null=True, blank=True,
+        help_text="Otorgamiento de facultades",
+    )
+    fecha_baja = models.DateField(
+        "fecha de baja", help_text="Fecha en que se dio de baja al representante",
+    )
+    motivo = models.CharField("motivo", max_length=255, blank=True, help_text="Motivo de la baja")
+    creado_en = models.DateTimeField("creado en", auto_now_add=True)
+
+    class Meta:
+        db_table = "historial_organo_representante"
+        verbose_name = "historial de representante de órgano"
+        verbose_name_plural = "historiales de representante de órgano"
+        ordering = ["-fecha_baja", "-id"]
 
     def __str__(self):
         return self.nombre
@@ -371,8 +571,8 @@ class University(models.Model):
         help_text="Pública / privada",
     )
     tipo_entidad = models.ForeignKey(
-        UniversityEntityType, on_delete=models.PROTECT, db_column="tipo_entidad_id",
-        help_text="Universidad / Escuela posgrado / Escuela superior / Instituto",
+        OrganType, on_delete=models.PROTECT, db_column="tipo_entidad_id",
+        help_text="Universidad / Escuela posgrado / Escuela superior / Instituto (discriminador: UNIVERSIDAD)",
     )
     tipo_autorizacion = models.ForeignKey(
         AuthorizationType, on_delete=models.PROTECT, db_column="tipo_autorizacion_id",
@@ -389,39 +589,15 @@ class University(models.Model):
         Ubigeo, on_delete=models.PROTECT, db_column="ubigeo_id", null=True, blank=True,
         related_name="+", help_text="Ubicación geográfica (UBIGEO)",
     )
-    referencia_logo = models.CharField(
-        "referencia del logo", max_length=500, blank=True,
-        help_text="Referencia externa del logo (repositorio externo)",
+    referencia_logo = models.ImageField(
+        "logo", upload_to="universidad/", max_length=500, null=True, blank=True,
+        help_text="Logo institucional (imagen almacenada en el repositorio de medios)",
     )
     activo = models.BooleanField("activo", default=True)
 
     class Meta:
         db_table = "universidad"
         verbose_name = "universidad"
-
-    def __str__(self):
-        return self.nombre
-
-
-class UniversityAuthority(models.Model):
-    universidad = models.ForeignKey(
-        University, on_delete=models.CASCADE, db_column="universidad_id",
-        related_name="autoridades", help_text="Universidad",
-    )
-    nombre = models.CharField("nombre", max_length=255, help_text="Nombre de la autoridad")
-    cargo = models.CharField("cargo", max_length=150, help_text="Cargo")
-    fecha_inicio_cargo = models.DateField("fecha de inicio del cargo", help_text="Inicio del cargo")
-    fecha_fin_cargo = models.DateField("fecha de fin del cargo", null=True, blank=True, help_text="Fin del cargo")
-    numero_resolucion = models.CharField("número de resolución", max_length=100, blank=True, help_text="Número de resolución de designación")
-    referencia_documento_resolucion = models.CharField(
-        "referencia del documento de resolución", max_length=500, blank=True,
-        help_text="Referencia externa del PDF de la resolución",
-    )
-    activo = models.BooleanField("activo", default=True)
-
-    class Meta:
-        db_table = "autoridad_universidad"
-        verbose_name = "autoridad de universidad"
 
     def __str__(self):
         return self.nombre
@@ -558,10 +734,10 @@ class Convention(models.Model):
         "id objeto solicitante", help_text="Identificador de la entidad solicitante"
     )
     solicitante = GenericForeignKey("solicitante_tipo_contenido", "solicitante_id_objeto")
-    organo_regional = models.ForeignKey(
-        RegionalOrgan, on_delete=models.PROTECT, db_column="organo_regional_id",
+    organo_directorio = models.ForeignKey(
+        OrganDirectory, on_delete=models.PROTECT, db_column="organo_directorio_id",
         related_name="convenios",
-        help_text="Órgano regional (GERESA/DIRESA/DIRIS) parte del convenio. Su tipo se deriva de esta relación.",
+        help_text="Órgano del directorio (GERESA/DIRESA/DIRIS) parte del convenio.",
     )
     universidad = models.ForeignKey(
         University, on_delete=models.PROTECT, db_column="universidad_id",
@@ -658,9 +834,10 @@ class TechnicalEvaluation(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, db_column="evaluado_por",
         related_name="+", help_text="Responsable",
     )
-    organo_minsa = models.ForeignKey(
-        MinsaOrgan, on_delete=models.SET_NULL, db_column="organo_minsa_id", null=True, blank=True,
-        help_text="Unidad evaluadora (DIGEP)",
+    organo_directorio = models.ForeignKey(
+        OrganDirectory, on_delete=models.SET_NULL, db_column="organo_directorio_id",
+        null=True, blank=True, related_name="+",
+        help_text="Unidad evaluadora (DIGEP) del directorio",
     )
     fecha_evaluacion = models.DateField("fecha de evaluación", help_text="Fecha de evaluación")
     creado_en = models.DateTimeField("creado en", auto_now_add=True)
@@ -688,7 +865,14 @@ class ConapresOpinion(models.Model):
         verbose_name = "opinión CONAPRES"
 
 
-class ClinicalField(models.Model):
+class ClinicalFieldRegistration(models.Model):
+    """Registro (CONAPRES) del total de campos clínicos por sede docente + carrera.
+
+    Tabla `campo_clinico_ipress`. CONAPRES registra el total de campos clínicos
+    disponibles por IPRESS (sede docente) y carrera profesional. Las asignaciones
+    por universidad se llevan en `ClinicalFieldAllocation`.
+    """
+
     convenio = models.ForeignKey(
         Convention, on_delete=models.CASCADE, db_column="convenio_id",
         related_name="campos_clinicos", help_text="Convenio (solo Específico)",
@@ -704,19 +888,89 @@ class ClinicalField(models.Model):
         Specialty, on_delete=models.SET_NULL, db_column="especialidad_id", null=True, blank=True,
         related_name="+", help_text="Especialidad",
     )
-    cantidad_maxima = models.PositiveIntegerField("cantidad máxima", help_text="Cantidad máxima de campos clínicos autorizados")
-    vigencia_inicio = models.DateField("vigencia inicio", help_text="Inicio de vigencia")
-    vigencia_fin = models.DateField("vigencia fin", help_text="Fin de vigencia")
-    ambito_geografico_sanitario = models.ForeignKey(
-        HealthGeographicScope, on_delete=models.PROTECT, db_column="ambito_geografico_sanitario_id",
-        help_text="Ámbito",
+    campos_clinicos_registrados = models.PositiveIntegerField(
+        "campos clínicos registrados",
+        help_text="Total de campos clínicos registrados por CONAPRES para la sede y carrera",
     )
-    observaciones = models.TextField("observaciones", blank=True, help_text="Observaciones")
+    campos_clinicos_asignados = models.PositiveIntegerField(
+        "campos clínicos asignados",
+        default=0,
+        help_text=(
+            "Acumulador Σ de los campos autorizados en las asignaciones por universidad; "
+            "recalculado por el service (solo lectura en la API)"
+        ),
+    )
     creado_en = models.DateTimeField("creado en", auto_now_add=True)
+    creado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, db_column="creado_por",
+        null=True, blank=True, related_name="+", help_text="Usuario que creó el registro",
+    )
+    actualizado_en = models.DateTimeField("actualizado en", auto_now=True)
+    actualizado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, db_column="actualizado_por",
+        null=True, blank=True, related_name="+", help_text="Usuario que actualizó el registro",
+    )
 
     class Meta:
-        db_table = "campo_clinico"
-        verbose_name = "campo clínico"
+        db_table = "campo_clinico_ipress"
+        verbose_name = "registro de campos clínicos por sede"
+        verbose_name_plural = "registros de campos clínicos por sede"
+        unique_together = (("convenio", "ipress", "carrera_profesional", "especialidad"),)
+
+
+class ClinicalFieldAllocation(models.Model):
+    """Asignación (Órgano Regional) de campos clínicos por universidad.
+
+    Tabla `campo_clinico_ipress_universidad`. El Órgano Regional (grupo
+    `Gobierno Regional`) asigna cupos por universidad contra un registro
+    (`ClinicalFieldRegistration`), sujeto a la disponibilidad del registro padre.
+    """
+
+    campo_clinico_ipress = models.ForeignKey(
+        ClinicalFieldRegistration, on_delete=models.PROTECT, db_column="campo_clinico_ipress_id",
+        related_name="asignaciones", help_text="Registro de campos clínicos (sede + carrera)",
+    )
+    convenio = models.ForeignKey(
+        Convention, on_delete=models.PROTECT, db_column="convenio_id",
+        related_name="+", help_text="Convenio Específico vigente que respalda la asignación",
+    )
+    ipress = models.ForeignKey(
+        Ipress, on_delete=models.PROTECT, db_column="ipress_id", help_text="Sede docente (establecimiento)",
+    )
+    carrera_profesional = models.ForeignKey(
+        ProfessionalCareer, on_delete=models.PROTECT, db_column="carrera_profesional_id",
+        help_text="Carrera / programa académico",
+    )
+    especialidad = models.ForeignKey(
+        Specialty, on_delete=models.SET_NULL, db_column="especialidad_id", null=True, blank=True,
+        related_name="+", help_text="Especialidad",
+    )
+    universidad = models.ForeignKey(
+        University, on_delete=models.PROTECT, db_column="universidad_id",
+        related_name="campos_clinicos_asignados", help_text="Universidad a la que se asignan los cupos",
+    )
+    fecha_inicio = models.DateField("fecha de inicio", help_text="Inicio de vigencia de la asignación")
+    fecha_fin = models.DateField("fecha de fin", help_text="Fin de vigencia de la asignación")
+    campos_clinicos_autorizados = models.PositiveIntegerField(
+        "campos clínicos autorizados",
+        help_text="Cupos autorizados para la universidad",
+    )
+    creado_en = models.DateTimeField("creado en", auto_now_add=True)
+    creado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, db_column="creado_por",
+        null=True, blank=True, related_name="+", help_text="Usuario que creó la asignación",
+    )
+    actualizado_en = models.DateTimeField("actualizado en", auto_now=True)
+    actualizado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, db_column="actualizado_por",
+        null=True, blank=True, related_name="+", help_text="Usuario que actualizó la asignación",
+    )
+
+    class Meta:
+        db_table = "campo_clinico_ipress_universidad"
+        verbose_name = "asignación de campos clínicos por universidad"
+        verbose_name_plural = "asignaciones de campos clínicos por universidad"
+        unique_together = (("campo_clinico_ipress", "universidad", "convenio"),)
 
 
 class LegalOpinion(models.Model):
@@ -796,9 +1050,6 @@ DOCUMENT_STATUS = [
 
 
 class Document(models.Model):
-    tipo_documento = models.ForeignKey(
-        DocumentType, on_delete=models.PROTECT, db_column="tipo_documento_id", help_text="Tipo de documento",
-    )
     tipo_contenido = models.ForeignKey(
         ContentType, on_delete=models.CASCADE, db_column="tipo_contenido_id",
         related_name="+", help_text="Tabla destino",
@@ -808,7 +1059,6 @@ class Document(models.Model):
     referencia_externa = models.CharField(
         "referencia externa", max_length=500, help_text="Clave/URL del archivo en el repositorio externo",
     )
-    nombre_archivo = models.CharField("nombre del archivo", max_length=255, help_text="Nombre del archivo")
     version = models.PositiveIntegerField("versión", default=1, help_text="Versión")
     estado = models.CharField("estado", max_length=20, choices=DOCUMENT_STATUS, default="ACTIVO", help_text="Estado")
     version_anterior = models.ForeignKey(
@@ -816,9 +1066,9 @@ class Document(models.Model):
         related_name="versiones_siguientes", help_text="Versión previa reemplazada",
     )
     documento_anexo = models.ForeignKey(
-        "internados.AnnexDocument", on_delete=models.SET_NULL,
-        db_column="documento_anexo_id", null=True, blank=True, related_name="+",
-        help_text="Anexo (declaración jurada) al que corresponde este documento; nulo para documentos que no son anexos",
+        "internados.AnnexDocument", on_delete=models.PROTECT,
+        db_column="documento_anexo_id", related_name="documentos",
+        help_text="Anexo/tipo al que corresponde este documento (único discriminador de versionado)",
     )
     cargado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, db_column="cargado_por", related_name="+",
@@ -827,8 +1077,8 @@ class Document(models.Model):
     cargado_en = models.DateTimeField("cargado en", auto_now_add=True, help_text="Fecha y hora de carga")
 
     class Meta:
-        db_table = "documento"
-        verbose_name = "documento"
+        db_table = "documento_adjunto"
+        verbose_name = "documento adjunto"
 
 
 class AuditLog(models.Model):

@@ -279,7 +279,7 @@ const TESTIMONIALS = [
   },
   {
     quote:
-      "Las opiniones de CONAPRES y los campos clínicos quedan integrados en el mismo flujo del convenio.",
+      "Las opiniones de CONAPRES y los campos de formación quedan integrados en el mismo flujo del convenio.",
     name: "CONAPRES",
     role: "Comisión Nacional",
   },

@@ -5,7 +5,7 @@ entidad del usuario (`perfil_usuario_entidad`). Ver `docs/arquitectura_desarroll
 """
 
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import SAFE_METHODS, BasePermission
 
 from apps.common.selectors import usuario_pertenece_a_entidad
 
@@ -53,6 +53,51 @@ class IsInstitutionalMember(BasePermission):
         from apps.common.selectors import perfiles_del_usuario
 
         return perfiles_del_usuario(user).exists()
+
+
+class IsModuleEnabled(BasePermission):
+    """Gate temporal de escritura por módulo, gobernado por el Calendario.
+
+    Opt-in por atributo de vista `module_content_type = (app_label, model)`:
+    - Si la vista no lo declara ⇒ pass-through (nunca bloquea).
+    - Solo gatea métodos de escritura; la lectura (`SAFE_METHODS`) queda libre.
+    - Exentos: superusuario y rol `Administrador RENADS`.
+    - En otro caso, consulta el selector del Calendario (import lazy para evitar
+      el ciclo `common` ↔ `calendario`): si el ContentType no tiene una ventana
+      vigente, deniega con `codigo="MODULO_FUERA_DE_VENTANA"`.
+    """
+
+    def has_permission(self, request, view) -> bool:
+        module_ct = getattr(view, "module_content_type", None)
+        if module_ct is None:
+            return True
+        if request.method in SAFE_METHODS:
+            return True
+        user = request.user
+        if not (user and user.is_authenticated):
+            return False
+        if user.is_superuser or user.groups.filter(name="Administrador RENADS").exists():
+            return True
+
+        # Import lazy: el selector del Calendario depende de sus modelos; importarlo
+        # a nivel de módulo crearía un ciclo con `apps.common`.
+        from django.contrib.contenttypes.models import ContentType
+        from django.utils import timezone
+
+        from apps.calendario.selectors import esta_habilitado
+
+        app_label, model = module_ct
+        try:
+            ct = ContentType.objects.get_by_natural_key(app_label, model)
+        except ContentType.DoesNotExist:
+            # Si el ContentType no existe, ningún calendario puede gobernarlo.
+            return True
+        if esta_habilitado(ct.id, now=timezone.now()):
+            return True
+        raise PermissionDenied(
+            detail="El módulo está fuera de su ventana de registro.",
+            code="MODULO_FUERA_DE_VENTANA",
+        )
 
 
 class HasEntityScope(BasePermission):

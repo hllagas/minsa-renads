@@ -5,22 +5,37 @@ import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { useAuthStore } from "@/lib/auth/store";
-import { useMe } from "@/lib/auth/hooks";
+import { useAuthHydrated, useMe } from "@/lib/auth/hooks";
 import { AppShell } from "@/components/layout/app-shell";
+import { ChangePasswordGate } from "@/components/auth/change-password-gate";
 
 /**
  * Layout autenticado. Guard del lado del cliente: sin token redirige a /login.
  * Con token, carga `me`; si la sesión es inválida (refresh falló → token limpiado),
  * el guard redirige. Mientras carga el usuario, muestra estado de carga.
+ *
+ * Espera a que `zustand/persist` rehidrate (`hydrated`) antes de redirigir: en una recarga (F5)
+ * de una URL profunda el token se restaura de forma asíncrona; redirigir antes rebotaría a
+ * `/login` (y de ahí a `/inicio`), perdiendo la ruta.
  */
 export default function AppLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const accessToken = useAuthStore((s) => s.accessToken);
+  const hydrated = useAuthHydrated();
   const { isLoading, isError } = useMe();
 
   useEffect(() => {
-    if (!accessToken) router.replace("/login");
-  }, [accessToken, router]);
+    if (hydrated && !accessToken) router.replace("/login");
+  }, [hydrated, accessToken, router]);
+
+  // Antes de rehidratar no se sabe si hay sesión: mostrar carga (no redirigir).
+  if (!hydrated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
+        Cargando…
+      </div>
+    );
+  }
 
   if (!accessToken) return null;
 
@@ -44,5 +59,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     );
   }
 
-  return <AppShell>{children}</AppShell>;
+  return (
+    <AppShell>
+      <ChangePasswordGate />
+      {children}
+    </AppShell>
+  );
 }

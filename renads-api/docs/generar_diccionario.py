@@ -23,6 +23,29 @@ MODULOS = [
     (1, "Módulo 1 — Gestionar Convenios", DOCS / "db_schema_modulo_01_convenios.md"),
     (2, "Módulo 2 — Registrar Internados", DOCS / "db_schema_modulo_02_internados.md"),
     (3, "Módulo 3 — Registrar Actividades", DOCS / "db_schema_modulo_03_actividades.md"),
+    (4, "Módulo 4 — Calendario administrativo", DOCS / "db_schema_modulo_04_calendario.md"),
+]
+
+# Routers DRF por módulo para el inventario de endpoints (enumerado en vivo).
+MODULO_ROUTERS = [
+    ("Módulo 1 — Gestionar Convenios", "apps.convenios.urls"),
+    ("Módulo 2 — Registrar Internados", "apps.internados.urls"),
+    ("Módulo 3 — Registrar Actividades", "apps.actividades.urls"),
+    ("Módulo 4 — Calendario administrativo", "apps.calendario.urls"),
+    ("Transversal — Usuarios, accesos y auditoría", "apps.common.urls"),
+]
+
+# Endpoints explícitos (no registrados en un router): autenticación JWT y perfil.
+ENDPOINTS_AUTENTICACION = [
+    ("/api/v1/auth/token/", "POST", "—", "Obtiene el par de tokens JWT (login)."),
+    ("/api/v1/auth/token/refresh/", "POST", "—", "Refresca el token de acceso."),
+    ("/api/v1/auth/me/", "GET", "—", "Identidad, roles, perfiles y estado de módulos (calendario)."),
+    (
+        "/api/v1/auth/me/cambiar-password/",
+        "POST",
+        "Autenticado",
+        "Cambia la contraseña temporal (RN-22).",
+    ),
 ]
 
 ER_GLOBAL = DOCS / "db_schema_er_global.md"
@@ -73,8 +96,9 @@ def parse_modulo(texto: str) -> dict:
         linea = lineas[i]
         strip = linea.strip()
 
-        # Encabezado de tabla técnica: ### `nombre`
-        m = re.match(r"^###\s+`([^`]+)`", strip)
+        # Encabezado de tabla técnica: ### `nombre` o #### `nombre` (subtablas
+        # como red/microred/campo_clinico_ipress usan 4 almohadillas).
+        m = re.match(r"^#{3,4}\s+`([^`]+)`", strip)
         if m:
             titulo_actual = m.group(1)
             i += 1
@@ -329,6 +353,96 @@ def agregar_er_global(doc: Document, ruta) -> bool:
     return True
 
 
+_ROL_POR_PERMISO = {
+    "IsSuperUser": "Superusuario",
+    "IsConapresOrReadOnly": "CONAPRES",
+    "IsRegionalOrganOrReadOnly": "Gobierno Regional",
+    "IsAdminRoleOrReadOnly": "Administrador RENADS",
+    "IsAdminRole": "Administrador RENADS",
+    "IsUniversityOrReadOnly": "Universidad",
+}
+
+
+def _rol_escritura(viewset, tipo: str) -> str:
+    """Deduce el rol de escritura de un viewset a partir de sus permission_classes."""
+    nombres = [c.__name__ for c in getattr(viewset, "permission_classes", [])]
+    for permiso, rol in _ROL_POR_PERMISO.items():
+        if permiso in nombres:
+            return rol
+    return "—" if tipo == "Solo lectura" else "Según módulo"
+
+
+def _endpoints_de_router(dotted: str) -> list[tuple[str, str, str, str]]:
+    """Enumera (endpoint, operaciones, escritura, tipo) del `router` de un módulo."""
+    import importlib
+
+    modulo = importlib.import_module(dotted)
+    router = getattr(modulo, "router", None)
+    filas: list[tuple[str, str, str, str]] = []
+    if router is None:
+        return filas
+    for prefix, viewset, _basename in sorted(router.registry, key=lambda r: r[0]):
+        es_crud = hasattr(viewset, "create")
+        tipo = "CRUD" if es_crud else "Solo lectura"
+        operaciones = "GET/POST/PUT/PATCH/DELETE" if es_crud else "GET"
+        rol = _rol_escritura(viewset, tipo)
+        filas.append((f"/api/v1/{prefix}/", operaciones, rol, tipo))
+    return filas
+
+
+def agregar_endpoints(doc: Document) -> None:
+    """Capítulo de endpoints REST, enumerado en vivo desde los routers DRF de cada módulo."""
+    import os
+    import sys
+
+    # Asegurar que la raíz del proyecto esté en sys.path para importar 'config'.
+    raiz = str(DOCS.parent)
+    if raiz not in sys.path:
+        sys.path.insert(0, raiz)
+
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.dev")
+    try:
+        import django
+
+        django.setup()
+    except Exception as exc:  # pragma: no cover - entorno sin Django
+        print(f"[AVISO] No se pudo inicializar Django para los endpoints: {exc}")
+        return
+
+    doc.add_page_break()
+    doc.add_heading("Endpoints de la API (REST v1)", level=1)
+    intro = doc.add_paragraph()
+    ri = intro.add_run(
+        "Inventario de recursos REST bajo /api/v1/. La columna «Escritura» indica el rol "
+        "requerido para POST/PUT/PATCH/DELETE (superusuario siempre exento). Los recursos de "
+        "solo lectura no admiten escritura. Enumerado automáticamente desde los routers."
+    )
+    ri.italic = True
+    ri.font.size = Pt(9)
+    doc.add_paragraph()
+
+    doc.add_heading("Autenticación y perfil", level=2)
+    add_generic_table(
+        doc,
+        ["Endpoint", "Operaciones", "Escritura", "Descripción"],
+        [list(fila) for fila in ENDPOINTS_AUTENTICACION],
+    )
+
+    total = 0
+    for titulo, dotted in MODULO_ROUTERS:
+        filas = _endpoints_de_router(dotted)
+        if not filas:
+            continue
+        doc.add_heading(titulo, level=2)
+        add_generic_table(
+            doc,
+            ["Endpoint", "Operaciones", "Escritura", "Tipo"],
+            [list(f) for f in filas],
+        )
+        total += len(filas)
+    print(f"[OK] Endpoints: {total} recursos enumerados desde los routers.")
+
+
 def construir_documento() -> None:
     doc = Document()
 
@@ -407,6 +521,8 @@ def construir_documento() -> None:
 
         if num != MODULOS[-1][0]:
             doc.add_page_break()
+
+    agregar_endpoints(doc)
 
     agregar_er_global(doc, ER_GLOBAL)
 
