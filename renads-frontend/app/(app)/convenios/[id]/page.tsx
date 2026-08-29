@@ -112,10 +112,10 @@ export default function ConvenioDetallePage() {
                 <Dato label="Estado" value={`${c.estado_actual} (${c.estado_codigo})`} />
                 <Dato label="Solicitante" value={c.solicitante} />
                 <Dato
-                  label="Órgano regional"
+                  label="Órgano del directorio"
                   value={
-                    c.organo_regional_nombre
-                      ? `${c.organo_regional_nombre}${c.tipo_organo_regional ? ` (${c.tipo_organo_regional})` : ""}`
+                    c.organo_directorio_nombre
+                      ? `${c.organo_directorio_nombre}${c.tipo_organo_directorio ? ` (${c.tipo_organo_directorio})` : ""}`
                       : "—"
                   }
                 />

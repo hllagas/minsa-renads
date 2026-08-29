@@ -40,9 +40,9 @@ export default function ConveniosPage() {
         cell: ({ row }) => row.original.universidad_nombre || "—",
       },
       {
-        accessorKey: "organo_regional_nombre",
-        header: "Órgano regional",
-        cell: ({ row }) => row.original.organo_regional_nombre || "—",
+        accessorKey: "organo_directorio_nombre",
+        header: "Órgano del directorio",
+        cell: ({ row }) => row.original.organo_directorio_nombre || "—",
       },
       { accessorKey: "estado_actual", header: "Estado" },
       {

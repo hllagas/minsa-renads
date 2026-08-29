@@ -17,48 +17,6 @@ const activoFilter: FilterConfig = { name: "activo", label: "Activo", type: "boo
  * `spec/catalogos.md` §5/R1. Escritura solo `Administrador RENADS` (default de `ResourceCrud`).
  */
 const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
-  "university-authorities": {
-    endpoint: "university-authorities",
-    title: "Autoridades universitarias",
-    singular: "autoridad universitaria",
-    description: "Autoridades vigentes por universidad.",
-    searchPlaceholder: "Buscar por nombre o cargo…",
-    columns: [
-      { key: "nombre", header: "Nombre" },
-      { key: "cargo", header: "Cargo" },
-      { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
-    ],
-    filters: [
-      {
-        name: "universidad",
-        label: "Universidad",
-        type: "select",
-        optionsEndpoint: "universities",
-      },
-      activoFilter,
-    ],
-    fields: [
-      {
-        name: "universidad",
-        label: "Universidad",
-        type: "select",
-        required: true,
-        optionsEndpoint: "universities",
-      },
-      { name: "nombre", label: "Nombre", type: "text", required: true },
-      { name: "cargo", label: "Cargo", type: "text", required: true },
-      { name: "fecha_inicio_cargo", label: "Inicio del cargo", type: "date", required: true },
-      { name: "fecha_fin_cargo", label: "Fin del cargo", type: "date" },
-      { name: "numero_resolucion", label: "Número de resolución", type: "text" },
-      {
-        name: "referencia_documento_resolucion",
-        label: "Referencia del documento de resolución",
-        type: "text",
-      },
-      { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
-    ],
-  },
-
   faculties: {
     endpoint: "faculties",
     title: "Facultades",
@@ -262,15 +220,13 @@ export const CATALOGO_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
 /** Orden y rótulos del índice de entidades de `/catalogos`. */
 export const CATALOGO_ENTITY_MENU: { slug: string; title: string }[] = [
   { slug: "universities", title: "Universidades" },
-  { slug: "university-authorities", title: "Autoridades Universitarias" },
   { slug: "faculties", title: "Facultades" },
   { slug: "professional-careers", title: "Carreras Profesionales" },
   { slug: "university-campuses", title: "Sedes Universitarias" },
   { slug: "ipress", title: "Establecimientos de Salud" },
   { slug: "regional-governments", title: "Gobiernos Regionales" },
+  { slug: "organ-directories", title: "Órganos del Directorio" },
   { slug: "executing-units", title: "Unidades Ejecutoras" },
-  { slug: "regional-organs", title: "Órganos Regionales" },
-  { slug: "minsa-organs", title: "Órganos MINSA" },
   { slug: "networks", title: "Redes" },
   { slug: "micro-networks", title: "Microrredes" },
   { slug: "conapres", title: "CONAPRES" },

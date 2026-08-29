@@ -18,7 +18,7 @@ export const ANNEX_ACCEPT = "application/pdf";
 export const LOGO_ENTITIES = [
   "universities",
   "regional-governments",
-  "regional-organs",
+  "organ-directories",
   "executing-units",
   "ipress",
 ] as const;
@@ -36,8 +36,7 @@ export function hasLogo(endpoint: string): endpoint is LogoEntity {
  */
 export const ANNEX_ENTITIES = {
   interns: "INTERNO",
-  "university-authorities": "AUTORIDAD_UNIVERSIDAD",
-  representatives: "REPRESENTANTE",
+  "organ-representatives": "REPRESENTANTE",
 } as const;
 export type AnnexEntity = keyof typeof ANNEX_ENTITIES;
 

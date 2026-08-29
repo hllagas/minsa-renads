@@ -19,15 +19,14 @@ export const ENTITY_ENDPOINTS: Record<
     endpoint: "regional-governments",
     toLabel: (r) => String(r.nombre ?? r.id),
   },
-  regionalorgan: {
-    endpoint: "regional-organs",
+  organdirectory: {
+    endpoint: "organ-directories",
     toLabel: (r) => String(r.nombre ?? r.id),
   },
   executingunit: {
     endpoint: "executing-units",
     toLabel: (r) => String(r.nombre ?? r.id),
   },
-  minsaorgan: { endpoint: "minsa-organs", toLabel: (r) => String(r.nombre ?? r.id) },
   conapres: { endpoint: "conapres", toLabel: (r) => String(r.nombre ?? r.id) },
   student: {
     endpoint: "students",

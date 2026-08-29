@@ -46,7 +46,7 @@ export function ConvenioCreateForm({
       convenio_marco: null,
       solicitante_tipo_contenido: null,
       solicitante_id_objeto: null,
-      organo_regional: null,
+      organo_directorio: null,
       universidad: null,
       fecha_solicitud: "",
       max_campos_clinicos: "",
@@ -86,7 +86,7 @@ export function ConvenioCreateForm({
       titulo: values.titulo,
       solicitante_tipo_contenido: Number(values.solicitante_tipo_contenido),
       solicitante_id_objeto: Number(values.solicitante_id_objeto),
-      organo_regional: Number(values.organo_regional),
+      organo_directorio: Number(values.organo_directorio),
       universidad: Number(values.universidad),
       fecha_solicitud: values.fecha_solicitud,
     };
@@ -204,15 +204,15 @@ export function ConvenioCreateForm({
       {/* Entidad solicitante (control compuesto) */}
       <SolicitanteField control={control} />
 
-      {/* Órgano regional (tipo → entidad en cascada) */}
+      {/* Órgano del directorio (tipo → entidad en cascada) */}
       <CascadingEntityField
         control={control}
-        name="organo_regional"
-        typeLabel="Tipo de órgano regional"
-        typeEndpoint="regional-organ-types"
-        entityLabel="Órgano regional"
-        entityEndpoint="regional-organs"
-        filterParam="tipo_organo_regional"
+        name="organo_directorio"
+        typeLabel="Tipo de órgano"
+        typeEndpoint="organ-types"
+        entityLabel="Órgano del directorio"
+        entityEndpoint="organ-directories"
+        filterParam="tipo_organo"
         required
       />
 
@@ -221,7 +221,7 @@ export function ConvenioCreateForm({
         control={control}
         name="universidad"
         typeLabel="Tipo de entidad universitaria"
-        typeEndpoint="university-entity-types"
+        typeEndpoint="organ-types"
         entityLabel="Universidad"
         entityEndpoint="universities"
         filterParam="tipo_entidad"
