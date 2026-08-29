@@ -1,0 +1,44 @@
+name: CI - renads-api
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "renads-api/**"
+      - ".github/workflows/ci-renads-api.yml"
+  pull_request:
+    paths:
+      - "renads-api/**"
+      - ".github/workflows/ci-renads-api.yml"
+
+defaults:
+  run:
+    working-directory: renads-api
+
+jobs:
+  test:
+    name: Chequeos y pruebas (Django)
+    runs-on: ubuntu-latest
+    env:
+      SECRET_KEY: ci-test-secret-key
+      DEBUG: "False"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: renads-api/.python-version
+          cache: pip
+          cache-dependency-path: renads-api/requirements.txt
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Verificar configuración de Django
+        run: python manage.py check
+
+      - name: Verificar que no falten migraciones
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Ejecutar pruebas
+        run: python manage.py test
