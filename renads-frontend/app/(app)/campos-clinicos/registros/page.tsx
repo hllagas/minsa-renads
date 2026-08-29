@@ -2,10 +2,8 @@
 
 import Link from "next/link";
 
-import { clinicalFieldRegistrationsConfig } from "@/lib/convenios/clinical-fields";
-import { ResourceCrud } from "@/components/crud/resource-crud";
+import { DeterminacionView } from "@/components/campos-clinicos/determinacion-view";
 
-/** Registro de campos clínicos por sede + carrera (escritura CONAPRES; backend `IsConapresOrReadOnly`). */
 export default function RegistrosCamposClinicosPage() {
   return (
     <div>
@@ -14,10 +12,10 @@ export default function RegistrosCamposClinicosPage() {
           href="/campos-clinicos"
           className="text-sm text-muted-foreground hover:text-foreground"
         >
-          ← Campos clínicos
+          ← Campos de formación
         </Link>
       </div>
-      <ResourceCrud config={clinicalFieldRegistrationsConfig} />
+      <DeterminacionView />
     </div>
   );
 }

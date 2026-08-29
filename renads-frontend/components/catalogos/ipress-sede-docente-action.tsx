@@ -68,8 +68,8 @@ export function IpressSedeDocenteAction({ row }: { row: WithId }) {
           <DialogTitle>{label}</DialogTitle>
           <DialogDescription>
             {autorizar
-              ? "Al autorizar, esta IPRESS podrá usarse como sede docente en campos clínicos de convenios."
-              : "Al revocar, esta IPRESS dejará de estar disponible como sede docente en nuevos campos clínicos."}
+              ? "Al autorizar, esta IPRESS podrá usarse como sede docente en campos de formación de convenios."
+              : "Al revocar, esta IPRESS dejará de estar disponible como sede docente en nuevos campos de formación."}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

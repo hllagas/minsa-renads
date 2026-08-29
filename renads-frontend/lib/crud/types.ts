@@ -42,6 +42,12 @@ export interface FieldConfig {
    * backend (campo auxiliar de UI, p. ej. el ámbito que filtra la red en el alta de microrred).
    */
   virtual?: boolean;
+  /**
+   * Condición de visibilidad dinámica. Recibe los valores actuales del formulario; si retorna
+   * `false`, el campo se oculta (y no se incluye en el payload). P. ej. mostrar `content_types`
+   * solo cuando `controla_acceso === true`.
+   */
+  showWhen?: (values: Record<string, unknown>) => boolean;
   /** Etiqueta de cada opción (por defecto `nombre`/`titulo`). */
   optionsToLabel?: (row: WithId) => string;
   /** Solo para `type: "select"`: opciones estáticas (enum). Si está, no usa endpoint. */

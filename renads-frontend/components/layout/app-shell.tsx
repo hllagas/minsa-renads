@@ -43,7 +43,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/convenios", label: "Convenios", roles: ["Administrador RENADS", "DIGEP", "CONAPRES", "OGAJ", "Secretaría General"] },
   { href: "/internados", label: "Internados", roles: ["Administrador RENADS", "Universidad", "Autoridad de convenio"] },
   { href: "/actividades", label: "Actividades", roles: ["Administrador RENADS", "Universidad", "Tutor", "Sede docente"] },
-  { href: "/campos-clinicos", label: "Campos Clínicos", roles: ["Administrador RENADS", "CONAPRES", "Gobierno Regional"] },
+  { href: "/campos-clinicos", label: "Campos de Formación", roles: ["Administrador RENADS", "CONAPRES", "Gobierno Regional"] },
   { href: "/calendario", label: "Calendario", roles: ["Administrador RENADS"] },
   { href: "/catalogos", label: "Catálogos", roles: ["Administrador RENADS", "Auditor", "CONAPRES"] },
   { href: "/usuarios", label: "Gestión de Usuarios", roles: ["Administrador RENADS"] },

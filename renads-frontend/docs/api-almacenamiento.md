@@ -113,9 +113,13 @@ Entidades con anexos y su actor:
 
 | Entidad (`{entidad}`) | `tipo_actor` (anexos aceptados) |
 |-----------------------|---------------------------------|
-| `students`            | `INTERNO` |
+| `interns`             | `INTERNO` |
 | `university-authorities` | `AUTORIDAD_UNIVERSIDAD` |
 | `representatives`     | `REPRESENTANTE` |
+
+> **Nota (refactor 2026-07):** las DJ del interno (`INTERNO`) se adjuntan sobre el **internado**
+> (`interns/{id}/annex-upload|annex-checklist`), no sobre el estudiante (`students`). El endpoint
+> `students` ya no expone las acciones de anexo.
 
 El `documento_anexo` sale del catálogo maestro `/api/v1/annex-documents/`
 (filtrable por `?tipo_actor=`). Solo se aceptan anexos **activos** cuyo `tipo_actor`
@@ -208,7 +212,7 @@ Ejemplo de respuesta de `annex-upload` (`Document`):
 |--------|-----------|---------|
 | `upload-logo` (5 entidades) | `Administrador RENADS` | — |
 | `logo-url` | — | Autenticados |
-| `annex-upload` (students) | `Universidad` / `Administrador RENADS` (alcance por la universidad del estudiante) | — |
+| `annex-upload` (interns) | `Universidad` / `Administrador RENADS` (alcance por la universidad del internado) | — |
 | `annex-upload` (university-authorities, representatives) | `Administrador RENADS` | — |
 | `annex-checklist` | — | Autenticados con alcance |
 | `documents/upload` | Miembro institucional autenticado | — |

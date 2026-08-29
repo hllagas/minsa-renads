@@ -77,6 +77,8 @@ function buildPayload(fields: FieldConfig[], values: FormValues): FormValues {
   for (const f of fields) {
     // Campos virtuales: solo UI (p. ej. filtro de cascada). No se envían al backend.
     if (f.virtual) continue;
+    // Campos ocultos por `showWhen`: se excluyen del payload.
+    if (f.showWhen && !f.showWhen(values)) continue;
     const v = values[f.name];
     if (f.type === "boolean") {
       out[f.name] = Boolean(v);
@@ -140,12 +142,7 @@ export function ResourceForm({
       className="grid max-h-[75vh] grid-cols-1 gap-x-5 gap-y-4 overflow-x-hidden overflow-y-auto px-2 py-2 sm:grid-cols-2"
     >
       {fields.map((field) => (
-        <div
-          key={field.name}
-          className={isFullWidth(field) ? "sm:col-span-2" : undefined}
-        >
-          <FieldRow field={field} control={control} />
-        </div>
+        <ConditionalFieldWrapper key={field.name} field={field} control={control} />
       ))}
       <div className="flex justify-end gap-2 pt-2 sm:col-span-2">
         <Button type="button" variant="outline" onClick={onCancel}>
@@ -156,6 +153,24 @@ export function ResourceForm({
         </Button>
       </div>
     </form>
+  );
+}
+
+/** Envuelve un campo con visibilidad condicional (`showWhen`). Sin condición = siempre visible. */
+function ConditionalFieldWrapper({
+  field,
+  control,
+}: {
+  field: FieldConfig;
+  control: Control<FormValues>;
+}) {
+  const watchedValues = useWatch({ control, disabled: !field.showWhen }) as FormValues;
+  const visible = field.showWhen ? field.showWhen(watchedValues ?? {}) : true;
+  if (!visible) return null;
+  return (
+    <div className={isFullWidth(field) ? "sm:col-span-2" : undefined}>
+      <FieldRow field={field} control={control} />
+    </div>
   );
 }
 
@@ -185,25 +200,30 @@ function InputFieldRow({
       rules={{ required: field.required ? "Campo obligatorio." : false }}
       render={({ field: f, fieldState }) => (
         <div className="grid gap-1.5">
-          <Label htmlFor={field.name}>
+          <Label htmlFor={`f-${field.name}`}>
             {field.label}
             {field.required ? " *" : ""}
           </Label>
           {field.type === "date" ? (
             <DatePicker
-              id={field.name}
+              id={`f-${field.name}`}
               value={(f.value as string | null) ?? ""}
               onChange={(iso) => f.onChange(iso)}
               ariaInvalid={!!fieldState.error}
             />
           ) : (
             <Input
-              id={field.name}
-              type={inputType}
-              // Permite decimales en campos numéricos (p. ej. nota 0–20, carga horaria).
-              step={inputType === "number" ? "any" : undefined}
+              id={`f-${field.name}`}
+              // `type="number"` activa heurísticas de pago en Chrome (muestra aviso en HTTP).
+              // Usar `type="text"` + `inputMode` evita la clasificación sin perder UX numérica.
+              // Prefijo «f-» en el id: rompe el match de id="numero_orden" con heurísticas de pago.
+              type={inputType === "number" ? "text" : inputType}
+              inputMode={inputType === "number" ? "decimal" : undefined}
               disabled={field.disabled}
-              autoComplete={field.type === "password" ? "new-password" : undefined}
+              autoComplete={field.type === "password" ? "new-password" : "off"}
+              // Excluye el campo del pipeline de detección de pago de Chrome/gestores de contraseñas.
+              data-form-type="other"
+              data-lpignore="true"
               value={(f.value as string | number | null) ?? ""}
               onChange={(e) =>
                 f.onChange(toUpper ? e.target.value.toUpperCase() : e.target.value)
@@ -274,9 +294,9 @@ function BooleanFieldRow({
       name={field.name}
       render={({ field: f }) => (
         <div className="flex items-center justify-between gap-2">
-          <Label htmlFor={field.name}>{field.label}</Label>
+          <Label htmlFor={`f-${field.name}`}>{field.label}</Label>
           <Switch
-            id={field.name}
+            id={`f-${field.name}`}
             checked={Boolean(f.value)}
             onCheckedChange={(checked) => f.onChange(checked)}
           />

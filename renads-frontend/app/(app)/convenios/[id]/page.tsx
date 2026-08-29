@@ -93,7 +93,7 @@ export default function ConvenioDetallePage() {
       <Tabs defaultValue="datos">
         <TabsList>
           <TabsTrigger value="datos">Datos</TabsTrigger>
-          <TabsTrigger value="campos">Campos clínicos</TabsTrigger>
+          <TabsTrigger value="campos">Campos de formación</TabsTrigger>
           <TabsTrigger value="participantes">Participantes</TabsTrigger>
           <TabsTrigger value="historial">Historial</TabsTrigger>
         </TabsList>
@@ -130,7 +130,7 @@ export default function ConvenioDetallePage() {
                 <Dato label="Fecha de solicitud" value={c.fecha_solicitud} />
                 <Dato label="Inicio de vigencia" value={c.fecha_inicio} />
                 <Dato label="Fin de vigencia" value={c.fecha_fin} />
-                <Dato label="Máx. campos clínicos" value={c.max_campos_clinicos} />
+                <Dato label="Máx. campos de formación" value={c.max_campos_clinicos} />
               </dl>
             </CardContent>
           </Card>
@@ -147,7 +147,7 @@ export default function ConvenioDetallePage() {
               { key: "vigencia_fin", header: "Vig. fin" },
             ]}
             rows={campos.data ?? []}
-            emptyMessage="Sin campos clínicos."
+            emptyMessage="Sin campos de formación."
           />
         </TabsContent>
 

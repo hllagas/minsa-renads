@@ -256,7 +256,7 @@ export function ConvenioCreateForm({
           }}
           render={({ field, fieldState }) => (
             <Row
-              label="Máximo de campos clínicos (solo Específico)"
+              label="Máximo de campos de formación (solo Específico)"
               required={isEspecifico}
               error={fieldState.error?.message}
             >

@@ -63,7 +63,7 @@ Módulo transversal. Contrato: `docs/api-almacenamiento.md`. Cubre la subida/vis
   (`useUploadAnnex` con `documento_anexo`), valida tamaño ≤ 25 MiB, re-subir = nueva versión.
   `toast` éxito/error; refresca checklist.
 - [x] T4.3 — `RowAction` «Anexos» inyectada en:
-  `students` (`internados/personas/[entidad]`, rol `Universidad`/`Administrador RENADS`),
+  `interns` (`/internados/internos`, rol `Universidad`/`Administrador RENADS`) — **refactor 2026-07: movido de `students` a `interns`**,
   `university-authorities` y `representatives` (`/catalogos`, rol `Administrador RENADS`).
 
 ### 5. Formularios — quitar referencia manual

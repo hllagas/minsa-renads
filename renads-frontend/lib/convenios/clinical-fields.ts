@@ -45,10 +45,10 @@ const registroLabel = (r: WithId) => {
 
 export const clinicalFieldRegistrationsConfig: ResourceConfig = {
   endpoint: "clinical-field-registrations",
-  title: "Registro de campos clínicos",
-  singular: "registro de campos clínicos",
+  title: "Determinación de campos de formación",
+  singular: "Determinación de campos de formación",
   description:
-    "Total de campos clínicos por sede docente y carrera profesional (mantenimiento CONAPRES).",
+    "Total de campos de formación por sede docente y carrera profesional (mantenimiento CONAPRES).",
   writeRoles: ["CONAPRES"],
   searchPlaceholder: "Buscar…",
   columns: [

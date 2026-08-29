@@ -14,7 +14,7 @@ export default function AsignacionesCamposClinicosPage() {
           href="/campos-clinicos"
           className="text-sm text-muted-foreground hover:text-foreground"
         >
-          ← Campos clínicos
+          ← Campos de formación
         </Link>
       </div>
       <ResourceCrud config={clinicalFieldAllocationsConfig} />

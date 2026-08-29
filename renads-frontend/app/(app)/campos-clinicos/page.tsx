@@ -19,15 +19,15 @@ import {
 const CARDS = [
   {
     href: "/campos-clinicos/registros",
-    title: "Registro de campos clínicos",
+    title: "Determinación de campos de formación",
     description:
-      "Total de campos clínicos por sede docente y carrera profesional (CONAPRES).",
+      "Campos de formación determinados a cada sede docente y carrera profesional (CONAPRES).",
   },
   {
     href: "/campos-clinicos/asignaciones",
-    title: "Asignación de campos clínicos",
+    title: "Asignación de campos de formación",
     description:
-      "Cupos por universidad contra un registro, según disponibilidad (Órgano Regional).",
+      "Campos de formación asignados a cada universidad, según disponibilidad en cada sede docente (Órgano Regional).",
   },
 ];
 
@@ -35,8 +35,8 @@ export default function CamposClinicosPage() {
   return (
     <div className="grid gap-8">
       <PageHeader
-        title="Campos clínicos"
-        description="Registro (CONAPRES) y asignación por universidad (Órgano Regional)."
+        title="Campos de formación"
+        description="Determinación y Registro (CONAPRES) y asignación por universidad (Órgano Regional)."
       />
       <div className="grid gap-4 sm:grid-cols-2">
         {CARDS.map((c) => (
