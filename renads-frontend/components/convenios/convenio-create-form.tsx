@@ -222,6 +222,7 @@ export function ConvenioCreateForm({
         name="universidad"
         typeLabel="Tipo de entidad universitaria"
         typeEndpoint="organ-types"
+        typeParams={{ organo__nombre: "Universidad" }}
         entityLabel="Universidad"
         entityEndpoint="universities"
         filterParam="tipo_entidad"

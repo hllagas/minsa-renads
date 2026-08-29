@@ -12,7 +12,9 @@ export type FieldType =
   | "select"
   | "password"
   | "multiselect"
-  | "custom";
+  | "custom"
+  /** Separador visual con encabezado de sección. No genera payload; siempre ocupa ancho completo. */
+  | "separator";
 
 /** Valores del formulario declarativo (claves = `FieldConfig.name`). */
 export type FormValues = Record<string, unknown>;

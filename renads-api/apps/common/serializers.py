@@ -36,6 +36,10 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data["nombre"] = self.user.get_full_name() or self.user.get_username()
         data["grupos"] = list(self.user.groups.values_list("name", flat=True))
         data["debe_cambiar_password"] = _debe_cambiar_password(self.user)
+        # Alias OAuth2-compatible para que Swagger UI (password flow) auto-configure
+        # el Bearer token tras el login desde el diálogo Authorize.
+        data["access_token"] = data["access"]
+        data["token_type"] = "bearer"
         return data
 
 

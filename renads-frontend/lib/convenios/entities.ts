@@ -59,7 +59,7 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     title: "Universidades",
     singular: "universidad",
     description: "Entidades académicas registradas en RENADS.",
-    searchPlaceholder: "Buscar por nombre o siglas…",
+    searchPlaceholder: "Buscar por nombre, siglas o RUC…",
     // Logo embebido en la edición (solo universidades): se muestra sobre el formulario al editar.
     renderEditInfo: (r) =>
       createElement(LogoUploadField, {
@@ -71,6 +71,21 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
       logoColumn("universities"),
       { key: "nombre", header: "Nombre" },
       { key: "siglas", header: "Siglas" },
+      {
+        key: "tipo_gestion",
+        header: "Gestión",
+        render: (r) => detalleNombre(r.tipo_gestion_detalle),
+      },
+      {
+        key: "tipo_entidad",
+        header: "Tipo de entidad",
+        render: (r) => detalleNombre(r.tipo_entidad_detalle),
+      },
+      {
+        key: "tipo_autorizacion",
+        header: "Autorización",
+        render: (r) => detalleNombre(r.tipo_autorizacion_detalle),
+      },
       { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
     ],
     filters: [
@@ -85,6 +100,7 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         label: "Tipo de entidad",
         type: "select",
         optionsEndpoint: "organ-types",
+        optionsParams: { organo__nombre: "Universidad" },
       },
       {
         name: "tipo_autorizacion",
@@ -95,8 +111,14 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
       activoFilter,
     ],
     fields: [
+      // ── Identificación institucional ──────────────────────────────────────
+      { name: "_s1", label: "Identificación institucional", type: "separator" },
       { name: "nombre", label: "Nombre", type: "text", required: true },
       { name: "siglas", label: "Siglas", type: "text" },
+      { name: "codigo_inei", label: "Código INEI", type: "text" },
+
+      // ── Clasificación ─────────────────────────────────────────────────────
+      { name: "_s2", label: "Clasificación", type: "separator" },
       {
         name: "tipo_gestion",
         label: "Tipo de gestión",
@@ -110,6 +132,7 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         type: "select",
         required: true,
         optionsEndpoint: "organ-types",
+        optionsParams: { organo__nombre: "Universidad" },
       },
       {
         name: "tipo_autorizacion",
@@ -118,10 +141,15 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         required: true,
         optionsEndpoint: "authorization-types",
       },
-      { name: "codigo_inei", label: "Código INEI", type: "text" },
+
+      // ── Resolución y vigencia ─────────────────────────────────────────────
+      { name: "_s3", label: "Resolución y vigencia", type: "separator" },
+      { name: "numero_resolucion", label: "Número de resolución", type: "text" },
       { name: "fecha_constitucion", label: "Fecha de constitución", type: "date" },
       { name: "fecha_autorizacion", label: "Fecha de autorización", type: "date" },
-      { name: "numero_resolucion", label: "Número de resolución", type: "text" },
+
+      // ── Contacto y ubicación ──────────────────────────────────────────────
+      { name: "_s4", label: "Contacto y ubicación", type: "separator" },
       { name: "direccion_legal", label: "Dirección legal", type: "text" },
       { name: "telefono", label: "Teléfono", type: "text" },
       { name: "correo_institucional", label: "Correo institucional", type: "email" },
@@ -132,6 +160,9 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         optionsEndpoint: "ubigeos",
         optionsToLabel: ubigeoLabel,
       },
+
+      // ── Estado ────────────────────────────────────────────────────────────
+      { name: "_s5", label: "Estado", type: "separator" },
       { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
     ],
   },

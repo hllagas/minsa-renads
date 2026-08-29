@@ -19,6 +19,7 @@ export function CascadingEntityField({
   name,
   typeLabel,
   typeEndpoint,
+  typeParams,
   entityLabel,
   entityEndpoint,
   filterParam,
@@ -30,6 +31,8 @@ export function CascadingEntityField({
   name: string;
   typeLabel: string;
   typeEndpoint: string;
+  /** Filtros estáticos adicionales para el endpoint de tipos (e.g. `{ organo__nombre: "Universidad" }`). */
+  typeParams?: Record<string, string>;
   entityLabel: string;
   entityEndpoint: string;
   /** Query param del endpoint de entidades que filtra por el tipo elegido. */
@@ -57,6 +60,7 @@ export function CascadingEntityField({
         </Label>
         <EntityCombobox
           endpoint={typeEndpoint}
+          params={typeParams}
           value={tipoId}
           onChange={(v) => {
             setTipoId(v);

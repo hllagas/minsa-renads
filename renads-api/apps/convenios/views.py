@@ -548,6 +548,11 @@ ENTITY_VIEWSETS = {
         filterset_fields=["tipo_gestion", "tipo_entidad", "tipo_autorizacion", "activo"],
         search_fields=["nombre", "siglas", "numero_ruc"],
         logo=True,
+        detalles={
+            "tipo_gestion": _detalle_nombre,
+            "tipo_entidad": _detalle_nombre,
+            "tipo_autorizacion": _detalle_nombre,
+        },
     ),
     "faculties": _entity_viewset(
         m.Faculty, filterset_fields=["universidad", "activo"], search_fields=["nombre"]

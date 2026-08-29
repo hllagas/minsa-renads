@@ -28,10 +28,11 @@ type FormValues = Record<string, unknown>;
 const AUTO_FULL_WIDTH_NAMES =
   /^(nombre|denominacion|descripcion|direccion|observacion|observaciones|justificacion|motivo)/;
 
-/** ¿El campo ocupa las 2 columnas del formulario? `custom`/`multiselect` y textos largos sí. */
+/** ¿El campo ocupa las 2 columnas del formulario? `custom`/`multiselect`/`separator` y textos largos sí. */
 function isFullWidth(field: FieldConfig): boolean {
   if (field.fullWidth) return true;
-  if (field.type === "custom" || field.type === "multiselect") return true;
+  if (field.type === "custom" || field.type === "multiselect" || field.type === "separator")
+    return true;
   if (
     (field.type === "text" || field.type === "email") &&
     AUTO_FULL_WIDTH_NAMES.test(field.name)
@@ -48,6 +49,15 @@ function FieldRow({
   field: FieldConfig;
   control: Control<FormValues>;
 }) {
+  if (field.type === "separator")
+    return (
+      <div className="flex items-center gap-3 pt-2">
+        <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+          {field.label}
+        </span>
+        <div className="flex-1 border-t" />
+      </div>
+    );
   if (field.type === "custom") return <>{field.render?.(control)}</>;
   if (field.type === "select") return <SelectFieldRow field={field} control={control} />;
   if (field.type === "multiselect")
@@ -75,7 +85,8 @@ function defaultFor(field: FieldConfig, initial: FormValues | null): unknown {
 function buildPayload(fields: FieldConfig[], values: FormValues): FormValues {
   const out: FormValues = {};
   for (const f of fields) {
-    // Campos virtuales: solo UI (p. ej. filtro de cascada). No se envían al backend.
+    // Separadores visuales y campos virtuales: solo UI, no se envían al backend.
+    if (f.type === "separator") continue;
     if (f.virtual) continue;
     // Campos ocultos por `showWhen`: se excluyen del payload.
     if (f.showWhen && !f.showWhen(values)) continue;
@@ -132,7 +143,7 @@ export function ResourceForm({
 }) {
   const { control, handleSubmit } = useForm<FormValues>({
     defaultValues: Object.fromEntries(
-      fields.map((f) => [f.name, defaultFor(f, initial)]),
+      fields.filter((f) => f.type !== "separator").map((f) => [f.name, defaultFor(f, initial)]),
     ),
   });
 

@@ -4383,6 +4383,8 @@ export interface components {
         ExecutingUnitAuto: {
             readonly id: number;
             readonly referencia_logo: string;
+            readonly organo_directorio_detalle: string;
+            readonly tipo_organo_detalle: string;
             /** @description Nombre */
             nombre: string;
             /**
@@ -4405,6 +4407,7 @@ export interface components {
         };
         ExecutivePositionAuto: {
             readonly id: number;
+            readonly organo_detalle: string;
             /**
              * Código
              * @description Código del cargo (único dentro del órgano)
@@ -4710,6 +4713,9 @@ export interface components {
         OrganDirectoryAuto: {
             readonly id: number;
             readonly referencia_logo: string;
+            readonly organo_detalle: string;
+            readonly tipo_organo_detalle: string;
+            readonly gobierno_regional_detalle: string;
             /** @description Nombre del órgano */
             nombre: string;
             /** @description Siglas */
@@ -4849,6 +4855,7 @@ export interface components {
         };
         OrganTypeAuto: {
             readonly id: number;
+            readonly organo_detalle: string;
             /**
              * Código
              * @description Código del tipo (único dentro de la categoría)
@@ -6039,6 +6046,8 @@ export interface components {
         PatchedExecutingUnitAuto: {
             readonly id?: number;
             readonly referencia_logo?: string;
+            readonly organo_directorio_detalle?: string;
+            readonly tipo_organo_detalle?: string;
             /** @description Nombre */
             nombre?: string;
             /**
@@ -6061,6 +6070,7 @@ export interface components {
         };
         PatchedExecutivePositionAuto: {
             readonly id?: number;
+            readonly organo_detalle?: string;
             /**
              * Código
              * @description Código del cargo (único dentro del órgano)
@@ -6224,6 +6234,9 @@ export interface components {
         PatchedOrganDirectoryAuto: {
             readonly id?: number;
             readonly referencia_logo?: string;
+            readonly organo_detalle?: string;
+            readonly tipo_organo_detalle?: string;
+            readonly gobierno_regional_detalle?: string;
             /** @description Nombre del órgano */
             nombre?: string;
             /** @description Siglas */
@@ -6311,6 +6324,7 @@ export interface components {
         };
         PatchedOrganTypeAuto: {
             readonly id?: number;
+            readonly organo_detalle?: string;
             /**
              * Código
              * @description Código del tipo (único dentro de la categoría)
@@ -6483,10 +6497,18 @@ export interface components {
         PatchedUniversityAuto: {
             readonly id?: number;
             readonly referencia_logo?: string;
+            readonly tipo_gestion_detalle?: string;
+            readonly tipo_entidad_detalle?: string;
+            readonly tipo_autorizacion_detalle?: string;
             /** @description Nombre de la universidad */
             nombre?: string;
             /** @description Siglas */
             siglas?: string;
+            /**
+             * Número de RUC
+             * @description Número de RUC
+             */
+            numero_ruc?: string;
             /**
              * Código INEI
              * @description Código INEI
@@ -7026,10 +7048,18 @@ export interface components {
         UniversityAuto: {
             readonly id: number;
             readonly referencia_logo: string;
+            readonly tipo_gestion_detalle: string;
+            readonly tipo_entidad_detalle: string;
+            readonly tipo_autorizacion_detalle: string;
             /** @description Nombre de la universidad */
             nombre: string;
             /** @description Siglas */
             siglas?: string;
+            /**
+             * Número de RUC
+             * @description Número de RUC
+             */
+            numero_ruc?: string;
             /**
              * Código INEI
              * @description Código INEI
@@ -12225,6 +12255,8 @@ export interface operations {
                 /** @description Qué campo usar para ordenar los resultados. */
                 ordering?: string;
                 organo?: number;
+                organo__nombre?: string;
+                organo__nombre__icontains?: string;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
                 page?: number;
                 /** @description Un término de búsqueda. */

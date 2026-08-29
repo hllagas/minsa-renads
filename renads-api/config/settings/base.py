@@ -268,4 +268,24 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "Registro Nacional de Articulación Docencia-Servicio en Salud",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    # OAuth2 password flow → Swagger UI muestra usuario/clave en el diálogo Authorize.
+    # El endpoint /auth/token/ devuelve `access_token` (alias de `access`) para que
+    # Swagger UI auto-configure el Bearer token tras el login.
+    "APPEND_COMPONENTS": {
+        "securitySchemes": {
+            "jwtAuth": {
+                "type": "oauth2",
+                "flows": {
+                    "password": {
+                        "tokenUrl": "/api/v1/auth/token/",
+                        "scopes": {},
+                    }
+                },
+            }
+        }
+    },
+    "SWAGGER_UI_SETTINGS": {
+        "persistAuthorization": True,
+        "displayOperationId": False,
+    },
 }
