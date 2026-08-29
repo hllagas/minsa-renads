@@ -15,16 +15,12 @@ from apps.convenios.models import (
     ConventionStatusHistory,
     ConventionTemplate,
     Document,
-    DocumentType,
     LegalOpinion,
+    OrganRepresentative,
     Publication,
-    Representative,
     Signature,
     TechnicalEvaluation,
 )
-
-# Modelos a los que puede apuntar un representante (relación polimórfica).
-ENTIDADES_REPRESENTABLES = {"minsaorgan", "regionalorgan", "executingunit", "ipress", "conapres"}
 
 
 # ---------------------------------------------------------------------------
@@ -35,11 +31,11 @@ class ConventionReadSerializer(serializers.ModelSerializer):
     estado_actual = serializers.CharField(source="estado_actual.nombre", read_only=True)
     estado_codigo = serializers.CharField(source="estado_actual.codigo", read_only=True)
     solicitante = serializers.SerializerMethodField()
-    # Universidad y órgano regional: id + nombre legible; el "tipo" se deriva de la entidad
-    # (no se almacena en `convenio`), evitando redundancia en el esquema.
-    organo_regional_nombre = serializers.CharField(source="organo_regional.nombre", read_only=True)
-    tipo_organo_regional = serializers.CharField(
-        source="organo_regional.tipo_organo.nombre", read_only=True
+    # Universidad y órgano del directorio: id + nombre legible; el "tipo" se deriva de la
+    # entidad (no se almacena en `convenio`), evitando redundancia en el esquema.
+    organo_directorio_nombre = serializers.CharField(source="organo_directorio.nombre", read_only=True)
+    tipo_organo_directorio = serializers.CharField(
+        source="organo_directorio.tipo_organo.nombre", read_only=True, allow_null=True,
     )
     universidad_nombre = serializers.CharField(source="universidad.nombre", read_only=True)
     tipo_entidad_universidad = serializers.CharField(
@@ -51,7 +47,7 @@ class ConventionReadSerializer(serializers.ModelSerializer):
         fields = [
             "id", "tipo_convenio", "convenio_marco", "plantilla", "codigo", "titulo",
             "solicitante_tipo_contenido", "solicitante_id_objeto", "solicitante",
-            "organo_regional", "organo_regional_nombre", "tipo_organo_regional",
+            "organo_directorio", "organo_directorio_nombre", "tipo_organo_directorio",
             "universidad", "universidad_nombre", "tipo_entidad_universidad",
             "estado_actual", "estado_codigo", "fecha_solicitud", "fecha_inicio", "fecha_fin",
             "max_campos_clinicos", "creado_por", "creado_en", "actualizado_en",
@@ -67,7 +63,7 @@ class ConventionWriteSerializer(serializers.ModelSerializer):
         fields = [
             "tipo_convenio", "convenio_marco", "plantilla", "codigo", "titulo",
             "solicitante_tipo_contenido", "solicitante_id_objeto",
-            "organo_regional", "universidad",
+            "organo_directorio", "universidad",
             "fecha_solicitud", "fecha_inicio", "fecha_fin", "max_campos_clinicos",
         ]
 
@@ -120,7 +116,7 @@ class CambiarEstadoSerializer(serializers.Serializer):
 class TechnicalEvaluationSerializer(serializers.ModelSerializer):
     class Meta:
         model = TechnicalEvaluation
-        fields = ["resultado", "observaciones", "subsanacion", "organo_minsa", "fecha_evaluacion"]
+        fields = ["resultado", "observaciones", "subsanacion", "organo_directorio", "fecha_evaluacion"]
 
 
 class ConapresOpinionSerializer(serializers.ModelSerializer):
@@ -276,29 +272,46 @@ class PublicationSerializer(serializers.ModelSerializer):
         fields = ["fecha_publicacion", "referencia_publicacion"]
 
 
-class RepresentativeSerializer(serializers.ModelSerializer):
-    """Representante polimórfico; valida que apunte a una entidad permitida."""
+class OrganRepresentativeSerializer(serializers.ModelSerializer):
+    """Representante de un órgano del directorio (FK directo).
+
+    Valida la unicidad del documento entre representantes activos y la coherencia
+    del cargo con el órgano del directorio. La baja del representante anterior
+    (histórico) la resuelve el service ``registrar_organo_representante``.
+    """
 
     class Meta:
-        model = Representative
+        model = OrganRepresentative
         fields = "__all__"
 
-    def validate_tipo_contenido(self, value):
-        if value.model not in ENTIDADES_REPRESENTABLES:
-            raise serializers.ValidationError(
-                "La entidad representada debe ser órgano MINSA, órgano regional, "
-                "unidad ejecutora, IPRESS o CONAPRES."
-            )
-        return value
-
     def validate(self, attrs):
-        tipo = attrs.get("tipo_contenido")
-        id_objeto = attrs.get("id_objeto")
-        if tipo is not None and id_objeto is not None:
-            modelo = tipo.model_class()
-            if modelo is None or not modelo._default_manager.filter(pk=id_objeto).exists():
+        tipo_doc = attrs.get(
+            "tipo_documento_identidad", getattr(self.instance, "tipo_documento_identidad", None)
+        )
+        numero = attrs.get(
+            "numero_documento_identidad", getattr(self.instance, "numero_documento_identidad", None)
+        )
+        if tipo_doc is not None and numero:
+            qs = OrganRepresentative.objects.filter(
+                tipo_documento_identidad=tipo_doc,
+                numero_documento_identidad=numero,
+                activo=True,
+            )
+            if self.instance is not None:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
                 raise serializers.ValidationError(
-                    {"id_objeto": "La entidad referenciada no existe."}
+                    {"numero_documento_identidad": "Ya existe un representante activo con ese documento."}
+                )
+
+        organo_directorio = attrs.get(
+            "organo_directorio", getattr(self.instance, "organo_directorio", None)
+        )
+        cargo = attrs.get("cargo_ejecutivo", getattr(self.instance, "cargo_ejecutivo", None))
+        if organo_directorio is not None and cargo is not None:
+            if cargo.organo_id != organo_directorio.organo_id:
+                raise serializers.ValidationError(
+                    {"cargo_ejecutivo": "El cargo ejecutivo no corresponde al órgano del directorio."}
                 )
         return attrs
 
@@ -307,22 +320,22 @@ class RepresentativeSerializer(serializers.ModelSerializer):
 # Documento (gestión documental polimórfica con versionado)
 # ---------------------------------------------------------------------------
 class DocumentSerializer(serializers.ModelSerializer):
-    """Lectura de documentos: incluye etiquetas legibles del tipo y la entidad destino."""
+    """Lectura de documentos: incluye etiquetas legibles del anexo y la entidad destino."""
 
-    tipo_documento_nombre = serializers.CharField(source="tipo_documento.nombre", read_only=True)
+    documento_anexo_nombre = serializers.CharField(source="documento_anexo.nombre", read_only=True)
     tipo_contenido_label = serializers.CharField(source="tipo_contenido.model", read_only=True)
 
     class Meta:
         model = Document
         fields = [
-            "id", "tipo_documento", "tipo_documento_nombre",
+            "id", "documento_anexo", "documento_anexo_nombre",
             "tipo_contenido", "tipo_contenido_label", "id_objeto",
-            "referencia_externa", "nombre_archivo", "texto_extraido",
+            "referencia_externa",
             "version", "estado",
             "version_anterior", "cargado_por", "cargado_en",
         ]
         read_only_fields = [
-            "texto_extraido", "version", "estado", "version_anterior",
+            "version", "estado", "version_anterior",
             "cargado_por", "cargado_en",
         ]
 
@@ -333,8 +346,8 @@ class DocumentWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Document
         fields = [
-            "tipo_contenido", "id_objeto", "tipo_documento",
-            "nombre_archivo", "referencia_externa",
+            "tipo_contenido", "id_objeto", "documento_anexo",
+            "referencia_externa",
         ]
 
     def validate(self, attrs):
@@ -358,18 +371,34 @@ EXTENSIONES_POR_CONTENT_TYPE = {
 }
 
 
+class ActiveAnnexDocumentField(serializers.PrimaryKeyRelatedField):
+    """PK del anexo activo (`documento_anexo`), con queryset perezoso.
+
+    Resuelve el modelo `internados.AnnexDocument` en `get_queryset` (import
+    perezoso) para evitar el ciclo de import convenios <-> internados.
+    """
+
+    def get_queryset(self):
+        from apps.internados.models import AnnexDocument
+
+        return AnnexDocument.objects.filter(activo=True)
+
+
 class DocumentUploadSerializer(serializers.Serializer):
     """Subida real de un documento (multipart): valida tipo y tamaño del binario.
 
     Recibe el binario en `archivo` junto con los metadatos necesarios para
-    adjuntarlo a un objeto (relación genérica). El versionado y la auditoría los
+    adjuntarlo a un objeto (relación genérica). El discriminador de versionado es
+    el `documento_anexo` (obligatorio). El `nombre_archivo` se usa solo como ruta
+    de storage; no se persiste en `Document`. El versionado y la auditoría los
     resuelve el service `adjuntar_documento`; este serializer solo valida la
     entrada. Mensajes de error en español.
     """
 
     archivo = serializers.FileField(help_text="Binario a subir (PDF o imagen)")
-    tipo_documento = serializers.PrimaryKeyRelatedField(
-        queryset=DocumentType.objects.all(), help_text="Tipo de documento"
+    documento_anexo = ActiveAnnexDocumentField(
+        pk_field=serializers.IntegerField(),
+        help_text="Anexo/tipo del catálogo maestro (documento_anexo) que se adjunta",
     )
     tipo_contenido = serializers.PrimaryKeyRelatedField(
         queryset=ContentType.objects.all(), help_text="Tabla destino"
@@ -457,19 +486,6 @@ class LogoUploadSerializer(serializers.Serializer):
 # ---------------------------------------------------------------------------
 # Subida de anexos (PDFs de declaraciones juradas por actor) — Etapa 2
 # ---------------------------------------------------------------------------
-class ActiveAnnexDocumentField(serializers.PrimaryKeyRelatedField):
-    """PK del anexo activo (`documentos_anexos`), con queryset perezoso.
-
-    Resuelve el modelo `internados.AnnexDocument` en `get_queryset` (import
-    perezoso) para evitar el ciclo de import convenios <-> internados.
-    """
-
-    def get_queryset(self):
-        from apps.internados.models import AnnexDocument
-
-        return AnnexDocument.objects.filter(activo=True)
-
-
 class AnnexUploadSerializer(serializers.Serializer):
     """Subida del PDF de un anexo (declaración jurada) por actor (multipart).
 
@@ -477,20 +493,15 @@ class AnnexUploadSerializer(serializers.Serializer):
     catálogo maestro `internados.AnnexDocument`; el enforcement de que su
     `tipo_actor` coincide con la entidad destino lo hace el mixin (necesita el
     `annex_actor` del ViewSet). El versionado por `(objeto, documento_anexo)` lo
-    resuelve el service `adjuntar_documento`. Mensajes de error en español.
+    resuelve el service `adjuntar_documento`. La ruta de storage se deriva del
+    archivo subido dentro del mixin. Mensajes de error en español.
     """
 
     documento_anexo = ActiveAnnexDocumentField(
         pk_field=serializers.IntegerField(),
-        help_text="Anexo del catálogo maestro (documentos_anexos) que se adjunta",
+        help_text="Anexo del catálogo maestro (documento_anexo) que se adjunta",
     )
     archivo = serializers.FileField(help_text="Archivo PDF del anexo")
-    nombre_archivo = serializers.CharField(
-        max_length=255,
-        required=False,
-        allow_blank=True,
-        help_text="Nombre del archivo (si falta, se deriva del archivo subido)",
-    )
 
     def validate_archivo(self, archivo):
         content_type = getattr(archivo, "content_type", "") or ""
@@ -509,11 +520,6 @@ class AnnexUploadSerializer(serializers.Serializer):
                 f"El archivo supera el tamaño máximo permitido ({maximo_mb:.0f} MiB)."
             )
         return archivo
-
-    def validate(self, attrs):
-        if not attrs.get("nombre_archivo"):
-            attrs["nombre_archivo"] = attrs["archivo"].name
-        return attrs
 
 
 # ---------------------------------------------------------------------------

@@ -18,7 +18,7 @@ Este documento define el modelo de datos del módulo **Gestionar Convenios** (Co
 | `auth_group` | Roles |
 | `auth_permission` | Permisos |
 | `auth_user_groups`, `auth_group_permissions`, `auth_user_user_permissions` | Relaciones M2M nativas |
-| `django_content_type` | Relación genérica de `documento`, `bitacora_auditoria` y de las relaciones de participación de convenios |
+| `django_content_type` | Relación genérica de `documento_adjunto`, `bitacora_auditoria` y de las relaciones de participación de convenios |
 | `django_admin_log`, `django_session`, `django_migrations` | Infraestructura |
 
 ---
@@ -34,13 +34,12 @@ Tablas paramétricas (RNF-MAN-01). Patrón común: `id` (PK), `codigo` (varchar,
 | `ambito_geografico_sanitario` | Ámbito geográfico sanitario (seed: 29 — autoridades sanitarias regionales DIRESA/GERESA + 4 DIRIS de Lima Metropolitana) | — |
 | `tipo_convenio` | Tipo de convenio | `anios_vigencia` (int) — Marco=4, Específico=3 |
 | `estado_convenio` | Estados del flujo (26) | `aplica_a` (`TODOS` \| `ESPECIFICO`), `orden` (int) |
-| `tipo_documento` | Tipos de documento | — |
 | `tipo_gestion_universidad` | Tipo de gestión | valores: `PUBLICA`, `PRIVADA` |
 | `tipo_autorizacion` | Estado de autorización SUNEDU | valores: `LICENCIADA`, `DENEGADA`, `PENDIENTE` |
 | `nivel_academico` | Nivel académico de la carrera | valores: `PREGRADO`, `SEGUNDA_ESPECIALIDAD`, `MAESTRIA`, `DOCTORADO` |
 | `especialidad` | Especialidades de salud (seed: 46 especialidades médicas, nomenclatura oficial CONAREME) | — |
 | `tipo_autoridad_firmante` | Tipo de autoridad firmante | — |
-| `cargo_ejecutivo` | Cargos ejecutivos de representantes | — |
+| `cargo_ejecutivo` | Cargos ejecutivos de representantes. **No** hereda de `Catalog`: FK `organo_id` → `organo`, unicidad `(organo_id, codigo)` | `organo_id` (FK → `organo`), `codigo`, `nombre`, `activo` |
 | `motivo_observacion` | Motivos de observación | — |
 | `motivo_rechazo` | Motivos de rechazo | — |
 | `motivo_cierre` | Motivos de cierre o anulación | — |
@@ -131,16 +130,22 @@ Jerarquía: **GORE → Órgano Regional (GERESA/DIRESA/DIRIS) → Unidad Ejecuto
 | `referencia_logo` | varchar(500) | Sí | Logo institucional (`ImageField`; guarda el path del objeto en el repositorio de medios). Nullable. |
 | `activo` | bool | No | |
 
-### `organo_regional` (GERESA / DIRESA / DIRIS)
+### `organo_directorio` (directorio general de órganos: regionales y del MINSA)
+
+Tabla **standalone** que unifica los antiguos `organo_regional` y `organo_minsa`, discriminada por `organo_id` (→ `organo`). Los órganos regionales llevan `gobierno_regional_id`; los del MINSA lo dejan nulo.
 
 | Columna | Tipo | Null | Descripción |
 |---------|------|------|-------------|
 | `id` | PK | No | |
-| `gobierno_regional_id` | FK → `gobierno_regional` | No | GORE al que pertenece |
-| `tipo_organo_id` | FK → `tipo_organo` (PROTECT) | No | GERESA / DIRESA / DIRIS (discriminador `ORGANO_REGIONAL`) |
+| `organo_id` | FK → `organo` (PROTECT) | No | Categoría del órgano (discriminador) |
+| `tipo_organo_id` | FK → `tipo_organo` (PROTECT) | Sí | Tipo de órgano (GERESA/DIRESA/DIGEP…); nulo para órganos sin tipo |
+| `gobierno_regional_id` | FK → `gobierno_regional` (PROTECT) | Sí | GORE (solo órganos regionales) |
 | `nombre` | varchar(255) | No | Nombre del órgano |
 | `siglas` | varchar(50) | Sí | Siglas |
 | `direccion` | varchar(500) | Sí | Dirección |
+| `numero_ruc` | varchar(11) | Sí | RUC (11 dígitos; texto para conservar ceros a la izquierda) |
+| `correo` | email | Sí | Correo institucional |
+| `telefono_institucional` | varchar(30) | Sí | Teléfono institucional |
 | `ubigeo_id` | FK → `ubigeo` | Sí | Ubicación geográfica (UBIGEO) |
 | `referencia_logo` | varchar(500) | Sí | Logo institucional (`ImageField`; guarda el path del objeto en el repositorio de medios). Nullable. |
 | `activo` | bool | No | |
@@ -150,7 +155,7 @@ Jerarquía: **GORE → Órgano Regional (GERESA/DIRESA/DIRIS) → Unidad Ejecuto
 | Columna | Tipo | Null | Descripción |
 |---------|------|------|-------------|
 | `id` | PK | No | |
-| `organo_regional_id` | FK → `organo_regional` | No | Órgano regional que la administra |
+| `organo_directorio_id` | FK → `organo_directorio` | No | Órgano del directorio que la administra |
 | `tipo_organo_id` | FK → `tipo_organo` (PROTECT) | No | Hospital / Instituto especializado / Red de salud (discriminador `UNIDAD_EJECUTORA`) |
 | `nombre` | varchar(255) | No | Nombre |
 | `codigo` | varchar(50) | Sí | Código presupuestal de la unidad ejecutora |
@@ -185,19 +190,7 @@ Jerarquía: **GORE → Órgano Regional (GERESA/DIRESA/DIRIS) → Unidad Ejecuto
 >
 > **Autorización de sede docente (CONAPRES):** una `ipress` solo actúa como sede docente si **CONAPRES** la autoriza y registra tras verificar los criterios de evaluación: establecimiento **asistencial**, perteneciente al **MINSA** o a la **sanidad de las Fuerzas Armadas/Policiales**, y de gestión **pública**.
 
----
-
-## 4. Entidades — MINSA
-
-### `organo_minsa` (DIGEP / OGAJ / SG / VICEPAS)
-
-| Columna | Tipo | Null | Descripción |
-|---------|------|------|-------------|
-| `id` | PK | No | |
-| `tipo_organo_id` | FK → `tipo_organo` (PROTECT) | No | DIGEP / OGAJ / SG / VICEPAS (discriminador `MINSA`) |
-| `nombre` | varchar(255) | No | Nombre del órgano |
-| `siglas` | varchar(50) | Sí | Siglas |
-| `activo` | bool | No | |
+> Los órganos del MINSA (DIGEP / OGAJ / SG / VICEPAS) también viven en `organo_directorio` (con `gobierno_regional_id` nulo y `tipo_organo_id` opcional).
 
 ---
 
@@ -214,7 +207,7 @@ Entidad independiente, máxima instancia del SINAPRES. Conformada por autoridade
 | `descripcion` | text | Sí | Descripción |
 | `activo` | bool | No | |
 
-Los miembros de CONAPRES se registran en la tabla genérica `representante` (sección 6 bis), igual que los representantes de los órganos del MINSA y de las entidades regionales.
+Los representantes de CONAPRES y de los demás órganos se registran en `organo_representante` (sección 6 bis), con FK directo a `organo_directorio`.
 
 ---
 
@@ -241,19 +234,7 @@ Los miembros de CONAPRES se registran en la tabla genérica `representante` (sec
 | `referencia_logo` | varchar(500) | Sí | Logo institucional (`ImageField`; guarda el path del objeto en el repositorio de medios). Nullable. |
 | `activo` | bool | No | |
 
-### `autoridad_universidad`
-
-| Columna | Tipo | Null | Descripción |
-|---------|------|------|-------------|
-| `id` | PK | No | |
-| `universidad_id` | FK → `universidad` | No | Universidad |
-| `nombre` | varchar(255) | No | Nombre de la autoridad |
-| `cargo` | varchar(150) | No | Cargo |
-| `fecha_inicio_cargo` | date | No | Inicio del cargo |
-| `fecha_fin_cargo` | date | Sí | Fin del cargo |
-| `numero_resolucion` | varchar(100) | Sí | Número de resolución de designación |
-| `referencia_documento_resolucion` | varchar(500) | Sí | Referencia externa del PDF de la resolución |
-| `activo` | bool | No | |
+> Las autoridades de universidad se registran en `organo_representante` (sección 6 bis) contra un `organo_directorio` de la categoría `Universidad`; la tabla `autoridad_universidad` fue retirada.
 
 ### `facultad`
 
@@ -287,23 +268,48 @@ Los miembros de CONAPRES se registran en la tabla genérica `representante` (sec
 
 ---
 
-## 6 bis. Representantes
+## 6 bis. Representantes de órgano
 
-Tabla genérica de representantes/autoridades de entidades. Aplica por **jerarquía** (relación polimórfica vía `django_content_type`) a: `organo_minsa`, `organo_regional`, `unidad_ejecutora`, `ipress` y `conapres`. Reemplaza a la antigua `miembro_conapres`.
+Representantes/autoridades de un órgano del directorio (FK **directo** a `organo_directorio`, sin relación polimórfica). Cubre CONAPRES, órganos del MINSA, órganos regionales y universidades. Al designar un nuevo representante para el mismo `(organo_directorio, cargo_ejecutivo)` activo, el service `registrar_organo_representante` da de baja al anterior (`activo=False`) y lo copia a `historial_organo_representante`.
 
-### `representante`
+### `organo_representante`
 
 | Columna | Tipo | Null | Descripción |
 |---------|------|------|-------------|
 | `id` | PK | No | |
-| `tipo_contenido_id` | FK → `django_content_type` | No | Tipo de entidad representada |
-| `id_objeto` | int | No | Identificador de la entidad representada |
+| `organo_directorio_id` | FK → `organo_directorio` (PROTECT) | No | Órgano del directorio representado |
 | `nombre` | varchar(255) | No | Nombre del representante |
-| `cargo_ejecutivo_id` | FK → `cargo_ejecutivo` | No | Cargo (catálogo) |
-| `origen` | varchar(30) | Sí | Solo para CONAPRES: `MINSA` / `GOBIERNO_REGIONAL` / `ASOCIACION_FACULTADES` |
-| `fecha_inicio` | date | Sí | Inicio de participación / cargo |
-| `fecha_fin` | date | Sí | Fin de participación / cargo |
+| `tipo_documento_identidad_id` | FK → `tipo_documento_identidad` (módulo 2, PROTECT) | No | Tipo de documento de identidad |
+| `numero_documento_identidad` | varchar(20) | No | Número de documento de identidad |
+| `sexo` | varchar(1) | No | `M` / `F` |
+| `cargo_ejecutivo_id` | FK → `cargo_ejecutivo` (PROTECT) | No | Cargo ejecutivo |
+| `fecha_inicio_designacion` | date | No | Inicio de la designación |
+| `numero_resolucion_designacion` | varchar(100) | Sí | Número de resolución de designación |
+| `fecha_inicio_facultades` | date | Sí | Otorgamiento de facultades |
 | `activo` | bool | No | |
+
+> El PDF de la resolución **no** es columna: se adjunta vía `annex-upload` (actor `REPRESENTANTE`) como `documento_adjunto`.
+
+### `historial_organo_representante`
+
+Snapshot denormalizado de un representante dado de baja (preserva el estado aunque cambie el maestro).
+
+| Columna | Tipo | Null | Descripción |
+|---------|------|------|-------------|
+| `id` | PK | No | |
+| `representante_id` | FK → `organo_representante` (PROTECT) | No | Representante dado de baja |
+| `organo_directorio_id` | FK → `organo_directorio` (PROTECT) | No | Órgano del directorio representado |
+| `nombre` | varchar(255) | No | Nombre del representante |
+| `tipo_documento_identidad_id` | FK → `tipo_documento_identidad` (módulo 2) | No | Tipo de documento de identidad |
+| `numero_documento_identidad` | varchar(20) | No | Número de documento de identidad |
+| `sexo` | varchar(1) | No | `M` / `F` |
+| `cargo_ejecutivo_id` | FK → `cargo_ejecutivo` (PROTECT) | No | Cargo ejecutivo |
+| `fecha_inicio_designacion` | date | No | Inicio de la designación |
+| `numero_resolucion_designacion` | varchar(100) | Sí | Número de resolución de designación |
+| `fecha_inicio_facultades` | date | Sí | Otorgamiento de facultades |
+| `fecha_baja` | date | No | Fecha en que se dio de baja al representante |
+| `motivo` | varchar(255) | Sí | Motivo de la baja |
+| `creado_en` | datetime | No | Fecha y hora de creación del histórico |
 
 ---
 
@@ -343,9 +349,9 @@ Los roles son `auth_group` y los permisos `auth_permission`. Como la entidad del
 
 La entidad solicitante es polimórfica (universidad, órgano regional, etc.). Adicionalmente,
 las dos partes concretas de la articulación docencia-servicio se modelan con FK explícitas:
-`organo_regional_id` (lado prestador) y `universidad_id` (lado académico). Los "tipos"
-(tipo de órgano regional, tipo de entidad universitaria) **no se almacenan**: se derivan de la
-entidad referenciada (`organo_regional → tipo_organo_regional`, `universidad → tipo_entidad`),
+`organo_directorio_id` (lado prestador) y `universidad_id` (lado académico). Los "tipos"
+(tipo de órgano, tipo de entidad universitaria) **no se almacenan**: se derivan de la
+entidad referenciada (`organo_directorio → tipo_organo`, `universidad → tipo_entidad`),
 evitando redundancia. En el formulario son selectores en cascada que filtran la lista de entidades.
 
 > **Reglas de solicitud (validación a nivel de aplicación):**
@@ -363,7 +369,7 @@ evitando redundancia. En el formulario son selectores en cascada que filtran la 
 | `titulo` | varchar(255) | No | Título / denominación |
 | `solicitante_tipo_contenido_id` | FK → `django_content_type` | No | Tipo de entidad solicitante |
 | `solicitante_id_objeto` | int | No | Identificador de la entidad solicitante |
-| `organo_regional_id` | FK → `organo_regional` | No | Órgano regional (GERESA/DIRESA/DIRIS) parte del convenio. Su tipo se deriva de la entidad |
+| `organo_directorio_id` | FK → `organo_directorio` | No | Órgano del directorio (GERESA/DIRESA/DIRIS) parte del convenio. Su tipo se deriva de la entidad |
 | `universidad_id` | FK → `universidad` | No | Universidad parte del convenio. Su tipo de entidad se deriva de la entidad |
 | `estado_actual_id` | FK → `estado_convenio` | No | Estado actual |
 | `fecha_solicitud` | date | No | Fecha de solicitud |
@@ -414,7 +420,7 @@ Cada actividad soporta documentos PDF mediante la tabla `documento` (sección 10
 | `observaciones` | text | Sí | Observaciones |
 | `subsanacion` | text | Sí | Subsanación |
 | `evaluado_por` | FK → `auth_user` | No | Responsable |
-| `organo_minsa_id` | FK → `organo_minsa` | Sí | Unidad evaluadora (DIGEP) |
+| `organo_directorio_id` | FK → `organo_directorio` (SET_NULL) | Sí | Unidad evaluadora (DIGEP) del directorio |
 | `fecha_evaluacion` | date | No | |
 | `creado_en` | datetime | No | |
 
@@ -536,25 +542,24 @@ El firmante es polimórfico (órgano MINSA, universidad, órgano regional, etc.)
 
 Tabla única para todo adjunto del expediente (RNF-DOC-01..05). El binario vive en un **repositorio externo**; aquí solo se guarda la **referencia externa**. Se vincula a cualquier tabla del flujo vía relación genérica de Django.
 
-### `documento`
+### `documento_adjunto`
 
 | Columna | Tipo | Null | Descripción |
 |---------|------|------|-------------|
 | `id` | PK | No | |
-| `tipo_documento_id` | FK → `tipo_documento` | No | Tipo de documento |
 | `tipo_contenido_id` | FK → `django_content_type` | No | Tabla destino |
 | `id_objeto` | int | No | Registro destino |
 | `referencia_externa` | varchar(500) | No | Clave/URL del archivo en el repositorio externo |
-| `nombre_archivo` | varchar(255) | No | Nombre del archivo |
-| `texto_extraido` | text | No (default `''`) | Texto extraído del PDF por Document AI (OCR genérico). Vacío para imágenes o cuando la extracción está deshabilitada/falla (best-effort) |
 | `version` | int | No | Versión |
 | `estado` | varchar(20) | No | `ACTIVO` / `REEMPLAZADO` / `ANULADO` / `OBSERVADO` / `VALIDADO` |
-| `version_anterior_id` | FK → `documento` (self) | Sí | Versión previa reemplazada (RNF-DOC-04 / AUD-04) |
-| `documento_anexo_id` | FK → `documentos_anexos` (módulo 2) | Sí | Anexo (declaración jurada) al que corresponde el documento; nulo para documentos que no son anexos. Cuando se define, el versionado se discrimina por `(objeto, documento_anexo)` en lugar de por `tipo_documento` |
+| `version_anterior_id` | FK → `documento_adjunto` (self) | Sí | Versión previa reemplazada (RNF-DOC-04 / AUD-04) |
+| `documento_anexo_id` | FK → `documento_anexo` (módulo 2, PROTECT) | **No** | Anexo/tipo al que corresponde el documento. **Único discriminador de versionado** (par `(objeto, documento_anexo)`) |
 | `cargado_por` | FK → `auth_user` | No | Usuario que cargó |
 | `cargado_en` | datetime | No | Fecha y hora de carga |
 
-Se adjunta a: `convenio`, `evaluacion_tecnica`, `opinion_conapres`, `campo_clinico_ipress`, `campo_clinico_ipress_universidad`, `opinion_juridica`, `firma`, `publicacion`. **Anexos (declaraciones juradas por actor):** también se adjunta a `estudiante` (interno), `autoridad_universidad` y `representante` con `documento_anexo_id` (ver módulo 2 y `docs/api_almacenamiento_frontend.md`).
+> Se retiraron las columnas `tipo_documento_id`, `nombre_archivo` y `texto_extraido`. El nombre de archivo se usa solo como ruta de storage al subir; no se persiste. El versionado se discrimina **siempre** por `documento_anexo`.
+
+Se adjunta a: `convenio`, `evaluacion_tecnica`, `opinion_conapres`, `campo_clinico_ipress`, `campo_clinico_ipress_universidad`, `opinion_juridica`, `firma`, `publicacion`. **Anexos (declaraciones juradas por actor):** también se adjunta al `interno` (`INTERNO`) y al `organo_representante` (`REPRESENTANTE`, cubre autoridades de universidad y CONAPRES) con `documento_anexo_id` (ver módulo 2 y `docs/api_almacenamiento_frontend.md`).
 
 ---
 
@@ -580,23 +585,23 @@ Se adjunta a: `convenio`, `evaluacion_tecnica`, `opinion_conapres`, `campo_clini
 ## 12. Mapa de relaciones
 
 ```
-ubigeo (distrito INEI) >──< organo_regional / unidad_ejecutora / ipress / universidad / local_universidad   (también estudiante / tutor del módulo 2)
-gobierno_regional ──< organo_regional ──< unidad_ejecutora ──< ipress
+ubigeo (distrito INEI) >──< organo_directorio / unidad_ejecutora / ipress / universidad / local_universidad   (también estudiante / tutor del módulo 2)
+gobierno_regional ──< organo_directorio ──< unidad_ejecutora ──< ipress
 gobierno_regional >── region
-organo_regional >── tipo_organo (discriminador ORGANO_REGIONAL)
-unidad_ejecutora >── tipo_organo (discriminador UNIDAD_EJECUTORA)
+organo_directorio >── organo (discriminador) / tipo_organo (opcional) / gobierno_regional (opcional, solo regionales)
+unidad_ejecutora >── organo_directorio / tipo_organo (discriminador UNIDAD_EJECUTORA)
 ipress >── ambito_geografico_sanitario
 ambito_geografico_sanitario ──< red ──< microred ──< ipress
 ipress >── categoria / tipo_clasificacion / microred
 
-organo_minsa >── tipo_organo (discriminador MINSA)
 conapres
 
-representante >── django_content_type (entidad representada: organo_minsa / organo_regional / unidad_ejecutora / ipress / conapres)
-representante >── cargo_ejecutivo
+organo_representante >── organo_directorio
+organo_representante >── cargo_ejecutivo >── organo
+organo_representante >── tipo_documento_identidad (módulo 2)
+organo_representante ──< historial_organo_representante   (baja del anterior al designar uno nuevo)
 
 universidad >── tipo_gestion_universidad / tipo_organo (discriminador UNIVERSIDAD) / tipo_autorizacion
-universidad ──< autoridad_universidad
 universidad ──< facultad
 carrera_profesional >── nivel_academico
 universidad ──< local_universidad >── region
@@ -608,10 +613,11 @@ convenio >── tipo_convenio
 convenio ──self< (Específico → Marco)            [convenio_marco_id]
 convenio >── plantilla_convenio
 convenio >── django_content_type (entidad solicitante, polimórfico)
+convenio >── organo_directorio / universidad
 convenio >── estado_convenio (estado_actual)
 convenio ──< participante_convenio >── django_content_type (participante polimórfico)
 convenio ──< historial_estado_convenio >── estado_convenio
-convenio ──< evaluacion_tecnica >── organo_minsa
+convenio ──< evaluacion_tecnica >── organo_directorio
 convenio ──< opinion_conapres                    (solo Específico)
 convenio ──< campo_clinico_ipress >── ipress / carrera_profesional / especialidad   (registro CONAPRES, solo Específico)
 campo_clinico_ipress ──< campo_clinico_ipress_universidad >── ipress / carrera_profesional / especialidad / universidad   (asignación Órgano Regional)
@@ -620,8 +626,8 @@ convenio ──< opinion_juridica
 convenio ──< firma >── django_content_type (firmante polimórfico)
 convenio ──< publicacion
 
-documento          >── django_content_type   (genérico → cualquier tabla del flujo / anexos por actor)
-documento          >── documentos_anexos      (módulo 2; nulo salvo anexos por actor)
+documento_adjunto  >── django_content_type   (genérico → cualquier tabla del flujo / anexos por actor)
+documento_adjunto  >── documento_anexo        (módulo 2; obligatorio, único discriminador de versionado)
 bitacora_auditoria >── django_content_type   (genérico → cualquier entidad)
 ```
 
@@ -630,14 +636,14 @@ bitacora_auditoria >── django_content_type   (genérico → cualquier entida
 ## 13. Trazabilidad de requerimientos
 
 - **RN-3 (Específico requiere Marco vigente):** `convenio.convenio_marco_id`. **Excepción DIRIS:** solicitan Específico sin Marco (`convenio_marco_id` nulo).
-- **Solicitud de Convenio Marco (solo GERESA/DIRESA):** validación sobre la entidad solicitante (`organo_regional → tipo_organo`, discriminador `ORGANO_REGIONAL`).
+- **Solicitud de Convenio Marco (solo GERESA/DIRESA):** validación sobre la entidad solicitante (`organo_directorio → tipo_organo`, discriminador `ORGANO_REGIONAL`).
 - **CONAPRES y campos clínicos solo en Específico:** tablas `opinion_conapres`, `campo_clinico_ipress` y `campo_clinico_ipress_universidad`; estados con `aplica_a = ESPECIFICO`.
 - **Opinión jurídica (OGAJ) solo para Marco:** `opinion_juridica` se registra únicamente cuando `convenio.tipo_convenio = MARCO`.
 - **Opinión favorable (CONAPRES) solo para Específico:** `opinion_conapres`.
 - **Autorización de sede docente (CONAPRES):** `ipress` autorizada bajo criterios (asistencial, MINSA/FF.AA.-FF.PP., pública).
 - **Campos clínicos (dos tablas):** el total por sede/carrera lo registra **CONAPRES** en `campo_clinico_ipress.campos_clinicos_registrados`; los cupos por universidad los asigna el **Órgano Regional** (GERESA/DIRESA/DIRIS) en `campo_clinico_ipress_universidad.campos_clinicos_autorizados`, sin exceder la disponibilidad del registro (`registrados − Σ autorizados`), en el mismo ámbito geográfico sanitario. El acumulador `campo_clinico_ipress.campos_clinicos_asignados` lo recalcula el service tras cada create/update/delete de asignación. Endpoints: `clinical-field-registrations` (CONAPRES) y `clinical-field-allocations` (Gobierno Regional).
-- **Versionado documental (RNF-DOC-04 / AUD-04):** `documento.version_anterior_id` + `estado`. En los **anexos por actor**, el versionado se discrimina por `documento.documento_anexo_id` (par `(objeto, documento_anexo)`).
-- **Adjuntos en repositorio externo:** columna `referencia_externa` (en `documento`, `plantilla_convenio`) y `autoridad_universidad.referencia_documento_resolucion`. Las columnas `referencia_logo` (logos de `universidad`, `gobierno_regional`, `organo_regional`, `unidad_ejecutora`, `ipress`) son **`ImageField`** de Django (Etapa 4): guardan el path relativo del objeto en el repositorio de medios (`STORAGES["default"]` = django-storages sobre GCS en prod, `FileSystemStorage` en dev); su `.url` es un signed URL V4 efímero. El **adjunto real** (logos e imágenes / PDFs de anexos) se sirve vía el backend de almacenamiento; ver `docs/api_almacenamiento_frontend.md`. Todo **PDF** adjuntado se procesa además con **Document AI** (OCR genérico) y su texto se guarda en `documento.texto_extraido` (best-effort; las imágenes no se procesan).
+- **Versionado documental (RNF-DOC-04 / AUD-04):** `documento_adjunto.version_anterior_id` + `estado`. El versionado se discrimina **siempre** por `documento_adjunto.documento_anexo_id` (par `(objeto, documento_anexo)`).
+- **Adjuntos en repositorio externo:** columna `referencia_externa` (en `documento_adjunto`, `plantilla_convenio`). Las columnas `referencia_logo` (logos de `universidad`, `gobierno_regional`, `organo_directorio`, `unidad_ejecutora`, `ipress`) son **`ImageField`** de Django (Etapa 4): guardan el path relativo del objeto en el repositorio de medios (`STORAGES["default"]` = django-storages sobre GCS en prod, `FileSystemStorage` en dev); su `.url` es un signed URL V4 efímero. El **adjunto real** (logos e imágenes / PDFs de anexos) se sirve vía el backend de almacenamiento; ver `docs/api_almacenamiento_frontend.md`. El nombre de archivo se usa solo como ruta de storage al subir; no se persiste en `documento_adjunto`.
 - **Trazabilidad de estados (RNF-AUD-03):** `historial_estado_convenio`.
 - **Bitácora de auditoría (RNF-AUD-01/02):** `bitacora_auditoria`.
 - **Roles y ámbito institucional (RNF-SEG-02/03):** `auth_group` + `perfil_usuario_entidad`.

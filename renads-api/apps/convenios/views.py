@@ -12,7 +12,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.common.documentai import extraer_texto_pdf
 from apps.common.permissions import IsInstitutionalMember, IsModuleEnabled, exigir_ambito
 from apps.common.services import adjuntar_documento, registrar_auditoria
 from apps.common.storage import get_document_storage
@@ -50,8 +49,8 @@ from apps.convenios.serializers import (
     DocumentUploadSerializer,
     DocumentWriteSerializer,
     LegalOpinionSerializer,
+    OrganRepresentativeSerializer,
     PublicationSerializer,
-    RepresentativeSerializer,
     SignatureSerializer,
     TechnicalEvaluationSerializer,
 )
@@ -473,7 +472,6 @@ CATALOG_VIEWSETS = {
     "university-management-types": _catalog_viewset(m.UniversityManagementType),
     "specialties": _catalog_viewset(m.Specialty),
     "signing-authority-types": _catalog_viewset(m.SigningAuthorityType),
-    "executive-positions": _catalog_viewset(m.ExecutivePosition),
     "observation-reasons": _catalog_viewset(m.ObservationReason),
     "rejection-reasons": _catalog_viewset(m.RejectionReason),
     "closure-reasons": _catalog_viewset(m.ClosureReason),
@@ -486,8 +484,8 @@ ENTITY_VIEWSETS = {
     "health-geographic-scopes": _entity_viewset(
         m.HealthGeographicScope, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
     ),
-    "document-types": _entity_viewset(
-        m.DocumentType, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
+    "executive-positions": _entity_viewset(
+        m.ExecutivePosition, filterset_fields=["organo", "activo"], search_fields=["codigo", "nombre"]
     ),
     "authorization-types": _entity_viewset(
         m.AuthorizationType, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
@@ -517,34 +515,25 @@ ENTITY_VIEWSETS = {
     "regional-governments": _entity_viewset(
         m.RegionalGovernment, filterset_fields=["region", "activo"], search_fields=["nombre"], logo=True
     ),
-    "regional-organs": _entity_viewset(
-        m.RegionalOrgan,
-        filterset_fields=["gobierno_regional", "tipo_organo", "activo"],
-        search_fields=["nombre", "siglas"],
+    "organ-directories": _entity_viewset(
+        m.OrganDirectory,
+        filterset_fields=["organo", "tipo_organo", "gobierno_regional", "activo"],
+        search_fields=["nombre", "siglas", "numero_ruc"],
         logo=True,
     ),
     "executing-units": _entity_viewset(
         m.ExecutingUnit,
-        filterset_fields=["organo_regional", "tipo_organo", "activo"],
+        filterset_fields=["organo_directorio", "tipo_organo", "activo"],
         search_fields=["nombre", "codigo"],
         logo=True,
     ),
     "ipress": IpressViewSet,
-    "minsa-organs": _entity_viewset(
-        m.MinsaOrgan, filterset_fields=["tipo_organo", "activo"], search_fields=["nombre", "siglas"]
-    ),
     "conapres": _entity_viewset(m.Conapres, filterset_fields=["activo"], search_fields=["nombre"]),
     "universities": _entity_viewset(
         m.University,
         filterset_fields=["tipo_gestion", "tipo_entidad", "tipo_autorizacion", "activo"],
         search_fields=["nombre", "siglas"],
         logo=True,
-    ),
-    "university-authorities": _entity_viewset(
-        m.UniversityAuthority,
-        filterset_fields=["universidad", "activo"],
-        search_fields=["nombre", "cargo"],
-        annex_actor="AUTORIDAD_UNIVERSIDAD",
     ),
     "faculties": _entity_viewset(
         m.Faculty, filterset_fields=["universidad", "activo"], search_fields=["nombre"]
@@ -577,20 +566,42 @@ class UbigeoViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ["codigo"]
 
 
-class RepresentativeViewSet(AnnexAttachmentMixin, AuditedModelViewSet):
-    """CRUD de representantes (relación polimórfica validada) + adjunto real de anexos.
+class OrganRepresentativeViewSet(AnnexAttachmentMixin, AuditedModelViewSet):
+    """CRUD de representantes de órgano (FK directo al directorio) + adjunto real de anexos.
 
-    Escritura solo Administrador RENADS. Adjunta PDFs de anexos del actor
-    `REPRESENTANTE` (resolución del cargo, documento de identidad) vía
-    `annex-upload`/`annex-checklist`.
+    Escritura solo Administrador RENADS. Al crear, delega en el service
+    `registrar_organo_representante` (da de baja al anterior activo del mismo par
+    `(organo_directorio, cargo_ejecutivo)` y lo copia al histórico). Adjunta PDFs
+    de anexos del actor `REPRESENTANTE` (resolución del cargo, documento de
+    identidad) vía `annex-upload`/`annex-checklist`.
     """
 
-    queryset = m.Representative.objects.select_related("tipo_contenido", "cargo_ejecutivo")
-    serializer_class = RepresentativeSerializer
+    queryset = m.OrganRepresentative.objects.select_related(
+        "organo_directorio", "cargo_ejecutivo", "tipo_documento_identidad"
+    )
+    serializer_class = OrganRepresentativeSerializer
     permission_classes = [IsAuthenticated, IsAdminRoleOrReadOnly]
-    filterset_fields = ["tipo_contenido", "id_objeto", "cargo_ejecutivo", "activo"]
+    filterset_fields = ["organo_directorio", "cargo_ejecutivo", "activo"]
+    search_fields = ["nombre", "numero_documento_identidad"]
     ordering = ["id"]
     annex_actor = "REPRESENTANTE"
+
+    def perform_create(self, serializer):
+        serializer.instance = services.registrar_organo_representante(
+            datos=serializer.validated_data, usuario=self.request.user
+        )
+
+
+class OrganRepresentativeHistoryViewSet(viewsets.ReadOnlyModelViewSet):
+    """Histórico de bajas de representantes de órgano (solo lectura)."""
+
+    queryset = m.OrganRepresentativeHistory.objects.select_related(
+        "representante", "organo_directorio", "cargo_ejecutivo"
+    ).all()
+    serializer_class = _auto_serializer(m.OrganRepresentativeHistory)
+    permission_classes = [IsAuthenticated]
+    filterset_fields = ["organo_directorio", "cargo_ejecutivo", "representante"]
+    ordering = ["-fecha_baja", "-id"]
 
 
 # ---------------------------------------------------------------------------
@@ -604,10 +615,10 @@ class DocumentViewSet(AuditedModelViewSet):
     """
 
     queryset = m.Document.objects.select_related(
-        "tipo_documento", "tipo_contenido", "version_anterior", "cargado_por"
+        "documento_anexo", "tipo_contenido", "version_anterior", "cargado_por"
     )
     permission_classes = [IsAuthenticated, IsInstitutionalMember]
-    filterset_fields = ["tipo_contenido", "id_objeto", "tipo_documento", "estado"]
+    filterset_fields = ["tipo_contenido", "id_objeto", "documento_anexo", "estado"]
     ordering = ["-id"]
     http_method_names = ["get", "post", "delete", "head", "options"]
 
@@ -630,10 +641,9 @@ class DocumentViewSet(AuditedModelViewSet):
         objeto = tipo_contenido.get_object_for_this_type(pk=ser.validated_data["id_objeto"])
         documento = adjuntar_documento(
             objeto,
-            tipo_documento=ser.validated_data["tipo_documento"],
-            nombre_archivo=ser.validated_data["nombre_archivo"],
             referencia_externa=ser.validated_data["referencia_externa"],
             usuario=request.user,
+            documento_anexo=ser.validated_data["documento_anexo"],
         )
         return Response(DocumentSerializer(documento).data, status=201)
 
@@ -659,18 +669,11 @@ class DocumentViewSet(AuditedModelViewSet):
         objeto = tipo_contenido.get_object_for_this_type(pk=datos["id_objeto"])
         archivo = datos["archivo"]
         referencia = self.storage.subir(archivo, ruta=datos["nombre_archivo"])
-        # Solo los PDFs se procesan con Document AI (best-effort); imágenes no.
-        content_type = getattr(archivo, "content_type", "") or ""
-        texto_extraido = (
-            extraer_texto_pdf(archivo) if content_type == "application/pdf" else ""
-        )
         documento = adjuntar_documento(
             objeto,
-            tipo_documento=datos["tipo_documento"],
-            nombre_archivo=datos["nombre_archivo"],
             referencia_externa=referencia,
             usuario=request.user,
-            texto_extraido=texto_extraido,
+            documento_anexo=datos["documento_anexo"],
         )
         return Response(DocumentSerializer(documento).data, status=201)
 
@@ -703,8 +706,7 @@ SOLICITANTE_MODELS = (
     m.Ipress,
     m.RegionalGovernment,
     m.ExecutingUnit,
-    m.RegionalOrgan,
-    m.MinsaOrgan,
+    m.OrganDirectory,
     m.Conapres,
 )
 

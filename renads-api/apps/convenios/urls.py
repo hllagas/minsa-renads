@@ -20,7 +20,14 @@ router.register(
     views.ClinicalFieldAllocationViewSet,
     basename="clinical-field-allocation",
 )
-router.register("representatives", views.RepresentativeViewSet)
+router.register(
+    "organ-representatives", views.OrganRepresentativeViewSet, basename="organ-representative"
+)
+router.register(
+    "organ-representative-history",
+    views.OrganRepresentativeHistoryViewSet,
+    basename="organ-representative-history",
+)
 router.register("ubigeos", views.UbigeoViewSet)
 router.register("documents", views.DocumentViewSet, basename="document")
 router.register("audit-logs", views.AuditLogViewSet, basename="audit-log")

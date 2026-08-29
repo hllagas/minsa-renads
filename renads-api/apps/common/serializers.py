@@ -357,9 +357,8 @@ from apps.convenios.models import (  # noqa: E402
     Conapres,
     ExecutingUnit,
     Ipress,
-    MinsaOrgan,
+    OrganDirectory,
     RegionalGovernment,
-    RegionalOrgan,
     University,
 )
 from apps.internados.models import Student  # noqa: E402
@@ -376,10 +375,9 @@ ASSIGNABLE_PROFILE_MODELS = (
     University,
     Ipress,
     RegionalGovernment,
-    RegionalOrgan,
+    OrganDirectory,
     ExecutingUnit,
     Conapres,
-    MinsaOrgan,
     Student,
 )
 

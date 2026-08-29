@@ -78,18 +78,15 @@ class AnnexDocument(Catalog):
     resolución del cargo, documento de identidad) a adjuntar tras el registro."""
 
     tipo_actor = models.CharField(
-        "tipo de actor", max_length=30, choices=ANNEX_ACTOR, default="INTERNO",
-        help_text="Actor que debe presentar el documento",
-    )
-    descripcion = models.TextField(
-        "descripción", blank=True, help_text="Descripción del documento / declaración jurada",
+        "tipo de actor", max_length=30, choices=ANNEX_ACTOR, default="INTERNO", blank=True,
+        help_text="Actor que debe presentar el documento (vacío para tipos genéricos)",
     )
     obligatorio = models.BooleanField(
         "obligatorio", default=True, help_text="Indica si el documento es de presentación obligatoria",
     )
 
     class Meta:
-        db_table = "documentos_anexos"
+        db_table = "documento_anexo"
         verbose_name = "documento anexo"
 
 

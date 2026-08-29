@@ -22,6 +22,8 @@ from apps.convenios.models import (
     ConventionStatusHistory,
     Ipress,
     LegalOpinion,
+    OrganRepresentative,
+    OrganRepresentativeHistory,
     Publication,
     Signature,
     TechnicalEvaluation,
@@ -113,14 +115,14 @@ def crear_convenio(*, datos: dict, usuario) -> Convention:
     """Registra un convenio. RN-3: el Específico requiere un Marco vigente."""
     tipo = datos["tipo_convenio"]
     marco = datos.get("convenio_marco")
-    organo = datos["organo_regional"]
-    tipo_organo = organo.tipo_organo_regional.codigo  # GERESA / DIRESA / DIRIS
+    organo = datos["organo_directorio"]
+    tipo_organo = organo.tipo_organo.codigo if organo.tipo_organo_id else ""  # GERESA / DIRESA / DIRIS
 
     if tipo.codigo == "MARCO":
         # Solo GERESA o DIRESA pueden solicitar un Convenio Marco.
         if tipo_organo not in {"GERESA", "DIRESA"}:
             raise ValidationError(
-                {"organo_regional": "Solo una GERESA o DIRESA puede solicitar un Convenio Marco."}
+                {"organo_directorio": "Solo una GERESA o DIRESA puede solicitar un Convenio Marco."}
             )
         if marco is not None:
             raise ValidationError({"convenio_marco": "Un Convenio Marco no depende de otro convenio."})
@@ -151,7 +153,7 @@ def crear_convenio(*, datos: dict, usuario) -> Convention:
         titulo=datos["titulo"],
         solicitante_tipo_contenido=datos["solicitante_tipo_contenido"],
         solicitante_id_objeto=datos["solicitante_id_objeto"],
-        organo_regional=datos["organo_regional"],
+        organo_directorio=datos["organo_directorio"],
         universidad=datos["universidad"],
         estado_actual=estado_inicial,
         fecha_solicitud=datos["fecha_solicitud"],
@@ -171,7 +173,7 @@ def crear_convenio(*, datos: dict, usuario) -> Convention:
 def actualizar_convenio(*, convenio: Convention, datos: dict, usuario) -> Convention:
     """Actualiza campos editables del convenio (no el estado: usar `cambiar_estado`)."""
     editables = [
-        "codigo", "titulo", "plantilla", "organo_regional", "universidad",
+        "codigo", "titulo", "plantilla", "organo_directorio", "universidad",
         "fecha_inicio", "fecha_fin", "max_campos_clinicos",
     ]
     for campo in editables:
@@ -401,7 +403,7 @@ def registrar_firma(*, convenio: Convention, datos: dict, usuario) -> Signature:
         raise ValidationError("No se puede firmar: hay observaciones pendientes de subsanar.")
     firma = Signature.objects.create(convenio=convenio, **datos)
     registrar_auditoria(usuario, "CREAR", firma)
-    if firma.firmante_tipo_contenido.model == "minsaorgan":
+    if firma.firmante_tipo_contenido.model == "organdirectory":
         _set_estado(convenio, "FIRMADO_MINSA", usuario)
     else:
         _set_estado(convenio, "FIRMADO_EXTERNOS", usuario)
@@ -421,6 +423,57 @@ def agregar_participante(*, convenio: Convention, datos: dict, usuario) -> Conve
     participante = ConventionParticipant.objects.create(convenio=convenio, **datos)
     registrar_auditoria(usuario, "CREAR", participante)
     return participante
+
+
+# ---------------------------------------------------------------------------
+# Representantes de órgano (directorio) — histórico de bajas
+# ---------------------------------------------------------------------------
+_CAMPOS_SNAPSHOT_REPRESENTANTE = [
+    "organo_directorio", "nombre", "tipo_documento_identidad",
+    "numero_documento_identidad", "sexo", "cargo_ejecutivo",
+    "fecha_inicio_designacion", "numero_resolucion_designacion",
+    "fecha_inicio_facultades",
+]
+
+
+@transaction.atomic
+def registrar_organo_representante(*, datos: dict, usuario) -> OrganRepresentative:
+    """Registra un representante de órgano, dando de baja al anterior activo del mismo par.
+
+    RN — histórico de representantes: al designar un nuevo representante para un par
+    ``(organo_directorio, cargo_ejecutivo)`` que ya tiene uno activo, el anterior se
+    marca ``activo=False`` y se copia a ``OrganRepresentativeHistory`` (snapshot
+    denormalizado) con ``fecha_baja=hoy``. Todo en una transacción, con auditoría.
+    """
+    motivo = datos.pop("motivo", "") or "Reemplazo de representante"
+
+    anterior = (
+        OrganRepresentative.objects.select_for_update()
+        .filter(
+            organo_directorio=datos["organo_directorio"],
+            cargo_ejecutivo=datos["cargo_ejecutivo"],
+            activo=True,
+        )
+        .first()
+    )
+    if anterior is not None:
+        anterior.activo = False
+        anterior.save(update_fields=["activo"])
+        historial = OrganRepresentativeHistory.objects.create(
+            representante=anterior,
+            fecha_baja=datetime.date.today(),
+            motivo=motivo,
+            **{campo: getattr(anterior, campo) for campo in _CAMPOS_SNAPSHOT_REPRESENTANTE},
+        )
+        registrar_auditoria(
+            usuario, "CAMBIO_ESTADO", anterior,
+            nombre_campo="activo", valor_anterior="True", valor_nuevo="False",
+        )
+        registrar_auditoria(usuario, "CREAR", historial)
+
+    nuevo = OrganRepresentative.objects.create(**datos)
+    registrar_auditoria(usuario, "CREAR", nuevo)
+    return nuevo
 
 
 @transaction.atomic

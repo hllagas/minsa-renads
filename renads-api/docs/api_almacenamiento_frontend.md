@@ -5,11 +5,11 @@ anexos por actor), servidos sobre el backend de almacenamiento (Google Cloud
 Storage en producción; stub por referencia externa en desarrollo). Todas las rutas
 cuelgan de `/api/v1/` y requieren autenticación (JWT institucional).
 
-> **PDFs → Document AI:** todo PDF adjuntado (anexos y `documents/upload`) se
-> procesa con **Document AI** (OCR genérico) para extraer su texto, expuesto en
-> `Document.texto_extraido`. Las **imágenes** (logos) suben su binario al bucket y
-> **no** se procesan por Document AI. La extracción es **best-effort**: si está
-> deshabilitada o falla, la subida no se bloquea y `texto_extraido` queda vacío.
+> **Versionado por anexo:** cada adjunto se guarda como `documento_adjunto` (tabla
+> `documento_adjunto`, ex `documento`) versionado por el par `(objeto,
+> documento_anexo)`. La FK `documento_anexo` es **obligatoria** (único
+> discriminador). El nombre de archivo se usa solo como ruta de storage; no se
+> persiste en `documento_adjunto`.
 
 > **Seguridad:** los binarios se guardan en un bucket **privado** (sin acceso
 > público). La única forma de leerlos es un **signed URL V4 de corta duración**
@@ -124,9 +124,9 @@ Ejemplo de respuesta de `upload-logo`:
 
 ---
 
-## Anexos (PDFs de declaraciones juradas por actor, 3 entidades)
+## Anexos (PDFs de declaraciones juradas por actor, 2 entidades)
 
-Cada anexo se guarda como un **`Document` versionado** por el par
+Cada anexo se guarda como un **`documento_adjunto` versionado** por el par
 `(entidad, documento_anexo)`: re-subir el **mismo** `documento_anexo` a la misma
 entidad crea una **nueva versión** (`version = n+1`) y marca la anterior como
 `REEMPLAZADO`. Anexos distintos mantienen cadenas de versión independientes.
@@ -136,8 +136,7 @@ Entidades con anexos y su actor:
 | Entidad (`{entidad}`) | `tipo_actor` (anexos aceptados) |
 |-----------------------|---------------------------------|
 | `interns`             | `INTERNO` |
-| `university-authorities` | `AUTORIDAD_UNIVERSIDAD` |
-| `representatives`     | `REPRESENTANTE` |
+| `organ-representatives` | `REPRESENTANTE` (cubre autoridades de universidad y CONAPRES) |
 
 > **Cambio de refactor:** las declaraciones juradas del interno (actor `INTERNO`) se
 > adjuntan sobre el **internado** (`interns/{id}/…`), **no** sobre el estudiante
@@ -149,14 +148,14 @@ coincida con la entidad.
 
 | Método | Ruta | Cuerpo (multipart) | Respuesta |
 |--------|------|--------------------|-----------|
-| `POST` | `/api/v1/{entidad}/{id}/annex-upload/` | `documento_anexo`: id del anexo; `archivo`: PDF; `nombre_archivo` (opcional) | `201` `Document` |
+| `POST` | `/api/v1/{entidad}/{id}/annex-upload/` | `documento_anexo`: id del anexo; `archivo`: PDF | `201` `documento_adjunto` |
 | `GET`  | `/api/v1/{entidad}/{id}/annex-checklist/` | — | `200` lista de anexos con su estado |
 
 ### Flujo de anexos
 1. `GET .../annex-checklist/` → devuelve **qué anexos requiere** el actor y cuáles
    están ya adjuntados (resaltar los `obligatorio=true` con `adjuntado=false`).
 2. `POST .../annex-upload/` con `documento_anexo` + `archivo` (PDF) → adjunta.
-3. Re-subir el mismo `documento_anexo` genera una **nueva versión** del `Document`.
+3. Re-subir el mismo `documento_anexo` genera una **nueva versión** del `documento_adjunto`.
 
 Ejemplo de request de `annex-upload` (internado `55` adjunta el anexo `3`, PDF):
 
@@ -164,8 +163,7 @@ Ejemplo de request de `annex-upload` (internado `55` adjunta el anexo `3`, PDF):
 curl -X POST https://api.renads.minsa.gob.pe/api/v1/interns/55/annex-upload/ \
   -H "Authorization: Bearer $TOKEN" \
   -F "documento_anexo=3" \
-  -F "archivo=@declaracion-salud.pdf;type=application/pdf" \
-  -F "nombre_archivo=declaracion-salud.pdf"
+  -F "archivo=@declaracion-salud.pdf;type=application/pdf"
 ```
 
 ```js
@@ -213,19 +211,17 @@ Ejemplo de respuesta de `annex-checklist`:
 ]
 ```
 
-Ejemplo de respuesta de `annex-upload` (`Document`):
+Ejemplo de respuesta de `annex-upload` (`documento_adjunto`):
 
 ```json
 {
   "id": 129,
-  "tipo_documento": 7,
-  "tipo_documento_nombre": "Declaración jurada / anexo",
+  "documento_anexo": 3,
+  "documento_anexo_nombre": "Declaración jurada de aptitud de salud",
   "tipo_contenido": 42,
-  "tipo_contenido_label": "student",
+  "tipo_contenido_label": "internship",
   "id_objeto": 55,
   "referencia_externa": "9a8b-uuid-dj.pdf",
-  "nombre_archivo": "declaracion.pdf",
-  "texto_extraido": "DECLARACIÓN JURADA DE SALUD\nYo, ...",
   "version": 1,
   "estado": "ACTIVO",
   "version_anterior": null,
@@ -240,7 +236,7 @@ Ejemplo de respuesta de `annex-upload` (`Document`):
 
 | Método | Ruta | Cuerpo | Respuesta |
 |--------|------|--------|-----------|
-| `POST` | `/api/v1/documents/upload/` | multipart: `archivo`, `tipo_documento`, `tipo_contenido`, `id_objeto`, `nombre_archivo?` | `201` `Document` |
+| `POST` | `/api/v1/documents/upload/` | multipart: `archivo`, `documento_anexo`, `tipo_contenido`, `id_objeto`, `nombre_archivo?` (solo ruta de storage) | `201` `documento_adjunto` |
 | `GET`  | `/api/v1/documents/{id}/url-descarga/` | — | `200` `{ "url": "..." }` (signed URL) |
 
 ---
@@ -264,7 +260,7 @@ Ejemplo de respuesta de `annex-upload` (`Document`):
 | `upload-logo` (5 entidades) | `Administrador RENADS` | — |
 | `logo-url` | — | Autenticados |
 | `annex-upload` (interns) | `Universidad` / `Administrador RENADS` (alcance por la universidad del estudiante) o el propio `Interno` (RN-22) | — |
-| `annex-upload` (university-authorities, representatives) | `Administrador RENADS` | — |
+| `annex-upload` (organ-representatives) | `Administrador RENADS` | — |
 | `annex-checklist` | — | Autenticados con alcance |
 | `documents/upload` | Miembro institucional autenticado | — |
 | `revisar-declaraciones` (interns) | `Universidad` / `Administrador RENADS` | — |

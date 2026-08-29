@@ -22,7 +22,7 @@ def convenios_visibles(usuario) -> QuerySet[Convention]:
     """
     qs = Convention.objects.select_related(
         "tipo_convenio", "estado_actual", "convenio_marco",
-        "organo_regional__tipo_organo_regional", "universidad__tipo_entidad",
+        "organo_directorio__tipo_organo", "universidad__tipo_entidad",
     )
     if usuario.is_superuser:
         return qs
@@ -76,4 +76,4 @@ def documentos_de(objeto) -> QuerySet[Document]:
     return Document.objects.filter(
         tipo_contenido=ContentType.objects.get_for_model(type(objeto)),
         id_objeto=objeto.pk,
-    ).select_related("tipo_documento")
+    ).select_related("documento_anexo")

@@ -24,7 +24,7 @@ class ConventionFilter(filters.FilterSet):
             "convenio_marco": ["exact"],
             "solicitante_tipo_contenido": ["exact"],
             "solicitante_id_objeto": ["exact"],
-            "organo_regional": ["exact"],
+            "organo_directorio": ["exact"],
             "universidad": ["exact"],
         }
 

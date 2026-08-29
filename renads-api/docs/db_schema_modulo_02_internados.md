@@ -26,14 +26,14 @@ El módulo **Registrar Internados** registra a los estudiantes (alumnos de últi
 - **Onboarding del interno** (RN-22): al registrar el internado se crea (o reutiliza) un `User` con `username = numero_documento`, contraseña temporal, `debe_cambiar_password=True` (tabla `seguridad_usuario`), grupo `Interno` y `perfil_usuario_entidad` sobre su `estudiante`. Solo lee sus datos y adjunta sus declaraciones juradas; no edita datos personales ni ve otros internos. Se le **notifica por correo** (sede docente, fechas, tutor, instrucción de adjuntar DJ) — best-effort post-commit.
 - **Estado de las declaraciones juradas** (RN-23): `interno.estado_declaraciones` (`PENDIENTE`/`COMPLETAS`/`OBSERVADAS`/`VALIDADAS`). `PENDIENTE→COMPLETAS` automático al completar las DJ obligatorias del actor `INTERNO`; revisión humana `COMPLETAS→VALIDADAS`/`OBSERVADAS`; `OBSERVADAS→COMPLETAS` al re-adjuntar. **Gate:** el internado no pasa a `ACTIVO` salvo `estado_declaraciones = VALIDADAS`.
 
-> **Convenciones (heredadas del módulo 1):** tablas/columnas/descripciones en **español**; adjuntos en **repositorio externo** (solo `referencia_externa`); se reutilizan tablas nativas de Django y las tablas del **módulo 1** (`convenio`, `campo_clinico_ipress`, `campo_clinico_ipress_universidad`, `ipress`, `universidad`, `carrera_profesional`, `especialidad`, `ambito_geografico_sanitario`, `participante_convenio`, `documento`, `bitacora_auditoria`).
+> **Convenciones (heredadas del módulo 1):** tablas/columnas/descripciones en **español**; adjuntos en **repositorio externo** (solo `referencia_externa`); se reutilizan tablas nativas de Django y las tablas del **módulo 1** (`convenio`, `campo_clinico_ipress`, `campo_clinico_ipress_universidad`, `ipress`, `universidad`, `carrera_profesional`, `especialidad`, `ambito_geografico_sanitario`, `participante_convenio`, `documento_adjunto`, `bitacora_auditoria`).
 
 ---
 
 ## 1. Tablas reutilizadas
 
 ### Nativas de Django
-`auth_user`, `auth_group`, `auth_permission`, `django_content_type` (relación genérica de `documento` y `bitacora_auditoria`).
+`auth_user`, `auth_group`, `auth_permission`, `django_content_type` (relación genérica de `documento_adjunto` y `bitacora_auditoria`).
 
 ### Transversal (app `common`)
 | Tabla | Uso en el módulo 2 |
@@ -53,7 +53,7 @@ El módulo **Registrar Internados** registra a los estudiantes (alumnos de últi
 | `ambito_geografico_sanitario` | Ámbito permitido para internado y rotaciones |
 | `ubigeo` | Ubicación geográfica (distrito INEI) de estudiante y tutor |
 | `participante_convenio` | Autoridades suscritas que autorizan rotaciones |
-| `documento` | Adjuntos PDF (autorizaciones, sustentos) |
+| `documento_adjunto` | Adjuntos PDF (autorizaciones, sustentos) |
 | `bitacora_auditoria` | Auditoría transversal |
 
 ---
@@ -70,7 +70,7 @@ Patrón común: `id` (PK), `codigo` (varchar, único), `nombre` (varchar), `acti
 | `tipo_documento_identidad` | Tipo de documento de identidad | valores: `DNI`, `CE`, `PASAPORTE` |
 | `parentesco` | Tipo de parentesco del contacto de emergencia del estudiante | — |
 | `periodo_academico` | Periodo académico (semestre) del estudiante — aplica al nivel Pregrado (RN-19) | — |
-| `documentos_anexos` | Catálogo maestro de documentos requeridos **por actor** (declaraciones juradas, resolución del cargo, documento de identidad) a adjuntar tras el registro | `tipo_actor` (choices: `INTERNO` / `AUTORIDAD_UNIVERSIDAD` / `REPRESENTANTE`, default `INTERNO`), `descripcion` (text), `obligatorio` (bool, default `True`) |
+| `documento_anexo` | Catálogo maestro de documentos requeridos **por actor** (declaraciones juradas, resolución del cargo, documento de identidad), más los tipos genéricos absorbidos (`ANEXO`/`CONVENIO`/`RESOLUCION`, con `tipo_actor` vacío). Ex `documentos_anexos` | `tipo_actor` (choices: `INTERNO` / `AUTORIDAD_UNIVERSIDAD` / `REPRESENTANTE`, default `INTERNO`, **admite vacío**), `obligatorio` (bool, default `True`). Se retiró `descripcion` |
 
 ### Valores de `estado_internado`
 `REGISTRADO`, `PENDIENTE_VALIDACION`, `OBSERVADO`, `VALIDADO`, `ACTIVO`, `EN_ROTACION_SOLICITADA`, `EN_ROTACION_AUTORIZADA`, `EN_ROTACION_OBSERVADA`, `SUSPENDIDO`, `RETIRADO`, `CULMINADO`, `ANULADO`.
@@ -84,7 +84,7 @@ Patrón común: `id` (PK), `codigo` (varchar, único), `nombre` (varchar), `acti
 ### Valores de `periodo_academico` (semilla)
 `2025-I`, `2025-II`, `2026-I`, `2026-II` (nombre `Semestre <codigo>`).
 
-### Valores de `documentos_anexos` (semilla)
+### Valores de `documento_anexo` (semilla)
 
 **`tipo_actor = INTERNO`** (declaraciones juradas del estudiante): `DJ_DATOS` (Declaración jurada de veracidad de datos), `DJ_ANTECEDENTES` (Declaración jurada de no tener antecedentes penales/policiales), `DJ_SALUD` (Declaración jurada de aptitud de salud), `DJ_CONFIDENCIALIDAD` (Compromiso de confidencialidad).
 
@@ -92,21 +92,20 @@ Patrón común: `id` (PK), `codigo` (varchar, único), `nombre` (varchar), `acti
 
 **`tipo_actor = REPRESENTANTE`** (incluye autoridades de CONAPRES): `RESOL_REP` (Resolución de designación del cargo), `DNI_REP` (Documento de identidad).
 
-Todos con `obligatorio = True`.
+Los anteriores con `obligatorio = True`. **Tipos genéricos** (`tipo_actor` vacío, `obligatorio = False`): `ANEXO`, `CONVENIO`, `RESOLUCION`.
 
 ### Adjunto real de anexos por actor (en alcance)
 
-El **PDF real** de cada anexo de `documentos_anexos` se adjunta como un
-`documento` (módulo 1) **versionado** por el par `(entidad, documento_anexo)`,
-usando la FK `documento.documento_anexo_id`. El adjunto se hace por entidad según
-el `tipo_actor`:
+El **PDF real** de cada anexo de `documento_anexo` se adjunta como un
+`documento_adjunto` (módulo 1) **versionado** por el par `(entidad, documento_anexo)`,
+usando la FK `documento_adjunto.documento_anexo_id` (**obligatoria**). El adjunto se
+hace por entidad según el `tipo_actor`:
 
 - `INTERNO` → `interno` (endpoints `interns/{id}/annex-upload/` y `.../annex-checklist/`).
-- `AUTORIDAD_UNIVERSIDAD` → `autoridad_universidad`.
-- `REPRESENTANTE` → `representante`.
+- `REPRESENTANTE` → `organo_representante` (cubre autoridades de universidad y CONAPRES).
 
 Re-subir el mismo anexo a la misma entidad genera una nueva versión del
-`documento`. Detalle de endpoints, content-types (PDF), tamaño y errores en
+`documento_adjunto`. Detalle de endpoints, content-types (PDF), tamaño y errores en
 `docs/api_almacenamiento_frontend.md`.
 
 ---
@@ -319,7 +318,7 @@ La estructura de referencia es la trama oficial **`TramaCargaEstudiante.xlsx`** 
 
 ## 7. Adjuntos y auditoría
 
-Se reutiliza la tabla `documento` (módulo 1, relación genérica vía `django_content_type`). En este módulo se adjunta a: `interno`, `rotacion`, `autorizacion_rotacion`.
+Se reutiliza la tabla `documento_adjunto` (módulo 1, relación genérica vía `django_content_type`). En este módulo se adjunta a: `interno`, `rotacion`, `autorizacion_rotacion`.
 
 La tabla `bitacora_auditoria` (módulo 1) registra cambios de tutor, sede, estado y rotación (RNF específico 5).
 
@@ -350,7 +349,7 @@ rotacion >── estado_rotacion (estado_actual)
 rotacion ──< historial_estado_rotacion >── estado_rotacion
 rotacion ──< autorizacion_rotacion >── participante_convenio (módulo 1)
 
-documento          >── django_content_type  (genérico → interno / rotacion / autorizacion_rotacion)
+documento_adjunto  >── django_content_type  (genérico → interno / rotacion / autorizacion_rotacion)
 bitacora_auditoria >── django_content_type  (genérico)
 ```
 

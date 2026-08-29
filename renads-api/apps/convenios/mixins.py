@@ -25,7 +25,6 @@ from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
-from apps.common.documentai import extraer_texto_pdf
 from apps.common.services import adjuntar_documento, registrar_auditoria
 from apps.common.storage import get_document_storage
 from apps.convenios.serializers import (
@@ -147,12 +146,6 @@ class AnnexAttachmentMixin:
         """Backend de almacenamiento seleccionado por settings (GCS o stub)."""
         return get_document_storage()
 
-    def _tipo_documento_anexo(self):
-        """Resuelve el `DocumentType` `ANEXO` por `codigo` (no por PK)."""
-        from apps.convenios.models import DocumentType
-
-        return DocumentType.objects.get(codigo="ANEXO")
-
     @extend_schema(
         request=AnnexUploadSerializer,
         responses=DocumentSerializer,
@@ -182,19 +175,14 @@ class AnnexAttachmentMixin:
                 {"documento_anexo": "El anexo seleccionado no corresponde a este tipo de actor."}
             )
 
-        nombre_archivo = ser.validated_data["nombre_archivo"]
         archivo = ser.validated_data["archivo"]
-        referencia = self.storage.subir(archivo, ruta=nombre_archivo)
-        # El anexo siempre es PDF: se extrae su texto con Document AI (best-effort).
-        texto_extraido = extraer_texto_pdf(archivo)
+        # La ruta de storage se deriva del archivo subido (no se persiste en Document).
+        referencia = self.storage.subir(archivo, ruta=archivo.name)
         documento = adjuntar_documento(
             entidad,
-            tipo_documento=self._tipo_documento_anexo(),
-            nombre_archivo=nombre_archivo,
             referencia_externa=referencia,
             usuario=request.user,
             documento_anexo=anexo,
-            texto_extraido=texto_extraido,
         )
         return Response(DocumentSerializer(documento).data, status=201)
 
