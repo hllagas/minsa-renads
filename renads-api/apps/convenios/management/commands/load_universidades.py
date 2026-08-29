@@ -8,13 +8,16 @@ de ciencias de la salud licenciadas, con encabezados (fila 1):
     referencia_logo, activo, tipo_autorizacion_id, tipo_gestion, ubigeo_id,
     tipo_entidad_id
 
-`tipo_gestion`, `tipo_entidad_id` y `tipo_autorizacion_id` vienen como números
-que reflejan el orden de siembra de los catálogos en la migración
-`0002_seed_catalogos` (1=PUBLICA/2=PRIVADA; 1=UNIVERSIDAD/2=ESCUELA_POSGRADO/
-3=ESCUELA_SUPERIOR/4=INSTITUTO; 1=LICENCIADA/2=DENEGADA/3=PENDIENTE). También
-se aceptan como texto (el `codigo` del catálogo, p. ej. "PUBLICA").
+`tipo_gestion` y `tipo_autorizacion_id` vienen como números que reflejan el
+orden de siembra de los catálogos en la migración `0002_seed_catalogos`
+(1=PUBLICA/2=PRIVADA; 1=LICENCIADA/2=DENEGADA/3=PENDIENTE). `tipo_entidad_id`
+usa el mismo orden (1=UNIVERSIDAD/2=ESCUELA_POSGRADO/3=ESCUELA_SUPERIOR/
+4=INSTITUTO) pero resuelve contra `tipo_organo` (`OrganType`), el catálogo
+unificado de tipos de órgano, filtrado por el órgano "Universidad"
+(`0016_unify_organ_types`/`0018_normalize_organ_table`). Los tres también
+aceptan texto (el `codigo` del catálogo, p. ej. "PUBLICA").
 
-Prerrequisito: los catálogos `tipo_gestion_universidad`, `tipo_entidad_universidad`
+Prerrequisito: los catálogos `tipo_gestion_universidad`, `tipo_organo`/`organo`
 y `tipo_autorizacion` deben estar sembrados (`migrate`) y el catálogo `ubigeo`
 cargado (`python manage.py load_ubigeo`) antes de ejecutar este comando.
 
@@ -36,11 +39,14 @@ from django.db import transaction
 
 from apps.convenios.models import (
     AuthorizationType,
+    Organ,
+    OrganType,
     University,
-    UniversityEntityType,
     UniversityManagementType,
     Ubigeo,
 )
+
+ORGANO_UNIVERSIDAD = "Universidad"
 
 COLUMNAS_REQUERIDAS = {
     "nombre", "tipo_gestion", "tipo_entidad_id", "tipo_autorizacion_id",
@@ -97,6 +103,25 @@ def _resolver_catalogo(Model, valor, orden, etiqueta):
         raise ValueError(f"`{etiqueta}` no encontrado (código={codigo}). ¿Faltan migraciones?") from exc
 
 
+def _resolver_tipo_entidad(valor):
+    if valor is None:
+        raise ValueError("`tipo_entidad_id` es requerido.")
+    texto = str(valor).strip()
+    codigo = ORDEN_TIPO_ENTIDAD.get(int(texto)) if texto.isdigit() else texto.upper()
+    if codigo is None:
+        raise ValueError(f"Valor de `tipo_entidad_id` no reconocido: {valor!r}.")
+    try:
+        organo = Organ.objects.get(nombre=ORGANO_UNIVERSIDAD)
+    except Organ.DoesNotExist as exc:
+        raise ValueError(f"No se encontró el órgano '{ORGANO_UNIVERSIDAD}'. ¿Faltan migraciones?") from exc
+    try:
+        return OrganType.objects.get(organo=organo, codigo=codigo)
+    except OrganType.DoesNotExist as exc:
+        raise ValueError(
+            f"`tipo_entidad_id` no encontrado (código={codigo}) en el órgano '{ORGANO_UNIVERSIDAD}'."
+        ) from exc
+
+
 def _resolver_ubigeo(valor):
     if valor is None:
         return None
@@ -122,9 +147,7 @@ def _fila_a_universidad(obtener):
             "tipo_gestion": _resolver_catalogo(
                 UniversityManagementType, obtener("tipo_gestion"), ORDEN_TIPO_GESTION, "tipo_gestion"
             ),
-            "tipo_entidad": _resolver_catalogo(
-                UniversityEntityType, obtener("tipo_entidad_id"), ORDEN_TIPO_ENTIDAD, "tipo_entidad_id"
-            ),
+            "tipo_entidad": _resolver_tipo_entidad(obtener("tipo_entidad_id")),
             "tipo_autorizacion": _resolver_catalogo(
                 AuthorizationType, obtener("tipo_autorizacion_id"), ORDEN_TIPO_AUTORIZACION, "tipo_autorizacion_id"
             ),
@@ -135,7 +158,8 @@ def _fila_a_universidad(obtener):
             "telefono": str(obtener("telefono") or "").strip(),
             "correo_institucional": str(obtener("correo_institucional") or "").strip(),
             "ubigeo": _resolver_ubigeo(obtener("ubigeo_id")),
-            "referencia_logo": str(obtener("referencia_logo") or "").strip(),
+            # `referencia_logo` es ImageField (subida real) — el Excel no trae
+            # una imagen, así que se deja sin asignar; el logo se carga aparte.
             "activo": bool(int(obtener("activo"))) if obtener("activo") is not None else True,
         },
     }
