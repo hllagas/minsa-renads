@@ -220,6 +220,7 @@ Los representantes de CONAPRES y de los demás órganos se registran en `organo_
 | `id` | PK | No | |
 | `nombre` | varchar(255) | No | Nombre de la universidad |
 | `siglas` | varchar(50) | Sí | Siglas |
+| `numero_ruc` | varchar(11) | Sí | Número de RUC |
 | `tipo_gestion_id` | FK → `tipo_gestion_universidad` | No | Pública / privada |
 | `tipo_entidad_id` | FK → `tipo_organo` (PROTECT) | No | Universidad / Escuela posgrado / Escuela superior / Instituto (discriminador `UNIVERSIDAD`) |
 | `tipo_autorizacion_id` | FK → `tipo_autorizacion` | No | Licenciada / Denegada / Pendiente |

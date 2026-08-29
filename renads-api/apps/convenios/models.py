@@ -566,6 +566,7 @@ class OrganRepresentativeHistory(models.Model):
 class University(models.Model):
     nombre = models.CharField("nombre", max_length=255, help_text="Nombre de la universidad")
     siglas = models.CharField("siglas", max_length=50, blank=True, help_text="Siglas")
+    numero_ruc = models.CharField("número de RUC", max_length=11, blank=True, help_text="Número de RUC")
     tipo_gestion = models.ForeignKey(
         UniversityManagementType, on_delete=models.PROTECT, db_column="tipo_gestion_id",
         help_text="Pública / privada",

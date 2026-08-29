@@ -390,6 +390,7 @@ def _entity_viewset(
     permission_classes=None,
     logo=False,
     annex_actor=None,
+    detalles=None,
 ):
     """ModelViewSet (CRUD) para una entidad. Escritura solo Administrador RENADS; con auditoría.
 
@@ -408,7 +409,7 @@ def _entity_viewset(
 
     atributos = {
         "queryset": model._default_manager.all(),
-        "serializer_class": _auto_serializer(model),
+        "serializer_class": _auto_serializer(model, detalles=detalles),
         "permission_classes": permission_classes or [IsAuthenticated, IsAdminRoleOrReadOnly],
         "filterset_fields": filterset_fields or [],
         "search_fields": search_fields or [],
@@ -485,7 +486,10 @@ ENTITY_VIEWSETS = {
         m.HealthGeographicScope, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
     ),
     "executive-positions": _entity_viewset(
-        m.ExecutivePosition, filterset_fields=["organo", "activo"], search_fields=["codigo", "nombre"]
+        m.ExecutivePosition,
+        filterset_fields=["organo", "activo"],
+        search_fields=["codigo", "nombre"],
+        detalles={"organo": _detalle_nombre},
     ),
     "authorization-types": _entity_viewset(
         m.AuthorizationType, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
@@ -495,8 +499,9 @@ ENTITY_VIEWSETS = {
     ),
     "organ-types": _entity_viewset(
         m.OrganType,
-        filterset_fields=["organo", "activo"],
+        filterset_fields={"organo": ["exact"], "organo__nombre": ["exact", "icontains"], "activo": ["exact"]},
         search_fields=["codigo", "nombre"],
+        detalles={"organo": _detalle_nombre},
     ),
     "categories": _entity_viewset(
         m.Category, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
@@ -520,19 +525,28 @@ ENTITY_VIEWSETS = {
         filterset_fields=["organo", "tipo_organo", "gobierno_regional", "activo"],
         search_fields=["nombre", "siglas", "numero_ruc"],
         logo=True,
+        detalles={
+            "organo": _detalle_nombre,
+            "tipo_organo": _detalle_nombre,
+            "gobierno_regional": _detalle_nombre,
+        },
     ),
     "executing-units": _entity_viewset(
         m.ExecutingUnit,
         filterset_fields=["organo_directorio", "tipo_organo", "activo"],
         search_fields=["nombre", "codigo"],
         logo=True,
+        detalles={
+            "organo_directorio": _detalle_nombre,
+            "tipo_organo": _detalle_nombre,
+        },
     ),
     "ipress": IpressViewSet,
     "conapres": _entity_viewset(m.Conapres, filterset_fields=["activo"], search_fields=["nombre"]),
     "universities": _entity_viewset(
         m.University,
         filterset_fields=["tipo_gestion", "tipo_entidad", "tipo_autorizacion", "activo"],
-        search_fields=["nombre", "siglas"],
+        search_fields=["nombre", "siglas", "numero_ruc"],
         logo=True,
     ),
     "faculties": _entity_viewset(
