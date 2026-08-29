@@ -636,6 +636,29 @@ class ProfessionalCareer(models.Model):
         return self.nombre
 
 
+class UniversityCareer(models.Model):
+    """Tabla puente universidad ↔ carrera profesional (carreras que dicta cada universidad)."""
+
+    universidad = models.ForeignKey(
+        University, on_delete=models.PROTECT, db_column="universidad_id",
+        related_name="carreras", help_text="Universidad",
+    )
+    carrera_profesional = models.ForeignKey(
+        ProfessionalCareer, on_delete=models.PROTECT, db_column="carrera_profesional_id",
+        related_name="universidades", help_text="Carrera profesional",
+    )
+    activo = models.BooleanField("activo", default=True)
+
+    class Meta:
+        db_table = "universidad_carrera"
+        verbose_name = "carrera de universidad"
+        verbose_name_plural = "carreras de universidad"
+        unique_together = (("universidad", "carrera_profesional"),)
+
+    def __str__(self):
+        return f"{self.universidad_id} — {self.carrera_profesional_id}"
+
+
 class UniversityCampus(models.Model):
     universidad = models.ForeignKey(
         University, on_delete=models.CASCADE, db_column="universidad_id",

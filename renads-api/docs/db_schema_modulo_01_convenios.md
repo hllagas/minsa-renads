@@ -255,6 +255,19 @@ Los representantes de CONAPRES y de los demás órganos se registran en `organo_
 | `nivel_academico_id` | FK → `nivel_academico` | No | Carrera profesional / segunda especialidad / maestría / doctorado |
 | `activo` | bool | No | |
 
+### `universidad_carrera`
+
+Tabla puente universidad ↔ carrera profesional (carreras que dicta cada universidad). `unique_together = (universidad, carrera_profesional)`.
+
+| Columna | Tipo | Null | Descripción |
+|---------|------|------|-------------|
+| `id` | PK | No | |
+| `universidad_id` | FK → `universidad` (PROTECT) | No | Universidad |
+| `carrera_profesional_id` | FK → `carrera_profesional` (PROTECT) | No | Carrera profesional |
+| `activo` | bool | No | |
+
+Endpoint: `/api/v1/university-careers/` (CRUD, escritura solo `Administrador RENADS`; filtros `universidad`, `carrera_profesional`, `activo`; lectura expone `universidad_detalle` y `carrera_profesional_detalle`).
+
 ### `local_universidad`
 
 | Columna | Tipo | Null | Descripción |
@@ -604,6 +617,7 @@ organo_representante ──< historial_organo_representante   (baja del anterior
 
 universidad >── tipo_gestion_universidad / tipo_organo (discriminador UNIVERSIDAD) / tipo_autorizacion
 universidad ──< facultad
+universidad ──< universidad_carrera >── carrera_profesional   (carreras que dicta cada universidad)
 carrera_profesional >── nivel_academico
 universidad ──< local_universidad >── region
 

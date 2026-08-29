@@ -562,6 +562,14 @@ ENTITY_VIEWSETS = {
         filterset_fields=["nivel_academico", "activo"],
         search_fields=["nombre"],
     ),
+    "university-careers": _entity_viewset(
+        m.UniversityCareer,
+        filterset_fields=["universidad", "carrera_profesional", "activo"],
+        detalles={
+            "universidad": _detalle_nombre,
+            "carrera_profesional": _detalle_nombre,
+        },
+    ),
     "university-campuses": _entity_viewset(
         m.UniversityCampus, filterset_fields=["universidad", "region", "activo"], search_fields=["nombre"]
     ),
