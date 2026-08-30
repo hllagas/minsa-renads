@@ -152,18 +152,21 @@ Tabla **standalone** que unifica los antiguos `organo_regional` y `organo_minsa`
 
 ### `unidad_ejecutora`
 
-Unidad ejecutora asociada directamente a un **gobierno regional**.
+Unidad ejecutora asociada a un **órgano regional** (GERESA/DIRESA/DIRIS) del directorio.
 
 | Columna | Tipo | Null | Descripción |
 |---------|------|------|-------------|
 | `id` | PK | No | |
 | `nombre` | varchar(255) | No | Nombre |
-| `gobierno_regional_id` | FK → `gobierno_regional` (PROTECT) | No | Gobierno regional al que pertenece |
+| `organo_regional_id` | FK → `organo_directorio` (PROTECT) | No | Órgano regional del directorio (categoría `Órgano Regional`) al que pertenece |
+| `tipo_organo_id` | FK → `tipo_organo` (PROTECT) | No | Tipo de unidad ejecutora (Hospital / Instituto especializado / Red de salud; categoría `Unidad Ejecutora`) |
 | `direccion_legal` | varchar(500) | Sí | Dirección legal |
 | `ubigeo_id` | FK → `ubigeo` | Sí | Ubicación geográfica (UBIGEO) |
 | `estado` | bool | No | Indica si está activa |
 
-Endpoint: `/api/v1/executing-units/` (CRUD, escritura solo `Administrador RENADS`; filtros `gobierno_regional`, `estado`; búsqueda `nombre`; lectura expone `gobierno_regional_detalle` y `ubigeo_detalle`).
+`organo_regional` filtra el directorio a la categoría `Órgano Regional`; `tipo_organo` filtra a la categoría `Unidad Ejecutora` (`limit_choices_to`).
+
+Endpoint: `/api/v1/executing-units/` (CRUD, escritura solo `Administrador RENADS`; filtros `organo_regional`, `tipo_organo`, `estado`; búsqueda `nombre`; lectura expone `organo_regional_detalle`, `tipo_organo_detalle` y `ubigeo_detalle`).
 
 ### `ipress` (Institución Prestadora de Servicios de Salud)
 
@@ -601,10 +604,10 @@ Se adjunta a: `convenio`, `evaluacion_tecnica`, `opinion_conapres`, `campo_clini
 
 ```
 ubigeo (distrito INEI) >──< organo_directorio / unidad_ejecutora / ipress / universidad / local_universidad   (también estudiante / tutor del módulo 2)
-gobierno_regional ──< organo_directorio
-gobierno_regional ──< unidad_ejecutora ──< ipress
+gobierno_regional ──< organo_directorio ──< unidad_ejecutora ──< ipress
 gobierno_regional >── region
 organo_directorio >── organo (discriminador) / tipo_organo (opcional) / gobierno_regional (opcional, solo regionales)
+unidad_ejecutora >── organo_directorio (Órgano Regional) / tipo_organo (Unidad Ejecutora) / ubigeo
 unidad_ejecutora >── gobierno_regional / ubigeo
 ipress >── ambito_geografico_sanitario
 ambito_geografico_sanitario ──< red ──< microred ──< ipress

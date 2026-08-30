@@ -349,9 +349,16 @@ class OrganDirectory(models.Model):
 
 class ExecutingUnit(models.Model):
     nombre = models.CharField("nombre", max_length=255, help_text="Nombre")
-    gobierno_regional = models.ForeignKey(
-        RegionalGovernment, on_delete=models.PROTECT, db_column="gobierno_regional_id",
-        related_name="unidades_ejecutoras", help_text="Gobierno regional al que pertenece",
+    organo_regional = models.ForeignKey(
+        OrganDirectory, on_delete=models.PROTECT, db_column="organo_regional_id",
+        related_name="unidades_ejecutoras",
+        limit_choices_to={"organo__nombre": "Órgano Regional"},
+        help_text="Órgano regional (GERESA/DIRESA/DIRIS) del directorio al que pertenece",
+    )
+    tipo_organo = models.ForeignKey(
+        OrganType, on_delete=models.PROTECT, db_column="tipo_organo_id", related_name="+",
+        limit_choices_to={"organo__nombre": "Unidad Ejecutora"},
+        help_text="Tipo de unidad ejecutora (Hospital / Instituto especializado / Red de salud; discriminador UNIDAD_EJECUTORA)",
     )
     direccion_legal = models.CharField("dirección legal", max_length=500, blank=True, help_text="Dirección legal")
     ubigeo = models.ForeignKey(
