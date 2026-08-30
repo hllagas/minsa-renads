@@ -348,24 +348,27 @@ class OrganDirectory(models.Model):
 
 
 class ExecutingUnit(models.Model):
+    codigo = models.CharField("código", max_length=50, blank=True, help_text="Código presupuestal")
     nombre = models.CharField("nombre", max_length=255, help_text="Nombre")
-    organo_regional = models.ForeignKey(
-        OrganDirectory, on_delete=models.PROTECT, db_column="organo_regional_id",
-        related_name="unidades_ejecutoras",
-        limit_choices_to={"organo__nombre": "Órgano Regional"},
-        help_text="Órgano regional (GERESA/DIRESA/DIRIS) del directorio al que pertenece",
-    )
     tipo_organo = models.ForeignKey(
         OrganType, on_delete=models.PROTECT, db_column="tipo_organo_id", related_name="+",
         limit_choices_to={"organo__nombre": "Unidad Ejecutora"},
         help_text="Tipo de unidad ejecutora (Hospital / Instituto especializado / Red de salud; discriminador UNIDAD_EJECUTORA)",
     )
-    direccion_legal = models.CharField("dirección legal", max_length=500, blank=True, help_text="Dirección legal")
+    gobierno_regional = models.ForeignKey(
+        RegionalGovernment, on_delete=models.PROTECT, db_column="gobierno_regional_id",
+        related_name="unidades_ejecutoras", help_text="Gobierno regional al que pertenece",
+    )
+    direccion = models.CharField("dirección", max_length=500, blank=True, help_text="Dirección")
     ubigeo = models.ForeignKey(
         Ubigeo, on_delete=models.PROTECT, db_column="ubigeo_id", null=True, blank=True,
         related_name="+", help_text="Ubicación geográfica (UBIGEO)",
     )
-    estado = models.BooleanField("estado", default=True, help_text="Indica si está activo")
+    referencia_logo = models.ImageField(
+        "logo", upload_to="unidad_ejecutora/", max_length=500, null=True, blank=True,
+        help_text="Logo institucional (imagen almacenada en el repositorio de medios)",
+    )
+    activo = models.BooleanField("activo", default=True)
 
     class Meta:
         db_table = "unidad_ejecutora"

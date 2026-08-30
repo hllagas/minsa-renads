@@ -533,11 +533,12 @@ ENTITY_VIEWSETS = {
     ),
     "executing-units": _entity_viewset(
         m.ExecutingUnit,
-        filterset_fields=["organo_regional", "tipo_organo", "estado"],
-        search_fields=["nombre"],
+        filterset_fields=["tipo_organo", "gobierno_regional", "activo"],
+        search_fields=["nombre", "codigo"],
+        logo=True,
         detalles={
-            "organo_regional": _detalle_nombre,
             "tipo_organo": _detalle_nombre,
+            "gobierno_regional": _detalle_nombre,
             "ubigeo": _detalle_ubigeo,
         },
     ),
