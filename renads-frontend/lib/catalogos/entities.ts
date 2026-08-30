@@ -149,17 +149,25 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     endpoint: "university-careers",
     title: "Carreras por universidad",
     singular: "carrera por universidad",
-    description: "Relación entre universidades y las carreras profesionales que dictan.",
+    // RN-FC-02: la facultad debe pertenecer a la universidad del registro.
+    // RN-FC-03: facultad requerida en escritura.
+    description:
+      "Vincula una carrera profesional a la universidad y facultad que la imparte (RN-FC-02/03).",
     columns: [
       {
         key: "universidad",
         header: "Universidad",
-        render: (r) => detalleNombre(r.universidad_detalle),
+        render: (r) => String(r.universidad_detalle ?? "—"),
+      },
+      {
+        key: "facultad",
+        header: "Facultad",
+        render: (r) => String(r.facultad_detalle ?? "—"),
       },
       {
         key: "carrera_profesional",
         header: "Carrera profesional",
-        render: (r) => detalleNombre(r.carrera_profesional_detalle),
+        render: (r) => String(r.carrera_profesional_detalle ?? "—"),
       },
       { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
     ],
@@ -169,6 +177,12 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         label: "Universidad",
         type: "select",
         optionsEndpoint: "universities",
+      },
+      {
+        name: "facultad",
+        label: "Facultad",
+        type: "select",
+        optionsEndpoint: "faculties",
       },
       {
         name: "carrera_profesional",
@@ -185,6 +199,17 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         type: "select",
         required: true,
         optionsEndpoint: "universities",
+      },
+      // Cascada: facultad filtra por universidad seleccionada y se resetea al cambiarla.
+      {
+        name: "facultad",
+        label: "Facultad",
+        type: "select",
+        required: true,
+        optionsEndpoint: "faculties",
+        optionsParamsFrom: (v): Record<string, string> =>
+          v.universidad ? { universidad: String(v.universidad) } : {},
+        resetsOn: ["universidad"],
       },
       {
         name: "carrera_profesional",

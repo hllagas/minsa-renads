@@ -600,6 +600,10 @@ export interface paths {
          *     `creado_por`/`actualizado_por` y registran la auditoría. Por eso se sobrescriben
          *     `perform_create`/`perform_update` (llaman al service) evitando la doble auditoría
          *     de `AuditedModelViewSet`.
+         *
+         *     `AnnexAttachmentMixin` (annex_actor="CAMPO_CLINICO") habilita
+         *     `clinical-field-registrations/{id}/annex-upload` y `.../annex-checklist` para
+         *     adjuntar la resolución CONAPRES (RESOL_CONAPRES) versionada por registro (D2).
          */
         get: operations["clinical_field_registrations_list"];
         put?: never;
@@ -611,6 +615,10 @@ export interface paths {
          *     `creado_por`/`actualizado_por` y registran la auditoría. Por eso se sobrescriben
          *     `perform_create`/`perform_update` (llaman al service) evitando la doble auditoría
          *     de `AuditedModelViewSet`.
+         *
+         *     `AnnexAttachmentMixin` (annex_actor="CAMPO_CLINICO") habilita
+         *     `clinical-field-registrations/{id}/annex-upload` y `.../annex-checklist` para
+         *     adjuntar la resolución CONAPRES (RESOL_CONAPRES) versionada por registro (D2).
          */
         post: operations["clinical_field_registrations_create"];
         delete?: never;
@@ -634,6 +642,10 @@ export interface paths {
          *     `creado_por`/`actualizado_por` y registran la auditoría. Por eso se sobrescriben
          *     `perform_create`/`perform_update` (llaman al service) evitando la doble auditoría
          *     de `AuditedModelViewSet`.
+         *
+         *     `AnnexAttachmentMixin` (annex_actor="CAMPO_CLINICO") habilita
+         *     `clinical-field-registrations/{id}/annex-upload` y `.../annex-checklist` para
+         *     adjuntar la resolución CONAPRES (RESOL_CONAPRES) versionada por registro (D2).
          */
         get: operations["clinical_field_registrations_retrieve"];
         /**
@@ -644,6 +656,10 @@ export interface paths {
          *     `creado_por`/`actualizado_por` y registran la auditoría. Por eso se sobrescriben
          *     `perform_create`/`perform_update` (llaman al service) evitando la doble auditoría
          *     de `AuditedModelViewSet`.
+         *
+         *     `AnnexAttachmentMixin` (annex_actor="CAMPO_CLINICO") habilita
+         *     `clinical-field-registrations/{id}/annex-upload` y `.../annex-checklist` para
+         *     adjuntar la resolución CONAPRES (RESOL_CONAPRES) versionada por registro (D2).
          */
         put: operations["clinical_field_registrations_update"];
         post?: never;
@@ -655,6 +671,10 @@ export interface paths {
          *     `creado_por`/`actualizado_por` y registran la auditoría. Por eso se sobrescriben
          *     `perform_create`/`perform_update` (llaman al service) evitando la doble auditoría
          *     de `AuditedModelViewSet`.
+         *
+         *     `AnnexAttachmentMixin` (annex_actor="CAMPO_CLINICO") habilita
+         *     `clinical-field-registrations/{id}/annex-upload` y `.../annex-checklist` para
+         *     adjuntar la resolución CONAPRES (RESOL_CONAPRES) versionada por registro (D2).
          */
         delete: operations["clinical_field_registrations_destroy"];
         options?: never;
@@ -667,8 +687,62 @@ export interface paths {
          *     `creado_por`/`actualizado_por` y registran la auditoría. Por eso se sobrescriben
          *     `perform_create`/`perform_update` (llaman al service) evitando la doble auditoría
          *     de `AuditedModelViewSet`.
+         *
+         *     `AnnexAttachmentMixin` (annex_actor="CAMPO_CLINICO") habilita
+         *     `clinical-field-registrations/{id}/annex-upload` y `.../annex-checklist` para
+         *     adjuntar la resolución CONAPRES (RESOL_CONAPRES) versionada por registro (D2).
          */
         patch: operations["clinical_field_registrations_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/clinical-field-registrations/{id}/annex-checklist/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Checklist de anexos requeridos vs. adjuntados
+         * @description Lista los anexos activos del actor con su estado de adjunto por versión activa.
+         *
+         *     Cruza el catálogo maestro (`AnnexDocument` activos de `tipo_actor ==
+         *     annex_actor`) con los `Document` `ACTIVO` de esta entidad que apuntan a
+         *     cada anexo. Es la base del checklist requeridos (`obligatorio=True`) vs.
+         *     adjuntados.
+         */
+        get: operations["clinical_field_registrations_annex_checklist_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/clinical-field-registrations/{id}/annex-upload/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Adjuntar el PDF de un anexo (declaración jurada)
+         * @description Sube el PDF de un anexo y lo adjunta versionado a la entidad.
+         *
+         *     Valida (solo PDF, tamaño), verifica que el `documento_anexo` sea del
+         *     `tipo_actor` de este ViewSet (`annex_actor`), sube el binario al backend
+         *     seleccionado por settings y llama `adjuntar_documento(..., documento_anexo=...)`
+         *     (versionado por anexo + auditoría). Responde `201` con el `Document`.
+         */
+        post: operations["clinical_field_registrations_annex_upload_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/closure-reasons/": {
@@ -898,10 +972,24 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     `AnnexAttachmentMixin` (annex_actor="CONVENIO") habilita
+         *     `conventions/{id}/annex-upload` y `conventions/{id}/annex-checklist` para adjuntar
+         *     las resoluciones PDF del convenio/adenda (RESOL_MARCO/RESOL_ESPECIFICO/RESOL_ADENDA)
+         *     versionadas por `(convenio, documento_anexo)`.
+         */
         get: operations["conventions_list"];
         put?: never;
-        /** @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     `AnnexAttachmentMixin` (annex_actor="CONVENIO") habilita
+         *     `conventions/{id}/annex-upload` y `conventions/{id}/annex-checklist` para adjuntar
+         *     las resoluciones PDF del convenio/adenda (RESOL_MARCO/RESOL_ESPECIFICO/RESOL_ADENDA)
+         *     versionadas por `(convenio, documento_anexo)`.
+         */
         post: operations["conventions_create"];
         delete?: never;
         options?: never;
@@ -916,17 +1004,118 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     `AnnexAttachmentMixin` (annex_actor="CONVENIO") habilita
+         *     `conventions/{id}/annex-upload` y `conventions/{id}/annex-checklist` para adjuntar
+         *     las resoluciones PDF del convenio/adenda (RESOL_MARCO/RESOL_ESPECIFICO/RESOL_ADENDA)
+         *     versionadas por `(convenio, documento_anexo)`.
+         */
         get: operations["conventions_retrieve"];
-        /** @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     `AnnexAttachmentMixin` (annex_actor="CONVENIO") habilita
+         *     `conventions/{id}/annex-upload` y `conventions/{id}/annex-checklist` para adjuntar
+         *     las resoluciones PDF del convenio/adenda (RESOL_MARCO/RESOL_ESPECIFICO/RESOL_ADENDA)
+         *     versionadas por `(convenio, documento_anexo)`.
+         */
         put: operations["conventions_update"];
         post?: never;
-        /** @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     `AnnexAttachmentMixin` (annex_actor="CONVENIO") habilita
+         *     `conventions/{id}/annex-upload` y `conventions/{id}/annex-checklist` para adjuntar
+         *     las resoluciones PDF del convenio/adenda (RESOL_MARCO/RESOL_ESPECIFICO/RESOL_ADENDA)
+         *     versionadas por `(convenio, documento_anexo)`.
+         */
         delete: operations["conventions_destroy"];
         options?: never;
         head?: never;
-        /** @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     `AnnexAttachmentMixin` (annex_actor="CONVENIO") habilita
+         *     `conventions/{id}/annex-upload` y `conventions/{id}/annex-checklist` para adjuntar
+         *     las resoluciones PDF del convenio/adenda (RESOL_MARCO/RESOL_ESPECIFICO/RESOL_ADENDA)
+         *     versionadas por `(convenio, documento_anexo)`.
+         */
         patch: operations["conventions_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/conventions/{id}/adenda/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Crea una adenda de ampliación del convenio (nuevo periodo de vigencia).
+         *
+         *     Hereda del origen tipo, marco, universidad, órgano, unidad ejecutora,
+         *     facultad y solicitante. El alcance institucional se valida contra la entidad
+         *     solicitante del convenio origen (mismo criterio que crear un convenio).
+         */
+        post: operations["conventions_adenda_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/conventions/{id}/annex-checklist/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Checklist de anexos requeridos vs. adjuntados
+         * @description Lista los anexos activos del actor con su estado de adjunto por versión activa.
+         *
+         *     Cruza el catálogo maestro (`AnnexDocument` activos de `tipo_actor ==
+         *     annex_actor`) con los `Document` `ACTIVO` de esta entidad que apuntan a
+         *     cada anexo. Es la base del checklist requeridos (`obligatorio=True`) vs.
+         *     adjuntados.
+         */
+        get: operations["conventions_annex_checklist_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/conventions/{id}/annex-upload/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Adjuntar el PDF de un anexo (declaración jurada)
+         * @description Sube el PDF de un anexo y lo adjunta versionado a la entidad.
+         *
+         *     Valida (solo PDF, tamaño), verifica que el `documento_anexo` sea del
+         *     `tipo_actor` de este ViewSet (`annex_actor`), sube el binario al backend
+         *     seleccionado por settings y llama `adjuntar_documento(..., documento_anexo=...)`
+         *     (versionado por anexo + auditoría). Responde `201` con el `Document`.
+         */
+        post: operations["conventions_annex_upload_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/conventions/{id}/cambiar-estado/": {
@@ -938,7 +1127,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     `AnnexAttachmentMixin` (annex_actor="CONVENIO") habilita
+         *     `conventions/{id}/annex-upload` y `conventions/{id}/annex-checklist` para adjuntar
+         *     las resoluciones PDF del convenio/adenda (RESOL_MARCO/RESOL_ESPECIFICO/RESOL_ADENDA)
+         *     versionadas por `(convenio, documento_anexo)`.
+         */
         post: operations["conventions_cambiar_estado_create"];
         delete?: never;
         options?: never;
@@ -955,7 +1151,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     `AnnexAttachmentMixin` (annex_actor="CONVENIO") habilita
+         *     `conventions/{id}/annex-upload` y `conventions/{id}/annex-checklist` para adjuntar
+         *     las resoluciones PDF del convenio/adenda (RESOL_MARCO/RESOL_ESPECIFICO/RESOL_ADENDA)
+         *     versionadas por `(convenio, documento_anexo)`.
+         */
         post: operations["conventions_evaluacion_tecnica_create"];
         delete?: never;
         options?: never;
@@ -972,7 +1175,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     `AnnexAttachmentMixin` (annex_actor="CONVENIO") habilita
+         *     `conventions/{id}/annex-upload` y `conventions/{id}/annex-checklist` para adjuntar
+         *     las resoluciones PDF del convenio/adenda (RESOL_MARCO/RESOL_ESPECIFICO/RESOL_ADENDA)
+         *     versionadas por `(convenio, documento_anexo)`.
+         */
         post: operations["conventions_firma_create"];
         delete?: never;
         options?: never;
@@ -987,7 +1197,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     `AnnexAttachmentMixin` (annex_actor="CONVENIO") habilita
+         *     `conventions/{id}/annex-upload` y `conventions/{id}/annex-checklist` para adjuntar
+         *     las resoluciones PDF del convenio/adenda (RESOL_MARCO/RESOL_ESPECIFICO/RESOL_ADENDA)
+         *     versionadas por `(convenio, documento_anexo)`.
+         */
         get: operations["conventions_historial_retrieve"];
         put?: never;
         post?: never;
@@ -1006,7 +1223,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     `AnnexAttachmentMixin` (annex_actor="CONVENIO") habilita
+         *     `conventions/{id}/annex-upload` y `conventions/{id}/annex-checklist` para adjuntar
+         *     las resoluciones PDF del convenio/adenda (RESOL_MARCO/RESOL_ESPECIFICO/RESOL_ADENDA)
+         *     versionadas por `(convenio, documento_anexo)`.
+         */
         post: operations["conventions_opinion_conapres_create"];
         delete?: never;
         options?: never;
@@ -1023,7 +1247,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     `AnnexAttachmentMixin` (annex_actor="CONVENIO") habilita
+         *     `conventions/{id}/annex-upload` y `conventions/{id}/annex-checklist` para adjuntar
+         *     las resoluciones PDF del convenio/adenda (RESOL_MARCO/RESOL_ESPECIFICO/RESOL_ADENDA)
+         *     versionadas por `(convenio, documento_anexo)`.
+         */
         post: operations["conventions_opinion_juridica_create"];
         delete?: never;
         options?: never;
@@ -1038,10 +1269,24 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     `AnnexAttachmentMixin` (annex_actor="CONVENIO") habilita
+         *     `conventions/{id}/annex-upload` y `conventions/{id}/annex-checklist` para adjuntar
+         *     las resoluciones PDF del convenio/adenda (RESOL_MARCO/RESOL_ESPECIFICO/RESOL_ADENDA)
+         *     versionadas por `(convenio, documento_anexo)`.
+         */
         get: operations["conventions_participantes_retrieve"];
         put?: never;
-        /** @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     `AnnexAttachmentMixin` (annex_actor="CONVENIO") habilita
+         *     `conventions/{id}/annex-upload` y `conventions/{id}/annex-checklist` para adjuntar
+         *     las resoluciones PDF del convenio/adenda (RESOL_MARCO/RESOL_ESPECIFICO/RESOL_ADENDA)
+         *     versionadas por `(convenio, documento_anexo)`.
+         */
         post: operations["conventions_participantes_create"];
         delete?: never;
         options?: never;
@@ -1058,7 +1303,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors. */
+        /**
+         * @description CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors.
+         *
+         *     `AnnexAttachmentMixin` (annex_actor="CONVENIO") habilita
+         *     `conventions/{id}/annex-upload` y `conventions/{id}/annex-checklist` para adjuntar
+         *     las resoluciones PDF del convenio/adenda (RESOL_MARCO/RESOL_ESPECIFICO/RESOL_ADENDA)
+         *     versionadas por `(convenio, documento_anexo)`.
+         */
         post: operations["conventions_publicacion_create"];
         delete?: never;
         options?: never;
@@ -1376,10 +1628,22 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description CRUD de facultades + asignación en lote de carreras por facultad.
+         *
+         *     La acción `careers` sincroniza (idempotente) las carreras de la facultad en
+         *     `universidad_carrera` derivando la universidad de la facultad; delega en el
+         *     service `sincronizar_carreras_facultad`.
+         */
         get: operations["faculties_list"];
         put?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description CRUD de facultades + asignación en lote de carreras por facultad.
+         *
+         *     La acción `careers` sincroniza (idempotente) las carreras de la facultad en
+         *     `universidad_carrera` derivando la universidad de la facultad; delega en el
+         *     service `sincronizar_carreras_facultad`.
+         */
         post: operations["faculties_create"];
         delete?: never;
         options?: never;
@@ -1394,17 +1658,64 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description CRUD de facultades + asignación en lote de carreras por facultad.
+         *
+         *     La acción `careers` sincroniza (idempotente) las carreras de la facultad en
+         *     `universidad_carrera` derivando la universidad de la facultad; delega en el
+         *     service `sincronizar_carreras_facultad`.
+         */
         get: operations["faculties_retrieve"];
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description CRUD de facultades + asignación en lote de carreras por facultad.
+         *
+         *     La acción `careers` sincroniza (idempotente) las carreras de la facultad en
+         *     `universidad_carrera` derivando la universidad de la facultad; delega en el
+         *     service `sincronizar_carreras_facultad`.
+         */
         put: operations["faculties_update"];
         post?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description CRUD de facultades + asignación en lote de carreras por facultad.
+         *
+         *     La acción `careers` sincroniza (idempotente) las carreras de la facultad en
+         *     `universidad_carrera` derivando la universidad de la facultad; delega en el
+         *     service `sincronizar_carreras_facultad`.
+         */
         delete: operations["faculties_destroy"];
         options?: never;
         head?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description CRUD de facultades + asignación en lote de carreras por facultad.
+         *
+         *     La acción `careers` sincroniza (idempotente) las carreras de la facultad en
+         *     `universidad_carrera` derivando la universidad de la facultad; delega en el
+         *     service `sincronizar_carreras_facultad`.
+         */
         patch: operations["faculties_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/faculties/{id}/careers/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Asigna en lote las carreras de la facultad. Body: `{carreras: [ids]}`.
+         *
+         *     Escritura solo `Administrador RENADS`. Deriva la universidad de la facultad,
+         *     da de alta/reactiva las carreras enviadas y de baja (por facultad) las que ya
+         *     no estén. Devuelve las filas `universidad_carrera` activas resultantes.
+         */
+        post: operations["faculties_careers_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/groups/": {
@@ -3491,10 +3802,18 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description CRUD de carreras por universidad (puente universidad ↔ carrera ↔ facultad).
+         *
+         *     Usa `UniversityCareerSerializer` (facultad requerida en escritura, RN-FC-02/03).
+         */
         get: operations["university_careers_list"];
         put?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description CRUD de carreras por universidad (puente universidad ↔ carrera ↔ facultad).
+         *
+         *     Usa `UniversityCareerSerializer` (facultad requerida en escritura, RN-FC-02/03).
+         */
         post: operations["university_careers_create"];
         delete?: never;
         options?: never;
@@ -3509,16 +3828,32 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description CRUD de carreras por universidad (puente universidad ↔ carrera ↔ facultad).
+         *
+         *     Usa `UniversityCareerSerializer` (facultad requerida en escritura, RN-FC-02/03).
+         */
         get: operations["university_careers_retrieve"];
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description CRUD de carreras por universidad (puente universidad ↔ carrera ↔ facultad).
+         *
+         *     Usa `UniversityCareerSerializer` (facultad requerida en escritura, RN-FC-02/03).
+         */
         put: operations["university_careers_update"];
         post?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description CRUD de carreras por universidad (puente universidad ↔ carrera ↔ facultad).
+         *
+         *     Usa `UniversityCareerSerializer` (facultad requerida en escritura, RN-FC-02/03).
+         */
         delete: operations["university_careers_destroy"];
         options?: never;
         head?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /**
+         * @description CRUD de carreras por universidad (puente universidad ↔ carrera ↔ facultad).
+         *
+         *     Usa `UniversityCareerSerializer` (facultad requerida en escritura, RN-FC-02/03).
+         */
         patch: operations["university_careers_partial_update"];
         trace?: never;
     };
@@ -3778,6 +4113,8 @@ export interface components {
              *     * `INTERNO` - Interno / estudiante
              *     * `AUTORIDAD_UNIVERSIDAD` - Autoridad de universidad
              *     * `REPRESENTANTE` - Representante / autoridad (incluye CONAPRES)
+             *     * `CONVENIO` - Convenio / adenda
+             *     * `CAMPO_CLINICO` - Campo clínico (resolución CONAPRES)
              */
             tipo_actor?: components["schemas"]["TipoActorEnum"] | components["schemas"]["BlankEnum"];
             /** @description Indica si el documento es de presentación obligatoria */
@@ -4077,6 +4414,17 @@ export interface components {
              */
             readonly campos_clinicos_asignados: number;
             readonly disponibilidad: number;
+            /**
+             * Número de resolución CONAPRES
+             * @description Número de la resolución CONAPRES que autoriza los campos clínicos de la sede
+             */
+            numero_resolucion_conapres?: string;
+            /**
+             * Fecha de resolución CONAPRES
+             * Format: date
+             * @description Fecha de la resolución CONAPRES
+             */
+            fecha_resolucion_conapres?: string | null;
             readonly convenio_detalle: string;
             readonly ipress_detalle: string;
             readonly carrera_profesional_detalle: string;
@@ -4135,6 +4483,10 @@ export interface components {
             readonly tipo_convenio: string;
             /** @description Convenio Marco vigente del que depende el Específico (RN-3) */
             convenio_marco?: number | null;
+            /** @description Convenio (Marco o Específico) que esta adenda amplía */
+            convenio_origen?: number | null;
+            /** @description Marca la fila como adenda de ampliación (derivable de convenio_origen; explícito para filtros) */
+            es_adenda?: boolean;
             /** @description Plantilla utilizada */
             plantilla?: number | null;
             /**
@@ -4164,6 +4516,12 @@ export interface components {
             universidad: number;
             readonly universidad_nombre: string;
             readonly tipo_entidad_universidad: string;
+            /** @description Unidad ejecutora parte del Convenio Específico */
+            unidad_ejecutora?: number | null;
+            readonly unidad_ejecutora_detalle: string;
+            /** @description Facultad (de la universidad del Marco) parte del Convenio Específico */
+            facultad?: number | null;
+            readonly facultad_detalle: string;
             readonly estado_actual: string;
             readonly estado_codigo: string;
             /**
@@ -4184,6 +4542,8 @@ export interface components {
              * @description Fin de vigencia
              */
             fecha_fin?: string | null;
+            readonly vigencia_efectiva: string;
+            readonly adendas: unknown[];
             /**
              * Máximo de campos clínicos
              * Format: int64
@@ -4286,6 +4646,10 @@ export interface components {
             organo_directorio: number;
             /** @description Universidad parte del convenio. Su tipo de entidad se deriva de esta relación. */
             universidad: number;
+            /** @description Unidad ejecutora parte del Convenio Específico */
+            unidad_ejecutora?: number | null;
+            /** @description Facultad (de la universidad del Marco) parte del Convenio Específico */
+            facultad?: number | null;
             /**
              * Fecha de solicitud
              * Format: date
@@ -4469,6 +4833,18 @@ export interface components {
             activo?: boolean;
             /** @description Universidad */
             universidad: number;
+        };
+        /**
+         * @description Entrada de la acción en lote `POST /faculties/{id}/careers`.
+         *
+         *     Recibe la lista de carreras profesionales a asociar a la facultad; se permite
+         *     lista vacía para dar de baja todas las carreras activas de la facultad.
+         */
+        FacultyCareersSync: {
+            carreras: number[];
+        };
+        FacultyCareersSyncResponse: {
+            carreras: components["schemas"]["UniversityCareer"][];
         };
         /** @description CRUD de grupos (roles) con asignación de permisos por PK. */
         Group: {
@@ -5720,7 +6096,7 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["UniversityCampusAuto"][];
         };
-        PaginatedUniversityCareerAutoList: {
+        PaginatedUniversityCareerList: {
             /** @example 123 */
             count: number;
             /**
@@ -5733,7 +6109,7 @@ export interface components {
              * @example http://api.example.org/accounts/?page=2
              */
             previous?: string | null;
-            results: components["schemas"]["UniversityCareerAuto"][];
+            results: components["schemas"]["UniversityCareer"][];
         };
         PaginatedUniversityManagementTypeAutoList: {
             /** @example 123 */
@@ -5837,6 +6213,8 @@ export interface components {
              *     * `INTERNO` - Interno / estudiante
              *     * `AUTORIDAD_UNIVERSIDAD` - Autoridad de universidad
              *     * `REPRESENTANTE` - Representante / autoridad (incluye CONAPRES)
+             *     * `CONVENIO` - Convenio / adenda
+             *     * `CAMPO_CLINICO` - Campo clínico (resolución CONAPRES)
              */
             tipo_actor?: components["schemas"]["TipoActorEnum"] | components["schemas"]["BlankEnum"];
             /** @description Indica si el documento es de presentación obligatoria */
@@ -6001,6 +6379,17 @@ export interface components {
              */
             readonly campos_clinicos_asignados?: number;
             readonly disponibilidad?: number;
+            /**
+             * Número de resolución CONAPRES
+             * @description Número de la resolución CONAPRES que autoriza los campos clínicos de la sede
+             */
+            numero_resolucion_conapres?: string;
+            /**
+             * Fecha de resolución CONAPRES
+             * Format: date
+             * @description Fecha de la resolución CONAPRES
+             */
+            fecha_resolucion_conapres?: string | null;
             readonly convenio_detalle?: string;
             readonly ipress_detalle?: string;
             readonly carrera_profesional_detalle?: string;
@@ -6072,6 +6461,10 @@ export interface components {
             organo_directorio?: number;
             /** @description Universidad parte del convenio. Su tipo de entidad se deriva de esta relación. */
             universidad?: number;
+            /** @description Unidad ejecutora parte del Convenio Específico */
+            unidad_ejecutora?: number | null;
+            /** @description Facultad (de la universidad del Marco) parte del Convenio Específico */
+            facultad?: number | null;
             /**
              * Fecha de solicitud
              * Format: date
@@ -6625,10 +7018,20 @@ export interface components {
             /** @description Ubicación geográfica (UBIGEO) */
             ubigeo?: number | null;
         };
-        PatchedUniversityCareerAuto: {
+        /**
+         * @description Carrera que dicta una universidad, asociada a la facultad que la imparte.
+         *
+         *     `facultad` es opcional a nivel de modelo (filas históricas), pero **requerida**
+         *     en la API (RN-FC-03). Se valida que la facultad pertenezca a la universidad del
+         *     registro (RN-FC-02). Los campos `*_detalle` son de solo lectura para poblar los
+         *     listados del frontend sin resolver ids.
+         */
+        PatchedUniversityCareer: {
             readonly id?: number;
+            facultad?: number;
             readonly universidad_detalle?: string;
             readonly carrera_profesional_detalle?: string;
+            readonly facultad_detalle?: string;
             activo?: boolean;
             /** @description Universidad */
             universidad?: number;
@@ -7045,9 +7448,11 @@ export interface components {
          * @description * `INTERNO` - Interno / estudiante
          *     * `AUTORIDAD_UNIVERSIDAD` - Autoridad de universidad
          *     * `REPRESENTANTE` - Representante / autoridad (incluye CONAPRES)
+         *     * `CONVENIO` - Convenio / adenda
+         *     * `CAMPO_CLINICO` - Campo clínico (resolución CONAPRES)
          * @enum {string}
          */
-        TipoActorEnum: "INTERNO" | "AUTORIDAD_UNIVERSIDAD" | "REPRESENTANTE";
+        TipoActorEnum: "INTERNO" | "AUTORIDAD_UNIVERSIDAD" | "REPRESENTANTE" | "CONVENIO" | "CAMPO_CLINICO";
         TokenRefresh: {
             readonly access: string;
             refresh: string;
@@ -7186,10 +7591,20 @@ export interface components {
             /** @description Ubicación geográfica (UBIGEO) */
             ubigeo?: number | null;
         };
-        UniversityCareerAuto: {
+        /**
+         * @description Carrera que dicta una universidad, asociada a la facultad que la imparte.
+         *
+         *     `facultad` es opcional a nivel de modelo (filas históricas), pero **requerida**
+         *     en la API (RN-FC-03). Se valida que la facultad pertenezca a la universidad del
+         *     registro (RN-FC-02). Los campos `*_detalle` son de solo lectura para poblar los
+         *     listados del frontend sin resolver ids.
+         */
+        UniversityCareer: {
             readonly id: number;
+            facultad: number;
             readonly universidad_detalle: string;
             readonly carrera_profesional_detalle: string;
+            readonly facultad_detalle: string;
             activo?: boolean;
             /** @description Universidad */
             universidad: number;
@@ -7792,8 +8207,10 @@ export interface operations {
                  *     * `INTERNO` - Interno / estudiante
                  *     * `AUTORIDAD_UNIVERSIDAD` - Autoridad de universidad
                  *     * `REPRESENTANTE` - Representante / autoridad (incluye CONAPRES)
+                 *     * `CONVENIO` - Convenio / adenda
+                 *     * `CAMPO_CLINICO` - Campo clínico (resolución CONAPRES)
                  */
-                tipo_actor?: "AUTORIDAD_UNIVERSIDAD" | "INTERNO" | "REPRESENTANTE";
+                tipo_actor?: "AUTORIDAD_UNIVERSIDAD" | "CAMPO_CLINICO" | "CONVENIO" | "INTERNO" | "REPRESENTANTE";
             };
             header?: never;
             path?: never;
@@ -9003,6 +9420,56 @@ export interface operations {
             };
         };
     };
+    clinical_field_registrations_annex_checklist_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este registro de campos clínicos por sede. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lista de anexos requeridos del actor con su estado de adjunto. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnnexChecklistItem"];
+                };
+            };
+        };
+    };
+    clinical_field_registrations_annex_upload_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este registro de campos clínicos por sede. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["AnnexUpload"];
+                "application/x-www-form-urlencoded": components["schemas"]["AnnexUpload"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Document"];
+                };
+            };
+        };
+    };
     closure_reasons_list: {
         parameters: {
             query?: {
@@ -9642,6 +10109,81 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ConventionWrite"];
+                };
+            };
+        };
+    };
+    conventions_adenda_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConventionWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["ConventionWrite"];
+                "multipart/form-data": components["schemas"]["ConventionWrite"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConventionWrite"];
+                };
+            };
+        };
+    };
+    conventions_annex_checklist_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lista de anexos requeridos del actor con su estado de adjunto. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnnexChecklistItem"];
+                };
+            };
+        };
+    };
+    conventions_annex_upload_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["AnnexUpload"];
+                "application/x-www-form-urlencoded": components["schemas"]["AnnexUpload"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Document"];
                 };
             };
         };
@@ -10532,6 +11074,34 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FacultyAuto"];
+                };
+            };
+        };
+    };
+    faculties_careers_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este facultad. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacultyCareersSync"];
+                "application/x-www-form-urlencoded": components["schemas"]["FacultyCareersSync"];
+                "multipart/form-data": components["schemas"]["FacultyCareersSync"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyCareersSyncResponse"];
                 };
             };
         };
@@ -14547,6 +15117,7 @@ export interface operations {
             query?: {
                 activo?: boolean;
                 carrera_profesional?: number;
+                facultad?: number;
                 /** @description Qué campo usar para ordenar los resultados. */
                 ordering?: string;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
@@ -14566,7 +15137,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PaginatedUniversityCareerAutoList"];
+                    "application/json": components["schemas"]["PaginatedUniversityCareerList"];
                 };
             };
         };
@@ -14580,9 +15151,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UniversityCareerAuto"];
-                "application/x-www-form-urlencoded": components["schemas"]["UniversityCareerAuto"];
-                "multipart/form-data": components["schemas"]["UniversityCareerAuto"];
+                "application/json": components["schemas"]["UniversityCareer"];
+                "application/x-www-form-urlencoded": components["schemas"]["UniversityCareer"];
+                "multipart/form-data": components["schemas"]["UniversityCareer"];
             };
         };
         responses: {
@@ -14591,7 +15162,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UniversityCareerAuto"];
+                    "application/json": components["schemas"]["UniversityCareer"];
                 };
             };
         };
@@ -14613,7 +15184,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UniversityCareerAuto"];
+                    "application/json": components["schemas"]["UniversityCareer"];
                 };
             };
         };
@@ -14630,9 +15201,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UniversityCareerAuto"];
-                "application/x-www-form-urlencoded": components["schemas"]["UniversityCareerAuto"];
-                "multipart/form-data": components["schemas"]["UniversityCareerAuto"];
+                "application/json": components["schemas"]["UniversityCareer"];
+                "application/x-www-form-urlencoded": components["schemas"]["UniversityCareer"];
+                "multipart/form-data": components["schemas"]["UniversityCareer"];
             };
         };
         responses: {
@@ -14641,7 +15212,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UniversityCareerAuto"];
+                    "application/json": components["schemas"]["UniversityCareer"];
                 };
             };
         };
@@ -14679,9 +15250,9 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["PatchedUniversityCareerAuto"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedUniversityCareerAuto"];
-                "multipart/form-data": components["schemas"]["PatchedUniversityCareerAuto"];
+                "application/json": components["schemas"]["PatchedUniversityCareer"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedUniversityCareer"];
+                "multipart/form-data": components["schemas"]["PatchedUniversityCareer"];
             };
         };
         responses: {
@@ -14690,7 +15261,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UniversityCareerAuto"];
+                    "application/json": components["schemas"]["UniversityCareer"];
                 };
             };
         };

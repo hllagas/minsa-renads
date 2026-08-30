@@ -99,7 +99,7 @@ por `gobierno_regional`/`tipo_organo`. `university-authorities` fue eliminado.
 | `faculties` | `universidad`, `activo` | `nombre` | — |
 | `professional-careers` | `nivel_academico`, `activo` | `nombre` | — |
 | `university-campuses` | `universidad`, `region`, `activo` | `nombre` | — |
-| `university-careers` | `universidad`, `carrera_profesional`, `activo` | — | `universidad_detalle`, `carrera_profesional_detalle` |
+| `university-careers` | `universidad`, `carrera_profesional`, `facultad`, `activo` | — | `universidad_detalle`, `carrera_profesional_detalle`, `facultad_detalle` (todos strings) |
 | `user-entity-profiles` | `usuario`, `grupo`, `activo` | — | Solo `Administrador RENADS`. |
 
 > Los campos `*_detalle` son strings planos (no objetos `{id, nombre}`). Usar `String(r.*_detalle ?? "—")` en columnas.
@@ -110,6 +110,20 @@ por `gobierno_regional`/`tipo_organo`. `university-authorities` fue eliminado.
   Requisito para registrar **campos clínicos** de un convenio.
 - Acción **`POST /ipress/{id}/autorizar-sede-docente/`** — rol **`CONAPRES`**.
   Body: `{ "autorizar": true|false }` (default `true`). Devuelve la IPRESS actualizada.
+
+### `university-careers` — FK `facultad` requerida (RN-FC-02/03)
+
+`UniversityCareerSerializer` (no `_auto_serializer`). Campos escritura: `universidad`, `carrera_profesional`,
+`facultad` (requerida), `activo`. Campos solo lectura: `universidad_detalle`, `carrera_profesional_detalle`,
+`facultad_detalle` (strings planos, no `{id, nombre}`). Validación: la facultad debe pertenecer a la
+universidad del registro (error 400 si no). Filtros: `universidad`, `carrera_profesional`, `facultad`, `activo`.
+
+Acción bulk en `FacultyViewSet`: `POST /faculties/{id}/careers/` con body `{ carreras: [ids] }` —
+asigna en lote las carreras de la facultad (idempotente); devuelve lista `university-careers` activas.
+Solo `Administrador RENADS`.
+
+> **`faculties`**: `FacultyAuto` no expone `universidad_detalle` (viewset sin kwarg `detalles`).
+> La tabla de facultades solo muestra `nombre` + `activo`. Ver REQ-BACK-03 en `CLAUDE.md`.
 
 ### Endpoints eliminados (no usar)
 
