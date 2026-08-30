@@ -5135,26 +5135,6 @@ export interface components {
             nombre: string;
             /** @description Siglas */
             siglas?: string;
-            /**
-             * Dirección
-             * @description Dirección
-             */
-            direccion?: string;
-            /**
-             * Número de RUC
-             * @description RUC (11 dígitos; texto para conservar ceros a la izquierda)
-             */
-            numero_ruc?: string;
-            /**
-             * Format: email
-             * @description Correo institucional
-             */
-            correo?: string;
-            /**
-             * Teléfono institucional
-             * @description Teléfono institucional
-             */
-            telefono_institucional?: string;
             activo?: boolean;
             /**
              * Órgano
@@ -6689,26 +6669,6 @@ export interface components {
             nombre?: string;
             /** @description Siglas */
             siglas?: string;
-            /**
-             * Dirección
-             * @description Dirección
-             */
-            direccion?: string;
-            /**
-             * Número de RUC
-             * @description RUC (11 dígitos; texto para conservar ceros a la izquierda)
-             */
-            numero_ruc?: string;
-            /**
-             * Format: email
-             * @description Correo institucional
-             */
-            correo?: string;
-            /**
-             * Teléfono institucional
-             * @description Teléfono institucional
-             */
-            telefono_institucional?: string;
             activo?: boolean;
             /**
              * Órgano
@@ -6814,6 +6774,26 @@ export interface components {
             readonly referencia_logo?: string;
             /** @description Nombre del gobierno regional */
             nombre?: string;
+            /**
+             * Número de RUC
+             * @description RUC (11 dígitos; texto para conservar ceros a la izquierda)
+             */
+            numero_ruc?: string;
+            /**
+             * Dirección
+             * @description Dirección
+             */
+            direccion?: string;
+            /**
+             * Format: email
+             * @description Correo institucional
+             */
+            correo?: string;
+            /**
+             * Teléfono
+             * @description Teléfono institucional
+             */
+            telefono?: string;
             activo?: boolean;
             /** @description Región */
             region?: number;
@@ -7134,6 +7114,26 @@ export interface components {
             readonly referencia_logo: string;
             /** @description Nombre del gobierno regional */
             nombre: string;
+            /**
+             * Número de RUC
+             * @description RUC (11 dígitos; texto para conservar ceros a la izquierda)
+             */
+            numero_ruc?: string;
+            /**
+             * Dirección
+             * @description Dirección
+             */
+            direccion?: string;
+            /**
+             * Format: email
+             * @description Correo institucional
+             */
+            correo?: string;
+            /**
+             * Teléfono
+             * @description Teléfono institucional
+             */
+            telefono?: string;
             activo?: boolean;
             /** @description Región */
             region: number;

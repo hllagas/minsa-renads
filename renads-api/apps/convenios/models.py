@@ -283,6 +283,13 @@ class Ubigeo(models.Model):
 class RegionalGovernment(models.Model):
     nombre = models.CharField("nombre", max_length=255, help_text="Nombre del gobierno regional")
     region = models.ForeignKey(Region, on_delete=models.PROTECT, db_column="region_id", help_text="Región")
+    numero_ruc = models.CharField(
+        "número de RUC", max_length=11, blank=True,
+        help_text="RUC (11 dígitos; texto para conservar ceros a la izquierda)",
+    )
+    direccion = models.CharField("dirección", max_length=500, blank=True, help_text="Dirección")
+    correo = models.EmailField("correo", blank=True, help_text="Correo institucional")
+    telefono = models.CharField("teléfono", max_length=30, blank=True, help_text="Teléfono institucional")
     referencia_logo = models.ImageField(
         "logo", upload_to="gobierno_regional/", max_length=500, null=True, blank=True,
         help_text="Logo institucional (imagen almacenada en el repositorio de medios)",
@@ -319,15 +326,6 @@ class OrganDirectory(models.Model):
     )
     nombre = models.CharField("nombre", max_length=255, help_text="Nombre del órgano")
     siglas = models.CharField("siglas", max_length=50, blank=True, help_text="Siglas")
-    direccion = models.CharField("dirección", max_length=500, blank=True, help_text="Dirección")
-    numero_ruc = models.CharField(
-        "número de RUC", max_length=11, blank=True,
-        help_text="RUC (11 dígitos; texto para conservar ceros a la izquierda)",
-    )
-    correo = models.EmailField("correo", blank=True, help_text="Correo institucional")
-    telefono_institucional = models.CharField(
-        "teléfono institucional", max_length=30, blank=True, help_text="Teléfono institucional",
-    )
     ubigeo = models.ForeignKey(
         Ubigeo, on_delete=models.PROTECT, db_column="ubigeo_id", null=True, blank=True,
         related_name="+", help_text="Ubicación geográfica (UBIGEO)",
