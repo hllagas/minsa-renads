@@ -19,7 +19,7 @@ export default function RepresentantesPage() {
         {
           key: "anexos",
           label: "Anexos",
-          render: (row) => <AnnexChecklistAction entidad="representatives" row={row} />,
+          render: (row) => <AnnexChecklistAction entidad="organ-representatives" row={row} />,
           onClick: () => {},
         },
       ]

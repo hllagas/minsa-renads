@@ -4,9 +4,11 @@ Contrato de los **CRUD de soporte transversales** del Módulo 1 del backend (`ap
 `apps/common`). Alimentan las rutas **`/catalogos`** (mantenimiento de tablas maestras) y, en parte,
 **`/usuarios`** (perfiles institucionales). El núcleo del convenio está en `docs/api-convenios.md`.
 
-> Fuente de verdad backend: `D:\dev\renads\renads-api\docs\modulo_01_crud_transversales.md` y el
-> código `apps/convenios/{urls,views,serializers}.py`. Base: `/api/v1/`. JWT en todos los endpoints.
+> Fuente de verdad backend: `D:\dev\renads\renads-api` y el código `apps/convenios/{urls,views,serializers}.py`.
+> Base: `/api/v1/`. JWT en todos los endpoints.
 > Tipos generados del OpenAPI en `lib/api/schema.d.ts` (`npm run gen:api` contra el backend vivo).
+
+**Última revisión de contrato: 2026-08-29** (refactor tabla de órganos unificada).
 
 ## Mapa UI → recursos
 
@@ -22,37 +24,46 @@ Contrato de los **CRUD de soporte transversales** del Módulo 1 del backend (`ap
 CRUD de solo lectura (`list`/`retrieve`). Patrón común: filtro `activo`, search `codigo`/`nombre`,
 ordering `id`/`codigo`/`nombre` (default `id`). Se usan para poblar selects.
 
-`regions`, `convention-types`, `convention-statuses`,
-`university-management-types`, `specialties`, `signing-authority-types`, `executing-unit-types`,
-`executive-positions`, `observation-reasons`, `rejection-reasons`, `closure-reasons`
-(11 catálogos de solo lectura).
+**Solo lectura (sin CRUD admin):**
+`regions`, `convention-types`, `convention-statuses`, `university-management-types`, `specialties`,
+`signing-authority-types`, `executive-positions`, `observation-reasons`, `rejection-reasons`,
+`closure-reasons`, `identity-document-types`, `relationship-types`
 
 `ubigeos` — catálogo INEI (solo lectura). Filtros: `departamento`, `provincia`, `distrito`, `activo`;
 search `codigo`/`distrito`/`provincia`/`departamento`.
 
+`organs` — tabla de categorías canónicas (solo lectura): MINSA, Universidad, Órgano Regional, UE.
+Campos: `id`, `nombre`. Sin CRUD admin.
+
 ### 1.1. Catálogos maestros con CRUD (RNF-MAN-01/02/03)
 
-Seis catálogos dejan de ser de solo lectura y aceptan **CRUD completo** (`create`/`update`/
-`partial_update`/`destroy`) para mantenerlos sin cambios de código. Escritura solo
-**`Administrador RENADS`** (`IsAdminRoleOrReadOnly`) + auditoría. Campos del modelo base `Catalog`:
-`codigo` (único, obligatorio), `nombre` (obligatorio), `activo`.
+Catálogos que aceptan **CRUD completo** (`create`/`update`/`partial_update`/`destroy`).
+Escritura solo **`Administrador RENADS`** (`IsAdminRoleOrReadOnly`) + auditoría.
+Campos del modelo base `Catalog`: `codigo` (único, obligatorio), `nombre` (obligatorio), `activo`.
 
-`document-types`, `university-entity-types`, `authorization-types`, `academic-levels`,
-`regional-organ-types`, `minsa-organ-types`, **`categories`**, **`classification-types`**,
-**`health-geographic-scopes`**.
+| Endpoint | Notas | Filtros extra |
+|----------|-------|---------------|
+| `authorization-types` | Tipo de autorización | — |
+| `academic-levels` | Nivel académico de carrera | — |
+| `organ-types` | Tipo dentro de una categoría de órgano. FK `organo` → `organs` | `organo__nombre` (filtra por categoría) |
+| `categories` | Categoría de convenio | — |
+| `classification-types` | Clasificación de convenio | — |
+| `health-geographic-scopes` | Ámbito geográfico sanitario (cúspide: ámbito→red→microrred) | — |
 
-> `categories`, `classification-types` y `health-geographic-scopes` (modelo base `Catalog`:
-> `codigo`/`nombre`/`activo`) se añadieron como CRUD maestro con el mismo patrón (filtro `activo`,
-> search `codigo`/`nombre`). `health-geographic-scopes` es la cúspide de la jerarquía sanitaria
-> (ámbito → red → microrred, ver §1.2).
+> **`organ-types`**: reemplaza a los eliminados `regional-organ-types`, `minsa-organ-types`,
+> `executing-unit-types`, `university-entity-types`. Discriminar por categoría con
+> `?organo__nombre=<MINSA|Universidad|Órgano Regional|Unidad Ejecutora>`.
 
-> Front: configurados con `writableCatalog()` en `lib/catalogos/catalogs.ts` (los 12 restantes
-> siguen `readOnlyCatalog()`). Se editan desde `/catalogos/listas/<slug>`.
+> **Eliminados del backend (no usar):** `document-types`, `university-entity-types`,
+> `regional-organ-types`, `minsa-organ-types`, `executing-unit-types`.
+
+> Front: configurados con `writableCatalog()` en `lib/catalogos/catalogs.ts`. Se editan desde
+> `/catalogos/listas/<slug>`.
 
 ### 1.2. Estructura sanitaria — redes y microrredes (CRUD)
 
-Jerarquía de red asistencial, CRUD (escritura solo **`Administrador RENADS`** + auditoría). Campos
-base `Catalog` (`codigo`/`nombre`/`activo`) más su FK de jerarquía:
+Jerarquía de red asistencial, CRUD (escritura solo **`Administrador RENADS`** + auditoría).
+Campos base `Catalog` (`codigo`/`nombre`/`activo`) más su FK de jerarquía:
 
 | Endpoint | Modelo | Filtros | Search |
 |----------|--------|---------|--------|
@@ -62,42 +73,83 @@ base `Catalog` (`codigo`/`nombre`/`activo`) más su FK de jerarquía:
 > `Red` cuelga de `health-geographic-scopes` (ámbito geográfico sanitario) y `Microred` de `Red`.
 > Front: `networks`/`micro-networks` ya tienen config de entidad en `lib/catalogos/entities.ts`
 > (`SANITARY_ENTITY_CONFIGS`), editables desde `/catalogos/entidades/<slug>`. En el alta de
-> microrred, un selector auxiliar de ámbito filtra el select de `red` (cascada). Los catálogos
-> simples `categories`/`classification-types` están en `lib/catalogos/catalogs.ts` (§1.1).
+> microrred, un selector auxiliar de ámbito filtra el select de `red` (cascada).
+
+---
 
 ## 2. Entidades organizacionales / académicas (CRUD)
 
 Escritura solo **`Administrador RENADS`** (la autoridad final es el backend). Ordering default `id`.
-Cada recurso expone `id` + todos los campos del modelo, con estos filtros/búsqueda:
+Cada recurso expone `id` + todos los campos del modelo, con estos filtros/búsqueda.
 
-| Endpoint | Filtros (`filterset_fields`) | Search |
-|----------|------------------------------|--------|
-| `regional-governments` | `region`, `activo` | `nombre` |
-| `regional-organs` | `gobierno_regional`, `tipo_organo_regional`, `activo` | `nombre`, `siglas` |
-| `executing-units` | `organo_regional`, `tipo_unidad_ejecutora`, `activo` | `nombre`, `codigo` |
-| `ipress` | `unidad_ejecutora`, `ambito_geografico_sanitario`, `es_sede_docente`, `activo` | `nombre`, `codigo_renipress` |
-| `minsa-organs` | `tipo_organo_minsa`, `activo` | `nombre`, `siglas` |
-| `conapres` | `activo` | `nombre` |
-| `universities` | `tipo_gestion`, `tipo_entidad`, `tipo_autorizacion`, `activo` | `nombre`, `siglas` |
-| `university-authorities` | `universidad`, `activo` | `nombre`, `cargo` |
-| `faculties` | `universidad`, `activo` | `nombre` |
-| `professional-careers` | `facultad`, `nivel_academico`, `especialidad`, `activo` | `nombre` |
-| `university-campuses` | `universidad`, `region`, `activo` | `nombre` |
-| `user-entity-profiles` | `usuario`, `grupo`, `activo` | (sin lectura abierta — solo Admin) → ver `/usuarios` |
+**Refactor 2026-08-29:** `regional-organs` y `minsa-organs` se unificaron en `organ-directories`
+(discriminado por FK `organo`). `executing-units` cambió `organo_regional`/`tipo_unidad_ejecutora`
+por `gobierno_regional`/`tipo_organo`. `university-authorities` fue eliminado.
+
+| Endpoint | Filtros (`filterset_fields`) | Search | Detalles |
+|----------|------------------------------|--------|----------|
+| `organs` | — | — | Solo lectura. 4 categorías canónicas. |
+| `organ-types` | `organo`, `activo` | `codigo`, `nombre` | `organo_detalle` |
+| `organ-directories` | `organo`, `activo` | `nombre`, `siglas` | `organo_detalle`, `tipo_organo_detalle`, `gobierno_regional_detalle` |
+| `executing-units` | `tipo_organo`, `gobierno_regional`, `activo` | `nombre`, `codigo` | `tipo_organo_detalle`, `gobierno_regional_detalle`, `ubigeo_detalle` |
+| `regional-governments` | `region`, `activo` | `nombre` | — |
+| `ipress` | `unidad_ejecutora`, `ambito_geografico_sanitario`, `es_sede_docente`, `activo` | `nombre`, `codigo_renipress` | — |
+| `conapres` | `activo` | `nombre` | — |
+| `universities` | `tipo_gestion`, `tipo_entidad`, `tipo_autorizacion`, `activo` | `nombre`, `siglas` | `tipo_gestion_detalle`, `tipo_entidad_detalle`, `tipo_autorizacion_detalle` |
+| `faculties` | `universidad`, `activo` | `nombre` | — |
+| `professional-careers` | `nivel_academico`, `activo` | `nombre` | — |
+| `university-campuses` | `universidad`, `region`, `activo` | `nombre` | — |
+| `university-careers` | `universidad`, `carrera_profesional`, `activo` | — | `universidad_detalle`, `carrera_profesional_detalle` |
+| `user-entity-profiles` | `usuario`, `grupo`, `activo` | — | Solo `Administrador RENADS`. |
+
+> Los campos `*_detalle` son strings planos (no objetos `{id, nombre}`). Usar `String(r.*_detalle ?? "—")` en columnas.
 
 ### `ipress` — sede docente (CONAPRES)
 
-- Campo booleano **`es_sede_docente`** (default `false`): IPRESS autorizada por CONAPRES como
-  sede docente. Requisito para registrar **campos clínicos** de un convenio (el backend rechaza
-  la IPRESS no autorizada con error en `ipress`).
+- Campo booleano **`es_sede_docente`** (default `false`): IPRESS autorizada por CONAPRES.
+  Requisito para registrar **campos clínicos** de un convenio.
 - Acción **`POST /ipress/{id}/autorizar-sede-docente/`** — rol **`CONAPRES`**.
   Body: `{ "autorizar": true|false }` (default `true`). Devuelve la IPRESS actualizada.
 
-## 3. Representantes — `representatives`
+### Endpoints eliminados (no usar)
 
-CRUD polimórfico (representante de órgano MINSA / órgano regional / unidad ejecutora / IPRESS /
-CONAPRES). Escritura solo `Administrador RENADS`. Filtros: `tipo_contenido`, `id_objeto`,
-`cargo_ejecutivo`, `activo`.
+`regional-organs`, `minsa-organs`, `university-authorities` — eliminados del backend en el refactor
+2026-08-29. Usar `organ-directories` con filtro `?organo=<id>` en su lugar.
+
+---
+
+## 3. Representantes de órgano — `organ-representatives`
+
+CRUD directo (representante con FK directa a `organo_directorio`). **Reemplaza** al antiguo
+`representatives` (polimórfico) eliminado en el refactor 2026-08-29.
+
+Escritura solo **`Administrador RENADS`** (`IsAdminRoleOrReadOnly`).
+AnnexAttachmentMixin: adjunta PDFs del actor `REPRESENTANTE` (`annex-upload`/`annex-checklist`).
+
+Al crear, el backend ejecuta `registrar_organo_representante`: da de baja automáticamente al
+representante anterior activo del mismo par `(organo_directorio, cargo_ejecutivo)` y lo mueve al
+histórico (`organ-representative-history`).
+
+**Filtros:** `organo_directorio`, `cargo_ejecutivo`, `activo`.
+**Search:** `nombre`, `numero_documento_identidad`.
+
+### OrganRepresentative — campos
+
+```
+id (readonly), nombre, numero_documento_identidad, sexo (M|F),
+fecha_inicio_designacion (date), numero_resolucion_designacion?,
+fecha_inicio_facultades? (date|null), activo?,
+organo_directorio (FK int), tipo_documento_identidad (FK int → identity-document-types),
+cargo_ejecutivo (FK int → executive-positions)
+```
+
+> No expone `*_detalle` — el serializer usa `fields = "__all__"`. En tabla mostrar
+> `nombre`, `numero_documento_identidad`, `sexo`, `fecha_inicio_designacion`, `activo`.
+
+### Histórico — `organ-representative-history` (solo lectura)
+
+Registro de representantes dados de baja. Filtros: `organo_directorio`, `cargo_ejecutivo`, `representante`.
+Campos adicionales: `fecha_baja`, `motivo`, `creado_en`.
 
 ---
 
@@ -158,9 +210,3 @@ Todos los campos son read-only.
   autenticado; escritura de entidades solo `Administrador RENADS`.
 - **`user-entity-profiles` / `audit-logs`:** solo `Administrador RENADS` (Auditor para consulta de
   bitácora).
-
-## Pendiente (SDD)
-
-Este documento es **contexto/contrato**. El siguiente paso del flujo SDD es el spec
-`spec/catalogos.md` (aprobación humana antes de implementar). No iniciar implementación sin spec
-aprobado. Ver `docs/mvp.md` (módulos 6 «Catálogos» y 7 «Gestión de Usuarios»).

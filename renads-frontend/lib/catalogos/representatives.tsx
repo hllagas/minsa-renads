@@ -1,67 +1,55 @@
 import type { ResourceConfig } from "@/lib/crud/types";
-import type { WithId } from "@/lib/api/query";
 
 const siNo = (v: unknown) => (v ? "Sí" : "No");
 
-/** Representante (polimórfico) tal como lo devuelve el backend (`representatives`). */
-export interface Representante extends WithId {
-  id: number;
-  tipo_contenido: number;
-  tipo_contenido_label?: string | null;
-  id_objeto: number;
-  nombre: string;
-  cargo_ejecutivo: number;
-  cargo_ejecutivo_nombre?: string | null;
-  origen?: string | null;
-  fecha_inicio?: string | null;
-  fecha_fin?: string | null;
-  activo: boolean;
-}
-
-/** Etiqueta legible de la entidad polimórfica destino. */
-const entidadLabel = (r: Representante) =>
-  `${r.tipo_contenido_label ?? `Tipo ${r.tipo_contenido}`} · #${r.id_objeto}`;
-
-const ORIGEN_CHOICES = [
-  { value: "MINSA", label: "MINSA" },
-  { value: "GOBIERNO_REGIONAL", label: "Gobierno regional" },
-  { value: "ASOCIACION_FACULTADES", label: "Asociación de facultades" },
+const SEXO_CHOICES = [
+  { value: "M", label: "Masculino" },
+  { value: "F", label: "Femenino" },
 ];
 
+const sexoLabel = (v: unknown) => {
+  if (v === "M") return "Masculino";
+  if (v === "F") return "Femenino";
+  return "—";
+};
+
 /**
- * Config CRUD de `representatives` (v1, según `spec/catalogos.md` §5/R2):
- * list + filtros + editar (solo campos NO polimórficos) + eliminar. El ALTA queda diferida a v2
- * (requiere resolver `tipo_contenido`/`id_objeto` vía el endpoint `content-types`).
+ * Config CRUD de `organ-representatives` (modelo v2, FK directa a `organo_directorio`).
+ * ALTA habilitada: el backend delega en `registrar_organo_representante` (baja automática
+ * del representante anterior del mismo par `organo_directorio × cargo_ejecutivo`).
  */
-export const REPRESENTATIVES_CONFIG: ResourceConfig<Representante> = {
-  endpoint: "representatives",
+export const REPRESENTATIVES_CONFIG: ResourceConfig = {
+  endpoint: "organ-representatives",
   title: "Representantes",
   singular: "representante",
+  createPrefix: "Nuevo",
   description:
-    "Representantes de órganos MINSA, órganos regionales, unidades ejecutoras, IPRESS y CONAPRES.",
-  searchPlaceholder: "Buscar…",
-  // TODO(v2 content-types): habilitar el ALTA con selector de tipo_contenido + combobox de id_objeto
-  // dependiente, cuando el backend exponga el endpoint de solo lectura `content-types`.
-  disableCreate: true,
+    "Representantes vigentes de órganos del directorio (MINSA, Gobierno Regional, Unidad Ejecutora, IPRESS, CONAPRES).",
+  searchPlaceholder: "Buscar por nombre o N° documento…",
   columns: [
     { key: "nombre", header: "Nombre" },
     {
-      key: "cargo_ejecutivo",
-      header: "Cargo ejecutivo",
-      render: (r) => r.cargo_ejecutivo_nombre ?? `#${r.cargo_ejecutivo}`,
+      key: "numero_documento_identidad",
+      header: "N° documento",
     },
-    { key: "entidad", header: "Entidad", render: (r) => entidadLabel(r) },
-    { key: "origen", header: "Origen", render: (r) => r.origen ?? "—" },
+    {
+      key: "sexo",
+      header: "Sexo",
+      render: (r) => sexoLabel(r.sexo),
+    },
+    {
+      key: "fecha_inicio_designacion",
+      header: "Inicio designación",
+    },
     { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
   ],
   filters: [
     {
-      name: "tipo_contenido",
-      label: "Tipo de contenido (ID)",
-      type: "text",
-      placeholder: "ID de ContentType",
+      name: "organo_directorio",
+      label: "Órgano del directorio",
+      type: "select",
+      optionsEndpoint: "organ-directories",
     },
-    { name: "id_objeto", label: "ID de objeto", type: "text", placeholder: "ID" },
     {
       name: "cargo_ejecutivo",
       label: "Cargo ejecutivo",
@@ -70,9 +58,33 @@ export const REPRESENTATIVES_CONFIG: ResourceConfig<Representante> = {
     },
     { name: "activo", label: "Activo", type: "boolean" },
   ],
-  // Solo campos NO polimórficos (PATCH parcial; no toca tipo_contenido/id_objeto).
   fields: [
-    { name: "nombre", label: "Nombre", type: "text", required: true },
+    { name: "_s1", label: "Datos personales", type: "separator" },
+    { name: "nombre", label: "Nombre completo", type: "text", required: true, fullWidth: true },
+    {
+      name: "tipo_documento_identidad",
+      label: "Tipo de documento",
+      type: "select",
+      required: true,
+      optionsEndpoint: "identity-document-types",
+    },
+    { name: "numero_documento_identidad", label: "N° documento", type: "text", required: true },
+    {
+      name: "sexo",
+      label: "Sexo",
+      type: "select",
+      required: true,
+      choices: SEXO_CHOICES,
+    },
+
+    { name: "_s2", label: "Designación", type: "separator" },
+    {
+      name: "organo_directorio",
+      label: "Órgano del directorio",
+      type: "select",
+      required: true,
+      optionsEndpoint: "organ-directories",
+    },
     {
       name: "cargo_ejecutivo",
       label: "Cargo ejecutivo",
@@ -80,21 +92,11 @@ export const REPRESENTATIVES_CONFIG: ResourceConfig<Representante> = {
       required: true,
       optionsEndpoint: "executive-positions",
     },
-    {
-      name: "origen",
-      label: "Origen (solo CONAPRES)",
-      type: "select",
-      choices: ORIGEN_CHOICES,
-    },
-    { name: "fecha_inicio", label: "Fecha de inicio", type: "date" },
-    { name: "fecha_fin", label: "Fecha de fin", type: "date" },
+    { name: "fecha_inicio_designacion", label: "Fecha de designación", type: "date", required: true },
+    { name: "numero_resolucion_designacion", label: "N° resolución de designación", type: "text" },
+    { name: "fecha_inicio_facultades", label: "Fecha de inicio de facultades", type: "date" },
+
+    { name: "_s3", label: "Estado", type: "separator" },
     { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
   ],
-  // La entidad polimórfica se muestra en solo lectura al editar (no es editable en v1).
-  renderEditInfo: (r) => (
-    <div className="grid gap-1">
-      <span className="text-xs text-muted-foreground">Entidad (solo lectura)</span>
-      <span className="font-medium">{entidadLabel(r)}</span>
-    </div>
-  ),
 };

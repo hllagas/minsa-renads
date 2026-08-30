@@ -6,7 +6,7 @@ Base: `/api/v1/`. Todos los endpoints requieren JWT.
 
 ## Reglas de negocio clave (para validación/UX)
 
-- Un Convenio **Marco** solo lo solicita una **GERESA o DIRESA** (`organo_regional` de ese tipo)
+- Un Convenio **Marco** solo lo solicita una **GERESA o DIRESA** (`organo_directorio` de ese tipo)
   y no lleva `convenio_marco`.
 - **RN-3:** un Convenio **Específico** requiere un **Convenio Marco vigente**
   (estado en `VIGENTE` / `PUBLICADO` / `SUSCRITO`) — **salvo si el órgano es DIRIS**, que puede
@@ -56,7 +56,7 @@ fecha_solicitud, fecha_inicio, fecha_fin, max_campos_clinicos
 > `solicitante` es polimórfico: `solicitante_tipo_contenido` (id de ContentType) + `solicitante_id_objeto`.
 
 ### Payloads de acciones de flujo
-- **evaluacion-tecnica:** `resultado, observaciones, subsanacion, organo_minsa, fecha_evaluacion`
+- **evaluacion-tecnica:** `resultado, observaciones, subsanacion, organo_directorio, fecha_evaluacion`
   (`resultado=VALIDADO` → `VALIDADO_TECNICAMENTE`; `OBSERVADO` → `OBSERVADO_DIGEP`).
 - **opinion-conapres:** `fecha_solicitud, estado_atencion, resultado_opinion, fecha_respuesta`.
 - **campos-clinicos:** `ipress, carrera_profesional, especialidad, cantidad_maxima, vigencia_inicio, vigencia_fin, ambito_geografico_sanitario, observaciones`.
@@ -69,24 +69,32 @@ fecha_solicitud, fecha_inicio, fecha_fin, max_campos_clinicos
 ## Otros recursos núcleo
 
 - `convention-templates` — CRUD plantillas (escritura solo `Administrador RENADS`).
-- `representatives` — CRUD representantes (polimórfico: órgano MINSA / órgano regional / unidad ejecutora / IPRESS / CONAPRES). Escritura solo `Administrador RENADS`.
+- `organ-representatives` — CRUD representantes (FK directa a `organo_directorio`). Escritura solo `Administrador RENADS`. Alta desencadena baja automática del representante anterior del mismo par `(organo_directorio, cargo_ejecutivo)`. Ver `docs/api-catalogos.md §3` para contrato completo.
 - `ubigeos` — catálogo INEI (solo lectura). Filtros: `departamento`, `provincia`, `distrito`, `activo`.
 
 ## Entidades organizacionales / académicas (CRUD, escritura solo `Administrador RENADS`)
 
-`regional-governments`, `regional-organs`, `executing-units`, `ipress`, `minsa-organs`,
-`conapres`, `universities`, `university-authorities`, `faculties`, `professional-careers`,
-`university-campuses`, `user-entity-profiles` (esta última solo `Administrador RENADS`, sin lectura abierta).
+`regional-governments`, `organ-directories` (unifica `regional-organs`+`minsa-organs`, discriminado por FK `organo`),
+`executing-units` (ahora usa `gobierno_regional`+`tipo_organo`), `ipress`, `conapres`,
+`universities`, `faculties`, `professional-careers`, `university-campuses`, `university-careers`,
+`user-entity-profiles` (solo `Administrador RENADS`, sin lectura abierta).
+
+> **Eliminados del backend (no usar):** `regional-organs`, `minsa-organs`, `university-authorities`.
+> Contrato detallado por entidad en `docs/api-catalogos.md §2`.
 
 > Cada una expone CRUD estándar con `id` + todos los campos del modelo y filtros propios
 > (p. ej. `universities`: `tipo_gestion`, `tipo_entidad`, `tipo_autorizacion`, `activo`; search `nombre`, `siglas`).
 
 ## Catálogos (solo lectura — `list`/`retrieve`, filtro `activo`, search `codigo`/`nombre`)
 
-`regions`, `health-geographic-scopes`, `convention-types`, `convention-statuses`, `document-types`,
-`university-management-types`, `university-entity-types`, `authorization-types`, `academic-levels`,
-`specialties`, `signing-authority-types`, `regional-organ-types`, `executing-unit-types`,
-`minsa-organ-types`, `executive-positions`, `observation-reasons`, `rejection-reasons`, `closure-reasons`.
+`regions`, `health-geographic-scopes`, `convention-types`, `convention-statuses`,
+`university-management-types`, `authorization-types`, `academic-levels`,
+`specialties`, `signing-authority-types`, `organ-types` (reemplaza `regional-organ-types`/`minsa-organ-types`/`executing-unit-types`),
+`identity-document-types`, `executive-positions`, `observation-reasons`, `rejection-reasons`, `closure-reasons`,
+`organs` (4 categorías canónicas, solo lectura).
+
+> **Eliminados del backend (no usar):** `document-types`, `university-entity-types`,
+> `regional-organ-types`, `minsa-organ-types`, `executing-unit-types`.
 
 > Los `estado_codigo` de convenios (p. ej. `SOLICITUD_REGISTRADA`, `VALIDADO_TECNICAMENTE`,
 > `OBSERVADO_DIGEP`, `PENDIENTE_CONAPRES`, `CONAPRES_FAVORABLE`, `CAMPOS_CLINICOS_DEFINIDOS`,
