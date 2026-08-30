@@ -20,7 +20,7 @@ export const CONVENTION_FIELDS: FieldConfig[] = [
     required: true,
     optionsEndpoint: "convention-types",
   },
-  { name: "titulo", label: "Título", type: "text", required: true },
+  { name: "titulo", label: "Título", type: "text", required: true, uppercase: false },
   { name: "codigo", label: "Nomenclatura", type: "text" },
   {
     name: "plantilla",
@@ -84,7 +84,7 @@ export const CONVENTION_CREATE_FIELDS: FieldConfig[] = [
     required: true,
     optionsEndpoint: "convention-types",
   },
-  { name: "titulo", label: "Título", type: "text", required: true },
+  { name: "titulo", label: "Título", type: "text", required: true, uppercase: false },
   { name: "codigo", label: "Nomenclatura", type: "text" },
   {
     name: "convenio_marco",

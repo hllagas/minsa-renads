@@ -16,7 +16,7 @@ export const FLOW_ACTIONS: FlowAction[] = [
         optionsValueKey: "codigo",
         optionsToLabel: (row) => String(row.nombre ?? row.codigo ?? row.id),
       },
-      { name: "observacion", label: "Observación", type: "text" },
+      { name: "observacion", label: "Observación", type: "text", uppercase: false },
     ],
   },
   {
@@ -41,8 +41,8 @@ export const FLOW_ACTIONS: FlowAction[] = [
         type: "select",
         optionsEndpoint: "organ-directories",
       },
-      { name: "observaciones", label: "Observaciones", type: "text" },
-      { name: "subsanacion", label: "Subsanación", type: "text" },
+      { name: "observaciones", label: "Observaciones", type: "text", uppercase: false },
+      { name: "subsanacion", label: "Subsanación", type: "text", uppercase: false },
     ],
   },
   {
@@ -52,8 +52,8 @@ export const FLOW_ACTIONS: FlowAction[] = [
     onlyEspecifico: true,
     fields: [
       { name: "fecha_solicitud", label: "Fecha de solicitud", type: "date" },
-      { name: "estado_atencion", label: "Estado de atención", type: "text" },
-      { name: "resultado_opinion", label: "Resultado de la opinión", type: "text" },
+      { name: "estado_atencion", label: "Estado de atención", type: "text", uppercase: false },
+      { name: "resultado_opinion", label: "Resultado de la opinión", type: "text", uppercase: false },
       { name: "fecha_respuesta", label: "Fecha de respuesta", type: "date" },
     ],
   },
@@ -95,7 +95,7 @@ export const FLOW_ACTIONS: FlowAction[] = [
         type: "select",
         optionsEndpoint: "health-geographic-scopes",
       },
-      { name: "observaciones", label: "Observaciones", type: "text" },
+      { name: "observaciones", label: "Observaciones", type: "text", uppercase: false },
     ],
   },
   {
@@ -104,9 +104,9 @@ export const FLOW_ACTIONS: FlowAction[] = [
     roles: ["OGAJ"],
     fields: [
       { name: "fecha_envio", label: "Fecha de envío", type: "date" },
-      { name: "resultado_opinion", label: "Resultado de la opinión", type: "text" },
-      { name: "observaciones_legales", label: "Observaciones legales", type: "text" },
-      { name: "subsanacion", label: "Subsanación", type: "text" },
+      { name: "resultado_opinion", label: "Resultado de la opinión", type: "text", uppercase: false },
+      { name: "observaciones_legales", label: "Observaciones legales", type: "text", uppercase: false },
+      { name: "subsanacion", label: "Subsanación", type: "text", uppercase: false },
       { name: "fecha_respuesta", label: "Fecha de respuesta", type: "date" },
     ],
   },
@@ -131,8 +131,8 @@ export const FLOW_ACTIONS: FlowAction[] = [
       { name: "orden_firma", label: "Orden de firma", type: "number" },
       { name: "fecha_envio", label: "Fecha de envío", type: "date" },
       { name: "fecha_recepcion", label: "Fecha de recepción", type: "date" },
-      { name: "estado_firma", label: "Estado de firma", type: "text" },
-      { name: "observaciones", label: "Observaciones", type: "text" },
+      { name: "estado_firma", label: "Estado de firma", type: "text", uppercase: false },
+      { name: "observaciones", label: "Observaciones", type: "text", uppercase: false },
     ],
   },
   {
@@ -141,7 +141,7 @@ export const FLOW_ACTIONS: FlowAction[] = [
     roles: ["Secretaría General"],
     fields: [
       { name: "fecha_publicacion", label: "Fecha de publicación", type: "date", required: true },
-      { name: "referencia_publicacion", label: "Referencia de publicación", type: "text" },
+      { name: "referencia_publicacion", label: "Referencia de publicación", type: "text", uppercase: false },
     ],
   },
   {

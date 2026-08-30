@@ -18,7 +18,7 @@ export const ACTIVITY_ACTIONS: FlowAction[] = [
           { value: "RECHAZADA", label: "Rechazada" },
         ],
       },
-      { name: "comentario", label: "Comentario", type: "text" },
+      { name: "comentario", label: "Comentario", type: "text", uppercase: false },
     ],
   },
   {
@@ -26,7 +26,7 @@ export const ACTIVITY_ACTIONS: FlowAction[] = [
     label: "Subsanar",
     roles: ["Universidad", "Tutor", "Sede docente"],
     fields: [
-      { name: "descripcion", label: "Descripción", type: "text" },
+      { name: "descripcion", label: "Descripción", type: "text", uppercase: false },
       { name: "carga_horaria", label: "Carga horaria (horas)", type: "number" },
     ],
   },
@@ -36,7 +36,7 @@ export const ACTIVITY_ACTIONS: FlowAction[] = [
     roles: ["Administrador RENADS"],
     fields: [
       { name: "estado_codigo", label: "Código de estado", type: "text", required: true },
-      { name: "observacion", label: "Observación", type: "text" },
+      { name: "observacion", label: "Observación", type: "text", uppercase: false },
     ],
   },
 ];

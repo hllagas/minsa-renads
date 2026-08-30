@@ -52,11 +52,11 @@ export const calendarActivitiesConfig: ResourceConfig = {
   ],
   fields: [
     { name: "numero_orden", label: "N° de secuencia", type: "number", required: true },
-    { name: "nombre", label: "Nombre de la actividad", type: "text", required: true, fullWidth: true },
-    { name: "detalle", label: "Detalle", type: "text", fullWidth: true },
+    { name: "nombre", label: "Nombre de la actividad", type: "text", required: true, fullWidth: true, uppercase: false },
+    { name: "detalle", label: "Detalle", type: "text", fullWidth: true, uppercase: false },
     { name: "fecha_inicio", label: "Fecha de inicio", type: "date", required: true },
     { name: "fecha_fin", label: "Fecha de fin (vacío = sin cierre)", type: "date" },
-    { name: "responsables", label: "Responsables", type: "text", fullWidth: true },
+    { name: "responsables", label: "Responsables", type: "text", fullWidth: true, uppercase: false },
     {
       name: "controla_acceso",
       label: "¿Controla el acceso a módulos?",

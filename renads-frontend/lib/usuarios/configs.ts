@@ -81,8 +81,8 @@ export const usersConfig: ResourceConfig<User> = {
   createFields: [
     { name: "username", label: "Usuario", type: "text", required: true, uppercase: false },
     { name: "email", label: "Correo", type: "email", required: true },
-    { name: "first_name", label: "Nombres", type: "text" },
-    { name: "last_name", label: "Apellidos", type: "text" },
+    { name: "first_name", label: "Nombres", type: "text", uppercase: false },
+    { name: "last_name", label: "Apellidos", type: "text", uppercase: false },
     { name: "password", label: "Contraseña", type: "password", required: true },
     { name: "is_active", label: "Activo", type: "boolean", defaultValue: true },
     { name: "is_staff", label: "Staff", type: "boolean" },
@@ -99,8 +99,8 @@ export const usersConfig: ResourceConfig<User> = {
   editFields: [
     { name: "username", label: "Usuario", type: "text", required: true, uppercase: false },
     { name: "email", label: "Correo", type: "email", required: true },
-    { name: "first_name", label: "Nombres", type: "text" },
-    { name: "last_name", label: "Apellidos", type: "text" },
+    { name: "first_name", label: "Nombres", type: "text", uppercase: false },
+    { name: "last_name", label: "Apellidos", type: "text", uppercase: false },
     { name: "is_active", label: "Activo", type: "boolean", defaultValue: true },
     { name: "is_staff", label: "Staff", type: "boolean" },
     { name: "is_superuser", label: "Superusuario", type: "boolean" },
@@ -137,7 +137,7 @@ export const groupsConfig: ResourceConfig<Group> = {
     },
   ],
   fields: [
-    { name: "name", label: "Nombre", type: "text", required: true },
+    { name: "name", label: "Nombre", type: "text", required: true, uppercase: false },
     {
       name: "permissions",
       label: "Permisos",

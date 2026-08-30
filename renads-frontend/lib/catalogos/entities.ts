@@ -53,7 +53,7 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         required: true,
         optionsEndpoint: "universities",
       },
-      { name: "nombre", label: "Nombre", type: "text", required: true },
+      { name: "nombre", label: "Nombre", type: "text", required: true, uppercase: false },
       { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
     ],
   },
@@ -90,7 +90,7 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
       activoFilter,
     ],
     fields: [
-      { name: "nombre", label: "Nombre", type: "text", required: true },
+      { name: "nombre", label: "Nombre", type: "text", required: true, uppercase: false },
       {
         name: "nivel_academico",
         label: "Nivel académico",
@@ -131,8 +131,8 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         required: true,
         optionsEndpoint: "universities",
       },
-      { name: "nombre", label: "Nombre", type: "text", required: true },
-      { name: "direccion", label: "Dirección", type: "text" },
+      { name: "nombre", label: "Nombre", type: "text", required: true, uppercase: false },
+      { name: "direccion", label: "Dirección", type: "text", uppercase: false },
       { name: "region", label: "Región", type: "select", optionsEndpoint: "regions" },
       {
         name: "ubigeo",
@@ -251,7 +251,7 @@ const SANITARY_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     ],
     fields: [
       { name: "codigo", label: "Código", type: "text", required: true },
-      { name: "nombre", label: "Nombre", type: "text", required: true },
+      { name: "nombre", label: "Nombre", type: "text", required: true, uppercase: false },
       {
         name: "ambito_geografico_sanitario",
         label: "Ámbito geográfico sanitario",
@@ -300,7 +300,7 @@ const SANITARY_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         resetsOn: ["_ambito"],
       },
       { name: "codigo", label: "Código", type: "text", required: true },
-      { name: "nombre", label: "Nombre", type: "text", required: true },
+      { name: "nombre", label: "Nombre", type: "text", required: true, uppercase: false },
       { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
     ],
   },

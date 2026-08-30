@@ -12,7 +12,7 @@ export const INTERNSHIP_ACTIONS: FlowAction[] = [
     roles: ["Administrador RENADS"],
     fields: [
       { name: "estado_codigo", label: "Código de estado", type: "text", required: true },
-      { name: "observacion", label: "Observación", type: "text" },
+      { name: "observacion", label: "Observación", type: "text", uppercase: false },
     ],
   },
   {
@@ -47,7 +47,7 @@ export const INTERNSHIP_ACTIONS: FlowAction[] = [
         optionsToLabel: tutorLabel,
       },
       { name: "fecha_cambio", label: "Fecha de cambio", type: "date", required: true },
-      { name: "motivo", label: "Motivo", type: "text", required: true },
+      { name: "motivo", label: "Motivo", type: "text", required: true, uppercase: false },
     ],
   },
   {
@@ -66,7 +66,7 @@ export const INTERNSHIP_ACTIONS: FlowAction[] = [
       },
       { name: "fecha_inicio", label: "Fecha de inicio", type: "date" },
       { name: "fecha_fin", label: "Fecha de fin", type: "date" },
-      { name: "observaciones", label: "Observaciones", type: "text" },
+      { name: "observaciones", label: "Observaciones", type: "text", uppercase: false },
     ],
   },
 ];
@@ -96,7 +96,7 @@ export const ROTATION_ACTIONS: FlowAction[] = [
         ],
       },
       { name: "fecha_autorizacion", label: "Fecha de autorización", type: "date" },
-      { name: "observaciones", label: "Observaciones", type: "text" },
+      { name: "observaciones", label: "Observaciones", type: "text", uppercase: false },
     ],
   },
   {

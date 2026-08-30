@@ -56,13 +56,13 @@ export const ACTIVITY_FIELDS: FieldConfig[] = [
     optionsEndpoint: "activity-types",
   },
   { name: "fecha_actividad", label: "Fecha de actividad", type: "date", required: true },
-  { name: "descripcion", label: "Descripción", type: "text" },
+  { name: "descripcion", label: "Descripción", type: "text", uppercase: false },
   { name: "carga_horaria", label: "Carga horaria (horas)", type: "number" },
 ];
 
 /** Campos editables (TeachingActivityUpdate). */
 export const ACTIVITY_EDIT_FIELDS: FieldConfig[] = [
-  { name: "descripcion", label: "Descripción", type: "text" },
+  { name: "descripcion", label: "Descripción", type: "text", uppercase: false },
   { name: "carga_horaria", label: "Carga horaria (horas)", type: "number" },
   {
     name: "tipo_actividad",

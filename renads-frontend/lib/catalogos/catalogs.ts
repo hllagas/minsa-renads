@@ -61,7 +61,7 @@ function writableCatalog(
     filters: [activoFilter],
     fields: [
       { name: "codigo", label: "Código", type: "text", required: true },
-      { name: "nombre", label: "Nombre", type: "text", required: true },
+      { name: "nombre", label: "Nombre", type: "text", required: true, uppercase: false },
       { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
     ],
   };
@@ -163,7 +163,7 @@ export const CATALOG_CONFIGS: Record<string, ResourceConfig> = {
     fields: [
       { name: "organo", label: "Categoría de órgano", type: "select", required: true, optionsEndpoint: "organs" },
       { name: "codigo", label: "Código", type: "text", required: true },
-      { name: "nombre", label: "Nombre", type: "text", required: true },
+      { name: "nombre", label: "Nombre", type: "text", required: true, uppercase: false },
       { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
     ],
   },
@@ -186,7 +186,7 @@ export const CATALOG_CONFIGS: Record<string, ResourceConfig> = {
     fields: [
       { name: "organo", label: "Categoría de órgano", type: "select", required: true, optionsEndpoint: "organs" },
       { name: "codigo", label: "Código", type: "text", required: true },
-      { name: "nombre", label: "Nombre", type: "text", required: true },
+      { name: "nombre", label: "Nombre", type: "text", required: true, uppercase: false },
       { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
     ],
   },

@@ -114,7 +114,7 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     fields: [
       // ── Identificación institucional ──────────────────────────────────────
       { name: "_s1", label: "Identificación institucional", type: "separator" },
-      { name: "nombre", label: "Nombre", type: "text", required: true },
+      { name: "nombre", label: "Nombre", type: "text", required: true, uppercase: false },
       { name: "siglas", label: "Siglas", type: "text" },
       { name: "codigo_inei", label: "Código INEI", type: "text" },
 
@@ -151,9 +151,9 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
 
       // ── Contacto y ubicación ──────────────────────────────────────────────
       { name: "_s4", label: "Contacto y ubicación", type: "separator" },
-      { name: "direccion_legal", label: "Dirección legal", type: "text" },
-      { name: "telefono", label: "Teléfono", type: "text" },
-      { name: "correo_institucional", label: "Correo institucional", type: "email" },
+      { name: "direccion_legal", label: "Dirección legal", type: "text", uppercase: false },
+      { name: "telefono", label: "Teléfono", type: "text", uppercase: false },
+      { name: "correo_institucional", label: "Correo institucional", type: "email", uppercase: false },
       {
         name: "ubigeo",
         label: "Ubigeo",
@@ -236,8 +236,8 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
       // Identificación
       { name: "codigo_renipress", label: "Código RENIPRESS", type: "text", required: true },
       { name: "numero_ruc", label: "RUC (11 dígitos)", type: "text", uppercase: false },
-      { name: "nombre", label: "Nombre", type: "text", required: true, fullWidth: true },
-      
+      { name: "nombre", label: "Nombre", type: "text", required: true, fullWidth: true, uppercase: false },
+
       // Clasificación (catálogos)
       {
         name: "categoria",
@@ -273,7 +273,7 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         optionsEndpoint: "micro-networks",
       },
       // Ubicación
-      { name: "direccion", label: "Dirección", type: "text", fullWidth: true },
+      { name: "direccion", label: "Dirección", type: "text", fullWidth: true, uppercase: false },
       {
         name: "ubigeo",
         label: "Ubigeo",
@@ -304,7 +304,7 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
       activoFilter,
     ],
     fields: [
-      { name: "nombre", label: "Nombre", type: "text", required: true },
+      { name: "nombre", label: "Nombre", type: "text", required: true, uppercase: false },
       {
         name: "region",
         label: "Región",
@@ -357,7 +357,7 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     fields: [
       // ── Identificación ────────────────────────────────────────────────────
       { name: "_s1", label: "Identificación", type: "separator" },
-      { name: "nombre", label: "Nombre", type: "text", required: true, fullWidth: true },
+      { name: "nombre", label: "Nombre", type: "text", required: true, fullWidth: true, uppercase: false },
       { name: "codigo", label: "Código presupuestal", type: "text" },
 
       // ── Organización ──────────────────────────────────────────────────────
@@ -380,7 +380,7 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
 
       // ── Ubicación ─────────────────────────────────────────────────────────
       { name: "_s3", label: "Ubicación", type: "separator" },
-      { name: "direccion", label: "Dirección", type: "text", fullWidth: true },
+      { name: "direccion", label: "Dirección", type: "text", fullWidth: true, uppercase: false },
       {
         name: "ubigeo",
         label: "Ubigeo",
@@ -467,7 +467,7 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
       { name: "direccion", label: "Dirección", type: "text", uppercase: false },
       { name: "numero_ruc", label: "RUC", type: "text", uppercase: false },
       { name: "correo", label: "Correo institucional", type: "email", uppercase: false },
-      { name: "telefono_institucional", label: "Teléfono", type: "text" },
+      { name: "telefono_institucional", label: "Teléfono", type: "text", uppercase: false },
       {
         name: "ubigeo",
         label: "Ubigeo",
@@ -490,8 +490,8 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     ],
     filters: [activoFilter],
     fields: [
-      { name: "nombre", label: "Denominación", type: "text", required: true },
-      { name: "descripcion", label: "Descripción", type: "text" },
+      { name: "nombre", label: "Denominación", type: "text", required: true, uppercase: false },
+      { name: "descripcion", label: "Descripción", type: "text", uppercase: false },
       { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
     ],
   },

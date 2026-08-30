@@ -60,7 +60,7 @@ export const REPRESENTATIVES_CONFIG: ResourceConfig = {
   ],
   fields: [
     { name: "_s1", label: "Datos personales", type: "separator" },
-    { name: "nombre", label: "Nombre completo", type: "text", required: true, fullWidth: true },
+    { name: "nombre", label: "Nombre completo", type: "text", required: true, fullWidth: true, uppercase: false },
     {
       name: "tipo_documento_identidad",
       label: "Tipo de documento",
@@ -68,7 +68,7 @@ export const REPRESENTATIVES_CONFIG: ResourceConfig = {
       required: true,
       optionsEndpoint: "identity-document-types",
     },
-    { name: "numero_documento_identidad", label: "N° documento", type: "text", required: true },
+    { name: "numero_documento_identidad", label: "N° documento", type: "text", required: true, uppercase: false },
     {
       name: "sexo",
       label: "Sexo",
@@ -93,7 +93,7 @@ export const REPRESENTATIVES_CONFIG: ResourceConfig = {
       optionsEndpoint: "executive-positions",
     },
     { name: "fecha_inicio_designacion", label: "Fecha de designación", type: "date", required: true },
-    { name: "numero_resolucion_designacion", label: "N° resolución de designación", type: "text" },
+    { name: "numero_resolucion_designacion", label: "N° resolución de designación", type: "text", uppercase: false },
     { name: "fecha_inicio_facultades", label: "Fecha de inicio de facultades", type: "date" },
 
     { name: "_s3", label: "Estado", type: "separator" },
