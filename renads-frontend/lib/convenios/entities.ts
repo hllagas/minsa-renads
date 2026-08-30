@@ -446,11 +446,15 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         required: true,
         optionsEndpoint: "organs",
       },
+      // Cascada: solo carga tipos del órgano seleccionado; sentinel "0" bloquea opciones si no hay categoría.
       {
         name: "tipo_organo",
         label: "Tipo de órgano",
         type: "select",
         optionsEndpoint: "organ-types",
+        optionsParamsFrom: (v): Record<string, string> =>
+          v.organo ? { organo: String(v.organo) } : { organo: "0" },
+        resetsOn: ["organo"],
       },
       {
         name: "gobierno_regional",
