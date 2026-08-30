@@ -29,6 +29,7 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     endpoint: "faculties",
     title: "Facultades",
     singular: "facultad",
+    createPrefix: "Nueva",
     description: "Facultades por universidad.",
     searchPlaceholder: "Buscar por nombre…",
     columns: [
@@ -61,6 +62,7 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     endpoint: "professional-careers",
     title: "Carreras profesionales",
     singular: "carrera profesional",
+    createPrefix: "Nueva",
     // Contrato backend (`ProfessionalCareerAuto`): solo `nombre`, `nivel_academico` y `activo`.
     // El nivel académico distingue carrera / segunda especialidad / maestría / doctorado.
     description: "Carreras, segundas especialidades, maestrías y doctorados.",
@@ -104,6 +106,7 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     endpoint: "university-campuses",
     title: "Sedes universitarias",
     singular: "sede universitaria",
+    createPrefix: "Nueva",
     description: "Sedes/filiales por universidad.",
     searchPlaceholder: "Buscar por nombre…",
     columns: [
@@ -204,6 +207,7 @@ const SANITARY_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     endpoint: "networks",
     title: "Redes",
     singular: "red",
+    createPrefix: "Nueva",
     description: "Redes asistenciales por ámbito geográfico sanitario.",
     searchPlaceholder: "Buscar por código o nombre…",
     columns: [
@@ -238,6 +242,7 @@ const SANITARY_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     endpoint: "micro-networks",
     title: "Microrredes",
     singular: "microrred",
+    createPrefix: "Nueva",
     description: "Microrredes por red asistencial.",
     searchPlaceholder: "Buscar por código o nombre…",
     columns: [

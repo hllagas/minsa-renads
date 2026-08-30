@@ -148,6 +148,8 @@ export interface ResourceConfig<TRead extends WithId = WithId> {
   title: string;
   /** Singular para diálogos, p. ej. "universidad". */
   singular: string;
+  /** Prefijo del diálogo de alta (por defecto "Nuevo"; usar "Nueva" para entidades femeninas). */
+  createPrefix?: string;
   description?: string;
   columns: ColumnConfig<TRead>[];
   /** Campos del formulario (fallback común para alta y edición). */

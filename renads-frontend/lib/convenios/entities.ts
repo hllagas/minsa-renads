@@ -58,6 +58,7 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     endpoint: "universities",
     title: "Universidades",
     singular: "universidad",
+    createPrefix: "Nueva",
     description: "Entidades académicas registradas en RENADS.",
     searchPlaceholder: "Buscar por nombre, siglas o RUC…",
     // Logo embebido en la edición (solo universidades): se muestra sobre el formulario al editar.
@@ -319,6 +320,7 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     endpoint: "executing-units",
     title: "Unidades ejecutoras",
     singular: "unidad ejecutora",
+    createPrefix: "Nueva",
     searchPlaceholder: "Buscar por nombre o código…",
     columns: [
       logoColumn("executing-units"),
@@ -348,11 +350,18 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         label: "Tipo de órgano",
         type: "select",
         optionsEndpoint: "organ-types",
+        optionsParams: { organo__nombre: "Unidad Ejecutora" },
       },
       activoFilter,
     ],
     fields: [
-      { name: "nombre", label: "Nombre", type: "text", required: true },
+      // ── Identificación ────────────────────────────────────────────────────
+      { name: "_s1", label: "Identificación", type: "separator" },
+      { name: "nombre", label: "Nombre", type: "text", required: true, fullWidth: true },
+      { name: "codigo", label: "Código presupuestal", type: "text" },
+
+      // ── Organización ──────────────────────────────────────────────────────
+      { name: "_s2", label: "Organización", type: "separator" },
       {
         name: "organo_directorio",
         label: "Órgano del directorio",
@@ -366,9 +375,12 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         type: "select",
         required: true,
         optionsEndpoint: "organ-types",
+        optionsParams: { organo__nombre: "Unidad Ejecutora" },
       },
-      { name: "codigo", label: "Código presupuestal", type: "text" },
-      { name: "direccion", label: "Dirección", type: "text" },
+
+      // ── Ubicación ─────────────────────────────────────────────────────────
+      { name: "_s3", label: "Ubicación", type: "separator" },
+      { name: "direccion", label: "Dirección", type: "text", fullWidth: true },
       {
         name: "ubigeo",
         label: "Ubigeo",
@@ -376,6 +388,9 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         optionsEndpoint: "ubigeos",
         optionsToLabel: ubigeoLabel,
       },
+
+      // ── Estado ────────────────────────────────────────────────────────────
+      { name: "_s4", label: "Estado", type: "separator" },
       { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
     ],
   },

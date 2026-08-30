@@ -354,7 +354,7 @@ export function ResourceCrud<TRead extends WithId>({
         <DialogContent className={dialogClassName ?? "sm:max-w-2xl"}>
           <DialogHeader>
             <DialogTitle>
-              {editing ? `Editar ${config.singular}` : `Nuevo ${config.singular}`}
+              {editing ? `Editar ${config.singular}` : `${config.createPrefix ?? "Nuevo"} ${config.singular}`}
             </DialogTitle>
           </DialogHeader>
           {editing && config.renderEditInfo ? (
