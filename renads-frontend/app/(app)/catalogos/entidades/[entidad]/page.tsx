@@ -1,13 +1,16 @@
 "use client";
 
+import { useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 
 import { CATALOGO_ENTITY_CONFIGS } from "@/lib/catalogos/entities";
 import { useAuthStore, userHasRole } from "@/lib/auth/store";
 import { hasAnnexes, hasLogo } from "@/lib/api/storage";
 import type { RowAction } from "@/lib/crud/types";
 import type { WithId } from "@/lib/api/query";
+import { api, type Paginated } from "@/lib/api/client";
 import { ResourceCrud } from "@/components/crud/resource-crud";
 import { IpressSedeDocenteAction } from "@/components/catalogos/ipress-sede-docente-action";
 import { LogoUploadAction } from "@/components/catalogos/logo-upload-dialog";
@@ -20,6 +23,28 @@ export default function EntidadCatalogoPage() {
   const params = useParams<{ entidad: string }>();
   const config = CATALOGO_ENTITY_CONFIGS[params.entidad];
   const user = useAuthStore((s) => s.user);
+  const entidad = params.entidad;
+
+  // Niveles académicos — solo se usa para calcular el filtro inicial de "Pregrado".
+  const isProfessionalCareers = entidad === "professional-careers";
+  const levelsQuery = useQuery({
+    queryKey: ["academic-levels", "for-default-filter"],
+    queryFn: () =>
+      api
+        .get<Paginated<WithId>>("/academic-levels/")
+        .then((r) => r.data.results),
+    enabled: isProfessionalCareers,
+    staleTime: 10 * 60_000,
+  });
+
+  // ID del nivel "Pregrado" (filtro default para carreras profesionales).
+  const initialFilters = useMemo<Record<string, string> | undefined>(() => {
+    if (!isProfessionalCareers || !levelsQuery.data) return undefined;
+    const pregrado = levelsQuery.data.find((l) =>
+      String(l.nombre ?? "").toLowerCase().includes("pregrado"),
+    );
+    return pregrado ? { nivel_academico: String(pregrado.id) } : undefined;
+  }, [isProfessionalCareers, levelsQuery.data]);
 
   if (!config) {
     return (
@@ -33,7 +58,6 @@ export default function EntidadCatalogoPage() {
     );
   }
 
-  const entidad = params.entidad;
   const isUniversities = entidad === "universities";
   const actions: RowAction<WithId>[] = [];
 
@@ -84,6 +108,7 @@ export default function EntidadCatalogoPage() {
       <ResourceCrud
         config={config}
         rowActions={rowActions}
+        initialFilters={initialFilters}
         cardView={isUniversities}
         renderCard={
           isUniversities

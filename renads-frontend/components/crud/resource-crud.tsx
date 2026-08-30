@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 import { Pencil, Trash2 } from "lucide-react";
@@ -47,6 +47,7 @@ export function ResourceCrud<TRead extends WithId>({
   renderCard,
   renderForm,
   dialogClassName,
+  initialFilters,
 }: {
   config: ResourceConfig<TRead>;
   /** Acciones por fila inyectadas por la página (p. ej. abrir el diálogo de contraseña). */
@@ -75,6 +76,12 @@ export function ResourceCrud<TRead extends WithId>({
   cardView?: boolean;
   /** Cuerpo visual de cada tarjeta (p. ej. logo + nombre). Las acciones las añade `ResourceCrud`. */
   renderCard?: (row: TRead) => ReactNode;
+  /**
+   * Filtros iniciales precargados (se aplican una sola vez al montar). Al limpiar filtros se
+   * restauran estos valores (no se resetea a vacío). Útil para defaults dinámicos, p. ej.
+   * "Nivel académico = Pregrado" en carreras profesionales.
+   */
+  initialFilters?: Record<string, string>;
 }) {
   const hooks = useMemo(
     () => createResourceHooks<TRead, Record<string, unknown>>(config.endpoint),
@@ -94,6 +101,14 @@ export function ResourceCrud<TRead extends WithId>({
   const [search, setSearch] = useState("");
   const [filterValues, setFilterValues] = useState<FilterValues>({});
   const [editing, setEditing] = useState<TRead | null>(null);
+
+  // Aplica `initialFilters` una sola vez, en cuanto estén disponibles.
+  const appliedInitialRef = useRef(false);
+  useEffect(() => {
+    if (!initialFilters || appliedInitialRef.current) return;
+    appliedInitialRef.current = true;
+    setFilterValues(initialFilters);
+  }, [initialFilters]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState<TRead | null>(null);
 
@@ -106,7 +121,7 @@ export function ResourceCrud<TRead extends WithId>({
   }
 
   function onClearFilters() {
-    setFilterValues({});
+    setFilterValues(initialFilters ?? {});
     setPage(1);
   }
 
@@ -237,7 +252,7 @@ export function ResourceCrud<TRead extends WithId>({
   const data = list.data?.results ?? [];
 
   return (
-    <div>
+    <div className={config.containerClassName}>
       <PageHeader
         title={config.title}
         description={config.description}

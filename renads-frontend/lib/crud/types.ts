@@ -172,6 +172,8 @@ export interface ResourceConfig<TRead extends WithId = WithId> {
    * El gating del front es UX; el backend (`IsSuperUser`) es la autoridad final.
    */
   requireSuperuser?: boolean;
+  /** Clase CSS aplicada al contenedor raíz (p. ej. `max-w-2xl` para tablas con pocas columnas). */
+  containerClassName?: string;
   /** Baja lógica: el `DELETE` desactiva el registro (no lo borra). Cambia copy de confirmación. */
   softDelete?: boolean;
   /** Etiqueta del botón de borrado (por defecto "Eliminar"; p. ej. "Desactivar"). */

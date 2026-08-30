@@ -324,6 +324,16 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
       logoColumn("executing-units"),
       { key: "nombre", header: "Nombre" },
       { key: "codigo", header: "Código" },
+      {
+        key: "organo_directorio",
+        header: "Órgano del directorio",
+        render: (r) => String(r.organo_directorio_detalle ?? "—"),
+      },
+      {
+        key: "tipo_organo",
+        header: "Tipo de órgano",
+        render: (r) => String(r.tipo_organo_detalle ?? "—"),
+      },
       { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
     ],
     filters: [

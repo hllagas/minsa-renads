@@ -1,8 +1,16 @@
+import React from "react";
 import type { FilterConfig, ResourceConfig } from "@/lib/crud/types";
 import type { WithId } from "@/lib/api/query";
 import { ENTITY_CONFIGS } from "@/lib/convenios/entities";
+import { ActiveSwitchCell } from "@/lib/catalogos/active-switch-cell";
 
 const siNo = (v: unknown) => (v ? "Sí" : "No");
+
+/** Lee `nombre` de un objeto `*_detalle` de FK (o «—»). */
+const detalleNombre = (v: unknown): string =>
+  v && typeof v === "object" && "nombre" in v
+    ? String((v as { nombre?: unknown }).nombre ?? "—")
+    : "—";
 
 /** Etiqueta legible de un ubigeo (no tiene `nombre`). */
 const ubigeoLabel = (r: WithId) =>
@@ -57,9 +65,18 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     // El nivel académico distingue carrera / segunda especialidad / maestría / doctorado.
     description: "Carreras, segundas especialidades, maestrías y doctorados.",
     searchPlaceholder: "Buscar por nombre…",
+    containerClassName: "max-w-2xl",
     columns: [
       { key: "nombre", header: "Nombre" },
-      { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
+      {
+        key: "activo",
+        header: "Activo",
+        render: (r) =>
+          React.createElement(ActiveSwitchCell, {
+            row: r,
+            endpoint: "professional-careers",
+          }),
+      },
     ],
     filters: [
       {
@@ -120,6 +137,58 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         type: "select",
         optionsEndpoint: "ubigeos",
         optionsToLabel: ubigeoLabel,
+      },
+      { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
+    ],
+  },
+
+  "university-careers": {
+    endpoint: "university-careers",
+    title: "Carreras por universidad",
+    singular: "carrera por universidad",
+    description: "Relación entre universidades y las carreras profesionales que dictan.",
+    columns: [
+      {
+        key: "universidad",
+        header: "Universidad",
+        render: (r) => detalleNombre(r.universidad_detalle),
+      },
+      {
+        key: "carrera_profesional",
+        header: "Carrera profesional",
+        render: (r) => detalleNombre(r.carrera_profesional_detalle),
+      },
+      { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
+    ],
+    filters: [
+      {
+        name: "universidad",
+        label: "Universidad",
+        type: "select",
+        optionsEndpoint: "universities",
+      },
+      {
+        name: "carrera_profesional",
+        label: "Carrera profesional",
+        type: "select",
+        optionsEndpoint: "professional-careers",
+      },
+      activoFilter,
+    ],
+    fields: [
+      {
+        name: "universidad",
+        label: "Universidad",
+        type: "select",
+        required: true,
+        optionsEndpoint: "universities",
+      },
+      {
+        name: "carrera_profesional",
+        label: "Carrera profesional",
+        type: "select",
+        required: true,
+        optionsEndpoint: "professional-careers",
       },
       { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
     ],
@@ -222,6 +291,7 @@ export const CATALOGO_ENTITY_MENU: { slug: string; title: string }[] = [
   { slug: "universities", title: "Universidades" },
   { slug: "faculties", title: "Facultades" },
   { slug: "professional-careers", title: "Carreras Profesionales" },
+  { slug: "university-careers", title: "Carreras por Universidad" },
   { slug: "university-campuses", title: "Sedes Universitarias" },
   { slug: "ipress", title: "Establecimientos de Salud" },
   { slug: "regional-governments", title: "Gobiernos Regionales" },

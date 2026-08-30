@@ -3484,6 +3484,44 @@ export interface paths {
         patch: operations["university_campuses_partial_update"];
         trace?: never;
     };
+    "/api/v1/university-careers/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["university_careers_list"];
+        put?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        post: operations["university_careers_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/university-careers/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["university_careers_retrieve"];
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        put: operations["university_careers_update"];
+        post?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        delete: operations["university_careers_destroy"];
+        options?: never;
+        head?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        patch: operations["university_careers_partial_update"];
+        trace?: never;
+    };
     "/api/v1/university-management-types/": {
         parameters: {
             query?: never;
@@ -5681,6 +5719,21 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["UniversityCampusAuto"][];
         };
+        PaginatedUniversityCareerAutoList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["UniversityCareerAuto"][];
+        };
         PaginatedUniversityManagementTypeAutoList: {
             /** @example 123 */
             count: number;
@@ -6570,6 +6623,16 @@ export interface components {
             /** @description Ubicación geográfica (UBIGEO) */
             ubigeo?: number | null;
         };
+        PatchedUniversityCareerAuto: {
+            readonly id?: number;
+            readonly universidad_detalle?: string;
+            readonly carrera_profesional_detalle?: string;
+            activo?: boolean;
+            /** @description Universidad */
+            universidad?: number;
+            /** @description Carrera profesional */
+            carrera_profesional?: number;
+        };
         PatchedUserEntityProfileAuto: {
             readonly id?: number;
             /**
@@ -7120,6 +7183,16 @@ export interface components {
             region?: number | null;
             /** @description Ubicación geográfica (UBIGEO) */
             ubigeo?: number | null;
+        };
+        UniversityCareerAuto: {
+            readonly id: number;
+            readonly universidad_detalle: string;
+            readonly carrera_profesional_detalle: string;
+            activo?: boolean;
+            /** @description Universidad */
+            universidad: number;
+            /** @description Carrera profesional */
+            carrera_profesional: number;
         };
         UniversityManagementTypeAuto: {
             readonly id: number;
@@ -14463,6 +14536,159 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UniversityCampusAuto"];
+                };
+            };
+        };
+    };
+    university_careers_list: {
+        parameters: {
+            query?: {
+                activo?: boolean;
+                carrera_profesional?: number;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+                universidad?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedUniversityCareerAutoList"];
+                };
+            };
+        };
+    };
+    university_careers_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UniversityCareerAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["UniversityCareerAuto"];
+                "multipart/form-data": components["schemas"]["UniversityCareerAuto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UniversityCareerAuto"];
+                };
+            };
+        };
+    };
+    university_careers_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este carrera de universidad. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UniversityCareerAuto"];
+                };
+            };
+        };
+    };
+    university_careers_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este carrera de universidad. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UniversityCareerAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["UniversityCareerAuto"];
+                "multipart/form-data": components["schemas"]["UniversityCareerAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UniversityCareerAuto"];
+                };
+            };
+        };
+    };
+    university_careers_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este carrera de universidad. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    university_careers_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este carrera de universidad. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedUniversityCareerAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedUniversityCareerAuto"];
+                "multipart/form-data": components["schemas"]["PatchedUniversityCareerAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UniversityCareerAuto"];
                 };
             };
         };
