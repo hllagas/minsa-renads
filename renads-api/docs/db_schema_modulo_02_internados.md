@@ -70,7 +70,7 @@ Patrón común: `id` (PK), `codigo` (varchar, único), `nombre` (varchar), `acti
 | `tipo_documento_identidad` | Tipo de documento de identidad | valores: `DNI`, `CE`, `PASAPORTE` |
 | `parentesco` | Tipo de parentesco del contacto de emergencia del estudiante | — |
 | `periodo_academico` | Periodo académico (semestre) del estudiante — aplica al nivel Pregrado (RN-19) | — |
-| `documento_anexo` | Catálogo maestro de documentos requeridos **por actor** (declaraciones juradas, resolución del cargo, documento de identidad), más los tipos genéricos absorbidos (`ANEXO`/`CONVENIO`/`RESOLUCION`, con `tipo_actor` vacío). Ex `documentos_anexos` | `tipo_actor` (choices: `INTERNO` / `AUTORIDAD_UNIVERSIDAD` / `REPRESENTANTE`, default `INTERNO`, **admite vacío**), `obligatorio` (bool, default `True`). Se retiró `descripcion` |
+| `documento_anexo` | Catálogo maestro de documentos requeridos **por actor** (declaraciones juradas, resolución del cargo, documento de identidad), más los tipos genéricos absorbidos (`ANEXO`/`CONVENIO`/`RESOLUCION`, con `tipo_actor` vacío). Ex `documentos_anexos` | `tipo_actor` (choices: `INTERNO` / `AUTORIDAD_UNIVERSIDAD` / `REPRESENTANTE` / `CONVENIO` / `CAMPO_CLINICO`, default `INTERNO`, **admite vacío**), `obligatorio` (bool, default `True`). Se retiró `descripcion` |
 
 ### Valores de `estado_internado`
 `REGISTRADO`, `PENDIENTE_VALIDACION`, `OBSERVADO`, `VALIDADO`, `ACTIVO`, `EN_ROTACION_SOLICITADA`, `EN_ROTACION_AUTORIZADA`, `EN_ROTACION_OBSERVADA`, `SUSPENDIDO`, `RETIRADO`, `CULMINADO`, `ANULADO`.
@@ -92,7 +92,11 @@ Patrón común: `id` (PK), `codigo` (varchar, único), `nombre` (varchar), `acti
 
 **`tipo_actor = REPRESENTANTE`** (incluye autoridades de CONAPRES): `RESOL_REP` (Resolución de designación del cargo), `DNI_REP` (Documento de identidad).
 
-Los anteriores con `obligatorio = True`. **Tipos genéricos** (`tipo_actor` vacío, `obligatorio = False`): `ANEXO`, `CONVENIO`, `RESOLUCION`.
+**`tipo_actor = CONVENIO`** (resoluciones del convenio, `obligatorio = False`): `RESOL_MARCO` (Resolución de aprobación del Convenio Marco), `RESOL_ESPECIFICO` (Resolución de aprobación del Convenio Específico), `RESOL_ADENDA` (Resolución de aprobación de la adenda).
+
+**`tipo_actor = CAMPO_CLINICO`** (resolución CONAPRES de campos clínicos, `obligatorio = False`): `RESOL_CONAPRES` (Resolución CONAPRES de campos clínicos).
+
+Los `tipo_actor` `INTERNO`/`AUTORIDAD_UNIVERSIDAD`/`REPRESENTANTE` con `obligatorio = True`. **Tipos genéricos** (`tipo_actor` vacío, `obligatorio = False`): `ANEXO`, `CONVENIO`, `RESOLUCION`.
 
 ### Adjunto real de anexos por actor (en alcance)
 
@@ -103,6 +107,8 @@ hace por entidad según el `tipo_actor`:
 
 - `INTERNO` → `interno` (endpoints `interns/{id}/annex-upload/` y `.../annex-checklist/`).
 - `REPRESENTANTE` → `organo_representante` (cubre autoridades de universidad y CONAPRES).
+- `CONVENIO` → `convenio` (endpoints `conventions/{id}/annex-upload/` y `.../annex-checklist/`; resoluciones `RESOL_MARCO`/`RESOL_ESPECIFICO`/`RESOL_ADENDA`).
+- `CAMPO_CLINICO` → `campo_clinico_ipress` (endpoints `clinical-field-registrations/{id}/annex-upload/` y `.../annex-checklist/`; resolución `RESOL_CONAPRES`).
 
 Re-subir el mismo anexo a la misma entidad genera una nueva versión del
 `documento_adjunto`. Detalle de endpoints, content-types (PDF), tamaño y errores en

@@ -137,6 +137,8 @@ Entidades con anexos y su actor:
 |-----------------------|---------------------------------|
 | `interns`             | `INTERNO` |
 | `organ-representatives` | `REPRESENTANTE` (cubre autoridades de universidad y CONAPRES) |
+| `conventions`         | `CONVENIO` (resoluciones `RESOL_MARCO`/`RESOL_ESPECIFICO`/`RESOL_ADENDA`) |
+| `clinical-field-registrations` | `CAMPO_CLINICO` (resolución `RESOL_CONAPRES`) |
 
 > **Cambio de refactor:** las declaraciones juradas del interno (actor `INTERNO`) se
 > adjuntan sobre el **internado** (`interns/{id}/…`), **no** sobre el estudiante
@@ -261,6 +263,8 @@ Ejemplo de respuesta de `annex-upload` (`documento_adjunto`):
 | `logo-url` | — | Autenticados |
 | `annex-upload` (interns) | `Universidad` / `Administrador RENADS` (alcance por la universidad del estudiante) o el propio `Interno` (RN-22) | — |
 | `annex-upload` (organ-representatives) | `Administrador RENADS` | — |
+| `annex-upload` (conventions) | Miembro institucional con alcance del convenio (`ConventionScope`) | — |
+| `annex-upload` (clinical-field-registrations) | `CONAPRES` | — |
 | `annex-checklist` | — | Autenticados con alcance |
 | `documents/upload` | Miembro institucional autenticado | — |
 | `revisar-declaraciones` (interns) | `Universidad` / `Administrador RENADS` | — |

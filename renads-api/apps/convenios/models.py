@@ -745,6 +745,15 @@ class Convention(models.Model):
         related_name="convenios_especificos",
         help_text="Convenio Marco vigente del que depende el Específico (RN-3)",
     )
+    convenio_origen = models.ForeignKey(
+        "self", on_delete=models.PROTECT, db_column="convenio_origen_id", null=True, blank=True,
+        related_name="adendas",
+        help_text="Convenio (Marco o Específico) que esta adenda amplía",
+    )
+    es_adenda = models.BooleanField(
+        "es adenda", default=False,
+        help_text="Marca la fila como adenda de ampliación (derivable de convenio_origen; explícito para filtros)",
+    )
     plantilla = models.ForeignKey(
         ConventionTemplate, on_delete=models.SET_NULL, db_column="plantilla_id", null=True, blank=True,
         help_text="Plantilla utilizada",
@@ -768,6 +777,16 @@ class Convention(models.Model):
         University, on_delete=models.PROTECT, db_column="universidad_id",
         related_name="convenios",
         help_text="Universidad parte del convenio. Su tipo de entidad se deriva de esta relación.",
+    )
+    unidad_ejecutora = models.ForeignKey(
+        ExecutingUnit, on_delete=models.PROTECT, db_column="unidad_ejecutora_id", null=True, blank=True,
+        related_name="convenios",
+        help_text="Unidad ejecutora parte del Convenio Específico",
+    )
+    facultad = models.ForeignKey(
+        Faculty, on_delete=models.PROTECT, db_column="facultad_id", null=True, blank=True,
+        related_name="convenios",
+        help_text="Facultad (de la universidad del Marco) parte del Convenio Específico",
     )
     estado_actual = models.ForeignKey(
         ConventionStatus, on_delete=models.PROTECT, db_column="estado_actual_id",
@@ -924,6 +943,14 @@ class ClinicalFieldRegistration(models.Model):
             "Acumulador Σ de los campos autorizados en las asignaciones por universidad; "
             "recalculado por el service (solo lectura en la API)"
         ),
+    )
+    numero_resolucion_conapres = models.CharField(
+        "número de resolución CONAPRES", max_length=100, blank=True,
+        help_text="Número de la resolución CONAPRES que autoriza los campos clínicos de la sede",
+    )
+    fecha_resolucion_conapres = models.DateField(
+        "fecha de resolución CONAPRES", null=True, blank=True,
+        help_text="Fecha de la resolución CONAPRES",
     )
     creado_en = models.DateTimeField("creado en", auto_now_add=True)
     creado_por = models.ForeignKey(

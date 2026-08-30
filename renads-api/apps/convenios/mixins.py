@@ -134,9 +134,10 @@ class AnnexAttachmentMixin:
     """Adjunta y lista los PDFs de anexos (declaraciones juradas) por actor.
 
     Atributo de clase obligatorio `annex_actor` (uno de `ANNEX_ACTOR`:
-    `"INTERNO"` / `"AUTORIDAD_UNIVERSIDAD"` / `"REPRESENTANTE"`): restringe qué
-    anexos del catálogo maestro puede adjuntar la entidad destino. Cada anexo se
-    guarda como `Document` versionado por `(objeto, documento_anexo)`.
+    `"INTERNO"` / `"AUTORIDAD_UNIVERSIDAD"` / `"REPRESENTANTE"` / `"CONVENIO"` /
+    `"CAMPO_CLINICO"`): restringe qué anexos del catálogo maestro puede adjuntar la
+    entidad destino. Cada anexo se guarda como `Document` versionado por
+    `(objeto, documento_anexo)`.
     """
 
     annex_actor: str = ""

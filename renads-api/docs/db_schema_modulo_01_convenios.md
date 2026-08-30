@@ -379,11 +379,39 @@ evitando redundancia. En el formulario son selectores en cascada que filtran la 
 > - Las **DIRIS** solicitan directamente **Convenio Específico** sin requerir Convenio Marco (`convenio_marco_id` nulo).
 > - **Opinión jurídica (OGAJ):** solo para **Marco**. **Opinión favorable (CONAPRES):** solo para **Específico**.
 
+> **Partes por tipo (`unidad_ejecutora_id` / `facultad_id`):**
+> - **Marco:** ambos **nulos** (un Marco no lleva unidad ejecutora ni facultad).
+> - **Específico:** ambos **obligatorios**. La `facultad` debe pertenecer a la
+>   universidad del Convenio Marco (`facultad.universidad_id == convenio_marco.universidad_id`);
+>   para DIRIS sin Marco, a la universidad propia del Específico (`convenio.universidad_id`).
+>   Regla en `services._validar_partes_por_tipo` (aplicada en `crear_convenio` y
+>   `actualizar_convenio`, revalidando el estado final del objeto en PATCH parcial).
+
+> **Adendas de ampliación (`convenio_origen_id` / `es_adenda`):** una adenda es una fila
+> `convenio` encadenada por `convenio_origen_id` (self-FK, `related_name='adendas'`) a un
+> Marco o Específico, con nuevo periodo de vigencia. **Sin límite de encadenamiento**
+> (adendas de adendas). Hereda del origen: tipo, marco, universidad, órgano del directorio,
+> unidad ejecutora, facultad y solicitante polimórfico. Se crea vía `services.crear_adenda`
+> (acción `POST /api/v1/conventions/{id}/adenda`) en estado `SOLICITUD_REGISTRADA`.
+> Al pasar una adenda a `VIGENTE`, su `convenio_origen` se marca `AMPLIADO` (salvo que ya
+> esté `CERRADO`/`ANULADO`/`AMPLIADO`). La **vigencia efectiva** de un convenio
+> (`selectors.vigencia_efectiva`) es la mayor `fecha_fin` de las adendas vigentes de su
+> cadena, o su propia `fecha_fin` si no hay adenda vigente.
+
+> **Requisito de campos clínicos antes de suscripción:** un Convenio **Específico** no puede
+> avanzar a suscripción (transición a `ENVIADO_SG` o registro de firma) sin ≥1
+> `campo_clinico_ipress` con `numero_resolucion_conapres` no vacío sobre una sede docente
+> (`ipress.es_sede_docente = true`) de la **unidad ejecutora del convenio**
+> (`ipress.unidad_ejecutora_id == convenio.unidad_ejecutora_id`). Regla en
+> `services._exigir_campos_clinicos_conapres`.
+
 | Columna | Tipo | Null | Descripción |
 |---------|------|------|-------------|
 | `id` | PK | No | |
 | `tipo_convenio_id` | FK → `tipo_convenio` | No | Marco / Específico |
 | `convenio_marco_id` | FK → `convenio` (self) | Sí | Convenio Marco vigente del que depende el Específico (RN-3). **Obligatorio** salvo cuando la solicitante es una **DIRIS** (no requiere Marco) |
+| `convenio_origen_id` | FK → `convenio` (self, PROTECT) | Sí | Convenio (Marco o Específico) que esta adenda amplía (`related_name='adendas'`) |
+| `es_adenda` | bool | No (default `false`) | Marca la fila como adenda de ampliación (derivable de `convenio_origen`; explícito para filtros) |
 | `plantilla_id` | FK → `plantilla_convenio` | Sí | Plantilla utilizada |
 | `codigo` | varchar(50) | Sí | Código oficial |
 | `titulo` | varchar(255) | No | Título / denominación |
@@ -391,6 +419,8 @@ evitando redundancia. En el formulario son selectores en cascada que filtran la 
 | `solicitante_id_objeto` | int | No | Identificador de la entidad solicitante |
 | `organo_directorio_id` | FK → `organo_directorio` | No | Órgano del directorio (GERESA/DIRESA/DIRIS) parte del convenio. Su tipo se deriva de la entidad |
 | `universidad_id` | FK → `universidad` | No | Universidad parte del convenio. Su tipo de entidad se deriva de la entidad |
+| `unidad_ejecutora_id` | FK → `unidad_ejecutora` (PROTECT) | Sí | Unidad ejecutora parte del Convenio Específico (nula en Marco; `related_name='convenios'`) |
+| `facultad_id` | FK → `facultad` (PROTECT) | Sí | Facultad (de la universidad del Marco) parte del Convenio Específico (nula en Marco; `related_name='convenios'`) |
 | `estado_actual_id` | FK → `estado_convenio` | No | Estado actual |
 | `fecha_solicitud` | date | No | Fecha de solicitud |
 | `fecha_inicio` | date | Sí | Inicio de vigencia |
@@ -477,6 +507,16 @@ competencias del proceso:
 
 Reemplaza a la antigua tabla `campo_clinico`. `unique_together = (convenio, ipress, carrera_profesional, especialidad)`.
 
+> **Sede docente ↔ unidad ejecutora:** al registrar un campo clínico, si el convenio tiene
+> `unidad_ejecutora`, la `ipress` debe pertenecer a esa unidad ejecutora
+> (`ipress.unidad_ejecutora_id == convenio.unidad_ejecutora_id`). Regla en
+> `services.crear_registro_campo_clinico`.
+>
+> **Resolución CONAPRES (PDF):** el número/fecha viven en las columnas
+> `numero_resolucion_conapres`/`fecha_resolucion_conapres`; el PDF de la resolución se
+> adjunta al registro (anexo `RESOL_CONAPRES`, `tipo_actor='CAMPO_CLINICO'`) vía
+> `clinical-field-registrations/{id}/annex-upload`.
+
 | Columna | Tipo | Null | Descripción |
 |---------|------|------|-------------|
 | `id` | PK | No | |
@@ -486,6 +526,8 @@ Reemplaza a la antigua tabla `campo_clinico`. `unique_together = (convenio, ipre
 | `especialidad_id` | FK → `especialidad` (SET_NULL) | Sí | Especialidad |
 | `campos_clinicos_registrados` | int positivo | No | Total de campos clínicos registrados por CONAPRES para la sede y carrera (renombra `cantidad_maxima`) |
 | `campos_clinicos_asignados` | int positivo | No (default `0`) | Acumulador Σ de los campos autorizados en las asignaciones por universidad; lo recalcula el service (**solo lectura** en la API) |
+| `numero_resolucion_conapres` | varchar(100) | Sí (blank) | Número de la resolución CONAPRES que autoriza los campos clínicos de la sede |
+| `fecha_resolucion_conapres` | date | Sí | Fecha de la resolución CONAPRES |
 | `creado_en` | datetime | No | |
 | `creado_por` | FK → `auth_user` (SET_NULL) | Sí | Usuario que creó el registro |
 | `actualizado_en` | datetime | No | |

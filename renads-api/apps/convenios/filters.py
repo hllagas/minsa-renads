@@ -22,6 +22,8 @@ class ConventionFilter(filters.FilterSet):
             "tipo_convenio": ["exact"],
             "estado_actual": ["exact"],
             "convenio_marco": ["exact"],
+            "convenio_origen": ["exact"],
+            "es_adenda": ["exact"],
             "solicitante_tipo_contenido": ["exact"],
             "solicitante_id_objeto": ["exact"],
             "organo_directorio": ["exact"],

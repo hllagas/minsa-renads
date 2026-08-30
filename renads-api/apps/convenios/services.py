@@ -107,6 +107,66 @@ def _exigir_marco(convenio: Convention, actividad: str) -> None:
         raise ValidationError(f"{actividad} solo aplica a Convenios Marco.")
 
 
+def _validar_partes_por_tipo(*, tipo_codigo, marco, universidad, unidad_ejecutora, facultad):
+    """Valida las partes (unidad ejecutora / facultad) según el tipo de convenio.
+
+    - MARCO: no lleva `unidad_ejecutora` ni `facultad` (deben ser nulos).
+    - ESPECIFICO: `unidad_ejecutora` y `facultad` obligatorias; la facultad debe
+      pertenecer a la universidad del Convenio Marco (o, para DIRIS sin Marco, a la
+      universidad propia del Específico).
+
+    Reusable por `crear_convenio`, `actualizar_convenio` y `crear_adenda`.
+    """
+    if tipo_codigo == "MARCO":
+        if unidad_ejecutora is not None or facultad is not None:
+            raise ValidationError(
+                {"unidad_ejecutora": "Un Convenio Marco no lleva unidad ejecutora ni facultad."}
+            )
+    elif tipo_codigo == "ESPECIFICO":
+        if unidad_ejecutora is None:
+            raise ValidationError({"unidad_ejecutora": "Requerida para un Convenio Específico."})
+        if facultad is None:
+            raise ValidationError({"facultad": "Requerida para un Convenio Específico."})
+        # La facultad debe pertenecer a la universidad del Marco; para DIRIS sin Marco,
+        # a la universidad propia del Específico.
+        universidad_esperada_id = marco.universidad_id if marco is not None else (
+            universidad.id if universidad is not None else None
+        )
+        if universidad_esperada_id is not None and facultad.universidad_id != universidad_esperada_id:
+            raise ValidationError(
+                {"facultad": "La facultad debe pertenecer a la universidad del Convenio Marco."}
+            )
+
+
+def _exigir_campos_clinicos_conapres(convenio: Convention) -> None:
+    """Gate de suscripción: exige campos clínicos registrados por CONAPRES con resolución.
+
+    Solo aplica a Convenios Específicos. Exige ≥1 `ClinicalFieldRegistration` del
+    convenio sobre una sede docente (`ipress.es_sede_docente=True`) de la unidad
+    ejecutora del convenio (`ipress.unidad_ejecutora_id == convenio.unidad_ejecutora_id`)
+    con `numero_resolucion_conapres` no vacío.
+
+    Se engancha en `registrar_firma` (primer punto de escritura de suscripción con
+    service dedicado) y en `cambiar_estado` cuando el destino es `ENVIADO_SG`.
+    """
+    if convenio.tipo_convenio.codigo != "ESPECIFICO":
+        return
+    existe = (
+        convenio.campos_clinicos.filter(
+            ipress__es_sede_docente=True,
+            ipress__unidad_ejecutora_id=convenio.unidad_ejecutora_id,
+        )
+        .exclude(numero_resolucion_conapres="")
+        .exists()
+    )
+    if not existe:
+        raise ValidationError(
+            "No se puede avanzar a suscripción: falta al menos un campo clínico "
+            "registrado por CONAPRES (con resolución) sobre una sede docente de la "
+            "unidad ejecutora."
+        )
+
+
 # ---------------------------------------------------------------------------
 # Casos de uso
 # ---------------------------------------------------------------------------
@@ -139,6 +199,15 @@ def crear_convenio(*, datos: dict, usuario) -> Convention:
             if not marco.estado_actual_id or marco.estado_actual.codigo not in ESTADOS_VIGENTES:
                 raise ValidationError({"convenio_marco": "El Convenio Marco debe estar vigente."})
 
+    # Validación de partes por tipo (unidad ejecutora / facultad).
+    _validar_partes_por_tipo(
+        tipo_codigo=tipo.codigo,
+        marco=marco,
+        universidad=datos["universidad"],
+        unidad_ejecutora=datos.get("unidad_ejecutora"),
+        facultad=datos.get("facultad"),
+    )
+
     fecha_inicio = datos.get("fecha_inicio")
     fecha_fin = datos.get("fecha_fin")
     if fecha_inicio and not fecha_fin and tipo.anios_vigencia:
@@ -155,6 +224,8 @@ def crear_convenio(*, datos: dict, usuario) -> Convention:
         solicitante_id_objeto=datos["solicitante_id_objeto"],
         organo_directorio=datos["organo_directorio"],
         universidad=datos["universidad"],
+        unidad_ejecutora=datos.get("unidad_ejecutora"),
+        facultad=datos.get("facultad"),
         estado_actual=estado_inicial,
         fecha_solicitud=datos["fecha_solicitud"],
         fecha_inicio=fecha_inicio,
@@ -170,15 +241,79 @@ def crear_convenio(*, datos: dict, usuario) -> Convention:
 
 
 @transaction.atomic
+def crear_adenda(*, convenio_origen: Convention, datos: dict, usuario) -> Convention:
+    """Crea una adenda de ampliación de un convenio (Marco o Específico), sin límite.
+
+    La adenda es una fila `convenio` encadenada por `convenio_origen`, con nuevo
+    periodo de vigencia. Hereda del origen tipo, marco, universidad, órgano del
+    directorio, unidad ejecutora, facultad y solicitante polimórfico. No valida
+    profundidad de la cadena (adendas de adendas permitidas).
+
+    La adenda de un Marco hereda `unidad_ejecutora`/`facultad` como `None` (el Marco
+    no las tiene); la de un Específico las hereda del origen.
+    """
+    tipo = convenio_origen.tipo_convenio
+
+    fecha_inicio = datos.get("fecha_inicio")
+    if not fecha_inicio:
+        raise ValidationError({"fecha_inicio": "Requerida para crear una adenda."})
+    fecha_fin = datos.get("fecha_fin")
+    if not fecha_fin and tipo.anios_vigencia:
+        fecha_fin = _sumar_anios(fecha_inicio, tipo.anios_vigencia)
+    if fecha_fin and fecha_fin <= fecha_inicio:
+        raise ValidationError({"fecha_fin": "Debe ser posterior a la fecha de inicio."})
+
+    titulo = datos.get("titulo") or f"{convenio_origen.titulo} (Adenda)"
+
+    estado_inicial = _obtener_estado("SOLICITUD_REGISTRADA")
+    adenda = Convention.objects.create(
+        tipo_convenio=tipo,
+        convenio_marco=convenio_origen.convenio_marco,
+        convenio_origen=convenio_origen,
+        es_adenda=True,
+        plantilla=convenio_origen.plantilla,
+        codigo=datos.get("codigo", ""),
+        titulo=titulo,
+        solicitante_tipo_contenido_id=convenio_origen.solicitante_tipo_contenido_id,
+        solicitante_id_objeto=convenio_origen.solicitante_id_objeto,
+        organo_directorio=convenio_origen.organo_directorio,
+        universidad=convenio_origen.universidad,
+        unidad_ejecutora=convenio_origen.unidad_ejecutora,
+        facultad=convenio_origen.facultad,
+        estado_actual=estado_inicial,
+        fecha_solicitud=datos.get("fecha_solicitud") or datetime.date.today(),
+        fecha_inicio=fecha_inicio,
+        fecha_fin=fecha_fin,
+        max_campos_clinicos=convenio_origen.max_campos_clinicos,
+        creado_por=usuario,
+    )
+    ConventionStatusHistory.objects.create(
+        convenio=adenda, estado=estado_inicial, cambiado_por=usuario
+    )
+    registrar_auditoria(usuario, "CREAR", adenda)
+    return adenda
+
+
+@transaction.atomic
 def actualizar_convenio(*, convenio: Convention, datos: dict, usuario) -> Convention:
     """Actualiza campos editables del convenio (no el estado: usar `cambiar_estado`)."""
     editables = [
         "codigo", "titulo", "plantilla", "organo_directorio", "universidad",
+        "unidad_ejecutora", "facultad",
         "fecha_inicio", "fecha_fin", "max_campos_clinicos",
     ]
     for campo in editables:
         if campo in datos:
             setattr(convenio, campo, datos[campo])
+    # Revalidar partes por tipo contra el estado final del objeto (no solo el
+    # payload) para no permitir estados incoherentes vía PATCH parcial.
+    _validar_partes_por_tipo(
+        tipo_codigo=convenio.tipo_convenio.codigo,
+        marco=convenio.convenio_marco,
+        universidad=convenio.universidad,
+        unidad_ejecutora=convenio.unidad_ejecutora,
+        facultad=convenio.facultad,
+    )
     convenio.save()
     registrar_auditoria(usuario, "ACTUALIZAR", convenio)
     return convenio
@@ -186,7 +321,26 @@ def actualizar_convenio(*, convenio: Convention, datos: dict, usuario) -> Conven
 
 @transaction.atomic
 def cambiar_estado(*, convenio: Convention, nuevo_estado_codigo: str, usuario, observacion: str = "") -> Convention:
-    return _set_estado(convenio, nuevo_estado_codigo, usuario, observacion)
+    # Gate de suscripción: avanzar un Específico a ENVIADO_SG exige campos clínicos
+    # con resolución CONAPRES sobre sede docente de la unidad ejecutora (TODO D1).
+    if nuevo_estado_codigo == "ENVIADO_SG":
+        _exigir_campos_clinicos_conapres(convenio)
+    convenio = _set_estado(convenio, nuevo_estado_codigo, usuario, observacion)
+    # Efecto de vigencia: al pasar una adenda a VIGENTE, marcar el origen como AMPLIADO
+    # (con guarda: no reactivar un origen ya CERRADO/ANULADO/AMPLIADO).
+    if (
+        nuevo_estado_codigo == "VIGENTE"
+        and convenio.es_adenda
+        and convenio.convenio_origen_id
+    ):
+        origen = convenio.convenio_origen
+        estado_origen = origen.estado_actual.codigo if origen.estado_actual_id else ""
+        if estado_origen not in {"CERRADO", "ANULADO", "AMPLIADO"}:
+            _set_estado(
+                origen, "AMPLIADO", usuario,
+                observacion=f"Ampliado por adenda #{convenio.id}",
+            )
+    return convenio
 
 
 @transaction.atomic
@@ -230,6 +384,16 @@ def crear_registro_campo_clinico(*, datos: dict, usuario) -> ClinicalFieldRegist
             {"ipress": "La IPRESS debe estar autorizada como sede docente por CONAPRES."}
         )
     convenio = datos["convenio"]
+    # RN — la sede docente debe pertenecer a la unidad ejecutora del Convenio Específico.
+    # Se valida solo cuando el convenio ya tiene unidad ejecutora (los convenios previos
+    # a esta mejora podrían no tenerla y quedan exentos del chequeo).
+    if (
+        convenio.unidad_ejecutora_id is not None
+        and ipress.unidad_ejecutora_id != convenio.unidad_ejecutora_id
+    ):
+        raise ValidationError(
+            {"ipress": "La sede docente debe pertenecer a la unidad ejecutora del Convenio Específico."}
+        )
     if (
         convenio.max_campos_clinicos is not None
         and datos["campos_clinicos_registrados"] > convenio.max_campos_clinicos
@@ -259,6 +423,7 @@ def actualizar_registro_campo_clinico(
     editables = [
         "convenio", "ipress", "carrera_profesional", "especialidad",
         "campos_clinicos_registrados",
+        "numero_resolucion_conapres", "fecha_resolucion_conapres",
     ]
     for campo in editables:
         if campo in datos:
@@ -399,6 +564,9 @@ def registrar_opinion_juridica(*, convenio: Convention, datos: dict, usuario) ->
 @transaction.atomic
 def registrar_firma(*, convenio: Convention, datos: dict, usuario) -> Signature:
     """RN-9: no se puede firmar con observaciones técnicas/normativas/jurídicas pendientes."""
+    # Gate de suscripción (solo Específicos): exige campos clínicos con resolución
+    # CONAPRES sobre sede docente de la unidad ejecutora (TODO D1 — validator confirma).
+    _exigir_campos_clinicos_conapres(convenio)
     if _tiene_observaciones_pendientes(convenio):
         raise ValidationError("No se puede firmar: hay observaciones pendientes de subsanar.")
     firma = Signature.objects.create(convenio=convenio, **datos)

@@ -21,9 +21,10 @@ def convenios_visibles(usuario) -> QuerySet[Convention]:
     solicitante o participante. Sin perfiles institucionales no ve ninguno.
     """
     qs = Convention.objects.select_related(
-        "tipo_convenio", "estado_actual", "convenio_marco",
+        "tipo_convenio", "estado_actual", "convenio_marco", "convenio_origen",
         "organo_directorio__tipo_organo", "universidad__tipo_entidad",
-    )
+        "unidad_ejecutora", "facultad",
+    ).prefetch_related("adendas__estado_actual")
     if usuario.is_superuser:
         return qs
     refs = entidades_del_usuario(usuario)
@@ -50,6 +51,31 @@ def historial_convenio(convenio: Convention) -> QuerySet[ConventionStatusHistory
     return convenio.historial_estados.select_related("estado", "cambiado_por").order_by(
         "cambiado_en"
     )
+
+
+def vigencia_efectiva(convenio: Convention):
+    """Fecha de fin de vigencia efectiva considerando la cadena de adendas.
+
+    Recorre recursivamente las adendas (`convenio.adendas`) y devuelve la mayor
+    `fecha_fin` entre las adendas vigentes de la cadena (estado en
+    `ESTADOS_VIGENTES`). Si ninguna adenda está vigente, devuelve `convenio.fecha_fin`.
+    Precargar con `prefetch_related("adendas")` en el punto de uso para evitar N+1.
+    """
+    from apps.convenios.services import ESTADOS_VIGENTES
+
+    mejor = convenio.fecha_fin
+
+    def _recorrer(nodo):
+        nonlocal mejor
+        for adenda in nodo.adendas.all():
+            estado = adenda.estado_actual.codigo if adenda.estado_actual_id else ""
+            if estado in ESTADOS_VIGENTES and adenda.fecha_fin is not None:
+                if mejor is None or adenda.fecha_fin > mejor:
+                    mejor = adenda.fecha_fin
+            _recorrer(adenda)
+
+    _recorrer(convenio)
+    return mejor
 
 
 def registros_campo_clinico() -> QuerySet[ClinicalFieldRegistration]:

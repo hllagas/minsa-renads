@@ -34,6 +34,7 @@ from apps.convenios.permissions import (
     exigir_roles,
 )
 from apps.convenios.serializers import (
+    AdendaWriteSerializer,
     AuditLogSerializer,
     SolicitanteContentTypeSerializer,
     CambiarEstadoSerializer,
@@ -56,9 +57,16 @@ from apps.convenios.serializers import (
 )
 
 
-class ConventionViewSet(viewsets.ModelViewSet):
-    """CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors."""
+class ConventionViewSet(AnnexAttachmentMixin, viewsets.ModelViewSet):
+    """CRUD de convenios y acciones de flujo. Escritura vía services; lectura vía selectors.
 
+    `AnnexAttachmentMixin` (annex_actor="CONVENIO") habilita
+    `conventions/{id}/annex-upload` y `conventions/{id}/annex-checklist` para adjuntar
+    las resoluciones PDF del convenio/adenda (RESOL_MARCO/RESOL_ESPECIFICO/RESOL_ADENDA)
+    versionadas por `(convenio, documento_anexo)`.
+    """
+
+    annex_actor = "CONVENIO"
     permission_classes = [IsAuthenticated, IsInstitutionalMember, ConventionScope, IsModuleEnabled]
     module_content_type = ("convenios", "convention")
     filterset_class = ConventionFilter
@@ -183,6 +191,29 @@ class ConventionViewSet(viewsets.ModelViewSet):
         qs = selectors.historial_convenio(convenio)
         return Response(ConventionStatusHistorySerializer(qs, many=True).data)
 
+    @action(detail=True, methods=["post"], url_path="adenda")
+    def adenda(self, request, pk=None):
+        """Crea una adenda de ampliación del convenio (nuevo periodo de vigencia).
+
+        Hereda del origen tipo, marco, universidad, órgano, unidad ejecutora,
+        facultad y solicitante. El alcance institucional se valida contra la entidad
+        solicitante del convenio origen (mismo criterio que crear un convenio).
+        """
+        convenio_origen = self.get_object()
+        exigir_ambito(
+            request.user,
+            convenio_origen.solicitante_tipo_contenido_id,
+            convenio_origen.solicitante_id_objeto,
+        )
+        ser = AdendaWriteSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        adenda = services.crear_adenda(
+            convenio_origen=convenio_origen,
+            datos=ser.validated_data,
+            usuario=request.user,
+        )
+        return Response(ConventionReadSerializer(adenda).data, status=201)
+
 
 class ProtectedDeleteConflict(APIException):
     """El registro no se puede borrar porque otras filas lo referencian con FK protegida (409)."""
@@ -228,7 +259,7 @@ class ConventionTemplateViewSet(AuditedModelViewSet):
     permission_classes = [IsAuthenticated, IsAdminRoleOrReadOnly]
 
 
-class ClinicalFieldRegistrationViewSet(AuditedModelViewSet):
+class ClinicalFieldRegistrationViewSet(AnnexAttachmentMixin, AuditedModelViewSet):
     """CRUD del registro (CONAPRES) del total de campos clínicos por sede + carrera.
 
     Escritura solo CONAPRES; lectura para autenticados. La escritura delega en los
@@ -236,8 +267,13 @@ class ClinicalFieldRegistrationViewSet(AuditedModelViewSet):
     `creado_por`/`actualizado_por` y registran la auditoría. Por eso se sobrescriben
     `perform_create`/`perform_update` (llaman al service) evitando la doble auditoría
     de `AuditedModelViewSet`.
+
+    `AnnexAttachmentMixin` (annex_actor="CAMPO_CLINICO") habilita
+    `clinical-field-registrations/{id}/annex-upload` y `.../annex-checklist` para
+    adjuntar la resolución CONAPRES (RESOL_CONAPRES) versionada por registro (D2).
     """
 
+    annex_actor = "CAMPO_CLINICO"
     serializer_class = ClinicalFieldRegistrationSerializer
     permission_classes = [IsAuthenticated, IsConapresOrReadOnly]
     filterset_class = ClinicalFieldRegistrationFilter

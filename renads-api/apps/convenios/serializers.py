@@ -41,20 +41,51 @@ class ConventionReadSerializer(serializers.ModelSerializer):
     tipo_entidad_universidad = serializers.CharField(
         source="universidad.tipo_entidad.nombre", read_only=True
     )
+    unidad_ejecutora_detalle = serializers.SerializerMethodField()
+    facultad_detalle = serializers.SerializerMethodField()
+    adendas = serializers.SerializerMethodField()
+    vigencia_efectiva = serializers.SerializerMethodField()
 
     class Meta:
         model = Convention
         fields = [
-            "id", "tipo_convenio", "convenio_marco", "plantilla", "codigo", "titulo",
+            "id", "tipo_convenio", "convenio_marco", "convenio_origen", "es_adenda",
+            "plantilla", "codigo", "titulo",
             "solicitante_tipo_contenido", "solicitante_id_objeto", "solicitante",
             "organo_directorio", "organo_directorio_nombre", "tipo_organo_directorio",
             "universidad", "universidad_nombre", "tipo_entidad_universidad",
+            "unidad_ejecutora", "unidad_ejecutora_detalle", "facultad", "facultad_detalle",
             "estado_actual", "estado_codigo", "fecha_solicitud", "fecha_inicio", "fecha_fin",
+            "vigencia_efectiva", "adendas",
             "max_campos_clinicos", "creado_por", "creado_en", "actualizado_en",
         ]
 
     def get_solicitante(self, obj) -> str:
         return str(obj.solicitante) if obj.solicitante else ""
+
+    def get_unidad_ejecutora_detalle(self, obj):
+        return _detalle_fk(obj.unidad_ejecutora, "nombre", "codigo")
+
+    def get_facultad_detalle(self, obj):
+        return _detalle_fk(obj.facultad, "nombre")
+
+    def get_adendas(self, obj) -> list:
+        # Un nivel de adendas directas; el frontend recorre recursivamente si
+        # necesita niveles profundos de la cadena.
+        return [
+            {
+                "id": a.id,
+                "titulo": a.titulo,
+                "estado_codigo": a.estado_actual.codigo if a.estado_actual_id else None,
+                "fecha_inicio": a.fecha_inicio,
+                "fecha_fin": a.fecha_fin,
+            }
+            for a in obj.adendas.all()
+        ]
+
+    def get_vigencia_efectiva(self, obj):
+        from apps.convenios import selectors
+        return selectors.vigencia_efectiva(obj)
 
 
 class ConventionWriteSerializer(serializers.ModelSerializer):
@@ -63,9 +94,19 @@ class ConventionWriteSerializer(serializers.ModelSerializer):
         fields = [
             "tipo_convenio", "convenio_marco", "plantilla", "codigo", "titulo",
             "solicitante_tipo_contenido", "solicitante_id_objeto",
-            "organo_directorio", "universidad",
+            "organo_directorio", "universidad", "unidad_ejecutora", "facultad",
             "fecha_solicitud", "fecha_inicio", "fecha_fin", "max_campos_clinicos",
         ]
+
+
+class AdendaWriteSerializer(serializers.Serializer):
+    """Entrada de la acción `conventions/{id}/adenda` — nuevo periodo de la adenda."""
+
+    titulo = serializers.CharField(required=False, allow_blank=True)
+    codigo = serializers.CharField(required=False, allow_blank=True)
+    fecha_solicitud = serializers.DateField(required=False)
+    fecha_inicio = serializers.DateField()
+    fecha_fin = serializers.DateField(required=False)
 
 
 class SolicitanteContentTypeSerializer(serializers.Serializer):
@@ -157,6 +198,7 @@ class ClinicalFieldRegistrationSerializer(serializers.ModelSerializer):
         fields = [
             "id", "convenio", "ipress", "carrera_profesional", "especialidad",
             "campos_clinicos_registrados", "campos_clinicos_asignados", "disponibilidad",
+            "numero_resolucion_conapres", "fecha_resolucion_conapres",
             "convenio_detalle", "ipress_detalle", "carrera_profesional_detalle",
             "especialidad_detalle",
             "creado_en", "creado_por", "actualizado_en", "actualizado_por",

@@ -70,6 +70,8 @@ ANNEX_ACTOR = [
     ("INTERNO", "Interno / estudiante"),
     ("AUTORIDAD_UNIVERSIDAD", "Autoridad de universidad"),
     ("REPRESENTANTE", "Representante / autoridad (incluye CONAPRES)"),
+    ("CONVENIO", "Convenio / adenda"),
+    ("CAMPO_CLINICO", "Campo clínico (resolución CONAPRES)"),
 ]
 
 
