@@ -2,7 +2,7 @@
 
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import ProtectedError
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers as drf_serializers
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -515,7 +515,13 @@ class FacultyViewSet(
     service `sincronizar_carreras_facultad`.
     """
 
-    @extend_schema(request=FacultyCareersSyncSerializer, responses=UniversityCareerSerializer)
+    @extend_schema(
+        request=FacultyCareersSyncSerializer,
+        responses=inline_serializer(
+            name="FacultyCareersSyncResponse",
+            fields={"carreras": UniversityCareerSerializer(many=True)},
+        ),
+    )
     @action(detail=True, methods=["post"], url_path="careers")
     def careers(self, request, pk=None):
         """Asigna en lote las carreras de la facultad. Body: `{carreras: [ids]}`.
