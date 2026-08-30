@@ -638,7 +638,7 @@ class ProfessionalCareer(models.Model):
 
 
 class UniversityCareer(models.Model):
-    """Tabla puente universidad ↔ carrera profesional (carreras que dicta cada universidad)."""
+    """Tabla puente universidad ↔ carrera profesional (carreras que dicta cada universidad), asociada a la facultad que la imparte."""
 
     universidad = models.ForeignKey(
         University, on_delete=models.PROTECT, db_column="universidad_id",
@@ -647,6 +647,11 @@ class UniversityCareer(models.Model):
     carrera_profesional = models.ForeignKey(
         ProfessionalCareer, on_delete=models.PROTECT, db_column="carrera_profesional_id",
         related_name="universidades", help_text="Carrera profesional",
+    )
+    facultad = models.ForeignKey(
+        Faculty, on_delete=models.PROTECT, db_column="facultad_id",
+        related_name="carreras_facultad", null=True, blank=True,
+        help_text="Facultad de la universidad a la que pertenece la carrera",
     )
     activo = models.BooleanField("activo", default=True)
 

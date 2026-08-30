@@ -15,11 +15,14 @@ from apps.convenios.models import (
     ConventionStatusHistory,
     ConventionTemplate,
     Document,
+    Faculty,
     LegalOpinion,
     OrganRepresentative,
+    ProfessionalCareer,
     Publication,
     Signature,
     TechnicalEvaluation,
+    UniversityCareer,
 )
 
 
@@ -562,6 +565,63 @@ class AnnexUploadSerializer(serializers.Serializer):
                 f"El archivo supera el tamaño máximo permitido ({maximo_mb:.0f} MiB)."
             )
         return archivo
+
+
+# ---------------------------------------------------------------------------
+# Carreras por universidad (puente universidad ↔ carrera ↔ facultad)
+# ---------------------------------------------------------------------------
+class UniversityCareerSerializer(serializers.ModelSerializer):
+    """Carrera que dicta una universidad, asociada a la facultad que la imparte.
+
+    `facultad` es opcional a nivel de modelo (filas históricas), pero **requerida**
+    en la API (RN-FC-03). Se valida que la facultad pertenezca a la universidad del
+    registro (RN-FC-02). Los campos `*_detalle` son de solo lectura para poblar los
+    listados del frontend sin resolver ids.
+    """
+
+    facultad = serializers.PrimaryKeyRelatedField(
+        queryset=Faculty.objects.all(), required=True, allow_null=False,
+    )
+    universidad_detalle = serializers.SerializerMethodField()
+    carrera_profesional_detalle = serializers.SerializerMethodField()
+    facultad_detalle = serializers.SerializerMethodField()
+
+    class Meta:
+        model = UniversityCareer
+        fields = "__all__"
+
+    def get_universidad_detalle(self, obj):
+        return _detalle_fk(obj.universidad, "nombre")
+
+    def get_carrera_profesional_detalle(self, obj):
+        return _detalle_fk(obj.carrera_profesional, "nombre")
+
+    def get_facultad_detalle(self, obj):
+        return _detalle_fk(obj.facultad, "nombre")
+
+    def validate(self, data):
+        """RN-FC-02: la facultad debe pertenecer a la universidad del registro."""
+        # En PATCH parcial se toma el valor entrante o el de la instancia.
+        universidad = data.get("universidad") or getattr(self.instance, "universidad", None)
+        facultad = data.get("facultad") or getattr(self.instance, "facultad", None)
+        if universidad is not None and facultad is not None:
+            if facultad.universidad_id != universidad.id:
+                raise serializers.ValidationError(
+                    "La facultad seleccionada no pertenece a la universidad indicada."
+                )
+        return data
+
+
+class FacultyCareersSyncSerializer(serializers.Serializer):
+    """Entrada de la acción en lote `POST /faculties/{id}/careers`.
+
+    Recibe la lista de carreras profesionales a asociar a la facultad; se permite
+    lista vacía para dar de baja todas las carreras activas de la facultad.
+    """
+
+    carreras = serializers.PrimaryKeyRelatedField(
+        queryset=ProfessionalCareer.objects.all(), many=True, allow_empty=True,
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -24,9 +24,11 @@ from apps.convenios.models import (
     LegalOpinion,
     OrganRepresentative,
     OrganRepresentativeHistory,
+    ProfessionalCareer,
     Publication,
     Signature,
     TechnicalEvaluation,
+    UniversityCareer,
 )
 
 # Estados que consideran "vigente" un Convenio Marco para soportar un Específico (RN-3).
@@ -660,3 +662,79 @@ def autorizar_sede_docente(*, ipress: Ipress, usuario, autorizar: bool = True) -
         nombre_campo="es_sede_docente", valor_anterior=anterior, valor_nuevo=autorizar,
     )
     return ipress
+
+
+# ---------------------------------------------------------------------------
+# Carreras por facultad (sincronización en lote)
+# ---------------------------------------------------------------------------
+@transaction.atomic
+def sincronizar_carreras_facultad(*, facultad, carreras_ids, usuario) -> list[UniversityCareer]:
+    """Sincroniza (idempotente) las carreras de una facultad en `universidad_carrera`.
+
+    La `universidad` se deriva de `facultad.universidad` (no se recibe del cliente).
+    Por cada carrera enviada se hace un upsert de la fila `(universidad, carrera)`
+    respetando `unique_together` (RN-FC-01): si ya existe se reactiva y se le fija
+    esta facultad; si no, se crea. Las filas **de esta facultad** cuya carrera ya no
+    esté en `carreras_ids` se dan de baja (`activo=False`, sin borrado físico). El
+    alcance de baja es por facultad: no afecta carreras registradas contra otra
+    facultad de la misma universidad. Toda alta/reactivación/baja real queda auditada.
+
+    Devuelve las filas activas resultantes de la facultad.
+    """
+    universidad = facultad.universidad
+
+    # Normaliza a un conjunto de enteros y valida existencia (RN-FC-01).
+    ids_solicitados: set[int] = set()
+    for carrera in carreras_ids:
+        carrera_id = carrera.id if isinstance(carrera, ProfessionalCareer) else int(carrera)
+        ids_solicitados.add(carrera_id)
+
+    existentes = set(
+        ProfessionalCareer.objects.filter(id__in=ids_solicitados).values_list("id", flat=True)
+    )
+    faltantes = ids_solicitados - existentes
+    if faltantes:
+        raise ValidationError(
+            f"Carrera(s) profesional(es) inexistente(s): {sorted(faltantes)}."
+        )
+
+    # RN-FC-02 (defensiva): la facultad debe pertenecer a la universidad derivada.
+    if facultad.universidad_id != universidad.id:
+        raise ValidationError("La facultad no pertenece a la universidad indicada.")
+
+    # Alta / reactivación / reasignación de facultad de las carreras enviadas.
+    for carrera_id in ids_solicitados:
+        fila = UniversityCareer.objects.filter(
+            universidad=universidad, carrera_profesional_id=carrera_id
+        ).first()
+        if fila is None:
+            fila = UniversityCareer.objects.create(
+                universidad=universidad,
+                carrera_profesional_id=carrera_id,
+                facultad=facultad,
+                activo=True,
+            )
+            registrar_auditoria(usuario, "CREAR", fila)
+        else:
+            cambio = fila.facultad_id != facultad.id or not fila.activo
+            if cambio:
+                fila.facultad = facultad
+                fila.activo = True
+                fila.save(update_fields=["facultad", "activo"])
+                registrar_auditoria(usuario, "ACTUALIZAR", fila)
+
+    # Baja (por facultad) de las carreras que ya no están en la lista enviada.
+    a_dar_de_baja = UniversityCareer.objects.filter(
+        facultad=facultad, activo=True
+    ).exclude(carrera_profesional_id__in=ids_solicitados)
+    for fila in a_dar_de_baja:
+        fila.activo = False
+        fila.save(update_fields=["activo"])
+        registrar_auditoria(
+            usuario, "ACTUALIZAR", fila,
+            nombre_campo="activo", valor_anterior=True, valor_nuevo=False,
+        )
+
+    return list(
+        UniversityCareer.objects.filter(facultad=facultad, activo=True).order_by("id")
+    )

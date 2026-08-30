@@ -52,8 +52,10 @@ from apps.convenios.serializers import (
     LegalOpinionSerializer,
     OrganRepresentativeSerializer,
     PublicationSerializer,
+    FacultyCareersSyncSerializer,
     SignatureSerializer,
     TechnicalEvaluationSerializer,
+    UniversityCareerSerializer,
 )
 
 
@@ -501,6 +503,55 @@ class IpressViewSet(
         return Response(self.get_serializer(ipress).data)
 
 
+class FacultyViewSet(
+    _entity_viewset(
+        m.Faculty, filterset_fields=["universidad", "activo"], search_fields=["nombre"]
+    ),
+):
+    """CRUD de facultades + asignación en lote de carreras por facultad.
+
+    La acción `careers` sincroniza (idempotente) las carreras de la facultad en
+    `universidad_carrera` derivando la universidad de la facultad; delega en el
+    service `sincronizar_carreras_facultad`.
+    """
+
+    @extend_schema(request=FacultyCareersSyncSerializer, responses=UniversityCareerSerializer)
+    @action(detail=True, methods=["post"], url_path="careers")
+    def careers(self, request, pk=None):
+        """Asigna en lote las carreras de la facultad. Body: `{carreras: [ids]}`.
+
+        Escritura solo `Administrador RENADS`. Deriva la universidad de la facultad,
+        da de alta/reactiva las carreras enviadas y de baja (por facultad) las que ya
+        no estén. Devuelve las filas `universidad_carrera` activas resultantes.
+        """
+        facultad = self.get_object()
+        exigir_roles(request, "Administrador RENADS")
+        serializer = FacultyCareersSyncSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        carreras = serializer.validated_data["carreras"]
+        resultado = services.sincronizar_carreras_facultad(
+            facultad=facultad, carreras_ids=carreras, usuario=request.user
+        )
+        return Response({"carreras": UniversityCareerSerializer(resultado, many=True).data})
+
+
+class UniversityCareerViewSet(
+    _entity_viewset(
+        m.UniversityCareer,
+        filterset_fields=["universidad", "carrera_profesional", "facultad", "activo"],
+    ),
+):
+    """CRUD de carreras por universidad (puente universidad ↔ carrera ↔ facultad).
+
+    Usa `UniversityCareerSerializer` (facultad requerida en escritura, RN-FC-02/03).
+    """
+
+    queryset = m.UniversityCareer._default_manager.select_related(
+        "universidad", "carrera_profesional", "facultad"
+    ).all()
+    serializer_class = UniversityCareerSerializer
+
+
 # Catálogos (solo lectura): basename -> ViewSet
 CATALOG_VIEWSETS = {
     "regions": _catalog_viewset(m.Region),
@@ -591,22 +642,13 @@ ENTITY_VIEWSETS = {
             "tipo_autorizacion": _detalle_nombre,
         },
     ),
-    "faculties": _entity_viewset(
-        m.Faculty, filterset_fields=["universidad", "activo"], search_fields=["nombre"]
-    ),
+    "faculties": FacultyViewSet,
     "professional-careers": _entity_viewset(
         m.ProfessionalCareer,
         filterset_fields=["nivel_academico", "activo"],
         search_fields=["nombre"],
     ),
-    "university-careers": _entity_viewset(
-        m.UniversityCareer,
-        filterset_fields=["universidad", "carrera_profesional", "activo"],
-        detalles={
-            "universidad": _detalle_nombre,
-            "carrera_profesional": _detalle_nombre,
-        },
-    ),
+    "university-careers": UniversityCareerViewSet,
     "university-campuses": _entity_viewset(
         m.UniversityCampus, filterset_fields=["universidad", "region", "activo"], search_fields=["nombre"]
     ),

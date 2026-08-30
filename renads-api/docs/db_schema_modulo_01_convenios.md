@@ -263,16 +263,19 @@ Los representantes de CONAPRES y de los demás órganos se registran en `organo_
 
 ### `universidad_carrera`
 
-Tabla puente universidad ↔ carrera profesional (carreras que dicta cada universidad). `unique_together = (universidad, carrera_profesional)`.
+Tabla puente universidad ↔ carrera profesional (carreras que dicta cada universidad), asociada a la facultad que la imparte. `unique_together = (universidad, carrera_profesional)` (la unicidad NO incluye `facultad`). Regla de coherencia: `facultad.universidad_id == universidad_id`.
 
 | Columna | Tipo | Null | Descripción |
 |---------|------|------|-------------|
 | `id` | PK | No | |
 | `universidad_id` | FK → `universidad` (PROTECT) | No | Universidad |
 | `carrera_profesional_id` | FK → `carrera_profesional` (PROTECT) | No | Carrera profesional |
+| `facultad_id` | FK → `facultad` (PROTECT) | Sí | Facultad de la universidad que imparte la carrera (opcional en BD por filas históricas; requerida vía API) |
 | `activo` | bool | No | |
 
-Endpoint: `/api/v1/university-careers/` (CRUD, escritura solo `Administrador RENADS`; filtros `universidad`, `carrera_profesional`, `activo`; lectura expone `universidad_detalle` y `carrera_profesional_detalle`).
+Endpoint: `/api/v1/university-careers/` (CRUD, escritura solo `Administrador RENADS`; filtros `universidad`, `carrera_profesional`, `facultad`, `activo`; lectura expone `universidad_detalle`, `carrera_profesional_detalle` y `facultad_detalle`).
+
+Endpoint en lote: `POST /api/v1/faculties/{id}/careers` (body `{carreras: [ids]}`) — sincronización idempotente (alta/reactivación + baja por `activo`) de las carreras **por facultad**; deriva `universidad` de la facultad; escritura solo `Administrador RENADS`; delega en `services.sincronizar_carreras_facultad`.
 
 ### `local_universidad`
 
