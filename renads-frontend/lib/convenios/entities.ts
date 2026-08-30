@@ -327,9 +327,9 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
       { key: "nombre", header: "Nombre" },
       { key: "codigo", header: "Código" },
       {
-        key: "organo_directorio",
-        header: "Órgano del directorio",
-        render: (r) => String(r.organo_directorio_detalle ?? "—"),
+        key: "gobierno_regional",
+        header: "Gobierno regional",
+        render: (r) => String(r.gobierno_regional_detalle ?? "—"),
       },
       {
         key: "tipo_organo",
@@ -340,10 +340,10 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     ],
     filters: [
       {
-        name: "organo_directorio",
-        label: "Órgano del directorio",
+        name: "gobierno_regional",
+        label: "Gobierno regional",
         type: "select",
-        optionsEndpoint: "organ-directories",
+        optionsEndpoint: "regional-governments",
       },
       {
         name: "tipo_organo",
@@ -363,11 +363,11 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
       // ── Organización ──────────────────────────────────────────────────────
       { name: "_s2", label: "Organización", type: "separator" },
       {
-        name: "organo_directorio",
-        label: "Órgano del directorio",
+        name: "gobierno_regional",
+        label: "Gobierno regional",
         type: "select",
         required: true,
-        optionsEndpoint: "organ-directories",
+        optionsEndpoint: "regional-governments",
       },
       {
         name: "tipo_organo",

@@ -4421,25 +4421,26 @@ export interface components {
         ExecutingUnitAuto: {
             readonly id: number;
             readonly referencia_logo: string;
-            readonly organo_directorio_detalle: string;
             readonly tipo_organo_detalle: string;
-            /** @description Nombre */
-            nombre: string;
+            readonly gobierno_regional_detalle: string;
+            readonly ubigeo_detalle: string;
             /**
              * Código
              * @description Código presupuestal
              */
             codigo?: string;
+            /** @description Nombre */
+            nombre: string;
             /**
              * Dirección
              * @description Dirección
              */
             direccion?: string;
             activo?: boolean;
-            /** @description Órgano del directorio que la administra */
-            organo_directorio: number;
-            /** @description Hospital / Instituto especializado / Red de salud (discriminador: UNIDAD_EJECUTORA) */
+            /** @description Tipo de unidad ejecutora (Hospital / Instituto especializado / Red de salud; discriminador UNIDAD_EJECUTORA) */
             tipo_organo: number;
+            /** @description Gobierno regional al que pertenece */
+            gobierno_regional: number;
             /** @description Ubicación geográfica (UBIGEO) */
             ubigeo?: number | null;
         };
@@ -6099,25 +6100,26 @@ export interface components {
         PatchedExecutingUnitAuto: {
             readonly id?: number;
             readonly referencia_logo?: string;
-            readonly organo_directorio_detalle?: string;
             readonly tipo_organo_detalle?: string;
-            /** @description Nombre */
-            nombre?: string;
+            readonly gobierno_regional_detalle?: string;
+            readonly ubigeo_detalle?: string;
             /**
              * Código
              * @description Código presupuestal
              */
             codigo?: string;
+            /** @description Nombre */
+            nombre?: string;
             /**
              * Dirección
              * @description Dirección
              */
             direccion?: string;
             activo?: boolean;
-            /** @description Órgano del directorio que la administra */
-            organo_directorio?: number;
-            /** @description Hospital / Instituto especializado / Red de salud (discriminador: UNIDAD_EJECUTORA) */
+            /** @description Tipo de unidad ejecutora (Hospital / Instituto especializado / Red de salud; discriminador UNIDAD_EJECUTORA) */
             tipo_organo?: number;
+            /** @description Gobierno regional al que pertenece */
+            gobierno_regional?: number;
             /** @description Ubicación geográfica (UBIGEO) */
             ubigeo?: number | null;
         };
@@ -10032,9 +10034,9 @@ export interface operations {
         parameters: {
             query?: {
                 activo?: boolean;
+                gobierno_regional?: number;
                 /** @description Qué campo usar para ordenar los resultados. */
                 ordering?: string;
-                organo_directorio?: number;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
                 page?: number;
                 /** @description Un término de búsqueda. */
