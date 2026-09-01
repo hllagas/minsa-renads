@@ -74,6 +74,7 @@ interface Representative extends WithId {
 interface OrgDirectory extends WithId {
   nombre: string;
   gobierno_regional: number | null;
+  categoria: string;
 }
 
 interface ExecPosition extends WithId {
@@ -390,6 +391,7 @@ export default function RepresentantesPage() {
         open={dialogOpen}
         row={editRow}
         gobRegId={gobRegId}
+        orgDirs={orgDirQuery.data ?? []}
         onClose={() => {
           setDialogOpen(false);
           setEditRow(null);
@@ -455,12 +457,14 @@ function RepresentativeDialog({
   open,
   row,
   gobRegId,
+  orgDirs,
   onClose,
   onSuccess,
 }: {
   open: boolean;
   row: Representative | null;
   gobRegId: number | null;
+  orgDirs: OrgDirectory[];
   onClose: () => void;
   onSuccess: () => void;
 }) {
@@ -482,6 +486,33 @@ function RepresentativeDialog({
   });
 
   const sexo = useWatch({ control, name: "sexo" }) as "M" | "F" | "";
+  const orgDirId = useWatch({ control, name: "organo_directorio" });
+
+  // Fetch organs (4 canonical categories) to filter executive-positions by organo
+  const { data: organs } = useQuery({
+    queryKey: ["organs"],
+    queryFn: () => fetchAllPages<WithId & { nombre: string }>("organs"),
+    staleTime: 60 * 60_000,
+  });
+
+  // Map the selected organ-directory's categoria → organs FK id
+  const organoId = useMemo(() => {
+    const dir = orgDirs.find((d) => d.id === orgDirId);
+    if (!dir?.categoria || !organs?.length) return undefined;
+    const keywords: Record<string, string[]> = {
+      ORGANO_MINSA: ["minsa"],
+      MINSA_DIRIS: ["minsa", "diris"],
+      UNIVERSIDAD: ["univer"],
+      GOBIERNO_REGIONAL: ["regional"],
+      UNIDAD_EJECUTORA: ["ejecutora"],
+    };
+    const kws = keywords[dir.categoria] ?? [];
+    return organs.find((o) =>
+      kws.some((k) =>
+        String((o as { nombre?: string }).nombre ?? "").toLowerCase().includes(k)
+      )
+    )?.id;
+  }, [orgDirId, orgDirs, organs]);
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -547,6 +578,12 @@ function RepresentativeDialog({
     },
   });
 
+  // Show codigo (abbreviation) for identity document types
+  const docTypeLabel = (r: WithId) => {
+    const row = r as { codigo?: string; nombre?: string };
+    return row.codigo ?? row.nombre ?? String(r.id);
+  };
+
   // Build cargo toLabel based on current sexo selection
   const cargoToLabel = (r: WithId) => {
     const pos = r as { nombre_masculino?: string; nombre_femenino?: string };
@@ -557,7 +594,7 @@ function RepresentativeDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>
             {isEdit ? "Editar representante" : "Nuevo representante"}
@@ -566,51 +603,36 @@ function RepresentativeDialog({
 
         <form
           onSubmit={handleSubmit((v) => saveMutation.mutate(v))}
-          className="grid gap-4 max-h-[70vh] overflow-y-auto px-1 pb-1"
+          className="grid gap-3 px-1 pb-1"
         >
           {/* ── Datos personales ── */}
           <SectionHeader label="Datos personales" />
 
+          {/* Nombre */}
           <Controller
             control={control}
             name="nombre"
             rules={{ required: "Campo obligatorio." }}
             render={({ field, fieldState }) => (
-              <div className="grid gap-1.5">
+              <div className="grid gap-1">
                 <Label>Nombre completo *</Label>
-                <Input
-                  value={field.value}
-                  onChange={field.onChange}
-                  onBlur={field.onBlur}
-                  autoComplete="off"
-                />
-                {fieldState.error && (
-                  <p className="text-sm text-destructive">
-                    {fieldState.error.message}
-                  </p>
-                )}
+                <Input value={field.value} onChange={field.onChange} onBlur={field.onBlur} autoComplete="off" />
+                {fieldState.error && <p className="text-xs text-destructive">{fieldState.error.message}</p>}
               </div>
             )}
           />
 
-          <div className="grid grid-cols-2 gap-4">
+          {/* Tipo doc | N° doc | Sexo — 3 cols */}
+          <div className="grid grid-cols-3 gap-3">
             <Controller
               control={control}
               name="tipo_documento_identidad"
               rules={{ required: "Campo obligatorio." }}
               render={({ field, fieldState }) => (
-                <div className="grid gap-1.5">
-                  <Label>Tipo de documento *</Label>
-                  <EntityCombobox
-                    endpoint="identity-document-types"
-                    value={field.value}
-                    onChange={field.onChange}
-                  />
-                  {fieldState.error && (
-                    <p className="text-sm text-destructive">
-                      {fieldState.error.message}
-                    </p>
-                  )}
+                <div className="grid gap-1">
+                  <Label>Tipo documento *</Label>
+                  <EntityCombobox endpoint="identity-document-types" value={field.value} onChange={field.onChange} toLabel={docTypeLabel} />
+                  {fieldState.error && <p className="text-xs text-destructive">{fieldState.error.message}</p>}
                 </div>
               )}
             />
@@ -619,130 +641,114 @@ function RepresentativeDialog({
               name="numero_documento_identidad"
               rules={{ required: "Campo obligatorio." }}
               render={({ field, fieldState }) => (
-                <div className="grid gap-1.5">
+                <div className="grid gap-1">
                   <Label>N° documento *</Label>
-                  <Input
+                  <Input value={field.value} onChange={field.onChange} onBlur={field.onBlur} autoComplete="off" />
+                  {fieldState.error && <p className="text-xs text-destructive">{fieldState.error.message}</p>}
+                </div>
+              )}
+            />
+            <Controller
+              control={control}
+              name="sexo"
+              rules={{ required: "Campo obligatorio." }}
+              render={({ field, fieldState }) => (
+                <div className="grid gap-1">
+                  <Label>Sexo *</Label>
+                  <Select
                     value={field.value}
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    autoComplete="off"
-                  />
-                  {fieldState.error && (
-                    <p className="text-sm text-destructive">
-                      {fieldState.error.message}
-                    </p>
-                  )}
+                    onValueChange={(v) => {
+                      field.onChange(v);
+                      setValue("cargo_ejecutivo", null);
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Seleccionar…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="M">Masculino</SelectItem>
+                      <SelectItem value="F">Femenino</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {fieldState.error && <p className="text-xs text-destructive">{fieldState.error.message}</p>}
                 </div>
               )}
             />
           </div>
 
-          <Controller
-            control={control}
-            name="sexo"
-            rules={{ required: "Campo obligatorio." }}
-            render={({ field, fieldState }) => (
-              <div className="grid gap-1.5">
-                <Label>Sexo *</Label>
-                <Select
-                  value={field.value}
-                  onValueChange={(v) => {
-                    field.onChange(v);
-                    // Reset cargo when sexo changes — a different sexo means different label set
-                    setValue("cargo_ejecutivo", null);
-                  }}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Seleccionar sexo…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="M">Masculino</SelectItem>
-                    <SelectItem value="F">Femenino</SelectItem>
-                  </SelectContent>
-                </Select>
-                {fieldState.error && (
-                  <p className="text-sm text-destructive">
-                    {fieldState.error.message}
-                  </p>
-                )}
-              </div>
-            )}
-          />
-
           {/* ── Designación ── */}
           <SectionHeader label="Designación" />
 
-          <Controller
-            control={control}
-            name="organo_directorio"
-            rules={{ required: "Campo obligatorio." }}
-            render={({ field, fieldState }) => (
-              <div className="grid gap-1.5">
-                <Label>Órgano del directorio *</Label>
-                <EntityCombobox
-                  endpoint="organ-directories"
-                  params={
-                    gobRegId
-                      ? { gobierno_regional: String(gobRegId) }
-                      : undefined
-                  }
-                  value={field.value}
-                  onChange={field.onChange}
-                />
-                {fieldState.error && (
-                  <p className="text-sm text-destructive">
-                    {fieldState.error.message}
-                  </p>
-                )}
-              </div>
-            )}
-          />
+          {/* Órgano | Cargo — 2 cols; cargo bloqueado hasta elegir sexo */}
+          <div className="grid grid-cols-2 gap-3">
+            <Controller
+              control={control}
+              name="organo_directorio"
+              rules={{ required: "Campo obligatorio." }}
+              render={({ field, fieldState }) => (
+                <div className="grid gap-1">
+                  <Label>Órgano del directorio *</Label>
+                  <EntityCombobox
+                    endpoint="organ-directories"
+                    params={gobRegId ? { gobierno_regional: String(gobRegId) } : undefined}
+                    value={field.value}
+                    onChange={(id) => {
+                      if (id !== field.value) setValue("cargo_ejecutivo", null);
+                      field.onChange(id);
+                    }}
+                  />
+                  {fieldState.error && <p className="text-xs text-destructive">{fieldState.error.message}</p>}
+                </div>
+              )}
+            />
+            <Controller
+              control={control}
+              name="cargo_ejecutivo"
+              rules={{ required: "Campo obligatorio." }}
+              render={({ field, fieldState }) => (
+                <div className="grid gap-1">
+                  <Label>
+                    Cargo ejecutivo *{" "}
+                    {(!sexo || !orgDirId) && (
+                      <span className="text-xs text-amber-600 font-normal">
+                        — elige {!sexo ? "sexo" : "órgano"} primero
+                      </span>
+                    )}
+                  </Label>
+                  {/* key includes sexo+organoId: remounts when either changes so toLabel/params refresh */}
+                  <EntityCombobox
+                    key={`${sexo || "none"}-${organoId ?? "none"}`}
+                    endpoint="executive-positions"
+                    params={organoId ? { organo: String(organoId) } : undefined}
+                    value={field.value}
+                    onChange={field.onChange}
+                    toLabel={cargoToLabel}
+                    disabled={!sexo || !orgDirId}
+                    placeholder={
+                      !sexo
+                        ? "Elige sexo primero…"
+                        : !orgDirId
+                          ? "Elige órgano primero…"
+                          : "Buscar cargo…"
+                    }
+                  />
+                  {fieldState.error && <p className="text-xs text-destructive">{fieldState.error.message}</p>}
+                </div>
+              )}
+            />
+          </div>
 
-          <Controller
-            control={control}
-            name="cargo_ejecutivo"
-            rules={{ required: "Campo obligatorio." }}
-            render={({ field, fieldState }) => (
-              <div className="grid gap-1.5">
-                <Label>Cargo ejecutivo *</Label>
-                {!sexo && (
-                  <p className="text-xs text-amber-600">
-                    Selecciona primero el sexo para habilitar este campo.
-                  </p>
-                )}
-                <EntityCombobox
-                  endpoint="executive-positions"
-                  value={field.value}
-                  onChange={field.onChange}
-                  toLabel={cargoToLabel}
-                  disabled={!sexo}
-                  placeholder={
-                    sexo ? "Buscar cargo ejecutivo…" : "Sexo no seleccionado…"
-                  }
-                />
-                {fieldState.error && (
-                  <p className="text-sm text-destructive">
-                    {fieldState.error.message}
-                  </p>
-                )}
-              </div>
-            )}
-          />
-
-          <div className="grid grid-cols-2 gap-4">
+          {/* Fecha designación | N° resolución | Fecha facultades — 3 cols */}
+          <div className="grid grid-cols-3 gap-3">
             <Controller
               control={control}
               name="fecha_inicio_designacion"
               rules={{ required: "Campo obligatorio." }}
               render={({ field, fieldState }) => (
-                <div className="grid gap-1.5">
+                <div className="grid gap-1">
                   <Label>Fecha de designación *</Label>
                   <DatePicker value={field.value} onChange={field.onChange} />
-                  {fieldState.error && (
-                    <p className="text-sm text-destructive">
-                      {fieldState.error.message}
-                    </p>
-                  )}
+                  {fieldState.error && <p className="text-xs text-destructive">{fieldState.error.message}</p>}
                 </div>
               )}
             />
@@ -750,29 +756,23 @@ function RepresentativeDialog({
               control={control}
               name="numero_resolucion_designacion"
               render={({ field }) => (
-                <div className="grid gap-1.5">
+                <div className="grid gap-1">
                   <Label>N° resolución</Label>
-                  <Input
-                    value={field.value}
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    autoComplete="off"
-                  />
+                  <Input value={field.value} onChange={field.onChange} onBlur={field.onBlur} autoComplete="off" />
+                </div>
+              )}
+            />
+            <Controller
+              control={control}
+              name="fecha_inicio_facultades"
+              render={({ field }) => (
+                <div className="grid gap-1">
+                  <Label>Fecha inicio de facultades</Label>
+                  <DatePicker value={field.value} onChange={field.onChange} />
                 </div>
               )}
             />
           </div>
-
-          <Controller
-            control={control}
-            name="fecha_inicio_facultades"
-            render={({ field }) => (
-              <div className="grid gap-1.5">
-                <Label>Fecha de inicio de facultades</Label>
-                <DatePicker value={field.value} onChange={field.onChange} />
-              </div>
-            )}
-          />
 
           {/* ── Estado ── */}
           <SectionHeader label="Estado" />
@@ -783,25 +783,16 @@ function RepresentativeDialog({
             render={({ field }) => (
               <div className="flex items-center justify-between gap-2">
                 <Label>Activo</Label>
-                <Switch
-                  checked={Boolean(field.value)}
-                  onCheckedChange={field.onChange}
-                />
+                <Switch checked={Boolean(field.value)} onCheckedChange={field.onChange} />
               </div>
             )}
           />
 
           {/* Actions */}
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancelar
-            </Button>
+          <div className="flex justify-end gap-2 pt-1">
+            <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
             <Button type="submit" disabled={saveMutation.isPending}>
-              {saveMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "Guardar"
-              )}
+              {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar"}
             </Button>
           </div>
         </form>

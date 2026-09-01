@@ -151,7 +151,7 @@ export const CATALOG_CONFIGS: Record<string, ResourceConfig> = {
     writeRoles: ["Administrador RENADS"],
     searchPlaceholder: "Buscar por nombre del cargo…",
     columns: [
-      { key: "organo", header: "Categoría", render: (r: WithId) => String(r.organo_detalle ?? "—") },
+      { key: "organo", header: "Categoría", render: (r: WithId) => detalleNombre(r.organo_detalle) },
       { key: "nombre_masculino", header: "Nombre (masculino)" },
       { key: "nombre_femenino", header: "Nombre (femenino)" },
       { key: "activo", header: "Activo", render: (r: WithId) => siNo(r.activo) },
