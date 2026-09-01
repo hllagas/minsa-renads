@@ -422,19 +422,16 @@ export default function UniversityCareersPage() {
                       <th className="text-left font-medium text-muted-foreground px-4 py-3 w-10">
                         {/* Select-all toggle */}
                         <Tooltip>
-                          <TooltipTrigger >
-                            <button
-                              type="button"
-                              onClick={handleSelectAll}
-                              className="flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-                              aria-label={allSelectableChecked ? "Deseleccionar todas" : "Seleccionar todas las disponibles"}
-                            >
-                              {allSelectableChecked ? (
-                                <CheckSquare className="h-4 w-4" />
-                              ) : (
-                                <Square className="h-4 w-4" />
-                              )}
-                            </button>
+                          <TooltipTrigger
+                            onClick={handleSelectAll}
+                            className="flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                            aria-label={allSelectableChecked ? "Deseleccionar todas" : "Seleccionar todas las disponibles"}
+                          >
+                            {allSelectableChecked ? (
+                              <CheckSquare className="h-4 w-4" />
+                            ) : (
+                              <Square className="h-4 w-4" />
+                            )}
                           </TooltipTrigger>
                           <TooltipContent side="right">
                             {allSelectableChecked ? "Deseleccionar todas" : "Seleccionar todas las disponibles"}
