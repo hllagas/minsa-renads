@@ -328,6 +328,37 @@ class OrganDirectory(models.Model):
         return self.nombre
 
 
+class OrganDirectoryPosition(models.Model):
+    """Cargo ejecutivo habilitado para un órgano del directorio (puente N:M).
+
+    Declara **qué cargos** (`cargo_ejecutivo`) tiene definidos una entidad concreta
+    (`organo_directorio`), independientemente de la persona designada. La persona la
+    aporta luego `organo_representante` (que cambia con el tiempo); el par
+    órgano-directorio ↔ cargo se mantiene estable aquí. Coherencia: el órgano
+    (categoría) del cargo debe coincidir con la categoría del órgano del directorio.
+    """
+
+    organo_directorio = models.ForeignKey(
+        OrganDirectory, on_delete=models.PROTECT, db_column="organo_directorio_id",
+        related_name="cargos_habilitados", help_text="Órgano del directorio",
+    )
+    cargo_ejecutivo = models.ForeignKey(
+        ExecutivePosition, on_delete=models.PROTECT, db_column="cargo_ejecutivo_id",
+        related_name="organos_directorio", help_text="Cargo ejecutivo habilitado",
+    )
+    activo = models.BooleanField("activo", default=True, help_text="Indica si está activo")
+
+    class Meta:
+        db_table = "organo_directorio_cargo"
+        verbose_name = "cargo del órgano del directorio"
+        verbose_name_plural = "cargos del órgano del directorio"
+        unique_together = (("organo_directorio", "cargo_ejecutivo"),)
+        ordering = ["organo_directorio", "cargo_ejecutivo"]
+
+    def __str__(self):
+        return f"{self.organo_directorio_id} — {self.cargo_ejecutivo_id}"
+
+
 class ExecutingUnit(models.Model):
     codigo = models.CharField("código", max_length=50, blank=True, help_text="Código presupuestal")
     nombre = models.CharField("nombre", max_length=255, help_text="Nombre")

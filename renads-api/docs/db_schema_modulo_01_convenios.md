@@ -137,6 +137,21 @@ Tabla **standalone** que cataloga órganos del MINSA, universidades, gobiernos r
 
 Endpoint: `/api/v1/organ-directories/` (CRUD, escritura solo `Administrador RENADS`; filtros `categoria`, `gobierno_regional`, `activo`; búsqueda `nombre`, `siglas`; **sin logo**; lectura expone `gobierno_regional_detalle`). Los labels de `categoria` replican los nombres de `organo` (coherencia cargo↔categoría en `OrganRepresentativeSerializer`).
 
+### `organo_directorio_cargo` (puente N:M órgano del directorio ↔ cargo ejecutivo)
+
+Tabla puente que declara **qué cargos** (`cargo_ejecutivo`, catálogo por categoría) tiene definidos una entidad concreta (`organo_directorio`), independientemente de la persona designada. La persona la aporta `organo_representante` (cambiante, con histórico); el par órgano-directorio ↔ cargo se mantiene estable aquí. Resuelve la relación real N:M entre ambas tablas (grano distinto: cargo = catálogo por categoría; directorio = entidad concreta).
+
+| Columna | Tipo | Null | Descripción |
+|---------|------|------|-------------|
+| `id` | PK | No | |
+| `organo_directorio_id` | FK → `organo_directorio` (PROTECT, `related_name='cargos_habilitados'`) | No | Órgano del directorio |
+| `cargo_ejecutivo_id` | FK → `cargo_ejecutivo` (PROTECT, `related_name='organos_directorio'`) | No | Cargo ejecutivo habilitado |
+| `activo` | bool | No | |
+
+`unique_together = (organo_directorio, cargo_ejecutivo)`. **Coherencia cargo↔categoría** (igual criterio que el representante): `cargo.organo.nombre == organo_directorio.get_categoria_display()`.
+
+Endpoint: `/api/v1/organ-directory-positions/` (CRUD, escritura solo `Administrador RENADS`, con auditoría; filtros `organo_directorio`, `cargo_ejecutivo`, `activo`; lectura expone `organo_directorio_detalle` (id/nombre/categoría) y `cargo_ejecutivo_detalle` (id/nombre masculino/femenino)). El par duplicado se rechaza con 400 (`UniqueTogetherValidator`); el cargo de otra categoría con 400 (coherencia).
+
 ### `unidad_ejecutora`
 
 Unidad ejecutora asociada a un **gobierno regional**.

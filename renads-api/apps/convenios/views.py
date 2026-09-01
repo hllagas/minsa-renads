@@ -50,6 +50,7 @@ from apps.convenios.serializers import (
     DocumentUploadSerializer,
     DocumentWriteSerializer,
     LegalOpinionSerializer,
+    OrganDirectoryPositionSerializer,
     OrganRepresentativeSerializer,
     PublicationSerializer,
     FacultyCareersSyncSerializer,
@@ -702,6 +703,23 @@ class OrganRepresentativeViewSet(AnnexAttachmentMixin, AuditedModelViewSet):
         serializer.instance = services.registrar_organo_representante(
             datos=serializer.validated_data, usuario=self.request.user
         )
+
+
+class OrganDirectoryPositionViewSet(AuditedModelViewSet):
+    """CRUD de cargos habilitados por órgano del directorio (puente N:M).
+
+    Relaciona una entidad concreta del directorio con los cargos del catálogo que
+    tiene definidos (independiente de la persona designada). Escritura solo
+    Administrador RENADS, con auditoría. Valida coherencia cargo↔categoría.
+    """
+
+    queryset = m.OrganDirectoryPosition.objects.select_related(
+        "organo_directorio", "cargo_ejecutivo", "cargo_ejecutivo__organo"
+    )
+    serializer_class = OrganDirectoryPositionSerializer
+    permission_classes = [IsAuthenticated, IsAdminRoleOrReadOnly]
+    filterset_fields = ["organo_directorio", "cargo_ejecutivo", "activo"]
+    ordering = ["id"]
 
 
 class OrganRepresentativeHistoryViewSet(viewsets.ReadOnlyModelViewSet):
