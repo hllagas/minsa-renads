@@ -356,7 +356,7 @@ export const CATALOGO_ENTITY_MENU: { slug: string; title: string }[] = [
   { slug: "universities", title: "Universidades" },
   { slug: "faculties", title: "Facultades" },
   { slug: "professional-careers", title: "Carreras Profesionales" },
-  { slug: "university-careers", title: "Carreras por Universidad" },
+  { slug: "university-careers", title: "Carreras por Facultad y Universidad" },
   { slug: "university-campuses", title: "Sedes Universitarias" },
   { slug: "ipress", title: "Establecimientos de Salud" },
   { slug: "regional-governments", title: "Gobiernos Regionales" },
