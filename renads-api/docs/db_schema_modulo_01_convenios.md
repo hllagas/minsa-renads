@@ -237,11 +237,12 @@ Los representantes de CONAPRES y de los demás órganos se registran en `organo_
 | `id` | PK | No | |
 | `universidad_id` | FK → `universidad` | No | Universidad |
 | `nombre` | varchar(255) | No | Nombre de la facultad |
+| `direccion` | varchar(255) | No | Dirección de la facultad (`blank`, cadena vacía por defecto) |
 | `ubigeo_id` | FK → `ubigeo` (PROTECT) | Sí | Ubicación geográfica (UBIGEO) |
 | `referencia_logo` | varchar(500) | Sí | Logo institucional (`ImageField`; guarda el path del objeto en el repositorio de medios). Nullable. |
 | `activo` | bool | No | |
 
-Endpoint: `/api/v1/faculties/` (CRUD con logo, escritura solo `Administrador RENADS`; filtros `universidad`, `ubigeo`, `activo`; búsqueda `nombre`; lectura expone `ubigeo_detalle` y `referencia_logo` como URL). Acciones `faculties/{id}/upload-logo` y `faculties/{id}/logo-url`.
+Endpoint: `/api/v1/faculties/` (CRUD con logo, escritura solo `Administrador RENADS`; filtros `universidad`, `ubigeo`, `activo`; búsqueda `nombre`, `direccion`; lectura expone `ubigeo_detalle` y `referencia_logo` como URL). Acciones `faculties/{id}/upload-logo` y `faculties/{id}/logo-url`.
 
 ### `carrera_profesional`
 
@@ -254,19 +255,21 @@ Endpoint: `/api/v1/faculties/` (CRUD con logo, escritura solo `Administrador REN
 
 ### `universidad_carrera`
 
-Tabla puente universidad ↔ carrera profesional (carreras que dicta cada universidad), asociada a la facultad que la imparte. `unique_together = (universidad, carrera_profesional)` (la unicidad NO incluye `facultad`). Regla de coherencia: `facultad.universidad_id == universidad_id`.
+Tabla puente universidad ↔ carrera profesional (carreras que dicta cada universidad), asociada a la facultad que la imparte. `unique_together = (universidad, carrera_profesional)` (la unicidad NO incluye `facultad`). Regla de coherencia (RN-FC-02): `facultad.universidad_id == universidad_id`.
+
+**RN-FC-04 (carrera única por universidad):** una carrera profesional pertenece a **una sola facultad** dentro de la misma universidad. La `unique_together` garantiza una única fila `(universidad, carrera_profesional)`; una vez asignada y **activa** en una facultad, la carrera **no puede ser elegida por otra facultad** de esa universidad (la UI la muestra como no disponible). Si la carrera se da de baja (`activo=False`) de su facultad, queda libre y otra facultad puede tomarla.
 
 | Columna | Tipo | Null | Descripción |
 |---------|------|------|-------------|
 | `id` | PK | No | |
 | `universidad_id` | FK → `universidad` (PROTECT) | No | Universidad |
 | `carrera_profesional_id` | FK → `carrera_profesional` (PROTECT) | No | Carrera profesional |
-| `facultad_id` | FK → `facultad` (PROTECT) | Sí | Facultad de la universidad que imparte la carrera (opcional en BD por filas históricas; requerida vía API) |
+| `facultad_id` | FK → `facultad` (PROTECT) | No | Facultad de la universidad que imparte la carrera (obligatoria en BD y API desde `0032`) |
 | `activo` | bool | No | |
 
-Endpoint: `/api/v1/university-careers/` (CRUD, escritura solo `Administrador RENADS`; filtros `universidad`, `carrera_profesional`, `facultad`, `activo`; lectura expone `universidad_detalle`, `carrera_profesional_detalle` y `facultad_detalle`).
+Endpoint: `/api/v1/university-careers/` (CRUD, escritura solo `Administrador RENADS`; filtros `universidad`, `carrera_profesional`, `facultad`, `activo`; lectura expone `universidad_detalle`, `carrera_profesional_detalle` y `facultad_detalle`). La creación de una carrera ya asignada a otra facultad de la misma universidad se rechaza con 400 (RN-FC-04, `UniqueTogetherValidator`).
 
-Endpoint en lote: `POST /api/v1/faculties/{id}/careers` (body `{carreras: [ids]}`) — sincronización idempotente (alta/reactivación + baja por `activo`) de las carreras **por facultad**; deriva `universidad` de la facultad; escritura solo `Administrador RENADS`; delega en `services.sincronizar_carreras_facultad`.
+Endpoint en lote: `POST /api/v1/faculties/{id}/careers` (body `{carreras: [ids]}`) — sincronización idempotente (alta/reactivación + baja por `activo`) de las carreras **por facultad**; deriva `universidad` de la facultad; escritura solo `Administrador RENADS`; delega en `services.sincronizar_carreras_facultad`. Intentar asignar una carrera **activa** en otra facultad de la universidad devuelve 400 (RN-FC-04); si estaba libre (dada de baja), esta facultad la toma.
 
 ### `local_universidad`
 

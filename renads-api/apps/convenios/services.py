@@ -702,7 +702,9 @@ def sincronizar_carreras_facultad(*, facultad, carreras_ids, usuario) -> list[Un
     if facultad.universidad_id != universidad.id:
         raise ValidationError("La facultad no pertenece a la universidad indicada.")
 
-    # Alta / reactivación / reasignación de facultad de las carreras enviadas.
+    # Alta / reactivación de las carreras enviadas (RN-FC-04: una carrera activa
+    # de la universidad pertenece a UNA sola facultad y no puede ser tomada por
+    # otra facultad mientras siga activa).
     for carrera_id in ids_solicitados:
         fila = UniversityCareer.objects.filter(
             universidad=universidad, carrera_profesional_id=carrera_id
@@ -715,13 +717,24 @@ def sincronizar_carreras_facultad(*, facultad, carreras_ids, usuario) -> list[Un
                 activo=True,
             )
             registrar_auditoria(usuario, "CREAR", fila)
-        else:
-            cambio = fila.facultad_id != facultad.id or not fila.activo
-            if cambio:
-                fila.facultad = facultad
+        elif fila.facultad_id == facultad.id:
+            # Misma facultad: solo reactivar si estaba dada de baja.
+            if not fila.activo:
                 fila.activo = True
-                fila.save(update_fields=["facultad", "activo"])
+                fila.save(update_fields=["activo"])
                 registrar_auditoria(usuario, "ACTUALIZAR", fila)
+        elif fila.activo:
+            # Ya asignada y activa en otra facultad de la misma universidad → bloquear.
+            raise ValidationError(
+                f"La carrera profesional {carrera_id} ya está asignada a otra "
+                "facultad de esta universidad; no puede asignarse a esta facultad."
+            )
+        else:
+            # Estaba libre (dada de baja en otra facultad): esta facultad la toma.
+            fila.facultad = facultad
+            fila.activo = True
+            fila.save(update_fields=["facultad", "activo"])
+            registrar_auditoria(usuario, "ACTUALIZAR", fila)
 
     # Baja (por facultad) de las carreras que ya no están en la lista enviada.
     a_dar_de_baja = UniversityCareer.objects.filter(

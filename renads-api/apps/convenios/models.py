@@ -593,6 +593,9 @@ class Faculty(models.Model):
         related_name="facultades", help_text="Universidad",
     )
     nombre = models.CharField("nombre", max_length=255, help_text="Nombre de la facultad")
+    direccion = models.CharField(
+        "dirección", max_length=255, blank=True, help_text="Dirección de la facultad",
+    )
     ubigeo = models.ForeignKey(
         Ubigeo, on_delete=models.PROTECT, db_column="ubigeo_id", null=True, blank=True,
         related_name="+", help_text="Ubicación geográfica (UBIGEO)",
@@ -640,7 +643,7 @@ class UniversityCareer(models.Model):
     )
     facultad = models.ForeignKey(
         Faculty, on_delete=models.PROTECT, db_column="facultad_id",
-        related_name="carreras_facultad", null=True, blank=True,
+        related_name="carreras_facultad",
         help_text="Facultad de la universidad a la que pertenece la carrera",
     )
     activo = models.BooleanField("activo", default=True)

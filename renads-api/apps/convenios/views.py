@@ -507,7 +507,7 @@ class FacultyViewSet(
     _entity_viewset(
         m.Faculty,
         filterset_fields=["universidad", "ubigeo", "activo"],
-        search_fields=["nombre"],
+        search_fields=["nombre", "direccion"],
         logo=True,
         detalles={"ubigeo": _detalle_ubigeo},
     ),

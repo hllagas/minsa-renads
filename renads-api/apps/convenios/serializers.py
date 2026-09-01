@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
 
 from apps.convenios.models import (
     AuditLog,
@@ -592,6 +593,18 @@ class UniversityCareerSerializer(serializers.ModelSerializer):
     class Meta:
         model = UniversityCareer
         fields = "__all__"
+        validators = [
+            # RN-FC-04: una carrera profesional pertenece a UNA sola facultad por
+            # universidad; una vez asignada no puede elegirse desde otra facultad.
+            UniqueTogetherValidator(
+                queryset=UniversityCareer.objects.all(),
+                fields=["universidad", "carrera_profesional"],
+                message=(
+                    "La carrera profesional ya está asignada a una facultad de esta "
+                    "universidad; no puede asignarse a otra facultad."
+                ),
+            ),
+        ]
 
     def get_universidad_detalle(self, obj):
         return _detalle_fk(obj.universidad, "nombre")
