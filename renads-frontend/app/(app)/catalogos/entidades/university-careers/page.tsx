@@ -11,6 +11,7 @@ import {
   BookOpen,
   Lock,
   Save,
+  Check,
   CheckSquare,
   Square,
 } from "lucide-react";
@@ -19,7 +20,6 @@ import { api, type Paginated } from "@/lib/api/client";
 import type { WithId } from "@/lib/api/query";
 import { extractApiError } from "@/lib/api/errors";
 import { EntityCombobox } from "@/components/form/entity-combobox";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -497,14 +497,20 @@ export default function UniversityCareersPage() {
                                   </TooltipContent>
                                 </Tooltip>
                               ) : (
-                                <Checkbox
-                                  checked={isChecked}
-                                  onCheckedChange={(checked) =>
-                                    handleToggle(career.id, !!checked)
-                                  }
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggle(career.id, !isChecked)}
                                   aria-label={`${isChecked ? "Quitar" : "Asignar"} ${career.nombre}`}
-                                  className="cursor-pointer"
-                                />
+                                  className={[
+                                    "h-4 w-4 shrink-0 rounded border-2 flex items-center justify-center transition-colors",
+                                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1",
+                                    isChecked
+                                      ? "bg-primary border-primary text-primary-foreground"
+                                      : "border-input hover:border-primary/60",
+                                  ].join(" ")}
+                                >
+                                  {isChecked && <Check className="h-3 w-3" />}
+                                </button>
                               )}
                             </td>
 
