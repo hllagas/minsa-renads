@@ -183,15 +183,17 @@ class Organ(models.Model):
 
 
 class ExecutivePosition(models.Model):
-    """Cargo ejecutivo, discriminado por órgano.
+    """Cargo ejecutivo perteneciente a un órgano directivo concreto.
 
-    No hereda de ``Catalog`` porque su ``nombre_masculino`` es único por
-    ``organo``, no global (ver ``unique_together``).
+    Cada cargo referencia un ``organo_directivo`` (`organo_directorio`) — un órgano
+    directivo tiene varios cargos (1:N). No hereda de ``Catalog`` porque su
+    ``nombre_masculino`` es único por ``organo_directivo``, no global.
     """
 
-    organo = models.ForeignKey(
-        "Organ", on_delete=models.PROTECT, db_column="organo_id", related_name="cargos",
-        verbose_name="órgano", help_text="Categoría del órgano al que pertenece el cargo",
+    organo_directivo = models.ForeignKey(
+        "OrganDirectory", on_delete=models.PROTECT, db_column="organo_directivo_id",
+        related_name="cargos", null=True, blank=True, verbose_name="órgano directivo",
+        help_text="Órgano directivo (del directorio) al que pertenece el cargo",
     )
     nombre_masculino = models.CharField(
         "nombre (masculino)", max_length=255,
@@ -206,8 +208,8 @@ class ExecutivePosition(models.Model):
     class Meta:
         db_table = "cargo_ejecutivo"
         verbose_name = "cargo ejecutivo"
-        unique_together = (("organo", "nombre_masculino"),)
-        ordering = ["organo", "nombre_masculino"]
+        unique_together = (("organo_directivo", "nombre_masculino"),)
+        ordering = ["organo_directivo", "nombre_masculino"]
 
     def __str__(self):
         return self.nombre_masculino
@@ -326,37 +328,6 @@ class OrganDirectory(models.Model):
 
     def __str__(self):
         return self.nombre
-
-
-class OrganDirectoryPosition(models.Model):
-    """Cargo ejecutivo habilitado para un órgano del directorio (puente N:M).
-
-    Declara **qué cargos** (`cargo_ejecutivo`) tiene definidos una entidad concreta
-    (`organo_directorio`), independientemente de la persona designada. La persona la
-    aporta luego `organo_representante` (que cambia con el tiempo); el par
-    órgano-directorio ↔ cargo se mantiene estable aquí. Coherencia: el órgano
-    (categoría) del cargo debe coincidir con la categoría del órgano del directorio.
-    """
-
-    organo_directorio = models.ForeignKey(
-        OrganDirectory, on_delete=models.PROTECT, db_column="organo_directorio_id",
-        related_name="cargos_habilitados", help_text="Órgano del directorio",
-    )
-    cargo_ejecutivo = models.ForeignKey(
-        ExecutivePosition, on_delete=models.PROTECT, db_column="cargo_ejecutivo_id",
-        related_name="organos_directorio", help_text="Cargo ejecutivo habilitado",
-    )
-    activo = models.BooleanField("activo", default=True, help_text="Indica si está activo")
-
-    class Meta:
-        db_table = "organo_directorio_cargo"
-        verbose_name = "cargo del órgano del directorio"
-        verbose_name_plural = "cargos del órgano del directorio"
-        unique_together = (("organo_directorio", "cargo_ejecutivo"),)
-        ordering = ["organo_directorio", "cargo_ejecutivo"]
-
-    def __str__(self):
-        return f"{self.organo_directorio_id} — {self.cargo_ejecutivo_id}"
 
 
 class ExecutingUnit(models.Model):

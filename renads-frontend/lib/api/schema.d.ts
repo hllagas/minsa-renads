@@ -2395,80 +2395,6 @@ export interface paths {
         patch: operations["organ_directories_partial_update"];
         trace?: never;
     };
-    "/api/v1/organ-directory-positions/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description CRUD de cargos habilitados por órgano del directorio (puente N:M).
-         *
-         *     Relaciona una entidad concreta del directorio con los cargos del catálogo que
-         *     tiene definidos (independiente de la persona designada). Escritura solo
-         *     Administrador RENADS, con auditoría. Valida coherencia cargo↔categoría.
-         */
-        get: operations["organ_directory_positions_list"];
-        put?: never;
-        /**
-         * @description CRUD de cargos habilitados por órgano del directorio (puente N:M).
-         *
-         *     Relaciona una entidad concreta del directorio con los cargos del catálogo que
-         *     tiene definidos (independiente de la persona designada). Escritura solo
-         *     Administrador RENADS, con auditoría. Valida coherencia cargo↔categoría.
-         */
-        post: operations["organ_directory_positions_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/organ-directory-positions/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description CRUD de cargos habilitados por órgano del directorio (puente N:M).
-         *
-         *     Relaciona una entidad concreta del directorio con los cargos del catálogo que
-         *     tiene definidos (independiente de la persona designada). Escritura solo
-         *     Administrador RENADS, con auditoría. Valida coherencia cargo↔categoría.
-         */
-        get: operations["organ_directory_positions_retrieve"];
-        /**
-         * @description CRUD de cargos habilitados por órgano del directorio (puente N:M).
-         *
-         *     Relaciona una entidad concreta del directorio con los cargos del catálogo que
-         *     tiene definidos (independiente de la persona designada). Escritura solo
-         *     Administrador RENADS, con auditoría. Valida coherencia cargo↔categoría.
-         */
-        put: operations["organ_directory_positions_update"];
-        post?: never;
-        /**
-         * @description CRUD de cargos habilitados por órgano del directorio (puente N:M).
-         *
-         *     Relaciona una entidad concreta del directorio con los cargos del catálogo que
-         *     tiene definidos (independiente de la persona designada). Escritura solo
-         *     Administrador RENADS, con auditoría. Valida coherencia cargo↔categoría.
-         */
-        delete: operations["organ_directory_positions_destroy"];
-        options?: never;
-        head?: never;
-        /**
-         * @description CRUD de cargos habilitados por órgano del directorio (puente N:M).
-         *
-         *     Relaciona una entidad concreta del directorio con los cargos del catálogo que
-         *     tiene definidos (independiente de la persona designada). Escritura solo
-         *     Administrador RENADS, con auditoría. Valida coherencia cargo↔categoría.
-         */
-        patch: operations["organ_directory_positions_partial_update"];
-        trace?: never;
-    };
     "/api/v1/organ-representative-history/": {
         parameters: {
             query?: never;
@@ -4777,7 +4703,7 @@ export interface components {
         };
         ExecutivePositionAuto: {
             readonly id: number;
-            readonly organo_detalle: string;
+            readonly organo_directivo_detalle: string;
             /**
              * Nombre (masculino)
              * @description Nombre del cargo en masculino
@@ -4791,10 +4717,10 @@ export interface components {
             /** @description Indica si está activo */
             activo?: boolean;
             /**
-             * Órgano
-             * @description Categoría del órgano al que pertenece el cargo
+             * Órgano directivo
+             * @description Órgano directivo (del directorio) al que pertenece el cargo
              */
-            organo: number;
+            organo_directivo?: number | null;
         };
         FacultyAuto: {
             readonly id: number;
@@ -5125,24 +5051,6 @@ export interface components {
             activo?: boolean;
             /** @description GORE (solo órganos regionales) */
             gobierno_regional?: number | null;
-        };
-        /**
-         * @description Cargo ejecutivo habilitado para un órgano del directorio (puente N:M).
-         *
-         *     Relaciona una entidad concreta (`organo_directorio`) con un cargo del catálogo
-         *     (`cargo_ejecutivo`). Valida coherencia cargo↔categoría (mismo criterio que el
-         *     representante) y unicidad del par. Los `*_detalle` pueblan los listados del front.
-         */
-        OrganDirectoryPosition: {
-            readonly id: number;
-            readonly organo_directorio_detalle: string;
-            readonly cargo_ejecutivo_detalle: string;
-            /** @description Indica si está activo */
-            activo?: boolean;
-            /** @description Órgano del directorio */
-            organo_directorio: number;
-            /** @description Cargo ejecutivo habilitado */
-            cargo_ejecutivo: number;
         };
         /**
          * @description Representante de un órgano del directorio (FK directo).
@@ -5738,21 +5646,6 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["OrganDirectoryAuto"][];
-        };
-        PaginatedOrganDirectoryPositionList: {
-            /** @example 123 */
-            count: number;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=4
-             */
-            next?: string | null;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=2
-             */
-            previous?: string | null;
-            results: components["schemas"]["OrganDirectoryPosition"][];
         };
         PaginatedOrganRepresentativeHistoryAutoList: {
             /** @example 123 */
@@ -6476,7 +6369,7 @@ export interface components {
         };
         PatchedExecutivePositionAuto: {
             readonly id?: number;
-            readonly organo_detalle?: string;
+            readonly organo_directivo_detalle?: string;
             /**
              * Nombre (masculino)
              * @description Nombre del cargo en masculino
@@ -6490,10 +6383,10 @@ export interface components {
             /** @description Indica si está activo */
             activo?: boolean;
             /**
-             * Órgano
-             * @description Categoría del órgano al que pertenece el cargo
+             * Órgano directivo
+             * @description Órgano directivo (del directorio) al que pertenece el cargo
              */
-            organo?: number;
+            organo_directivo?: number | null;
         };
         PatchedFacultyAuto: {
             readonly id?: number;
@@ -6670,24 +6563,6 @@ export interface components {
             activo?: boolean;
             /** @description GORE (solo órganos regionales) */
             gobierno_regional?: number | null;
-        };
-        /**
-         * @description Cargo ejecutivo habilitado para un órgano del directorio (puente N:M).
-         *
-         *     Relaciona una entidad concreta (`organo_directorio`) con un cargo del catálogo
-         *     (`cargo_ejecutivo`). Valida coherencia cargo↔categoría (mismo criterio que el
-         *     representante) y unicidad del par. Los `*_detalle` pueblan los listados del front.
-         */
-        PatchedOrganDirectoryPosition: {
-            readonly id?: number;
-            readonly organo_directorio_detalle?: string;
-            readonly cargo_ejecutivo_detalle?: string;
-            /** @description Indica si está activo */
-            activo?: boolean;
-            /** @description Órgano del directorio */
-            organo_directorio?: number;
-            /** @description Cargo ejecutivo habilitado */
-            cargo_ejecutivo?: number;
         };
         /**
          * @description Representante de un órgano del directorio (FK directo).
@@ -10779,7 +10654,7 @@ export interface operations {
                 activo?: boolean;
                 /** @description Qué campo usar para ordenar los resultados. */
                 ordering?: string;
-                organo?: number;
+                organo_directivo?: number;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
                 page?: number;
                 /** @description Un término de búsqueda. */
@@ -12643,159 +12518,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrganDirectoryAuto"];
-                };
-            };
-        };
-    };
-    organ_directory_positions_list: {
-        parameters: {
-            query?: {
-                activo?: boolean;
-                cargo_ejecutivo?: number;
-                /** @description Qué campo usar para ordenar los resultados. */
-                ordering?: string;
-                organo_directorio?: number;
-                /** @description Un número de página dentro del conjunto de resultados paginado. */
-                page?: number;
-                /** @description Un término de búsqueda. */
-                search?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedOrganDirectoryPositionList"];
-                };
-            };
-        };
-    };
-    organ_directory_positions_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["OrganDirectoryPosition"];
-                "application/x-www-form-urlencoded": components["schemas"]["OrganDirectoryPosition"];
-                "multipart/form-data": components["schemas"]["OrganDirectoryPosition"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OrganDirectoryPosition"];
-                };
-            };
-        };
-    };
-    organ_directory_positions_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este cargo del órgano del directorio. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OrganDirectoryPosition"];
-                };
-            };
-        };
-    };
-    organ_directory_positions_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este cargo del órgano del directorio. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["OrganDirectoryPosition"];
-                "application/x-www-form-urlencoded": components["schemas"]["OrganDirectoryPosition"];
-                "multipart/form-data": components["schemas"]["OrganDirectoryPosition"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OrganDirectoryPosition"];
-                };
-            };
-        };
-    };
-    organ_directory_positions_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este cargo del órgano del directorio. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    organ_directory_positions_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este cargo del órgano del directorio. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedOrganDirectoryPosition"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedOrganDirectoryPosition"];
-                "multipart/form-data": components["schemas"]["PatchedOrganDirectoryPosition"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OrganDirectoryPosition"];
                 };
             };
         };

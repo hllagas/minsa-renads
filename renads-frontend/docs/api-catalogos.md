@@ -45,7 +45,7 @@ Campos del modelo base `Catalog`: `codigo` (único, obligatorio), `nombre` (obli
 |----------|-------|---------------|
 | `authorization-types` | Tipo de autorización | — |
 | `academic-levels` | Nivel académico de carrera | — |
-| `executive-positions` | Cargo ejecutivo de órgano. FK `organo` → `organs`. Campos: `organo`, `nombre_masculino` (req), `nombre_femenino` (opt), `activo` | `organo` |
+| `executive-positions` | Cargo ejecutivo. **Refactor 2026-09-01:** quitó FK `organo` → `Organ`; ahora FK `organo_directivo` → `OrganDirectory` (órgano concreto). `unique_together (organo_directivo, nombre_masculino)`. Campos: `organo_directivo`, `nombre_masculino` (req), `nombre_femenino` (opt), `activo`. Detalle: `organo_directivo_detalle: {id, nombre, categoria}`. | `organo_directivo`, `activo` |
 | `categories` | Categoría de convenio | — |
 | `classification-types` | Clasificación de convenio | — |
 | `health-geographic-scopes` | Ámbito geográfico sanitario (cúspide: ámbito→red→microrred) | — |
@@ -90,7 +90,7 @@ Añadidos a `regional-governments`: `sigla`, `ubigeo`, `numero_ruc`, `direccion`
 
 | Endpoint | Filtros (`filterset_fields`) | Search | Detalles |
 |----------|------------------------------|--------|----------|
-| `organs` | — | — | Solo lectura. 4 categorías canónicas. |
+| `organs` | — | — | Solo lectura. **5** categorías canónicas (`ORGANO_MINSA`, `UNIVERSIDAD`, `GOBIERNO_REGIONAL`, `MINSA_DIRIS`, `UNIDAD_EJECUTORA`). |
 | `organ-directories` | `categoria`, `gobierno_regional`, `activo` | `nombre`, `siglas` | `gobierno_regional_detalle` (string) |
 | `executing-units` | `tipo_organo`, `gobierno_regional`, `activo` | `nombre`, `codigo` | `tipo_organo_detalle`, `gobierno_regional_detalle`, `ubigeo_detalle` |
 | `regional-governments` | `region`, `ubigeo`, `activo` | `nombre` | `ubigeo_detalle` (string) |
@@ -167,42 +167,7 @@ Usar `organ-directories` con filtro `?categoria=<VALOR>` según corresponda.
 
 ---
 
-## 3. Cargos por órgano del directorio — `organ-directory-positions` (puente N:M)
-
-Tabla puente `organo_directorio_cargo` que declara **qué cargos** tiene habilitados cada entidad
-del directorio, independientemente de la persona designada (que la aporta `organ-representatives`).
-
-Escritura solo **`Administrador RENADS`** (con auditoría).
-
-**Filtros:** `organo_directorio`, `cargo_ejecutivo`, `activo`.
-
-### OrganDirectoryPosition — lectura
-
-```
-id, organo_directorio (FK int), cargo_ejecutivo (FK int), activo
-organo_directorio_detalle: { id, nombre, categoria (display label) }
-cargo_ejecutivo_detalle:   { id, nombre_masculino, nombre_femenino }
-```
-
-### OrganDirectoryPosition — escritura
-
-```
-organo_directorio (FK int, req), cargo_ejecutivo (FK int, req), activo (bool, default true)
-```
-
-> **Validaciones backend:**
-> - **Coherencia cargo↔categoría:** `cargo.organo.nombre == organo_directorio.get_categoria_display()`.
->   Los `organs.nombre` coinciden exactamente con los display labels de `ORGAN_DIRECTORY_CATEGORY`:
->   `"Órgano del MINSA"` / `"Universidad"` / `"Gobierno Regional"` / `"MINSA DIRIS"` / `"Unidad Ejecutora"`.
-> - **Unicidad:** `unique_together (organo_directorio, cargo_ejecutivo)` — error 400 si el par existe.
->
-> **Uso en el front:** el form de `organ-representatives` consulta
-> `?organo_directorio=<id>&activo=true` para obtener los cargos válidos del órgano seleccionado
-> antes de desplegar el selector de cargo ejecutivo.
-
----
-
-## 4. Representantes de órgano — `organ-representatives`
+## 3. Representantes de órgano — `organ-representatives`
 
 CRUD directo (representante con FK directa a `organo_directorio`). **Reemplaza** al antiguo
 `representatives` (polimórfico) eliminado en el refactor 2026-08-29.
@@ -237,7 +202,7 @@ Campos adicionales: `fecha_baja`, `motivo`, `creado_en`.
 
 ---
 
-## 5. Documentos — `documents` (gestión documental polimórfica + versionado)
+## 4. Documentos — `documents` (gestión documental polimórfica + versionado)
 
 Adjunta documentos a **cualquier entidad** (convenio, actividad, …) vía `tipo_contenido` + `id_objeto`,
 con versionado. Almacenamiento **por referencia externa (stub)** — no sube binarios; guarda una
@@ -267,7 +232,7 @@ tipo_contenido, id_objeto, tipo_documento, nombre_archivo, referencia_externa
 
 ---
 
-## 6. Bitácora de auditoría — `audit-logs` (solo lectura)
+## 5. Bitácora de auditoría — `audit-logs` (solo lectura)
 
 Endpoint **read-only** (`ReadOnlyModelViewSet`) para consultar la bitácora. Acceso restringido a
 **`Administrador RENADS` / Auditor** (`IsAdminRole`). Ordenado por `creado_en` desc.

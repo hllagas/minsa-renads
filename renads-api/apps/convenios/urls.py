@@ -24,11 +24,6 @@ router.register(
     "organ-representatives", views.OrganRepresentativeViewSet, basename="organ-representative"
 )
 router.register(
-    "organ-directory-positions",
-    views.OrganDirectoryPositionViewSet,
-    basename="organ-directory-position",
-)
-router.register(
     "organ-representative-history",
     views.OrganRepresentativeHistoryViewSet,
     basename="organ-representative-history",

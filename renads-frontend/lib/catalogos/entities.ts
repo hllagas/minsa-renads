@@ -266,81 +266,6 @@ const SANITARY_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
 };
 
 /**
- * Puente N:M órgano del directorio ↔ cargo ejecutivo.
- * Declara qué cargos tiene habilitados cada entidad del directorio.
- * Escritura solo `Administrador RENADS`; el backend valida coherencia cargo↔categoría.
- */
-const DIRECTORY_POSITION_CONFIGS: Record<string, ResourceConfig> = {
-  "organ-directory-positions": {
-    endpoint: "organ-directory-positions",
-    title: "Cargos por Órgano del Directorio",
-    singular: "cargo habilitado",
-    createPrefix: "Habilitar",
-    description:
-      "Declara qué cargos ejecutivos tiene definidos cada órgano del directorio (tabla puente N:M). El backend valida que el cargo corresponda a la categoría del órgano.",
-    searchPlaceholder: "Buscar…",
-    columns: [
-      {
-        key: "organo_directorio_detalle",
-        header: "Órgano del directorio",
-        render: (r) => {
-          const d = r.organo_directorio_detalle as
-            | { nombre?: string; categoria?: string }
-            | undefined;
-          if (!d) return "—";
-          return d.categoria ? `${d.nombre ?? "—"} (${d.categoria})` : (d.nombre ?? "—");
-        },
-      },
-      {
-        key: "cargo_masculino",
-        header: "Cargo (masculino)",
-        render: (r) => {
-          const d = r.cargo_ejecutivo_detalle as { nombre_masculino?: string } | undefined;
-          return d?.nombre_masculino ?? "—";
-        },
-      },
-      {
-        key: "cargo_femenino",
-        header: "Cargo (femenino)",
-        render: (r) => {
-          const d = r.cargo_ejecutivo_detalle as { nombre_femenino?: string | null } | undefined;
-          return d?.nombre_femenino ?? "—";
-        },
-      },
-      { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
-    ],
-    filters: [
-      {
-        name: "organo_directorio",
-        label: "Órgano del directorio",
-        type: "select",
-        optionsEndpoint: "organ-directories",
-      },
-      activoFilter,
-    ],
-    fields: [
-      {
-        name: "organo_directorio",
-        label: "Órgano del directorio",
-        type: "select",
-        required: true,
-        optionsEndpoint: "organ-directories",
-      },
-      {
-        name: "cargo_ejecutivo",
-        label: "Cargo ejecutivo",
-        type: "select",
-        required: true,
-        optionsEndpoint: "executive-positions",
-        optionsToLabel: (r) =>
-          String((r as { nombre_masculino?: string }).nombre_masculino ?? r.id),
-      },
-      { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
-    ],
-  },
-};
-
-/**
  * Registro único de entidades organizacionales/académicas de `/catalogos`. Reutiliza las 7 configs
  * de Convenios (`ENTITY_CONFIGS`) sin duplicarlas y añade las académicas, sanitarias y el puente
  * de directorio↔cargos.
@@ -349,7 +274,6 @@ export const CATALOGO_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
   ...ENTITY_CONFIGS,
   ...ACADEMIC_ENTITY_CONFIGS,
   ...SANITARY_ENTITY_CONFIGS,
-  ...DIRECTORY_POSITION_CONFIGS,
 };
 
 /** Orden y rótulos del índice de entidades de `/catalogos`. */
@@ -362,7 +286,6 @@ export const CATALOGO_ENTITY_MENU: { slug: string; title: string }[] = [
   { slug: "ipress", title: "Establecimientos de Salud" },
   { slug: "regional-governments", title: "Gobiernos Regionales" },
   { slug: "organ-directories", title: "Órganos del Directorio" },
-  { slug: "organ-directory-positions", title: "Cargos por Órgano" },
   { slug: "executing-units", title: "Unidades Ejecutoras" },
   { slug: "networks", title: "Redes" },
   { slug: "micro-networks", title: "Microrredes" },

@@ -485,22 +485,17 @@ function RepresentativeDialog({
   const sexo = useWatch({ control, name: "sexo" }) as "M" | "F" | "";
   const orgDirId = useWatch({ control, name: "organo_directorio" });
 
-  // Fetch valid cargos for selected organ directory from the bridge table.
-  // This is authoritative: only cargos declared in organ-directory-positions
-  // are coherent with the organ's category, bypassing fragile keyword matching.
+  // Fetch cargos ejecutivos for the selected organ directory.
+  // executive-positions now FK directly to organ-directories via organo_directivo.
   const { data: dirPositions, isLoading: positionsLoading } = useQuery({
-    queryKey: ["organ-directory-positions", "by-orgdir", orgDirId],
+    queryKey: ["executive-positions", "by-orgdir", orgDirId],
     queryFn: () =>
       fetchAllPages<{
         id: number;
-        cargo_ejecutivo: number;
-        cargo_ejecutivo_detalle: {
-          id: number;
-          nombre_masculino: string;
-          nombre_femenino: string | null;
-        };
-      }>("organ-directory-positions", {
-        organo_directorio: String(orgDirId!),
+        nombre_masculino: string;
+        nombre_femenino: string | null;
+      }>("executive-positions", {
+        organo_directivo: String(orgDirId!),
         activo: "true",
       }),
     enabled: !!orgDirId,
@@ -510,9 +505,9 @@ function RepresentativeDialog({
   const cargoOptions = useMemo(() => {
     if (!dirPositions) return [];
     return dirPositions.map((p) => ({
-      id: p.cargo_ejecutivo,
-      nombre_masculino: p.cargo_ejecutivo_detalle.nombre_masculino,
-      nombre_femenino: p.cargo_ejecutivo_detalle.nombre_femenino,
+      id: p.id,
+      nombre_masculino: p.nombre_masculino,
+      nombre_femenino: p.nombre_femenino,
     }));
   }, [dirPositions]);
 
@@ -742,9 +737,9 @@ function RepresentativeDialog({
                       <SelectContent>
                         {cargoOptions.length === 0 && !positionsLoading && orgDirId && (
                           <div className="px-3 py-4 text-xs text-muted-foreground text-center">
-                            No hay cargos habilitados para este órgano.
+                            No hay cargos configurados para este órgano.
                             <br />
-                            Configure en Catálogos → Cargos por órgano.
+                            Configure en Catálogos → Cargos ejecutivos.
                           </div>
                         )}
                         {cargoOptions.map((opt) => (

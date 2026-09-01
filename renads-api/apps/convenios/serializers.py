@@ -18,7 +18,6 @@ from apps.convenios.models import (
     Document,
     Faculty,
     LegalOpinion,
-    OrganDirectoryPosition,
     OrganRepresentative,
     ProfessionalCareer,
     Publication,
@@ -357,60 +356,12 @@ class OrganRepresentativeSerializer(serializers.ModelSerializer):
         )
         cargo = attrs.get("cargo_ejecutivo", getattr(self.instance, "cargo_ejecutivo", None))
         if organo_directorio is not None and cargo is not None:
-            # Coherencia cargo↔categoría: el nombre del órgano del cargo (Organ) debe
-            # coincidir con el label de la categoría del directorio (mismo texto por seed).
-            if cargo.organo.nombre != organo_directorio.get_categoria_display():
+            # Coherencia cargo↔órgano: el cargo debe pertenecer al mismo órgano
+            # directivo que representa (match directo de entidad). Si el cargo aún no
+            # tiene órgano directivo asignado (filas legacy), no se valida.
+            if cargo.organo_directivo_id and cargo.organo_directivo_id != organo_directorio.id:
                 raise serializers.ValidationError(
-                    {"cargo_ejecutivo": "El cargo no corresponde a la categoría del órgano del directorio."}
-                )
-        return attrs
-
-
-class OrganDirectoryPositionSerializer(serializers.ModelSerializer):
-    """Cargo ejecutivo habilitado para un órgano del directorio (puente N:M).
-
-    Relaciona una entidad concreta (`organo_directorio`) con un cargo del catálogo
-    (`cargo_ejecutivo`). Valida coherencia cargo↔categoría (mismo criterio que el
-    representante) y unicidad del par. Los `*_detalle` pueblan los listados del front.
-    """
-
-    organo_directorio_detalle = serializers.SerializerMethodField()
-    cargo_ejecutivo_detalle = serializers.SerializerMethodField()
-
-    class Meta:
-        model = OrganDirectoryPosition
-        fields = "__all__"
-        validators = [
-            UniqueTogetherValidator(
-                queryset=OrganDirectoryPosition.objects.all(),
-                fields=["organo_directorio", "cargo_ejecutivo"],
-                message="El cargo ya está habilitado para este órgano del directorio.",
-            ),
-        ]
-
-    def get_organo_directorio_detalle(self, obj):
-        od = obj.organo_directorio
-        return {"id": od.id, "nombre": od.nombre, "categoria": od.get_categoria_display()}
-
-    def get_cargo_ejecutivo_detalle(self, obj):
-        cargo = obj.cargo_ejecutivo
-        return {
-            "id": cargo.id,
-            "nombre_masculino": cargo.nombre_masculino,
-            "nombre_femenino": cargo.nombre_femenino,
-        }
-
-    def validate(self, attrs):
-        """Coherencia cargo↔categoría: el órgano del cargo debe coincidir con la
-        categoría del órgano del directorio (mismo texto por seed)."""
-        organo_directorio = attrs.get(
-            "organo_directorio", getattr(self.instance, "organo_directorio", None)
-        )
-        cargo = attrs.get("cargo_ejecutivo", getattr(self.instance, "cargo_ejecutivo", None))
-        if organo_directorio is not None and cargo is not None:
-            if cargo.organo.nombre != organo_directorio.get_categoria_display():
-                raise serializers.ValidationError(
-                    {"cargo_ejecutivo": "El cargo no corresponde a la categoría del órgano del directorio."}
+                    {"cargo_ejecutivo": "El cargo no corresponde al órgano del directorio seleccionado."}
                 )
         return attrs
 

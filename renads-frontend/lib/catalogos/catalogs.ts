@@ -151,17 +151,32 @@ export const CATALOG_CONFIGS: Record<string, ResourceConfig> = {
     writeRoles: ["Administrador RENADS"],
     searchPlaceholder: "Buscar por nombre del cargo…",
     columns: [
-      { key: "organo", header: "Categoría", render: (r: WithId) => detalleNombre(r.organo_detalle) },
+      {
+        key: "organo_directivo_detalle",
+        header: "Órgano del directorio",
+        render: (r: WithId) => detalleNombre(r.organo_directivo_detalle),
+      },
       { key: "nombre_masculino", header: "Nombre (masculino)" },
       { key: "nombre_femenino", header: "Nombre (femenino)" },
       { key: "activo", header: "Activo", render: (r: WithId) => siNo(r.activo) },
     ],
     filters: [
-      { name: "organo", label: "Categoría", type: "select", optionsEndpoint: "organs" },
+      {
+        name: "organo_directivo",
+        label: "Órgano del directorio",
+        type: "select",
+        optionsEndpoint: "organ-directories",
+      },
       activoFilter,
     ],
     fields: [
-      { name: "organo", label: "Categoría de órgano", type: "select", required: true, optionsEndpoint: "organs" },
+      {
+        name: "organo_directivo",
+        label: "Órgano del directorio",
+        type: "select",
+        required: true,
+        optionsEndpoint: "organ-directories",
+      },
       { name: "nombre_masculino", label: "Nombre (masculino)", type: "text", required: true, uppercase: false },
       { name: "nombre_femenino", label: "Nombre (femenino)", type: "text", uppercase: false },
       { name: "activo", label: "Activo", type: "boolean", defaultValue: true },

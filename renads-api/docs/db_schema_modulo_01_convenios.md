@@ -39,7 +39,7 @@ Tablas paramétricas (RNF-MAN-01). Patrón común: `id` (PK), `codigo` (varchar,
 | `nivel_academico` | Nivel académico de la carrera | valores: `PREGRADO`, `SEGUNDA_ESPECIALIDAD`, `MAESTRIA`, `DOCTORADO` |
 | `especialidad` | Especialidades de salud (seed: 46 especialidades médicas, nomenclatura oficial CONAREME) | — |
 | `tipo_autoridad_firmante` | Tipo de autoridad firmante | — |
-| `cargo_ejecutivo` | Cargos ejecutivos de representantes. **No** hereda de `Catalog`: FK `organo_id` → `organo`, unicidad `(organo_id, nombre_masculino)` | `organo_id` (FK → `organo`), `nombre_masculino`, `nombre_femenino`, `activo` |
+| `cargo_ejecutivo` | Cargos ejecutivos de representantes. **No** hereda de `Catalog`: FK `organo_directivo_id` → `organo_directorio` (1:N, nullable), unicidad `(organo_directivo_id, nombre_masculino)` | `organo_directivo_id` (FK → `organo_directorio`, null), `nombre_masculino`, `nombre_femenino`, `activo` |
 | `motivo_observacion` | Motivos de observación | — |
 | `motivo_rechazo` | Motivos de rechazo | — |
 | `motivo_cierre` | Motivos de cierre o anulación | — |
@@ -84,7 +84,7 @@ Reemplaza el campo discriminador `VARCHAR` que tenía el antiguo `tipo_organo.or
 | `nombre` | varchar(255) | No | Nombre del órgano |
 | `estado` | bool | No | Indica si está activo (default `true`) |
 
-Seed: 5 registros — `Órgano del MINSA`, `Universidad`, `Gobierno Regional`, `MINSA DIRIS`, `Unidad Ejecutora`. Los nombres coinciden con los labels de `organo_directorio.categoria` (fuente de la validación de coherencia cargo↔categoría en `OrganRepresentativeSerializer`).
+Seed: 5 registros — `Órgano del MINSA`, `Universidad`, `Gobierno Regional`, `MINSA DIRIS`, `Unidad Ejecutora`. Los nombres coinciden con los labels de `organo_directorio.categoria`. Nota: `cargo_ejecutivo` ya **no** referencia `organo` (categoría), sino `organo_directorio` (entidad concreta) vía `organo_directivo_id`; la coherencia del representante compara entidades (`cargo.organo_directivo == representante.organo_directorio`), no textos de categoría. La tabla `organo` se conserva solo como catálogo de las 5 categorías canónicas.
 
 ### `tipo_organo` — **RETIRADA**
 
@@ -135,22 +135,21 @@ Tabla **standalone** que cataloga órganos del MINSA, universidades, gobiernos r
 | `siglas` | varchar(50) | Sí | Siglas |
 | `activo` | bool | No | |
 
-Endpoint: `/api/v1/organ-directories/` (CRUD, escritura solo `Administrador RENADS`; filtros `categoria`, `gobierno_regional`, `activo`; búsqueda `nombre`, `siglas`; **sin logo**; lectura expone `gobierno_regional_detalle`). Los labels de `categoria` replican los nombres de `organo` (coherencia cargo↔categoría en `OrganRepresentativeSerializer`).
+Endpoint: `/api/v1/organ-directories/` (CRUD, escritura solo `Administrador RENADS`; filtros `categoria`, `gobierno_regional`, `activo`; búsqueda `nombre`, `siglas`; **sin logo**; lectura expone `gobierno_regional_detalle`). Cada `organo_directorio` es un **órgano directivo** que agrupa 1..N `cargo_ejecutivo` (relación 1:N vía `cargo_ejecutivo.organo_directivo_id`).
 
-### `organo_directorio_cargo` (puente N:M órgano del directorio ↔ cargo ejecutivo)
+### `cargo_ejecutivo` (cargos de un órgano directivo)
 
-Tabla puente que declara **qué cargos** (`cargo_ejecutivo`, catálogo por categoría) tiene definidos una entidad concreta (`organo_directorio`), independientemente de la persona designada. La persona la aporta `organo_representante` (cambiante, con histórico); el par órgano-directorio ↔ cargo se mantiene estable aquí. Resuelve la relación real N:M entre ambas tablas (grano distinto: cargo = catálogo por categoría; directorio = entidad concreta).
+Cargos ejecutivos de un **órgano directivo** concreto (`organo_directorio`). Relación 1:N: un órgano directivo tiene varios cargos (p. ej. *Dirección General de Personal de la Salud* → "Director(a) General de Personal de la Salud", "Director(a) Adjunto(a)…"). La persona que ocupa el cargo la aporta `organo_representante` (cambiante, con histórico); el cargo y su órgano se mantienen estables.
 
 | Columna | Tipo | Null | Descripción |
 |---------|------|------|-------------|
 | `id` | PK | No | |
-| `organo_directorio_id` | FK → `organo_directorio` (PROTECT, `related_name='cargos_habilitados'`) | No | Órgano del directorio |
-| `cargo_ejecutivo_id` | FK → `cargo_ejecutivo` (PROTECT, `related_name='organos_directorio'`) | No | Cargo ejecutivo habilitado |
+| `organo_directivo_id` | FK → `organo_directorio` (PROTECT, `related_name='cargos'`) | Sí | Órgano directivo al que pertenece el cargo (nullable en BD y API; filas seed legacy quedan sin asignar) |
+| `nombre_masculino` | varchar(255) | No | Nombre del cargo en masculino |
+| `nombre_femenino` | varchar(255) | Sí | Nombre del cargo en femenino |
 | `activo` | bool | No | |
 
-`unique_together = (organo_directorio, cargo_ejecutivo)`. **Coherencia cargo↔categoría** (igual criterio que el representante): `cargo.organo.nombre == organo_directorio.get_categoria_display()`.
-
-Endpoint: `/api/v1/organ-directory-positions/` (CRUD, escritura solo `Administrador RENADS`, con auditoría; filtros `organo_directorio`, `cargo_ejecutivo`, `activo`; lectura expone `organo_directorio_detalle` (id/nombre/categoría) y `cargo_ejecutivo_detalle` (id/nombre masculino/femenino)). El par duplicado se rechaza con 400 (`UniqueTogetherValidator`); el cargo de otra categoría con 400 (coherencia).
+`unique_together = (organo_directivo, nombre_masculino)`. Endpoint: `/api/v1/executive-positions/` (CRUD, escritura solo `Administrador RENADS`; filtros `organo_directivo`, `activo`; búsqueda `nombre_masculino`, `nombre_femenino`; lectura expone `organo_directivo_detalle` con id/nombre/categoría).
 
 ### `unidad_ejecutora`
 
@@ -302,7 +301,7 @@ Endpoint en lote: `POST /api/v1/faculties/{id}/careers` (body `{carreras: [ids]}
 
 ## 6 bis. Representantes de órgano
 
-Representantes/autoridades de un órgano del directorio (FK **directo** a `organo_directorio`, sin relación polimórfica). Cubre CONAPRES, órganos del MINSA, órganos regionales y universidades. Al designar un nuevo representante para el mismo `(organo_directorio, cargo_ejecutivo)` activo, el service `registrar_organo_representante` da de baja al anterior (`activo=False`) y lo copia a `historial_organo_representante`.
+Representantes/autoridades de un órgano del directorio (FK **directo** a `organo_directorio`, sin relación polimórfica). Cubre CONAPRES, órganos del MINSA, órganos regionales y universidades. Al designar un nuevo representante para el mismo `(organo_directorio, cargo_ejecutivo)` activo, el service `registrar_organo_representante` da de baja al anterior (`activo=False`) y lo copia a `historial_organo_representante`. **Coherencia cargo↔órgano** (en `OrganRepresentativeSerializer`): si el cargo tiene `organo_directivo` asignado, debe coincidir con el `organo_directorio` del representante (`cargo.organo_directivo_id == organo_directorio_id`); los cargos legacy sin `organo_directivo` no se validan.
 
 ### `organo_representante`
 
@@ -672,7 +671,7 @@ ipress >── categoria / tipo_clasificacion / microred
 conapres
 
 organo_representante >── organo_directorio
-organo_representante >── cargo_ejecutivo >── organo
+organo_representante >── cargo_ejecutivo >── organo_directorio   (cargo pertenece a un órgano directivo, 1:N)
 organo_representante >── tipo_documento_identidad (módulo 2)
 organo_representante ──< historial_organo_representante   (baja del anterior al designar uno nuevo)
 

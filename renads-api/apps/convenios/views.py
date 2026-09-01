@@ -50,7 +50,6 @@ from apps.convenios.serializers import (
     DocumentUploadSerializer,
     DocumentWriteSerializer,
     LegalOpinionSerializer,
-    OrganDirectoryPositionSerializer,
     OrganRepresentativeSerializer,
     PublicationSerializer,
     FacultyCareersSyncSerializer,
@@ -356,6 +355,11 @@ def _detalle_nombre(rel):
     return {"id": rel.id, "codigo": getattr(rel, "codigo", None), "nombre": rel.nombre}
 
 
+def _detalle_organo_directorio(rel):
+    """Detalle legible de un órgano del directorio (`nombre` + categoría, sin `codigo`)."""
+    return {"id": rel.id, "nombre": rel.nombre, "categoria": rel.get_categoria_display()}
+
+
 def _detalle_ubigeo(rel):
     """Detalle legible de un UBIGEO (no tiene `nombre`)."""
     return {
@@ -588,9 +592,9 @@ ENTITY_VIEWSETS = {
     ),
     "executive-positions": _entity_viewset(
         m.ExecutivePosition,
-        filterset_fields=["organo", "activo"],
+        filterset_fields=["organo_directivo", "activo"],
         search_fields=["nombre_masculino", "nombre_femenino"],
-        detalles={"organo": _detalle_nombre},
+        detalles={"organo_directivo": _detalle_organo_directorio},
     ),
     "authorization-types": _entity_viewset(
         m.AuthorizationType, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
@@ -703,23 +707,6 @@ class OrganRepresentativeViewSet(AnnexAttachmentMixin, AuditedModelViewSet):
         serializer.instance = services.registrar_organo_representante(
             datos=serializer.validated_data, usuario=self.request.user
         )
-
-
-class OrganDirectoryPositionViewSet(AuditedModelViewSet):
-    """CRUD de cargos habilitados por órgano del directorio (puente N:M).
-
-    Relaciona una entidad concreta del directorio con los cargos del catálogo que
-    tiene definidos (independiente de la persona designada). Escritura solo
-    Administrador RENADS, con auditoría. Valida coherencia cargo↔categoría.
-    """
-
-    queryset = m.OrganDirectoryPosition.objects.select_related(
-        "organo_directorio", "cargo_ejecutivo", "cargo_ejecutivo__organo"
-    )
-    serializer_class = OrganDirectoryPositionSerializer
-    permission_classes = [IsAuthenticated, IsAdminRoleOrReadOnly]
-    filterset_fields = ["organo_directorio", "cargo_ejecutivo", "activo"]
-    ordering = ["id"]
 
 
 class OrganRepresentativeHistoryViewSet(viewsets.ReadOnlyModelViewSet):
