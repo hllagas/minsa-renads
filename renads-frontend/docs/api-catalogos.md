@@ -97,13 +97,13 @@ Añadidos a `regional-governments`: `sigla`, `ubigeo`, `numero_ruc`, `direccion`
 | `ipress` | `unidad_ejecutora`, `ambito_geografico_sanitario`, `es_sede_docente`, `activo` | `nombre`, `codigo_renipress` | — |
 | `conapres` | `activo` | `nombre` | — |
 | `universities` | `tipo_gestion`, `tipo_entidad`, `tipo_autorizacion`, `activo` | `nombre`, `siglas` | `tipo_gestion_detalle`, `tipo_entidad_detalle`, `tipo_autorizacion_detalle` |
-| `faculties` | `universidad`, `ubigeo`, `activo` | `nombre` | `ubigeo_detalle` (string); `referencia_logo` (logo) |
+| `faculties` | `universidad`, `ubigeo`, `activo` | `nombre`, `direccion` | `ubigeo_detalle` (objeto ubigeo); `referencia_logo` (logo) |
 | `professional-careers` | `nivel_academico`, `activo` | `nombre` | — |
 | `university-campuses` | `universidad`, `region`, `activo` | `nombre` | — |
 | `university-careers` | `universidad`, `carrera_profesional`, `facultad`, `activo` | — | `universidad_detalle`, `carrera_profesional_detalle`, `facultad_detalle` (todos strings) |
 | `user-entity-profiles` | `usuario`, `grupo`, `activo` | — | Solo `Administrador RENADS`. |
 
-> Los campos `*_detalle` son strings planos (no objetos `{id, nombre}`). Usar `String(r.*_detalle ?? "—")` en columnas.
+> Los campos `*_detalle` son **objetos JSON** (no strings). `_detalle_nombre` → `{id, codigo, nombre}`; `_detalle_ubigeo` → `{id, codigo, distrito, provincia, departamento}`. En columnas usar `detalleNombre(r.*_detalle)` o `ubigeoDetalleLabel(r.ubigeo_detalle)`. Nunca `String(r.*_detalle)` (produce `[object Object]`).
 
 ### `organ-directories` — campo `categoria`
 

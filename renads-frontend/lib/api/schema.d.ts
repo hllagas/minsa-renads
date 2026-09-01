@@ -4728,6 +4728,11 @@ export interface components {
             readonly ubigeo_detalle: string;
             /** @description Nombre de la facultad */
             nombre: string;
+            /**
+             * Dirección
+             * @description Dirección de la facultad
+             */
+            direccion?: string;
             activo?: boolean;
             /** @description Universidad */
             universidad: number;
@@ -6389,6 +6394,11 @@ export interface components {
             readonly ubigeo_detalle?: string;
             /** @description Nombre de la facultad */
             nombre?: string;
+            /**
+             * Dirección
+             * @description Dirección de la facultad
+             */
+            direccion?: string;
             activo?: boolean;
             /** @description Universidad */
             universidad?: number;

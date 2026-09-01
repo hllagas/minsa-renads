@@ -19,6 +19,13 @@ const ubigeoLabel = (r: WithId) =>
     .filter(Boolean)
     .join(" — ");
 
+/** Etiqueta legible de un objeto `ubigeo_detalle` (`{departamento, provincia, distrito}`). */
+const ubigeoDetalleLabel = (v: unknown): string => {
+  if (!v || typeof v !== "object") return "—";
+  const u = v as Record<string, unknown>;
+  return [u.departamento, u.provincia, u.distrito].filter(Boolean).join(", ") || "—";
+};
+
 const activoFilter: FilterConfig = { name: "activo", label: "Activo", type: "boolean" };
 
 /**
@@ -32,7 +39,7 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     singular: "facultad",
     createPrefix: "Nueva",
     description: "Facultades por universidad.",
-    searchPlaceholder: "Buscar por nombre…",
+    searchPlaceholder: "Buscar por nombre o dirección…",
     columns: [
       {
         key: "referencia_logo",
@@ -46,7 +53,7 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
           }),
       },
       { key: "nombre", header: "Nombre" },
-      { key: "ubigeo_detalle", header: "Ubicación", render: (r) => String(r.ubigeo_detalle ?? "—") },
+      { key: "ubigeo_detalle", header: "Ubicación", render: (r) => ubigeoDetalleLabel(r.ubigeo_detalle) },
       { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
     ],
     filters: [
@@ -74,6 +81,7 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         optionsEndpoint: "universities",
       },
       { name: "nombre", label: "Nombre", type: "text", required: true, uppercase: false },
+      { name: "direccion", label: "Dirección", type: "text", uppercase: false },
       {
         name: "ubigeo",
         label: "Ubigeo",
@@ -184,17 +192,17 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
       {
         key: "universidad",
         header: "Universidad",
-        render: (r) => String(r.universidad_detalle ?? "—"),
+        render: (r) => detalleNombre(r.universidad_detalle),
       },
       {
         key: "facultad",
         header: "Facultad",
-        render: (r) => String(r.facultad_detalle ?? "—"),
+        render: (r) => detalleNombre(r.facultad_detalle),
       },
       {
         key: "carrera_profesional",
         header: "Carrera profesional",
-        render: (r) => String(r.carrera_profesional_detalle ?? "—"),
+        render: (r) => detalleNombre(r.carrera_profesional_detalle),
       },
       { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
     ],

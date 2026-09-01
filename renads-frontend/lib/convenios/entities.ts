@@ -26,6 +26,13 @@ const ubigeoParte = (v: unknown, parte: "distrito" | "provincia" | "departamento
     ? String((v as Record<string, unknown>)[parte] ?? "—")
     : "—";
 
+/** Etiqueta combinada de un objeto `ubigeo_detalle` (`{departamento, provincia, distrito}`). */
+const ubigeoDetalleLabel = (v: unknown): string => {
+  if (!v || typeof v !== "object") return "—";
+  const u = v as Record<string, unknown>;
+  return [u.departamento, u.provincia, u.distrito].filter(Boolean).join(", ") || "—";
+};
+
 /** Columna «Logo» reutilizable: muestra el logo de la entidad (o su fallback institucional). */
 const logoColumn = (endpoint: string): ColumnConfig => ({
   key: "referencia_logo",
@@ -89,17 +96,17 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
       {
         key: "tipo_gestion",
         header: "Gestión",
-        render: (r) => String(r.tipo_gestion_detalle ?? "—"),
+        render: (r) => detalleNombre(r.tipo_gestion_detalle),
       },
       {
         key: "tipo_entidad",
         header: "Tipo de entidad",
-        render: (r) => String(r.tipo_entidad_detalle ?? "—"),
+        render: (r) => detalleNombre(r.tipo_entidad_detalle),
       },
       {
         key: "tipo_autorizacion",
         header: "Autorización",
-        render: (r) => String(r.tipo_autorizacion_detalle ?? "—"),
+        render: (r) => detalleNombre(r.tipo_autorizacion_detalle),
       },
       { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
     ],
@@ -314,7 +321,7 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
       { key: "sigla", header: "Sigla" },
       { key: "numero_ruc", header: "RUC" },
       { key: "telefono", header: "Teléfono" },
-      { key: "ubigeo_detalle", header: "Ubicación", render: (r) => String(r.ubigeo_detalle ?? "—") },
+      { key: "ubigeo_detalle", header: "Ubicación", render: (r) => ubigeoDetalleLabel(r.ubigeo_detalle) },
       { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
     ],
     filters: [
@@ -366,12 +373,12 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
       {
         key: "gobierno_regional",
         header: "Gobierno regional",
-        render: (r) => String(r.gobierno_regional_detalle ?? "—"),
+        render: (r) => detalleNombre(r.gobierno_regional_detalle),
       },
       {
         key: "tipo_organo",
         header: "Tipo de órgano",
-        render: (r) => String(r.tipo_organo_detalle ?? "—"),
+        render: (r) => detalleNombre(r.tipo_organo_detalle),
       },
       { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
     ],
@@ -449,7 +456,7 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
       {
         key: "gobierno_regional",
         header: "Gobierno regional",
-        render: (r) => String(r.gobierno_regional_detalle ?? "—"),
+        render: (r) => detalleNombre(r.gobierno_regional_detalle),
       },
       { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
     ],
