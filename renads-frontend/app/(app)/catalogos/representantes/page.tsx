@@ -391,7 +391,6 @@ export default function RepresentantesPage() {
         open={dialogOpen}
         row={editRow}
         gobRegId={gobRegId}
-        orgDirs={orgDirQuery.data ?? []}
         onClose={() => {
           setDialogOpen(false);
           setEditRow(null);
@@ -457,14 +456,12 @@ function RepresentativeDialog({
   open,
   row,
   gobRegId,
-  orgDirs,
   onClose,
   onSuccess,
 }: {
   open: boolean;
   row: Representative | null;
   gobRegId: number | null;
-  orgDirs: OrgDirectory[];
   onClose: () => void;
   onSuccess: () => void;
 }) {
@@ -488,31 +485,36 @@ function RepresentativeDialog({
   const sexo = useWatch({ control, name: "sexo" }) as "M" | "F" | "";
   const orgDirId = useWatch({ control, name: "organo_directorio" });
 
-  // Fetch organs (4 canonical categories) to filter executive-positions by organo
-  const { data: organs } = useQuery({
-    queryKey: ["organs"],
-    queryFn: () => fetchAllPages<WithId & { nombre: string }>("organs"),
-    staleTime: 60 * 60_000,
+  // Fetch valid cargos for selected organ directory from the bridge table.
+  // This is authoritative: only cargos declared in organ-directory-positions
+  // are coherent with the organ's category, bypassing fragile keyword matching.
+  const { data: dirPositions, isLoading: positionsLoading } = useQuery({
+    queryKey: ["organ-directory-positions", "by-orgdir", orgDirId],
+    queryFn: () =>
+      fetchAllPages<{
+        id: number;
+        cargo_ejecutivo: number;
+        cargo_ejecutivo_detalle: {
+          id: number;
+          nombre_masculino: string;
+          nombre_femenino: string | null;
+        };
+      }>("organ-directory-positions", {
+        organo_directorio: String(orgDirId!),
+        activo: "true",
+      }),
+    enabled: !!orgDirId,
+    staleTime: 2 * 60_000,
   });
 
-  // Map the selected organ-directory's categoria → organs FK id
-  const organoId = useMemo(() => {
-    const dir = orgDirs.find((d) => d.id === orgDirId);
-    if (!dir?.categoria || !organs?.length) return undefined;
-    const keywords: Record<string, string[]> = {
-      ORGANO_MINSA: ["minsa"],
-      MINSA_DIRIS: ["minsa", "diris"],
-      UNIVERSIDAD: ["univer"],
-      GOBIERNO_REGIONAL: ["regional"],
-      UNIDAD_EJECUTORA: ["ejecutora"],
-    };
-    const kws = keywords[dir.categoria] ?? [];
-    return organs.find((o) =>
-      kws.some((k) =>
-        String((o as { nombre?: string }).nombre ?? "").toLowerCase().includes(k)
-      )
-    )?.id;
-  }, [orgDirId, orgDirs, organs]);
+  const cargoOptions = useMemo(() => {
+    if (!dirPositions) return [];
+    return dirPositions.map((p) => ({
+      id: p.cargo_ejecutivo,
+      nombre_masculino: p.cargo_ejecutivo_detalle.nombre_masculino,
+      nombre_femenino: p.cargo_ejecutivo_detalle.nombre_femenino,
+    }));
+  }, [dirPositions]);
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -582,14 +584,6 @@ function RepresentativeDialog({
   const docTypeLabel = (r: WithId) => {
     const row = r as { codigo?: string; nombre?: string };
     return row.codigo ?? row.nombre ?? String(r.id);
-  };
-
-  // Build cargo toLabel based on current sexo selection
-  const cargoToLabel = (r: WithId) => {
-    const pos = r as { nombre_masculino?: string; nombre_femenino?: string };
-    if (sexo === "M") return pos.nombre_masculino || String(r.id);
-    if (sexo === "F") return pos.nombre_femenino || pos.nombre_masculino || String(r.id);
-    return String(r.id);
   };
 
   return (
@@ -705,36 +699,69 @@ function RepresentativeDialog({
               control={control}
               name="cargo_ejecutivo"
               rules={{ required: "Campo obligatorio." }}
-              render={({ field, fieldState }) => (
-                <div className="grid gap-1">
-                  <Label>
-                    Cargo ejecutivo *{" "}
-                    {(!sexo || !orgDirId) && (
-                      <span className="text-xs text-amber-600 font-normal">
-                        — elige {!sexo ? "sexo" : "órgano"} primero
-                      </span>
+              render={({ field, fieldState }) => {
+                const disabled = !sexo || !orgDirId;
+                const hint = !sexo
+                  ? "— elige sexo primero"
+                  : !orgDirId
+                    ? "— elige órgano primero"
+                    : undefined;
+                const selectedLabel = (() => {
+                  const opt = cargoOptions.find((o) => o.id === field.value);
+                  if (!opt) return undefined;
+                  return sexo === "M"
+                    ? opt.nombre_masculino
+                    : (opt.nombre_femenino ?? opt.nombre_masculino);
+                })();
+                return (
+                  <div className="grid gap-1">
+                    <Label>
+                      Cargo ejecutivo *{" "}
+                      {hint && (
+                        <span className="text-xs text-amber-600 font-normal">{hint}</span>
+                      )}
+                    </Label>
+                    <Select
+                      value={field.value ? String(field.value) : ""}
+                      onValueChange={(v) => field.onChange(v ? Number(v) : null)}
+                      disabled={disabled}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue
+                          placeholder={
+                            positionsLoading
+                              ? "Cargando cargos…"
+                              : cargoOptions.length === 0 && orgDirId
+                                ? "Sin cargos configurados"
+                                : "Seleccionar cargo…"
+                          }
+                        >
+                          {selectedLabel}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {cargoOptions.length === 0 && !positionsLoading && orgDirId && (
+                          <div className="px-3 py-4 text-xs text-muted-foreground text-center">
+                            No hay cargos habilitados para este órgano.
+                            <br />
+                            Configure en Catálogos → Cargos por órgano.
+                          </div>
+                        )}
+                        {cargoOptions.map((opt) => (
+                          <SelectItem key={opt.id} value={String(opt.id)}>
+                            {sexo === "M"
+                              ? opt.nombre_masculino
+                              : (opt.nombre_femenino ?? opt.nombre_masculino)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {fieldState.error && (
+                      <p className="text-xs text-destructive">{fieldState.error.message}</p>
                     )}
-                  </Label>
-                  {/* key includes sexo+organoId: remounts when either changes so toLabel/params refresh */}
-                  <EntityCombobox
-                    key={`${sexo || "none"}-${organoId ?? "none"}`}
-                    endpoint="executive-positions"
-                    params={organoId ? { organo: String(organoId) } : undefined}
-                    value={field.value}
-                    onChange={field.onChange}
-                    toLabel={cargoToLabel}
-                    disabled={!sexo || !orgDirId}
-                    placeholder={
-                      !sexo
-                        ? "Elige sexo primero…"
-                        : !orgDirId
-                          ? "Elige órgano primero…"
-                          : "Buscar cargo…"
-                    }
-                  />
-                  {fieldState.error && <p className="text-xs text-destructive">{fieldState.error.message}</p>}
-                </div>
-              )}
+                  </div>
+                );
+              }}
             />
           </div>
 
