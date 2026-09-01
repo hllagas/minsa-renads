@@ -48,6 +48,20 @@ const ubigeoLabel = (r: WithId) =>
 /** Filtro `activo` reutilizable (boolean Sí/No). */
 const activoFilter: FilterConfig = { name: "activo", label: "Activo", type: "boolean" };
 
+/** Categorías del directorio de órganos (matches backend `ORGAN_DIRECTORY_CATEGORY`). */
+const ORGAN_DIRECTORY_CATEGORY = [
+  { value: "ORGANO_MINSA", label: "Órgano del MINSA" },
+  { value: "UNIVERSIDAD", label: "Universidad" },
+  { value: "GOBIERNO_REGIONAL", label: "Gobierno Regional" },
+  { value: "MINSA_DIRIS", label: "MINSA DIRIS" },
+  { value: "UNIDAD_EJECUTORA", label: "Unidad Ejecutora" },
+];
+
+const categoriaLabel = (v: unknown): string => {
+  const found = ORGAN_DIRECTORY_CATEGORY.find((c) => c.value === v);
+  return found ? found.label : String(v ?? "—");
+};
+
 /**
  * Configuración de las entidades organizacionales del módulo Convenios.
  * Fuente de verdad única: la consumen tanto `/convenios/maestros` como `/catalogos/entidades`.
@@ -75,17 +89,17 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
       {
         key: "tipo_gestion",
         header: "Gestión",
-        render: (r) => detalleNombre(r.tipo_gestion_detalle),
+        render: (r) => String(r.tipo_gestion_detalle ?? "—"),
       },
       {
         key: "tipo_entidad",
         header: "Tipo de entidad",
-        render: (r) => detalleNombre(r.tipo_entidad_detalle),
+        render: (r) => String(r.tipo_entidad_detalle ?? "—"),
       },
       {
         key: "tipo_autorizacion",
         header: "Autorización",
-        render: (r) => detalleNombre(r.tipo_autorizacion_detalle),
+        render: (r) => String(r.tipo_autorizacion_detalle ?? "—"),
       },
       { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
     ],
@@ -100,8 +114,8 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         name: "tipo_entidad",
         label: "Tipo de entidad",
         type: "select",
-        optionsEndpoint: "organ-types",
-        optionsParams: { organo__nombre: "Universidad" },
+        optionsEndpoint: "organ-directories",
+        optionsParams: { categoria: "UNIVERSIDAD" },
       },
       {
         name: "tipo_autorizacion",
@@ -132,8 +146,8 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         label: "Tipo de entidad",
         type: "select",
         required: true,
-        optionsEndpoint: "organ-types",
-        optionsParams: { organo__nombre: "Universidad" },
+        optionsEndpoint: "organ-directories",
+        optionsParams: { categoria: "UNIVERSIDAD" },
       },
       {
         name: "tipo_autorizacion",
@@ -293,26 +307,43 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     endpoint: "regional-governments",
     title: "Gobiernos regionales",
     singular: "gobierno regional",
-    searchPlaceholder: "Buscar por nombre o RUC…",
+    searchPlaceholder: "Buscar por nombre…",
     columns: [
       logoColumn("regional-governments"),
       { key: "nombre", header: "Nombre" },
+      { key: "sigla", header: "Sigla" },
       { key: "numero_ruc", header: "RUC" },
       { key: "telefono", header: "Teléfono" },
+      { key: "ubigeo_detalle", header: "Ubicación", render: (r) => String(r.ubigeo_detalle ?? "—") },
       { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
     ],
     filters: [
       { name: "region", label: "Región", type: "select", optionsEndpoint: "regions" },
+      {
+        name: "ubigeo",
+        label: "Ubigeo",
+        type: "select",
+        optionsEndpoint: "ubigeos",
+        optionsToLabel: ubigeoLabel,
+      },
       activoFilter,
     ],
     fields: [
       { name: "nombre", label: "Nombre", type: "text", required: true, uppercase: false },
+      { name: "sigla", label: "Sigla", type: "text", uppercase: false },
       {
         name: "region",
         label: "Región",
         type: "select",
         required: true,
         optionsEndpoint: "regions",
+      },
+      {
+        name: "ubigeo",
+        label: "Ubigeo",
+        type: "select",
+        optionsEndpoint: "ubigeos",
+        optionsToLabel: ubigeoLabel,
       },
       { name: "numero_ruc", label: "RUC (11 dígitos)", type: "text", uppercase: false },
       { name: "direccion", label: "Dirección", type: "text", uppercase: false },
@@ -353,10 +384,10 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
       },
       {
         name: "tipo_organo",
-        label: "Tipo de órgano",
+        label: "Tipo de unidad ejecutora",
         type: "select",
-        optionsEndpoint: "organ-types",
-        optionsParams: { organo__nombre: "Unidad Ejecutora" },
+        optionsEndpoint: "organ-directories",
+        optionsParams: { categoria: "UNIDAD_EJECUTORA" },
       },
       activoFilter,
     ],
@@ -377,11 +408,11 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
       },
       {
         name: "tipo_organo",
-        label: "Tipo de órgano",
+        label: "Tipo de unidad ejecutora",
         type: "select",
         required: true,
-        optionsEndpoint: "organ-types",
-        optionsParams: { organo__nombre: "Unidad Ejecutora" },
+        optionsEndpoint: "organ-directories",
+        optionsParams: { categoria: "UNIDAD_EJECUTORA" },
       },
 
       // ── Ubicación ─────────────────────────────────────────────────────────
@@ -405,36 +436,29 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     endpoint: "organ-directories",
     title: "Órganos del directorio",
     singular: "órgano del directorio",
-    description: "Unifica órganos regionales (GERESA/DIRESA/DIRIS) y órganos MINSA (DIGEP, etc.).",
-    searchPlaceholder: "Buscar por nombre, siglas o RUC…",
+    description: "Directorio unificado: órganos del MINSA, Gobiernos Regionales, DIRIS y Unidades Ejecutoras.",
+    searchPlaceholder: "Buscar por nombre o siglas…",
     columns: [
-      logoColumn("organ-directories"),
+      {
+        key: "categoria",
+        header: "Categoría",
+        render: (r) => categoriaLabel(r.categoria),
+      },
       { key: "nombre", header: "Nombre" },
       { key: "siglas", header: "Siglas" },
       {
-        key: "organo",
-        header: "Categoría",
-        render: (r) => detalleNombre(r.organo_detalle),
-      },
-      {
         key: "gobierno_regional",
         header: "Gobierno regional",
-        render: (r) => detalleNombre(r.gobierno_regional_detalle),
+        render: (r) => String(r.gobierno_regional_detalle ?? "—"),
       },
       { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
     ],
     filters: [
       {
-        name: "organo",
-        label: "Categoría de órgano",
+        name: "categoria",
+        label: "Categoría",
         type: "select",
-        optionsEndpoint: "organs",
-      },
-      {
-        name: "tipo_organo",
-        label: "Tipo de órgano",
-        type: "select",
-        optionsEndpoint: "organ-types",
+        choices: ORGAN_DIRECTORY_CATEGORY,
       },
       {
         name: "gobierno_regional",
@@ -446,21 +470,11 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     ],
     fields: [
       {
-        name: "organo",
-        label: "Categoría de órgano",
+        name: "categoria",
+        label: "Categoría",
         type: "select",
         required: true,
-        optionsEndpoint: "organs",
-      },
-      // Cascada: solo carga tipos del órgano seleccionado; sentinel "0" bloquea opciones si no hay categoría.
-      {
-        name: "tipo_organo",
-        label: "Tipo de órgano",
-        type: "select",
-        optionsEndpoint: "organ-types",
-        optionsParamsFrom: (v): Record<string, string> =>
-          v.organo ? { organo: String(v.organo) } : { organo: "0" },
-        resetsOn: ["organo"],
+        choices: ORGAN_DIRECTORY_CATEGORY,
       },
       {
         name: "gobierno_regional",
@@ -470,13 +484,6 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
       },
       { name: "nombre", label: "Nombre", type: "text", required: true, uppercase: false },
       { name: "siglas", label: "Siglas", type: "text" },
-      {
-        name: "ubigeo",
-        label: "Ubigeo",
-        type: "select",
-        optionsEndpoint: "ubigeos",
-        optionsToLabel: ubigeoLabel,
-      },
       { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
     ],
   },

@@ -37,8 +37,9 @@ class ConventionReadSerializer(serializers.ModelSerializer):
     # Universidad y órgano del directorio: id + nombre legible; el "tipo" se deriva de la
     # entidad (no se almacena en `convenio`), evitando redundancia en el esquema.
     organo_directorio_nombre = serializers.CharField(source="organo_directorio.nombre", read_only=True)
+    # Categoría del órgano del directorio (discriminador), label español; ya no es un sub-tipo.
     tipo_organo_directorio = serializers.CharField(
-        source="organo_directorio.tipo_organo.nombre", read_only=True, allow_null=True,
+        source="organo_directorio.get_categoria_display", read_only=True, allow_null=True,
     )
     universidad_nombre = serializers.CharField(source="universidad.nombre", read_only=True)
     tipo_entidad_universidad = serializers.CharField(
@@ -354,9 +355,11 @@ class OrganRepresentativeSerializer(serializers.ModelSerializer):
         )
         cargo = attrs.get("cargo_ejecutivo", getattr(self.instance, "cargo_ejecutivo", None))
         if organo_directorio is not None and cargo is not None:
-            if cargo.organo_id != organo_directorio.organo_id:
+            # Coherencia cargo↔categoría: el nombre del órgano del cargo (Organ) debe
+            # coincidir con el label de la categoría del directorio (mismo texto por seed).
+            if cargo.organo.nombre != organo_directorio.get_categoria_display():
                 raise serializers.ValidationError(
-                    {"cargo_ejecutivo": "El cargo ejecutivo no corresponde al órgano del directorio."}
+                    {"cargo_ejecutivo": "El cargo no corresponde a la categoría del órgano del directorio."}
                 )
         return attrs
 

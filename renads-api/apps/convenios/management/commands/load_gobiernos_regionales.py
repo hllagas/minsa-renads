@@ -4,6 +4,9 @@ Los 25 gobiernos regionales se derivan del catálogo `region` ya sembrado: por c
 región se crea un `gobierno_regional` con nombre oficial «Gobierno Regional de/del
 <Región>». Idempotente (clave natural: `region`); re-ejecutar no duplica.
 
+Los campos `ubigeo` y `sigla` de `gobierno_regional` son opcionales y este comando
+no los siembra (se dejan nulos/vacíos); pueden completarse luego vía el CRUD.
+
 Uso:
     python manage.py load_gobiernos_regionales
     python manage.py load_gobiernos_regionales --dry-run

@@ -150,11 +150,24 @@ class SigningAuthorityType(Catalog):
         verbose_name = "tipo de autoridad firmante"
 
 
+# Categorías del directorio de órganos (`organo_directorio.categoria`). Los labels
+# replican los nombres canónicos de la tabla `organo` (fuente de la coherencia
+# cargo↔categoría en `OrganRepresentativeSerializer`). RN-1: GOBIERNO_REGIONAL
+# agrupa GERESA+DIRESA (pueden solicitar Marco); MINSA_DIRIS (DIRIS) está exenta.
+ORGAN_DIRECTORY_CATEGORY = [
+    ("ORGANO_MINSA", "Órgano del MINSA"),
+    ("UNIVERSIDAD", "Universidad"),
+    ("GOBIERNO_REGIONAL", "Gobierno Regional"),
+    ("MINSA_DIRIS", "MINSA DIRIS"),
+    ("UNIDAD_EJECUTORA", "Unidad Ejecutora"),
+]
+
+
 class Organ(models.Model):
     """Categoría de órgano institucional (tabla normalizada que reemplaza el CharField discriminador).
 
-    Las cuatro categorías canónicas son: Órgano del MINSA, Universidad,
-    Órgano Regional y Unidad Ejecutora.
+    Las cinco categorías canónicas son: Órgano del MINSA, Universidad,
+    Gobierno Regional, MINSA DIRIS y Unidad Ejecutora.
     """
 
     nombre = models.CharField("nombre", max_length=255, help_text="Nombre del órgano")
@@ -169,59 +182,35 @@ class Organ(models.Model):
         return self.nombre
 
 
-class OrganType(models.Model):
-    """Tipo de órgano/entidad institucional (unifica cuatro tablas de catálogo previas).
-
-    No hereda de ``Catalog`` porque la unicidad de ``codigo`` es por
-    ``organo``, no global — ver ``unique_together``.
-    """
-
-    organo = models.ForeignKey(
-        "Organ",
-        on_delete=models.PROTECT,
-        verbose_name="órgano",
-        db_column="organo_id",
-        related_name="tipos",
-        help_text="Categoría del órgano (Órgano del MINSA / Universidad / Órgano Regional / Unidad Ejecutora)",
-    )
-    codigo = models.CharField("código", max_length=50, help_text="Código del tipo (único dentro de la categoría)")
-    nombre = models.CharField("nombre", max_length=255, help_text="Nombre")
-    activo = models.BooleanField("activo", default=True, help_text="Indica si está activo")
-
-    class Meta:
-        db_table = "tipo_organo"
-        verbose_name = "tipo de órgano"
-        verbose_name_plural = "tipos de órgano"
-        unique_together = (("organo", "codigo"),)
-        ordering = ["organo", "codigo"]
-
-    def __str__(self):
-        return self.nombre
-
-
 class ExecutivePosition(models.Model):
     """Cargo ejecutivo, discriminado por órgano.
 
-    No hereda de ``Catalog`` porque su ``codigo`` es único por ``organo``, no
-    global (ver ``unique_together``).
+    No hereda de ``Catalog`` porque su ``nombre_masculino`` es único por
+    ``organo``, no global (ver ``unique_together``).
     """
 
     organo = models.ForeignKey(
         "Organ", on_delete=models.PROTECT, db_column="organo_id", related_name="cargos",
         verbose_name="órgano", help_text="Categoría del órgano al que pertenece el cargo",
     )
-    codigo = models.CharField("código", max_length=50, help_text="Código del cargo (único dentro del órgano)")
-    nombre = models.CharField("nombre", max_length=255, help_text="Nombre del cargo")
+    nombre_masculino = models.CharField(
+        "nombre (masculino)", max_length=255,
+        help_text="Nombre del cargo en masculino",
+    )
+    nombre_femenino = models.CharField(
+        "nombre (femenino)", max_length=255, blank=True,
+        help_text="Nombre del cargo en femenino",
+    )
     activo = models.BooleanField("activo", default=True, help_text="Indica si está activo")
 
     class Meta:
         db_table = "cargo_ejecutivo"
         verbose_name = "cargo ejecutivo"
-        unique_together = (("organo", "codigo"),)
-        ordering = ["organo", "codigo"]
+        unique_together = (("organo", "nombre_masculino"),)
+        ordering = ["organo", "nombre_masculino"]
 
     def __str__(self):
-        return self.nombre
+        return self.nombre_masculino
 
 
 class ObservationReason(Catalog):
@@ -290,6 +279,11 @@ class RegionalGovernment(models.Model):
     direccion = models.CharField("dirección", max_length=500, blank=True, help_text="Dirección")
     correo = models.EmailField("correo", blank=True, help_text="Correo institucional")
     telefono = models.CharField("teléfono", max_length=30, blank=True, help_text="Teléfono institucional")
+    sigla = models.CharField("sigla", max_length=50, blank=True, help_text="Sigla del gobierno regional")
+    ubigeo = models.ForeignKey(
+        Ubigeo, on_delete=models.PROTECT, db_column="ubigeo_id", null=True, blank=True,
+        related_name="+", help_text="Ubicación geográfica (UBIGEO)",
+    )
     referencia_logo = models.ImageField(
         "logo", upload_to="gobierno_regional/", max_length=500, null=True, blank=True,
         help_text="Logo institucional (imagen almacenada en el repositorio de medios)",
@@ -305,19 +299,16 @@ class RegionalGovernment(models.Model):
 
 
 class OrganDirectory(models.Model):
-    """Directorio general de órganos institucionales (standalone), discriminado por ``organo``.
+    """Directorio unificado de órganos/tipos institucionales, discriminado por ``categoria``.
 
-    Unifica los antiguos ``organo_regional`` y ``organo_minsa`` en una única tabla.
-    Los órganos regionales llevan ``gobierno_regional``; los del MINSA lo dejan nulo.
+    Cataloga órganos del MINSA, universidades, gobiernos regionales, DIRIS y unidades
+    ejecutoras en una única tabla. La ``categoria`` (choices) reemplaza al antiguo FK
+    ``organo``/``tipo_organo``. Los órganos regionales pueden llevar ``gobierno_regional``.
     """
 
-    organo = models.ForeignKey(
-        "Organ", on_delete=models.PROTECT, db_column="organo_id", related_name="directorios",
-        verbose_name="órgano", help_text="Categoría del órgano (discriminador)",
-    )
-    tipo_organo = models.ForeignKey(
-        OrganType, on_delete=models.PROTECT, db_column="tipo_organo_id", null=True, blank=True,
-        related_name="+", help_text="Tipo de órgano (GERESA/DIRESA/DIGEP…); nulo para órganos sin tipo",
+    categoria = models.CharField(
+        "categoría", max_length=20, choices=ORGAN_DIRECTORY_CATEGORY,
+        db_column="categoria", help_text="Categoría del órgano (discriminador)",
     )
     gobierno_regional = models.ForeignKey(
         RegionalGovernment, on_delete=models.PROTECT, db_column="gobierno_regional_id",
@@ -326,14 +317,6 @@ class OrganDirectory(models.Model):
     )
     nombre = models.CharField("nombre", max_length=255, help_text="Nombre del órgano")
     siglas = models.CharField("siglas", max_length=50, blank=True, help_text="Siglas")
-    ubigeo = models.ForeignKey(
-        Ubigeo, on_delete=models.PROTECT, db_column="ubigeo_id", null=True, blank=True,
-        related_name="+", help_text="Ubicación geográfica (UBIGEO)",
-    )
-    referencia_logo = models.ImageField(
-        "logo", upload_to="organo_directorio/", max_length=500, null=True, blank=True,
-        help_text="Logo institucional (imagen almacenada en el repositorio de medios)",
-    )
     activo = models.BooleanField("activo", default=True)
 
     class Meta:
@@ -349,9 +332,9 @@ class ExecutingUnit(models.Model):
     codigo = models.CharField("código", max_length=50, blank=True, help_text="Código presupuestal")
     nombre = models.CharField("nombre", max_length=255, help_text="Nombre")
     tipo_organo = models.ForeignKey(
-        OrganType, on_delete=models.PROTECT, db_column="tipo_organo_id", related_name="+",
-        limit_choices_to={"organo__nombre": "Unidad Ejecutora"},
-        help_text="Tipo de unidad ejecutora (Hospital / Instituto especializado / Red de salud; discriminador UNIDAD_EJECUTORA)",
+        OrganDirectory, on_delete=models.PROTECT, db_column="tipo_organo_id", related_name="+",
+        limit_choices_to={"categoria": "UNIDAD_EJECUTORA"},
+        help_text="Tipo de unidad ejecutora del directorio (categoría UNIDAD_EJECUTORA)",
     )
     gobierno_regional = models.ForeignKey(
         RegionalGovernment, on_delete=models.PROTECT, db_column="gobierno_regional_id",
@@ -571,8 +554,9 @@ class University(models.Model):
         help_text="Pública / privada",
     )
     tipo_entidad = models.ForeignKey(
-        OrganType, on_delete=models.PROTECT, db_column="tipo_entidad_id",
-        help_text="Universidad / Escuela posgrado / Escuela superior / Instituto (discriminador: UNIVERSIDAD)",
+        OrganDirectory, on_delete=models.PROTECT, db_column="tipo_entidad_id",
+        limit_choices_to={"categoria": "UNIVERSIDAD"},
+        help_text="Tipo de entidad del directorio (categoría UNIVERSIDAD)",
     )
     tipo_autorizacion = models.ForeignKey(
         AuthorizationType, on_delete=models.PROTECT, db_column="tipo_autorizacion_id",
@@ -609,6 +593,14 @@ class Faculty(models.Model):
         related_name="facultades", help_text="Universidad",
     )
     nombre = models.CharField("nombre", max_length=255, help_text="Nombre de la facultad")
+    ubigeo = models.ForeignKey(
+        Ubigeo, on_delete=models.PROTECT, db_column="ubigeo_id", null=True, blank=True,
+        related_name="+", help_text="Ubicación geográfica (UBIGEO)",
+    )
+    referencia_logo = models.ImageField(
+        "logo", upload_to="facultad/", max_length=500, null=True, blank=True,
+        help_text="Logo institucional (imagen almacenada en el repositorio de medios)",
+    )
     activo = models.BooleanField("activo", default=True)
 
     class Meta:

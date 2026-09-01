@@ -3,6 +3,7 @@ import type { FilterConfig, ResourceConfig } from "@/lib/crud/types";
 import type { WithId } from "@/lib/api/query";
 import { ENTITY_CONFIGS } from "@/lib/convenios/entities";
 import { ActiveSwitchCell } from "@/lib/catalogos/active-switch-cell";
+import { EntityLogo } from "@/components/ui/entity-logo";
 
 const siNo = (v: unknown) => (v ? "Sí" : "No");
 
@@ -33,7 +34,19 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     description: "Facultades por universidad.",
     searchPlaceholder: "Buscar por nombre…",
     columns: [
+      {
+        key: "referencia_logo",
+        header: "Logo",
+        render: (r) =>
+          React.createElement(EntityLogo, {
+            entidad: "faculties",
+            id: r.id,
+            referenciaLogo: (r.referencia_logo as string | undefined) ?? null,
+            size: 32,
+          }),
+      },
       { key: "nombre", header: "Nombre" },
+      { key: "ubigeo_detalle", header: "Ubicación", render: (r) => String(r.ubigeo_detalle ?? "—") },
       { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
     ],
     filters: [
@@ -42,6 +55,13 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         label: "Universidad",
         type: "select",
         optionsEndpoint: "universities",
+      },
+      {
+        name: "ubigeo",
+        label: "Ubigeo",
+        type: "select",
+        optionsEndpoint: "ubigeos",
+        optionsToLabel: ubigeoLabel,
       },
       activoFilter,
     ],
@@ -54,6 +74,13 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         optionsEndpoint: "universities",
       },
       { name: "nombre", label: "Nombre", type: "text", required: true, uppercase: false },
+      {
+        name: "ubigeo",
+        label: "Ubigeo",
+        type: "select",
+        optionsEndpoint: "ubigeos",
+        optionsToLabel: ubigeoLabel,
+      },
       { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
     ],
   },

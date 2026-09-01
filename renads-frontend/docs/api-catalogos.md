@@ -26,7 +26,7 @@ ordering `id`/`codigo`/`nombre` (default `id`). Se usan para poblar selects.
 
 **Solo lectura (sin CRUD admin):**
 `regions`, `convention-types`, `convention-statuses`, `university-management-types`, `specialties`,
-`signing-authority-types`, `executive-positions`, `observation-reasons`, `rejection-reasons`,
+`signing-authority-types`, `observation-reasons`, `rejection-reasons`,
 `closure-reasons`, `identity-document-types`, `relationship-types`
 
 `ubigeos` — catálogo INEI (solo lectura). Filtros: `departamento`, `provincia`, `distrito`, `activo`;
@@ -45,16 +45,12 @@ Campos del modelo base `Catalog`: `codigo` (único, obligatorio), `nombre` (obli
 |----------|-------|---------------|
 | `authorization-types` | Tipo de autorización | — |
 | `academic-levels` | Nivel académico de carrera | — |
-| `organ-types` | Tipo dentro de una categoría de órgano. FK `organo` → `organs` | `organo__nombre` (filtra por categoría) |
+| `executive-positions` | Cargo ejecutivo de órgano. FK `organo` → `organs`. Campos: `organo`, `nombre_masculino` (req), `nombre_femenino` (opt), `activo` | `organo` |
 | `categories` | Categoría de convenio | — |
 | `classification-types` | Clasificación de convenio | — |
 | `health-geographic-scopes` | Ámbito geográfico sanitario (cúspide: ámbito→red→microrred) | — |
 
-> **`organ-types`**: reemplaza a los eliminados `regional-organ-types`, `minsa-organ-types`,
-> `executing-unit-types`, `university-entity-types`. Discriminar por categoría con
-> `?organo__nombre=<MINSA|Universidad|Órgano Regional|Unidad Ejecutora>`.
-
-> **Eliminados del backend (no usar):** `document-types`, `university-entity-types`,
+> **Eliminados del backend (no usar):** `organ-types`, `document-types`, `university-entity-types`,
 > `regional-organ-types`, `minsa-organ-types`, `executing-unit-types`.
 
 > Front: configurados con `writableCatalog()` en `lib/catalogos/catalogs.ts`. Se editan desde
@@ -82,27 +78,61 @@ Campos base `Catalog` (`codigo`/`nombre`/`activo`) más su FK de jerarquía:
 Escritura solo **`Administrador RENADS`** (la autoridad final es el backend). Ordering default `id`.
 Cada recurso expone `id` + todos los campos del modelo, con estos filtros/búsqueda.
 
-**Refactor 2026-08-29:** `regional-organs` y `minsa-organs` se unificaron en `organ-directories`
-(discriminado por FK `organo`). `executing-units` cambió `organo_regional`/`tipo_unidad_ejecutora`
-por `gobierno_regional`/`tipo_organo`. `university-authorities` fue eliminado.
+**Refactor 2026-08-29:** `regional-organs` y `minsa-organs` se unificaron en `organ-directories`.
+`executing-units` cambió `organo_regional`/`tipo_unidad_ejecutora` por `gobierno_regional`/`tipo_organo`.
+`university-authorities` fue eliminado.
+
+**Refactor 2026-08-30:** `organ-directories` reemplaza FK `organo`+`tipo_organo` (→ `organs`/`organ-types`)
+por campo CharField `categoria` con choices (`ORGANO_MINSA | UNIVERSIDAD | GOBIERNO_REGIONAL | MINSA_DIRIS | UNIDAD_EJECUTORA`).
+Eliminados de `organ-directories`: `ubigeo`, `direccion`, `numero_ruc`, `correo`, `telefono_institucional`.
+Añadidos a `regional-governments`: `sigla`, `ubigeo`, `numero_ruc`, `direccion`, `correo`, `telefono`.
+`executing-units.tipo_organo` ahora apunta a `organ-directories?categoria=UNIDAD_EJECUTORA` (no a `organ-types`).
 
 | Endpoint | Filtros (`filterset_fields`) | Search | Detalles |
 |----------|------------------------------|--------|----------|
 | `organs` | — | — | Solo lectura. 4 categorías canónicas. |
-| `organ-types` | `organo`, `activo` | `codigo`, `nombre` | `organo_detalle` |
-| `organ-directories` | `organo`, `activo` | `nombre`, `siglas` | `organo_detalle`, `tipo_organo_detalle`, `gobierno_regional_detalle` |
+| `organ-directories` | `categoria`, `gobierno_regional`, `activo` | `nombre`, `siglas` | `gobierno_regional_detalle` (string) |
 | `executing-units` | `tipo_organo`, `gobierno_regional`, `activo` | `nombre`, `codigo` | `tipo_organo_detalle`, `gobierno_regional_detalle`, `ubigeo_detalle` |
-| `regional-governments` | `region`, `activo` | `nombre` | — |
+| `regional-governments` | `region`, `ubigeo`, `activo` | `nombre` | `ubigeo_detalle` (string) |
 | `ipress` | `unidad_ejecutora`, `ambito_geografico_sanitario`, `es_sede_docente`, `activo` | `nombre`, `codigo_renipress` | — |
 | `conapres` | `activo` | `nombre` | — |
 | `universities` | `tipo_gestion`, `tipo_entidad`, `tipo_autorizacion`, `activo` | `nombre`, `siglas` | `tipo_gestion_detalle`, `tipo_entidad_detalle`, `tipo_autorizacion_detalle` |
-| `faculties` | `universidad`, `activo` | `nombre` | — |
+| `faculties` | `universidad`, `ubigeo`, `activo` | `nombre` | `ubigeo_detalle` (string); `referencia_logo` (logo) |
 | `professional-careers` | `nivel_academico`, `activo` | `nombre` | — |
 | `university-campuses` | `universidad`, `region`, `activo` | `nombre` | — |
 | `university-careers` | `universidad`, `carrera_profesional`, `facultad`, `activo` | — | `universidad_detalle`, `carrera_profesional_detalle`, `facultad_detalle` (todos strings) |
 | `user-entity-profiles` | `usuario`, `grupo`, `activo` | — | Solo `Administrador RENADS`. |
 
 > Los campos `*_detalle` son strings planos (no objetos `{id, nombre}`). Usar `String(r.*_detalle ?? "—")` en columnas.
+
+### `organ-directories` — campo `categoria`
+
+El campo `categoria` es un CharField con choices (reemplaza al FK `organo`). Valores:
+
+| Valor | Label |
+|-------|-------|
+| `ORGANO_MINSA` | Órgano del MINSA |
+| `UNIVERSIDAD` | Universidad |
+| `GOBIERNO_REGIONAL` | Gobierno Regional |
+| `MINSA_DIRIS` | MINSA DIRIS |
+| `UNIDAD_EJECUTORA` | Unidad Ejecutora |
+
+Filtrar por categoría: `?categoria=GOBIERNO_REGIONAL`. No hay `tipo_organo` ni `ubigeo` en el directorio.
+`gobierno_regional` (FK opcional) aplica solo a categorías regionales.
+
+### `regional-governments` — campos de contacto e identificación
+
+```
+id (readonly), referencia_logo (readonly), ubigeo_detalle (readonly string),
+nombre (req), sigla?, region (FK req), ubigeo (FK|null),
+numero_ruc?, direccion?, correo?, telefono?, activo?
+```
+
+### `executing-units` — `tipo_organo` apunta a `organ-directories`
+
+El campo `tipo_organo` es FK a `organ-directories` con `limit_choices_to={"categoria": "UNIDAD_EJECUTORA"}`.
+Para el selector del front usar `?categoria=UNIDAD_EJECUTORA`. El `tipo_organo_detalle` es el `nombre`
+del órgano del directorio seleccionado.
 
 ### `ipress` — sede docente (CONAPRES)
 
@@ -125,10 +155,15 @@ Solo `Administrador RENADS`.
 > **`faculties`**: `FacultyAuto` no expone `universidad_detalle` (viewset sin kwarg `detalles`).
 > La tabla de facultades solo muestra `nombre` + `activo`. Ver REQ-BACK-03 en `CLAUDE.md`.
 
+### `universities` — `tipo_entidad` apunta a `organ-directories`
+
+El campo `tipo_entidad` es FK a `OrganDirectory` con `limit_choices_to={"categoria": "UNIVERSIDAD"}`.
+Para el selector del front usar `?categoria=UNIVERSIDAD`.
+
 ### Endpoints eliminados (no usar)
 
-`regional-organs`, `minsa-organs`, `university-authorities` — eliminados del backend en el refactor
-2026-08-29. Usar `organ-directories` con filtro `?organo=<id>` en su lugar.
+`regional-organs`, `minsa-organs`, `university-authorities`, `organ-types` — eliminados del backend.
+Usar `organ-directories` con filtro `?categoria=<VALOR>` según corresponda.
 
 ---
 

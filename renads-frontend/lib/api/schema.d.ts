@@ -1629,7 +1629,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description CRUD de facultades + asignación en lote de carreras por facultad.
+         * @description CRUD de facultades (con logo y ubigeo) + asignación en lote de carreras por facultad.
          *
          *     La acción `careers` sincroniza (idempotente) las carreras de la facultad en
          *     `universidad_carrera` derivando la universidad de la facultad; delega en el
@@ -1638,7 +1638,7 @@ export interface paths {
         get: operations["faculties_list"];
         put?: never;
         /**
-         * @description CRUD de facultades + asignación en lote de carreras por facultad.
+         * @description CRUD de facultades (con logo y ubigeo) + asignación en lote de carreras por facultad.
          *
          *     La acción `careers` sincroniza (idempotente) las carreras de la facultad en
          *     `universidad_carrera` derivando la universidad de la facultad; delega en el
@@ -1659,7 +1659,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description CRUD de facultades + asignación en lote de carreras por facultad.
+         * @description CRUD de facultades (con logo y ubigeo) + asignación en lote de carreras por facultad.
          *
          *     La acción `careers` sincroniza (idempotente) las carreras de la facultad en
          *     `universidad_carrera` derivando la universidad de la facultad; delega en el
@@ -1667,7 +1667,7 @@ export interface paths {
          */
         get: operations["faculties_retrieve"];
         /**
-         * @description CRUD de facultades + asignación en lote de carreras por facultad.
+         * @description CRUD de facultades (con logo y ubigeo) + asignación en lote de carreras por facultad.
          *
          *     La acción `careers` sincroniza (idempotente) las carreras de la facultad en
          *     `universidad_carrera` derivando la universidad de la facultad; delega en el
@@ -1676,7 +1676,7 @@ export interface paths {
         put: operations["faculties_update"];
         post?: never;
         /**
-         * @description CRUD de facultades + asignación en lote de carreras por facultad.
+         * @description CRUD de facultades (con logo y ubigeo) + asignación en lote de carreras por facultad.
          *
          *     La acción `careers` sincroniza (idempotente) las carreras de la facultad en
          *     `universidad_carrera` derivando la universidad de la facultad; delega en el
@@ -1686,7 +1686,7 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * @description CRUD de facultades + asignación en lote de carreras por facultad.
+         * @description CRUD de facultades (con logo y ubigeo) + asignación en lote de carreras por facultad.
          *
          *     La acción `careers` sincroniza (idempotente) las carreras de la facultad en
          *     `universidad_carrera` derivando la universidad de la facultad; delega en el
@@ -1712,6 +1712,53 @@ export interface paths {
          *     no estén. Devuelve las filas `universidad_carrera` activas resultantes.
          */
         post: operations["faculties_careers_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/faculties/{id}/logo-url/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obtener la URL del logo de la entidad
+         * @description Devuelve la URL (signed URL efímero) del logo, o 404 si no hay logo cargado.
+         */
+        get: operations["faculties_logo_url_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/faculties/{id}/upload-logo/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Subir/reemplazar el logo de la entidad
+         * @description Sube (o reemplaza) el logo de la entidad y devuelve su URL.
+         *
+         *     Asigna el archivo al `ImageField` y guarda; Django escribe el binario en
+         *     `STORAGES["default"]` usando el `upload_to` de la entidad. Si ya existía un
+         *     logo distinto, se borra el binario anterior **después** de guardar el nuevo
+         *     (no dejar la entidad sin logo si la subida falla). Persiste el path en
+         *     `referencia_logo` y registra auditoría. Responde `{referencia_logo, url}`
+         *     (`url` = signed URL efímero del campo).
+         */
+        post: operations["faculties_upload_logo_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2317,36 +2364,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
-         *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
-         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
-         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
-         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
-         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
-         *
-         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
-         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
-         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
-         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
-         */
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         get: operations["organ_directories_list"];
         put?: never;
-        /**
-         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
-         *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
-         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
-         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
-         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
-         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
-         *
-         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
-         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
-         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
-         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
-         */
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         post: operations["organ_directories_create"];
         delete?: never;
         options?: never;
@@ -2361,116 +2382,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
-         *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
-         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
-         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
-         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
-         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
-         *
-         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
-         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
-         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
-         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
-         */
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         get: operations["organ_directories_retrieve"];
-        /**
-         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
-         *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
-         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
-         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
-         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
-         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
-         *
-         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
-         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
-         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
-         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
-         */
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         put: operations["organ_directories_update"];
         post?: never;
-        /**
-         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
-         *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
-         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
-         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
-         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
-         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
-         *
-         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
-         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
-         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
-         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
-         */
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         delete: operations["organ_directories_destroy"];
         options?: never;
         head?: never;
-        /**
-         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
-         *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
-         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
-         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
-         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
-         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
-         *
-         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
-         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
-         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
-         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
-         */
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         patch: operations["organ_directories_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/organ-directories/{id}/logo-url/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Obtener la URL del logo de la entidad
-         * @description Devuelve la URL (signed URL efímero) del logo, o 404 si no hay logo cargado.
-         */
-        get: operations["organ_directories_logo_url_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/organ-directories/{id}/upload-logo/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Subir/reemplazar el logo de la entidad
-         * @description Sube (o reemplaza) el logo de la entidad y devuelve su URL.
-         *
-         *     Asigna el archivo al `ImageField` y guarda; Django escribe el binario en
-         *     `STORAGES["default"]` usando el `upload_to` de la entidad. Si ya existía un
-         *     logo distinto, se borra el binario anterior **después** de guardar el nuevo
-         *     (no dejar la entidad sin logo si la subida falla). Persiste el path en
-         *     `referencia_logo` y registra auditoría. Responde `{referencia_logo, url}`
-         *     (`url` = signed URL efímero del campo).
-         */
-        post: operations["organ_directories_upload_logo_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
         trace?: never;
     };
     "/api/v1/organ-representative-history/": {
@@ -2641,44 +2563,6 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
-        trace?: never;
-    };
-    "/api/v1/organ-types/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        get: operations["organ_types_list"];
-        put?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        post: operations["organ_types_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/organ-types/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        get: operations["organ_types_retrieve"];
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        put: operations["organ_types_update"];
-        post?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        delete: operations["organ_types_destroy"];
-        options?: never;
-        head?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        patch: operations["organ_types_partial_update"];
         trace?: never;
     };
     "/api/v1/organs/": {
@@ -4296,6 +4180,15 @@ export interface components {
             responsables?: string;
             content_types?: number[];
         };
+        /**
+         * @description * `ORGANO_MINSA` - Órgano del MINSA
+         *     * `UNIVERSIDAD` - Universidad
+         *     * `GOBIERNO_REGIONAL` - Gobierno Regional
+         *     * `MINSA_DIRIS` - MINSA DIRIS
+         *     * `UNIDAD_EJECUTORA` - Unidad Ejecutora
+         * @enum {string}
+         */
+        CategoriaEnum: "ORGANO_MINSA" | "UNIVERSIDAD" | "GOBIERNO_REGIONAL" | "MINSA_DIRIS" | "UNIDAD_EJECUTORA";
         CategoryAuto: {
             readonly id: number;
             /**
@@ -4801,7 +4694,7 @@ export interface components {
              */
             direccion?: string;
             activo?: boolean;
-            /** @description Tipo de unidad ejecutora (Hospital / Instituto especializado / Red de salud; discriminador UNIDAD_EJECUTORA) */
+            /** @description Tipo de unidad ejecutora del directorio (categoría UNIDAD_EJECUTORA) */
             tipo_organo: number;
             /** @description Gobierno regional al que pertenece */
             gobierno_regional: number;
@@ -4812,12 +4705,15 @@ export interface components {
             readonly id: number;
             readonly organo_detalle: string;
             /**
-             * Código
-             * @description Código del cargo (único dentro del órgano)
+             * Nombre (masculino)
+             * @description Nombre del cargo en masculino
              */
-            codigo: string;
-            /** @description Nombre del cargo */
-            nombre: string;
+            nombre_masculino: string;
+            /**
+             * Nombre (femenino)
+             * @description Nombre del cargo en femenino
+             */
+            nombre_femenino?: string;
             /** @description Indica si está activo */
             activo?: boolean;
             /**
@@ -4828,11 +4724,15 @@ export interface components {
         };
         FacultyAuto: {
             readonly id: number;
+            readonly referencia_logo: string;
+            readonly ubigeo_detalle: string;
             /** @description Nombre de la facultad */
             nombre: string;
             activo?: boolean;
             /** @description Universidad */
             universidad: number;
+            /** @description Ubicación geográfica (UBIGEO) */
+            ubigeo?: number | null;
         };
         /**
          * @description Entrada de la acción en lote `POST /faculties/{id}/careers`.
@@ -5127,26 +5027,25 @@ export interface components {
         };
         OrganDirectoryAuto: {
             readonly id: number;
-            readonly referencia_logo: string;
-            readonly organo_detalle: string;
-            readonly tipo_organo_detalle: string;
             readonly gobierno_regional_detalle: string;
+            /**
+             * Categoría
+             * @description Categoría del órgano (discriminador)
+             *
+             *     * `ORGANO_MINSA` - Órgano del MINSA
+             *     * `UNIVERSIDAD` - Universidad
+             *     * `GOBIERNO_REGIONAL` - Gobierno Regional
+             *     * `MINSA_DIRIS` - MINSA DIRIS
+             *     * `UNIDAD_EJECUTORA` - Unidad Ejecutora
+             */
+            categoria: components["schemas"]["CategoriaEnum"];
             /** @description Nombre del órgano */
             nombre: string;
             /** @description Siglas */
             siglas?: string;
             activo?: boolean;
-            /**
-             * Órgano
-             * @description Categoría del órgano (discriminador)
-             */
-            organo: number;
-            /** @description Tipo de órgano (GERESA/DIRESA/DIGEP…); nulo para órganos sin tipo */
-            tipo_organo?: number | null;
             /** @description GORE (solo órganos regionales) */
             gobierno_regional?: number | null;
-            /** @description Ubicación geográfica (UBIGEO) */
-            ubigeo?: number | null;
         };
         /**
          * @description Representante de un órgano del directorio (FK directo).
@@ -5247,24 +5146,6 @@ export interface components {
             tipo_documento_identidad: number;
             /** @description Cargo ejecutivo */
             cargo_ejecutivo: number;
-        };
-        OrganTypeAuto: {
-            readonly id: number;
-            readonly organo_detalle: string;
-            /**
-             * Código
-             * @description Código del tipo (único dentro de la categoría)
-             */
-            codigo: string;
-            /** @description Nombre */
-            nombre: string;
-            /** @description Indica si está activo */
-            activo?: boolean;
-            /**
-             * Órgano
-             * @description Categoría del órgano (Órgano del MINSA / Universidad / Órgano Regional / Unidad Ejecutora)
-             */
-            organo: number;
         };
         PaginatedAcademicLevelAutoList: {
             /** @example 123 */
@@ -5790,21 +5671,6 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["OrganRepresentative"][];
-        };
-        PaginatedOrganTypeAutoList: {
-            /** @example 123 */
-            count: number;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=4
-             */
-            next?: string | null;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=2
-             */
-            previous?: string | null;
-            results: components["schemas"]["OrganTypeAuto"][];
         };
         PaginatedPermissionList: {
             /** @example 123 */
@@ -6489,7 +6355,7 @@ export interface components {
              */
             direccion?: string;
             activo?: boolean;
-            /** @description Tipo de unidad ejecutora (Hospital / Instituto especializado / Red de salud; discriminador UNIDAD_EJECUTORA) */
+            /** @description Tipo de unidad ejecutora del directorio (categoría UNIDAD_EJECUTORA) */
             tipo_organo?: number;
             /** @description Gobierno regional al que pertenece */
             gobierno_regional?: number;
@@ -6500,12 +6366,15 @@ export interface components {
             readonly id?: number;
             readonly organo_detalle?: string;
             /**
-             * Código
-             * @description Código del cargo (único dentro del órgano)
+             * Nombre (masculino)
+             * @description Nombre del cargo en masculino
              */
-            codigo?: string;
-            /** @description Nombre del cargo */
-            nombre?: string;
+            nombre_masculino?: string;
+            /**
+             * Nombre (femenino)
+             * @description Nombre del cargo en femenino
+             */
+            nombre_femenino?: string;
             /** @description Indica si está activo */
             activo?: boolean;
             /**
@@ -6516,11 +6385,15 @@ export interface components {
         };
         PatchedFacultyAuto: {
             readonly id?: number;
+            readonly referencia_logo?: string;
+            readonly ubigeo_detalle?: string;
             /** @description Nombre de la facultad */
             nombre?: string;
             activo?: boolean;
             /** @description Universidad */
             universidad?: number;
+            /** @description Ubicación geográfica (UBIGEO) */
+            ubigeo?: number | null;
         };
         /** @description CRUD de grupos (roles) con asignación de permisos por PK. */
         PatchedGroup: {
@@ -6661,26 +6534,25 @@ export interface components {
         };
         PatchedOrganDirectoryAuto: {
             readonly id?: number;
-            readonly referencia_logo?: string;
-            readonly organo_detalle?: string;
-            readonly tipo_organo_detalle?: string;
             readonly gobierno_regional_detalle?: string;
+            /**
+             * Categoría
+             * @description Categoría del órgano (discriminador)
+             *
+             *     * `ORGANO_MINSA` - Órgano del MINSA
+             *     * `UNIVERSIDAD` - Universidad
+             *     * `GOBIERNO_REGIONAL` - Gobierno Regional
+             *     * `MINSA_DIRIS` - MINSA DIRIS
+             *     * `UNIDAD_EJECUTORA` - Unidad Ejecutora
+             */
+            categoria?: components["schemas"]["CategoriaEnum"];
             /** @description Nombre del órgano */
             nombre?: string;
             /** @description Siglas */
             siglas?: string;
             activo?: boolean;
-            /**
-             * Órgano
-             * @description Categoría del órgano (discriminador)
-             */
-            organo?: number;
-            /** @description Tipo de órgano (GERESA/DIRESA/DIGEP…); nulo para órganos sin tipo */
-            tipo_organo?: number | null;
             /** @description GORE (solo órganos regionales) */
             gobierno_regional?: number | null;
-            /** @description Ubicación geográfica (UBIGEO) */
-            ubigeo?: number | null;
         };
         /**
          * @description Representante de un órgano del directorio (FK directo).
@@ -6730,24 +6602,6 @@ export interface components {
             /** @description Cargo ejecutivo */
             cargo_ejecutivo?: number;
         };
-        PatchedOrganTypeAuto: {
-            readonly id?: number;
-            readonly organo_detalle?: string;
-            /**
-             * Código
-             * @description Código del tipo (único dentro de la categoría)
-             */
-            codigo?: string;
-            /** @description Nombre */
-            nombre?: string;
-            /** @description Indica si está activo */
-            activo?: boolean;
-            /**
-             * Órgano
-             * @description Categoría del órgano (Órgano del MINSA / Universidad / Órgano Regional / Unidad Ejecutora)
-             */
-            organo?: number;
-        };
         PatchedProfessionalCareerAuto: {
             readonly id?: number;
             /** @description Nombre de la carrera o programa */
@@ -6772,6 +6626,7 @@ export interface components {
         PatchedRegionalGovernmentAuto: {
             readonly id?: number;
             readonly referencia_logo?: string;
+            readonly ubigeo_detalle?: string;
             /** @description Nombre del gobierno regional */
             nombre?: string;
             /**
@@ -6794,9 +6649,13 @@ export interface components {
              * @description Teléfono institucional
              */
             telefono?: string;
+            /** @description Sigla del gobierno regional */
+            sigla?: string;
             activo?: boolean;
             /** @description Región */
             region?: number;
+            /** @description Ubicación geográfica (UBIGEO) */
+            ubigeo?: number | null;
         };
         PatchedStudent: {
             readonly id?: number;
@@ -6974,7 +6833,7 @@ export interface components {
             activo?: boolean;
             /** @description Pública / privada */
             tipo_gestion?: number;
-            /** @description Universidad / Escuela posgrado / Escuela superior / Instituto (discriminador: UNIVERSIDAD) */
+            /** @description Tipo de entidad del directorio (categoría UNIVERSIDAD) */
             tipo_entidad?: number;
             /** @description Licenciada / Denegada / Pendiente */
             tipo_autorizacion?: number;
@@ -7112,6 +6971,7 @@ export interface components {
         RegionalGovernmentAuto: {
             readonly id: number;
             readonly referencia_logo: string;
+            readonly ubigeo_detalle: string;
             /** @description Nombre del gobierno regional */
             nombre: string;
             /**
@@ -7134,9 +6994,13 @@ export interface components {
              * @description Teléfono institucional
              */
             telefono?: string;
+            /** @description Sigla del gobierno regional */
+            sigla?: string;
             activo?: boolean;
             /** @description Región */
             region: number;
+            /** @description Ubicación geográfica (UBIGEO) */
+            ubigeo?: number | null;
         };
         RejectionReasonAuto: {
             readonly id: number;
@@ -7567,7 +7431,7 @@ export interface components {
             activo?: boolean;
             /** @description Pública / privada */
             tipo_gestion: number;
-            /** @description Universidad / Escuela posgrado / Escuela superior / Instituto (discriminador: UNIVERSIDAD) */
+            /** @description Tipo de entidad del directorio (categoría UNIVERSIDAD) */
             tipo_entidad: number;
             /** @description Licenciada / Denegada / Pendiente */
             tipo_autorizacion: number;
@@ -10936,6 +10800,7 @@ export interface operations {
                 page?: number;
                 /** @description Un término de búsqueda. */
                 search?: string;
+                ubigeo?: number;
                 universidad?: number;
             };
             header?: never;
@@ -11102,6 +10967,55 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FacultyCareersSyncResponse"];
+                };
+            };
+        };
+    };
+    faculties_logo_url_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este facultad. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogoUrlResponse"];
+                };
+            };
+        };
+    };
+    faculties_upload_logo_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este facultad. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["LogoUpload"];
+                "application/x-www-form-urlencoded": components["schemas"]["LogoUpload"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogoUploadResponse"];
                 };
             };
         };
@@ -12440,15 +12354,23 @@ export interface operations {
         parameters: {
             query?: {
                 activo?: boolean;
+                /**
+                 * @description Categoría del órgano (discriminador)
+                 *
+                 *     * `ORGANO_MINSA` - Órgano del MINSA
+                 *     * `UNIVERSIDAD` - Universidad
+                 *     * `GOBIERNO_REGIONAL` - Gobierno Regional
+                 *     * `MINSA_DIRIS` - MINSA DIRIS
+                 *     * `UNIDAD_EJECUTORA` - Unidad Ejecutora
+                 */
+                categoria?: "GOBIERNO_REGIONAL" | "MINSA_DIRIS" | "ORGANO_MINSA" | "UNIDAD_EJECUTORA" | "UNIVERSIDAD";
                 gobierno_regional?: number;
                 /** @description Qué campo usar para ordenar los resultados. */
                 ordering?: string;
-                organo?: number;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
                 page?: number;
                 /** @description Un término de búsqueda. */
                 search?: string;
-                tipo_organo?: number;
             };
             header?: never;
             path?: never;
@@ -12586,55 +12508,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrganDirectoryAuto"];
-                };
-            };
-        };
-    };
-    organ_directories_logo_url_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este órgano del directorio. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LogoUrlResponse"];
-                };
-            };
-        };
-    };
-    organ_directories_upload_logo_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este órgano del directorio. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["LogoUpload"];
-                "application/x-www-form-urlencoded": components["schemas"]["LogoUpload"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LogoUploadResponse"];
                 };
             };
         };
@@ -12889,160 +12762,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Document"];
-                };
-            };
-        };
-    };
-    organ_types_list: {
-        parameters: {
-            query?: {
-                activo?: boolean;
-                /** @description Qué campo usar para ordenar los resultados. */
-                ordering?: string;
-                organo?: number;
-                organo__nombre?: string;
-                organo__nombre__icontains?: string;
-                /** @description Un número de página dentro del conjunto de resultados paginado. */
-                page?: number;
-                /** @description Un término de búsqueda. */
-                search?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedOrganTypeAutoList"];
-                };
-            };
-        };
-    };
-    organ_types_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["OrganTypeAuto"];
-                "application/x-www-form-urlencoded": components["schemas"]["OrganTypeAuto"];
-                "multipart/form-data": components["schemas"]["OrganTypeAuto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OrganTypeAuto"];
-                };
-            };
-        };
-    };
-    organ_types_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este tipo de órgano. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OrganTypeAuto"];
-                };
-            };
-        };
-    };
-    organ_types_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este tipo de órgano. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["OrganTypeAuto"];
-                "application/x-www-form-urlencoded": components["schemas"]["OrganTypeAuto"];
-                "multipart/form-data": components["schemas"]["OrganTypeAuto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OrganTypeAuto"];
-                };
-            };
-        };
-    };
-    organ_types_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este tipo de órgano. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    organ_types_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este tipo de órgano. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedOrganTypeAuto"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedOrganTypeAuto"];
-                "multipart/form-data": components["schemas"]["PatchedOrganTypeAuto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OrganTypeAuto"];
                 };
             };
         };
@@ -13430,6 +13149,7 @@ export interface operations {
                 region?: number;
                 /** @description Un término de búsqueda. */
                 search?: string;
+                ubigeo?: number;
             };
             header?: never;
             path?: never;

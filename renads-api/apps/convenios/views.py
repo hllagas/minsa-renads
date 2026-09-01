@@ -505,15 +505,22 @@ class IpressViewSet(
 
 class FacultyViewSet(
     _entity_viewset(
-        m.Faculty, filterset_fields=["universidad", "activo"], search_fields=["nombre"]
+        m.Faculty,
+        filterset_fields=["universidad", "ubigeo", "activo"],
+        search_fields=["nombre"],
+        logo=True,
+        detalles={"ubigeo": _detalle_ubigeo},
     ),
 ):
-    """CRUD de facultades + asignación en lote de carreras por facultad.
+    """CRUD de facultades (con logo y ubigeo) + asignación en lote de carreras por facultad.
 
     La acción `careers` sincroniza (idempotente) las carreras de la facultad en
     `universidad_carrera` derivando la universidad de la facultad; delega en el
     service `sincronizar_carreras_facultad`.
     """
+
+    queryset = m.Faculty._default_manager.select_related("universidad", "ubigeo").all()
+    serializer_class = _auto_serializer(m.Faculty, detalles={"ubigeo": _detalle_ubigeo})
 
     @extend_schema(
         request=FacultyCareersSyncSerializer,
@@ -581,7 +588,7 @@ ENTITY_VIEWSETS = {
     "executive-positions": _entity_viewset(
         m.ExecutivePosition,
         filterset_fields=["organo", "activo"],
-        search_fields=["codigo", "nombre"],
+        search_fields=["nombre_masculino", "nombre_femenino"],
         detalles={"organo": _detalle_nombre},
     ),
     "authorization-types": _entity_viewset(
@@ -589,12 +596,6 @@ ENTITY_VIEWSETS = {
     ),
     "academic-levels": _entity_viewset(
         m.AcademicLevel, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
-    ),
-    "organ-types": _entity_viewset(
-        m.OrganType,
-        filterset_fields={"organo": ["exact"], "organo__nombre": ["exact", "icontains"], "activo": ["exact"]},
-        search_fields=["codigo", "nombre"],
-        detalles={"organo": _detalle_nombre},
     ),
     "categories": _entity_viewset(
         m.Category, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
@@ -611,18 +612,17 @@ ENTITY_VIEWSETS = {
         m.Microred, filterset_fields=["red", "activo"], search_fields=["codigo", "nombre"]
     ),
     "regional-governments": _entity_viewset(
-        m.RegionalGovernment, filterset_fields=["region", "activo"], search_fields=["nombre"], logo=True
+        m.RegionalGovernment,
+        filterset_fields=["region", "ubigeo", "activo"],
+        search_fields=["nombre"],
+        logo=True,
+        detalles={"ubigeo": _detalle_ubigeo},
     ),
     "organ-directories": _entity_viewset(
         m.OrganDirectory,
-        filterset_fields=["organo", "tipo_organo", "gobierno_regional", "activo"],
-        search_fields=["nombre", "siglas", "numero_ruc"],
-        logo=True,
-        detalles={
-            "organo": _detalle_nombre,
-            "tipo_organo": _detalle_nombre,
-            "gobierno_regional": _detalle_nombre,
-        },
+        filterset_fields=["categoria", "gobierno_regional", "activo"],
+        search_fields=["nombre", "siglas"],
+        detalles={"gobierno_regional": _detalle_nombre},
     ),
     "executing-units": _entity_viewset(
         m.ExecutingUnit,

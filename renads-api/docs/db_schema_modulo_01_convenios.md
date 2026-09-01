@@ -39,7 +39,7 @@ Tablas paramétricas (RNF-MAN-01). Patrón común: `id` (PK), `codigo` (varchar,
 | `nivel_academico` | Nivel académico de la carrera | valores: `PREGRADO`, `SEGUNDA_ESPECIALIDAD`, `MAESTRIA`, `DOCTORADO` |
 | `especialidad` | Especialidades de salud (seed: 46 especialidades médicas, nomenclatura oficial CONAREME) | — |
 | `tipo_autoridad_firmante` | Tipo de autoridad firmante | — |
-| `cargo_ejecutivo` | Cargos ejecutivos de representantes. **No** hereda de `Catalog`: FK `organo_id` → `organo`, unicidad `(organo_id, codigo)` | `organo_id` (FK → `organo`), `codigo`, `nombre`, `activo` |
+| `cargo_ejecutivo` | Cargos ejecutivos de representantes. **No** hereda de `Catalog`: FK `organo_id` → `organo`, unicidad `(organo_id, nombre_masculino)` | `organo_id` (FK → `organo`), `nombre_masculino`, `nombre_femenino`, `activo` |
 | `motivo_observacion` | Motivos de observación | — |
 | `motivo_rechazo` | Motivos de rechazo | — |
 | `motivo_cierre` | Motivos de cierre o anulación | — |
@@ -76,7 +76,7 @@ Tablas paramétricas (RNF-MAN-01). Patrón común: `id` (PK), `codigo` (varchar,
 
 ### `organo` — categorías de órgano (tabla normalizada)
 
-Reemplaza el campo discriminador `VARCHAR` que tenía `tipo_organo.organo`. Contiene las cuatro categorías canónicas. Endpoint: `/api/v1/organs/` (CRUD, escritura solo `Administrador RENADS`).
+Reemplaza el campo discriminador `VARCHAR` que tenía el antiguo `tipo_organo.organo`. Contiene las cinco categorías canónicas. Endpoint: `/api/v1/organs/` (CRUD, escritura solo `Administrador RENADS`).
 
 | Columna | Tipo | Null | Descripción |
 |---------|------|------|-------------|
@@ -84,27 +84,15 @@ Reemplaza el campo discriminador `VARCHAR` que tenía `tipo_organo.organo`. Cont
 | `nombre` | varchar(255) | No | Nombre del órgano |
 | `estado` | bool | No | Indica si está activo (default `true`) |
 
-Seed: 4 registros — `Órgano del MINSA`, `Universidad`, `Órgano Regional`, `Unidad Ejecutora`.
+Seed: 5 registros — `Órgano del MINSA`, `Universidad`, `Gobierno Regional`, `MINSA DIRIS`, `Unidad Ejecutora`. Los nombres coinciden con los labels de `organo_directorio.categoria` (fuente de la validación de coherencia cargo↔categoría en `OrganRepresentativeSerializer`).
 
-### `tipo_organo` — catálogo unificado de tipos de órgano
+### `tipo_organo` — **RETIRADA**
 
-No hereda de `Catalog` (unicidad por `(organo_id, codigo)`, no global). Reemplaza las cuatro tablas `tipo_entidad_universidad`, `tipo_organo_regional`, `tipo_unidad_ejecutora` y `tipo_organo_minsa`.
+La tabla `tipo_organo` (modelo `OrganType`) y su endpoint `/api/v1/organ-types/` fueron **retirados** (404). Sus filas se migraron a `organo_directorio` como filas con la `categoria` correspondiente (una fila de directorio por cada tipo de órgano). Las FKs que la referenciaban se reapuntaron a `organo_directorio`:
+- `unidad_ejecutora.tipo_organo_id` → `organo_directorio` (categoría `UNIDAD_EJECUTORA`).
+- `universidad.tipo_entidad_id` → `organo_directorio` (categoría `UNIVERSIDAD`).
 
-| Columna | Tipo | Null | Descripción |
-|---------|------|------|-------------|
-| `id` | PK | No | |
-| `organo_id` | FK → `organo` (PROTECT) | No | Categoría del órgano |
-| `codigo` | varchar(50) | No | Código del tipo (único dentro de la categoría) |
-| `nombre` | varchar(255) | No | Nombre |
-| `activo` | bool | No | |
-
-`unique_together = (organo_id, codigo)`. Seed: 14 registros canónicos.
-
-Valores por categoría (filtrar con `?organo=<id>` en `/api/v1/organ-types/`):
-- Órgano del MINSA: `DIGEP`, `OGAJ`, `SG`, `VICEPAS`
-- Universidad: `UNIVERSIDAD`, `ESCUELA_POSGRADO`, `ESCUELA_SUPERIOR`, `INSTITUTO`
-- Órgano Regional: `GERESA`, `DIRESA`, `DIRIS`
-- Unidad Ejecutora: `HOSPITAL`, `INSTITUTO_ESPECIALIZADO`, `RED_SALUD`
+El backfill de la `categoria` de las filas regionales derivó del antiguo `tipo_organo.codigo`: `GERESA`/`DIRESA` → `GOBIERNO_REGIONAL`, `DIRIS` → `MINSA_DIRIS`.
 
 ---
 
@@ -127,28 +115,27 @@ Jerarquía: **GORE → Órgano Regional (GERESA/DIRESA/DIRIS) → Unidad Ejecuto
 | `id` | PK | No | |
 | `nombre` | varchar(255) | No | Nombre del gobierno regional |
 | `region_id` | FK → `region` | No | Región |
+| `sigla` | varchar(50) | Sí | Sigla del gobierno regional |
+| `ubigeo_id` | FK → `ubigeo` (PROTECT) | Sí | Ubicación geográfica (UBIGEO) |
 | `referencia_logo` | varchar(500) | Sí | Logo institucional (`ImageField`; guarda el path del objeto en el repositorio de medios). Nullable. |
 | `activo` | bool | No | |
 
-### `organo_directorio` (directorio general de órganos: regionales y del MINSA)
+Endpoint: `/api/v1/regional-governments/` (CRUD con logo; filtros `region`, `ubigeo`, `activo`; búsqueda `nombre`; lectura expone `ubigeo_detalle`).
 
-Tabla **standalone** que unifica los antiguos `organo_regional` y `organo_minsa`, discriminada por `organo_id` (→ `organo`). Los órganos regionales llevan `gobierno_regional_id`; los del MINSA lo dejan nulo.
+### `organo_directorio` (directorio unificado de órganos/tipos institucionales)
+
+Tabla **standalone** que cataloga órganos del MINSA, universidades, gobiernos regionales, DIRIS y unidades ejecutoras, discriminada por `categoria` (choices). Reemplaza al antiguo par `organo_id`/`tipo_organo_id` (retirados). Los órganos regionales pueden llevar `gobierno_regional_id`.
 
 | Columna | Tipo | Null | Descripción |
 |---------|------|------|-------------|
 | `id` | PK | No | |
-| `organo_id` | FK → `organo` (PROTECT) | No | Categoría del órgano (discriminador) |
-| `tipo_organo_id` | FK → `tipo_organo` (PROTECT) | Sí | Tipo de órgano (GERESA/DIRESA/DIGEP…); nulo para órganos sin tipo |
+| `categoria` | varchar(20) (choices) | No | Categoría del órgano (discriminador): `ORGANO_MINSA` / `UNIVERSIDAD` / `GOBIERNO_REGIONAL` / `MINSA_DIRIS` / `UNIDAD_EJECUTORA` |
 | `gobierno_regional_id` | FK → `gobierno_regional` (PROTECT) | Sí | GORE (solo órganos regionales) |
 | `nombre` | varchar(255) | No | Nombre del órgano |
 | `siglas` | varchar(50) | Sí | Siglas |
-| `direccion` | varchar(500) | Sí | Dirección |
-| `numero_ruc` | varchar(11) | Sí | RUC (11 dígitos; texto para conservar ceros a la izquierda) |
-| `correo` | email | Sí | Correo institucional |
-| `telefono_institucional` | varchar(30) | Sí | Teléfono institucional |
-| `ubigeo_id` | FK → `ubigeo` | Sí | Ubicación geográfica (UBIGEO) |
-| `referencia_logo` | varchar(500) | Sí | Logo institucional (`ImageField`; guarda el path del objeto en el repositorio de medios). Nullable. |
 | `activo` | bool | No | |
+
+Endpoint: `/api/v1/organ-directories/` (CRUD, escritura solo `Administrador RENADS`; filtros `categoria`, `gobierno_regional`, `activo`; búsqueda `nombre`, `siglas`; **sin logo**; lectura expone `gobierno_regional_detalle`). Los labels de `categoria` replican los nombres de `organo` (coherencia cargo↔categoría en `OrganRepresentativeSerializer`).
 
 ### `unidad_ejecutora`
 
@@ -159,14 +146,14 @@ Unidad ejecutora asociada a un **gobierno regional**.
 | `id` | PK | No | |
 | `codigo` | varchar(50) | Sí | Código presupuestal |
 | `nombre` | varchar(255) | No | Nombre |
-| `tipo_organo_id` | FK → `tipo_organo` (PROTECT) | No | Tipo de unidad ejecutora (Hospital / Instituto especializado / Red de salud; categoría `Unidad Ejecutora`) |
+| `tipo_organo_id` | FK → `organo_directorio` (PROTECT) | No | Tipo de unidad ejecutora del directorio (categoría `UNIDAD_EJECUTORA`) |
 | `gobierno_regional_id` | FK → `gobierno_regional` (PROTECT) | No | Gobierno regional al que pertenece |
 | `direccion` | varchar(500) | Sí | Dirección |
 | `ubigeo_id` | FK → `ubigeo` | Sí | Ubicación geográfica (UBIGEO) |
 | `referencia_logo` | varchar(500) | Sí | Logo institucional (`ImageField`; guarda el path del objeto en el repositorio de medios). Nullable. |
 | `activo` | bool | No | |
 
-`tipo_organo` filtra a la categoría `Unidad Ejecutora` (`limit_choices_to`).
+`tipo_organo` filtra a la categoría `UNIDAD_EJECUTORA` de `organo_directorio` (`limit_choices_to`).
 
 Endpoint: `/api/v1/executing-units/` (CRUD con logo, escritura solo `Administrador RENADS`; filtros `tipo_organo`, `gobierno_regional`, `activo`; búsqueda `nombre`, `codigo`; lectura expone `tipo_organo_detalle`, `gobierno_regional_detalle` y `ubigeo_detalle`).
 
@@ -196,7 +183,7 @@ Endpoint: `/api/v1/executing-units/` (CRUD con logo, escritura solo `Administrad
 >
 > **Autorización de sede docente (CONAPRES):** una `ipress` solo actúa como sede docente si **CONAPRES** la autoriza y registra tras verificar los criterios de evaluación: establecimiento **asistencial**, perteneciente al **MINSA** o a la **sanidad de las Fuerzas Armadas/Policiales**, y de gestión **pública**.
 
-> Los órganos del MINSA (DIGEP / OGAJ / SG / VICEPAS) también viven en `organo_directorio` (con `gobierno_regional_id` nulo y `tipo_organo_id` opcional).
+> Los órganos del MINSA (DIGEP / OGAJ / SG / VICEPAS) también viven en `organo_directorio` (con `gobierno_regional_id` nulo y `categoria = ORGANO_MINSA`).
 
 ---
 
@@ -228,7 +215,7 @@ Los representantes de CONAPRES y de los demás órganos se registran en `organo_
 | `siglas` | varchar(50) | Sí | Siglas |
 | `numero_ruc` | varchar(11) | Sí | Número de RUC |
 | `tipo_gestion_id` | FK → `tipo_gestion_universidad` | No | Pública / privada |
-| `tipo_entidad_id` | FK → `tipo_organo` (PROTECT) | No | Universidad / Escuela posgrado / Escuela superior / Instituto (discriminador `UNIVERSIDAD`) |
+| `tipo_entidad_id` | FK → `organo_directorio` (PROTECT) | No | Tipo de entidad del directorio (categoría `UNIVERSIDAD`, vía `limit_choices_to`) |
 | `tipo_autorizacion_id` | FK → `tipo_autorizacion` | No | Licenciada / Denegada / Pendiente |
 | `codigo_inei` | varchar(20) | Sí | Código INEI |
 | `fecha_constitucion` | date | Sí | Fecha de constitución |
@@ -241,7 +228,7 @@ Los representantes de CONAPRES y de los demás órganos se registran en `organo_
 | `referencia_logo` | varchar(500) | Sí | Logo institucional (`ImageField`; guarda el path del objeto en el repositorio de medios). Nullable. |
 | `activo` | bool | No | |
 
-> Las autoridades de universidad se registran en `organo_representante` (sección 6 bis) contra un `organo_directorio` de la categoría `Universidad`; la tabla `autoridad_universidad` fue retirada.
+> Las autoridades de universidad se registran en `organo_representante` (sección 6 bis) contra un `organo_directorio` de la categoría `UNIVERSIDAD`; la tabla `autoridad_universidad` fue retirada.
 
 ### `facultad`
 
@@ -250,7 +237,11 @@ Los representantes de CONAPRES y de los demás órganos se registran en `organo_
 | `id` | PK | No | |
 | `universidad_id` | FK → `universidad` | No | Universidad |
 | `nombre` | varchar(255) | No | Nombre de la facultad |
+| `ubigeo_id` | FK → `ubigeo` (PROTECT) | Sí | Ubicación geográfica (UBIGEO) |
+| `referencia_logo` | varchar(500) | Sí | Logo institucional (`ImageField`; guarda el path del objeto en el repositorio de medios). Nullable. |
 | `activo` | bool | No | |
+
+Endpoint: `/api/v1/faculties/` (CRUD con logo, escritura solo `Administrador RENADS`; filtros `universidad`, `ubigeo`, `activo`; búsqueda `nombre`; lectura expone `ubigeo_detalle` y `referencia_logo` como URL). Acciones `faculties/{id}/upload-logo` y `faculties/{id}/logo-url`.
 
 ### `carrera_profesional`
 
@@ -373,8 +364,8 @@ Los roles son `auth_group` y los permisos `auth_permission`. Como la entidad del
 La entidad solicitante es polimórfica (universidad, órgano regional, etc.). Adicionalmente,
 las dos partes concretas de la articulación docencia-servicio se modelan con FK explícitas:
 `organo_directorio_id` (lado prestador) y `universidad_id` (lado académico). Los "tipos"
-(tipo de órgano, tipo de entidad universitaria) **no se almacenan**: se derivan de la
-entidad referenciada (`organo_directorio → tipo_organo`, `universidad → tipo_entidad`),
+(categoría del órgano, tipo de entidad universitaria) **no se almacenan**: se derivan de la
+entidad referenciada (`organo_directorio.categoria`, `universidad → tipo_entidad`),
 evitando redundancia. En el formulario son selectores en cascada que filtran la lista de entidades.
 
 > **Reglas de solicitud (validación a nivel de aplicación):**
@@ -650,13 +641,12 @@ Se adjunta a: `convenio`, `evaluacion_tecnica`, `opinion_conapres`, `campo_clini
 ## 12. Mapa de relaciones
 
 ```
-ubigeo (distrito INEI) >──< organo_directorio / unidad_ejecutora / ipress / universidad / local_universidad   (también estudiante / tutor del módulo 2)
+ubigeo (distrito INEI) >──< unidad_ejecutora / ipress / universidad / facultad / gobierno_regional / local_universidad   (también estudiante / tutor del módulo 2)
 gobierno_regional ──< organo_directorio
 gobierno_regional ──< unidad_ejecutora ──< ipress
-gobierno_regional >── region
-organo_directorio >── organo (discriminador) / tipo_organo (opcional) / gobierno_regional (opcional, solo regionales)
-unidad_ejecutora >── gobierno_regional / tipo_organo (Unidad Ejecutora) / ubigeo
-unidad_ejecutora >── gobierno_regional / ubigeo
+gobierno_regional >── region / ubigeo
+organo_directorio (categoria: ORGANO_MINSA / UNIVERSIDAD / GOBIERNO_REGIONAL / MINSA_DIRIS / UNIDAD_EJECUTORA) >── gobierno_regional (opcional, solo regionales)
+unidad_ejecutora >── gobierno_regional / tipo_organo (→ organo_directorio, categoría UNIDAD_EJECUTORA) / ubigeo
 ipress >── ambito_geografico_sanitario
 ambito_geografico_sanitario ──< red ──< microred ──< ipress
 ipress >── categoria / tipo_clasificacion / microred
@@ -668,8 +658,8 @@ organo_representante >── cargo_ejecutivo >── organo
 organo_representante >── tipo_documento_identidad (módulo 2)
 organo_representante ──< historial_organo_representante   (baja del anterior al designar uno nuevo)
 
-universidad >── tipo_gestion_universidad / tipo_organo (discriminador UNIVERSIDAD) / tipo_autorizacion
-universidad ──< facultad
+universidad >── tipo_gestion_universidad / tipo_entidad (→ organo_directorio, categoría UNIVERSIDAD) / tipo_autorizacion
+universidad ──< facultad >── ubigeo
 universidad ──< universidad_carrera >── carrera_profesional   (carreras que dicta cada universidad)
 carrera_profesional >── nivel_academico
 universidad ──< local_universidad >── region
@@ -704,7 +694,7 @@ bitacora_auditoria >── django_content_type   (genérico → cualquier entida
 ## 13. Trazabilidad de requerimientos
 
 - **RN-3 (Específico requiere Marco vigente):** `convenio.convenio_marco_id`. **Excepción DIRIS:** solicitan Específico sin Marco (`convenio_marco_id` nulo).
-- **Solicitud de Convenio Marco (solo GERESA/DIRESA):** validación sobre la entidad solicitante (`organo_directorio → tipo_organo`, discriminador `ORGANO_REGIONAL`).
+- **Solicitud de Convenio Marco (solo GERESA/DIRESA):** validación sobre la entidad solicitante (`organo_directorio.categoria == GOBIERNO_REGIONAL`). Las DIRIS (`categoria == MINSA_DIRIS`) quedan exentas de Marco. Regla en `services.crear_convenio`.
 - **CONAPRES y campos clínicos solo en Específico:** tablas `opinion_conapres`, `campo_clinico_ipress` y `campo_clinico_ipress_universidad`; estados con `aplica_a = ESPECIFICO`.
 - **Opinión jurídica (OGAJ) solo para Marco:** `opinion_juridica` se registra únicamente cuando `convenio.tipo_convenio = MARCO`.
 - **Opinión favorable (CONAPRES) solo para Específico:** `opinion_conapres`.

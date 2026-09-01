@@ -178,19 +178,19 @@ def crear_convenio(*, datos: dict, usuario) -> Convention:
     tipo = datos["tipo_convenio"]
     marco = datos.get("convenio_marco")
     organo = datos["organo_directorio"]
-    tipo_organo = organo.tipo_organo.codigo if organo.tipo_organo_id else ""  # GERESA / DIRESA / DIRIS
+    categoria = organo.categoria  # ORGANO_MINSA / UNIVERSIDAD / GOBIERNO_REGIONAL / MINSA_DIRIS / UNIDAD_EJECUTORA
 
     if tipo.codigo == "MARCO":
-        # Solo GERESA o DIRESA pueden solicitar un Convenio Marco.
-        if tipo_organo not in {"GERESA", "DIRESA"}:
+        # RN-1: solo un Gobierno Regional (GERESA/DIRESA) puede solicitar un Convenio Marco.
+        if categoria != "GOBIERNO_REGIONAL":
             raise ValidationError(
                 {"organo_directorio": "Solo una GERESA o DIRESA puede solicitar un Convenio Marco."}
             )
         if marco is not None:
             raise ValidationError({"convenio_marco": "Un Convenio Marco no depende de otro convenio."})
     elif tipo.codigo == "ESPECIFICO":
-        # RN-3: requiere Convenio Marco vigente, salvo DIRIS (no requiere Marco).
-        if tipo_organo == "DIRIS":
+        # RN-3: requiere Convenio Marco vigente, salvo DIRIS (MINSA_DIRIS, no requiere Marco).
+        if categoria == "MINSA_DIRIS":
             if marco is not None and (
                 not marco.estado_actual_id or marco.estado_actual.codigo not in ESTADOS_VIGENTES
             ):
