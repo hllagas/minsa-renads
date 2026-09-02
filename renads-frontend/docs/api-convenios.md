@@ -4,10 +4,12 @@ Ciclo de vida de Convenios Marco y Específicos: registro, evaluación técnica 
 CONAPRES, campos clínicos, opinión jurídica (OGAJ), firma, publicación, vigencia y cierre.
 Base: `/api/v1/`. Todos los endpoints requieren JWT.
 
+**Última revisión de contrato: 2026-09-02** (adendas, partes tipadas, resolución CONAPRES).
+
 ## Reglas de negocio clave (para validación/UX)
 
 - Un Convenio **Marco** solo lo solicita una **GERESA o DIRESA** (`organo_directorio` de ese tipo)
-  y no lleva `convenio_marco`.
+  y no lleva `convenio_marco`, `unidad_ejecutora` ni `facultad`.
 - **RN-3:** un Convenio **Específico** requiere un **Convenio Marco vigente**
   (estado en `VIGENTE` / `PUBLICADO` / `SUSCRITO`) — **salvo si el órgano es DIRIS**, que puede
   crear Específico sin Marco (si lo envía, igual debe estar vigente).
@@ -17,6 +19,12 @@ Base: `/api/v1/`. Todos los endpoints requieren JWT.
   si no, el backend responde error en el campo `ipress`.
 - No se puede **firmar** con observaciones pendientes (evaluación técnica / CONAPRES / OGAJ `OBSERVADO` sin subsanar).
 - `fecha_fin` la calcula el backend (vigencia del tipo: 4 años Marco / 3 años Específico). No enviarla.
+- Un Convenio Específico requiere `unidad_ejecutora` y `facultad` (la facultad debe pertenecer a la
+  universidad del Marco).
+- La **adenda** hereda tipo, marco, universidad, órgano, unidad ejecutora y facultad del origen;
+  solo requiere `fecha_inicio` nuevo. Al suscribirse, el convenio origen pasa a `AMPLIADO`.
+- `nomenclatura` la asigna DIGEP en `evaluacion-tecnica` (campo `nomenclatura` write-only en esa
+  acción); **no se envía** en el alta ni en la edición del convenio.
 
 ## Recurso núcleo — `conventions`
 
@@ -29,42 +37,120 @@ Base: `/api/v1/`. Todos los endpoints requieren JWT.
 | POST | `/conventions/{id}/cambiar-estado/` | `Administrador RENADS` | `{ estado_codigo, observacion? }` |
 | POST | `/conventions/{id}/evaluacion-tecnica/` | `DIGEP` | ver campos abajo |
 | POST | `/conventions/{id}/opinion-conapres/` | `CONAPRES` | solo Específico |
-| GET·POST | `/conventions/{id}/campos-clinicos/` | POST: `CONAPRES` | GET lista, POST agrega (solo Específico) |
 | POST | `/conventions/{id}/opinion-juridica/` | `OGAJ` | |
 | POST | `/conventions/{id}/firma/` | `Secretaría General` | bloquea si hay observaciones pendientes |
 | POST | `/conventions/{id}/publicacion/` | `Secretaría General` | `PUBLICADO` → `VIGENTE` |
-| GET·POST | `/conventions/{id}/participantes/` | POST: `Administrador RENADS` | GET lista, POST agrega |
+| GET·POST | `/conventions/{id}/parties/` | GET: autenticado; POST: `Administrador RENADS` | partes firmantes tipadas (sincroniza lista completa) |
+| GET·POST | `/conventions/{id}/participantes/` | POST: `Administrador RENADS` | GET lista, POST agrega (legado) |
 | GET | `/conventions/{id}/historial/` | autenticado | historial de estados |
+| POST | `/conventions/{id}/adenda/` | dentro de su ámbito | crea adenda del convenio |
 
-**Filtros** (`ConventionFilter`): `tipo_convenio`, `estado_actual`, `convenio_marco`, rangos de
-`fecha_solicitud` / `fecha_inicio` / `fecha_fin`, solicitante (tipo + id).
-**Search:** `titulo`, `codigo`. **Ordering:** `fecha_solicitud`, `fecha_inicio`, `fecha_fin`, `id`.
+**Filtros** (`ConventionFilter`): `tipo_convenio`, `estado_actual`, `convenio_marco`,
+`convenio_origen`, `es_adenda`, rangos de `fecha_solicitud` / `fecha_inicio` / `fecha_fin`, solicitante (tipo + id).
+**Search:** `titulo`, `nomenclatura`. **Ordering:** `fecha_solicitud`, `fecha_inicio`, `fecha_fin`, `id`.
 
 ### Convention — lectura (`GET`)
 ```
-id, tipo_convenio, convenio_marco, plantilla, codigo, titulo,
+id, tipo_convenio, convenio_marco, convenio_origen, es_adenda,
+plantilla, nomenclatura, titulo,
 solicitante_tipo_contenido, solicitante_id_objeto, solicitante,
+organo_directorio, organo_directorio_nombre, tipo_organo_directorio,
+universidad, universidad_nombre, tipo_entidad_universidad,
+unidad_ejecutora, unidad_ejecutora_detalle, facultad, facultad_detalle,
 estado_actual, estado_codigo, fecha_solicitud, fecha_inicio, fecha_fin,
+vigencia_efectiva, adendas, partes_firmantes,
 max_campos_clinicos, creado_por, creado_en, actualizado_en
 ```
+
+`unidad_ejecutora_detalle` → `{id, nombre, codigo}`.
+`facultad_detalle` → `{id, nombre}`.
+`adendas` → lista `[{id, titulo, estado_codigo, fecha_inicio, fecha_fin}]`.
+`vigencia_efectiva` → `{fecha_inicio, fecha_fin}` (de la última adenda activa, o del convenio).
+`partes_firmantes` → lista de `ConventionParty` (ver §parties).
+
 ### Convention — escritura (`POST`/`PUT`)
 ```
-tipo_convenio, convenio_marco, plantilla, codigo, titulo,
+tipo_convenio, convenio_marco, plantilla, titulo,
 solicitante_tipo_contenido, solicitante_id_objeto,
-fecha_solicitud, fecha_inicio, fecha_fin, max_campos_clinicos
+organo_directorio, universidad, unidad_ejecutora?, facultad?,
+fecha_solicitud, fecha_inicio?, fecha_fin?, max_campos_clinicos?
 ```
-> `solicitante` es polimórfico: `solicitante_tipo_contenido` (id de ContentType) + `solicitante_id_objeto`.
+> `unidad_ejecutora` y `facultad` solo aplican a Específico. `facultad` debe pertenecer a la
+> universidad del Marco. `nomenclatura` no se envía (la asigna DIGEP).
 
 ### Payloads de acciones de flujo
-- **evaluacion-tecnica:** `resultado, observaciones, subsanacion, organo_directorio, fecha_evaluacion`
-  (`resultado=VALIDADO` → `VALIDADO_TECNICAMENTE`; `OBSERVADO` → `OBSERVADO_DIGEP`).
+
+- **evaluacion-tecnica:** `resultado, observaciones, subsanacion, organo_directorio, fecha_evaluacion, nomenclatura?`
+  (`nomenclatura` write-only: solo se persiste en Marcos al `resultado=VALIDADO`).
 - **opinion-conapres:** `fecha_solicitud, estado_atencion, resultado_opinion, fecha_respuesta`.
-- **campos-clinicos:** `ipress, carrera_profesional, especialidad, cantidad_maxima, vigencia_inicio, vigencia_fin, ambito_geografico_sanitario, observaciones`.
 - **opinion-juridica:** `fecha_envio, resultado_opinion, observaciones_legales, subsanacion, fecha_respuesta`.
 - **firma:** `firmante_tipo_contenido, firmante_id_objeto, tipo_autoridad_firmante, orden_firma, fecha_envio, fecha_recepcion, estado_firma, observaciones`.
 - **publicacion:** `fecha_publicacion, referencia_publicacion`.
-- **participantes:** `tipo_contenido, id_objeto, tipo_autoridad_firmante, es_firmante`.
-- **cambiar-estado** / historial usan `{ estado_codigo, observacion? }` y devuelven el historial.
+- **adenda:** `titulo?, nomenclatura?, fecha_solicitud?, fecha_inicio (req), fecha_fin?`.
+  Hereda tipo/marco/universidad/órgano/UE/facultad del origen. Devuelve `ConventionRead`.
+- **parties (POST):** array de objetos `ConventionParty` — sincroniza la lista completa.
+- **participantes (POST):** `tipo_contenido, id_objeto, tipo_autoridad_firmante, es_firmante`.
+- **cambiar-estado:** `{ estado_codigo, observacion? }`.
+
+### Partes firmantes — `conventions/{id}/parties`
+
+`ConventionParty` — campos:
+```
+id (ro), convenio (ro), rol, rol_display (ro),
+organo_directorio, organo_directorio_detalle (ro),
+organo_representante?, organo_representante_detalle (ro),
+cargo_ejecutivo?, cargo_ejecutivo_detalle (ro),
+orden, es_firmante, creado_en (ro)
+```
+
+`rol` choices: `MINSA` | `UNIVERSIDAD` | `GOBIERNO_REGIONAL` | `UNIDAD_EJECUTORA` | `FACULTAD`.
+`organo_directorio_detalle` → `{id, nombre, siglas}`.
+`organo_representante_detalle` → `{id, nombre, numero_documento_identidad}`.
+`cargo_ejecutivo_detalle` → `{id, nombre_masculino, nombre_femenino}`.
+
+POST sincroniza la lista completa (idempotente). El backend valida coherencia
+órgano↔representante↔cargo.
+
+## Campos clínicos — `clinical-field-registrations`
+
+> **Cambio 2026-09-02:** Ya NO existe `conventions/{id}/campos-clinicos/`. Los campos clínicos
+> son CRUD independiente en `/clinical-field-registrations/` (escritura solo `CONAPRES`).
+
+| Método | Ruta | Notas |
+|--------|------|-------|
+| GET | `/clinical-field-registrations/` | filtros: `convenio`, `ipress`, `carrera_profesional`, `especialidad` |
+| POST | `/clinical-field-registrations/` | escritura solo `CONAPRES` |
+| PATCH | `/clinical-field-registrations/{id}/` | actualizar |
+| DELETE | `/clinical-field-registrations/{id}/` | eliminar |
+| POST | `/clinical-field-registrations/{id}/annex-upload/` | adjuntar PDF resolución CONAPRES |
+| GET | `/clinical-field-registrations/{id}/annex-checklist/` | checklist de anexos |
+
+### ClinicalFieldRegistration — lectura
+```
+id, convenio, ipress, carrera_profesional, especialidad,
+campos_clinicos_registrados, campos_clinicos_asignados, disponibilidad (calculado),
+numero_resolucion_conapres?, fecha_resolucion_conapres?,
+convenio_detalle, ipress_detalle, carrera_profesional_detalle, especialidad_detalle,
+creado_en, creado_por, actualizado_en, actualizado_por
+```
+
+### ClinicalFieldRegistration — escritura
+```
+convenio (req), ipress (req), carrera_profesional (req), especialidad?,
+campos_clinicos_registrados (req, positivo),
+numero_resolucion_conapres?, fecha_resolucion_conapres?
+```
+
+## Asignaciones — `clinical-field-allocations`
+
+CRUD de asignación (Órgano Regional) de cupos por universidad.
+Escritura: `campo_clinico_ipress` (req), `convenio` (req), `fecha_inicio` (req), `fecha_fin` (req),
+`campos_clinicos_autorizados` (req). La sede/carrera/especialidad/universidad las deriva el backend.
+
+## Adjuntos (transversal)
+
+- `conventions/{id}/annex-upload` / `annex-checklist` → actor `CONVENIO` (resoluciones: `RESOL_MARCO`, `RESOL_ESPECIFICO`, `RESOL_ADENDA`).
+- `clinical-field-registrations/{id}/annex-upload` / `annex-checklist` → actor `CAMPO_CLINICO` (`RESOL_CONAPRES`).
 
 ## Otros recursos núcleo
 
@@ -74,29 +160,25 @@ fecha_solicitud, fecha_inicio, fecha_fin, max_campos_clinicos
 
 ## Entidades organizacionales / académicas (CRUD, escritura solo `Administrador RENADS`)
 
-`regional-governments`, `organ-directories` (unifica `regional-organs`+`minsa-organs`, discriminado por FK `organo`),
-`executing-units` (ahora usa `gobierno_regional`+`tipo_organo`), `ipress`, `conapres`,
-`universities`, `faculties`, `professional-careers`, `university-campuses`, `university-careers`,
-`user-entity-profiles` (solo `Administrador RENADS`, sin lectura abierta).
+`regional-governments`, `organ-directories` (unifica tipos, discriminado por CharField `categoria`),
+`executing-units` (usa `gobierno_regional`+`tipo_organo`→`organ-directories?categoria=UNIDAD_EJECUTORA`),
+`ipress`, `conapres`, `universities`, `faculties`, `professional-careers`, `university-campuses`,
+`university-careers`, `user-entity-profiles` (solo `Administrador RENADS`, sin lectura abierta).
 
-> **Eliminados del backend (no usar):** `regional-organs`, `minsa-organs`, `university-authorities`.
+> **Eliminados del backend (no usar):** `regional-organs`, `minsa-organs`, `university-authorities`,
+> `organ-types`. Usar `organ-directories?categoria=<VALOR>` según corresponda.
 > Contrato detallado por entidad en `docs/api-catalogos.md §2`.
-
-> Cada una expone CRUD estándar con `id` + todos los campos del modelo y filtros propios
-> (p. ej. `universities`: `tipo_gestion`, `tipo_entidad`, `tipo_autorizacion`, `activo`; search `nombre`, `siglas`).
 
 ## Catálogos (solo lectura — `list`/`retrieve`, filtro `activo`, search `codigo`/`nombre`)
 
 `regions`, `health-geographic-scopes`, `convention-types`, `convention-statuses`,
 `university-management-types`, `authorization-types`, `academic-levels`,
-`specialties`, `signing-authority-types`, `organ-types` (reemplaza `regional-organ-types`/`minsa-organ-types`/`executing-unit-types`),
-`identity-document-types`, `executive-positions`, `observation-reasons`, `rejection-reasons`, `closure-reasons`,
-`organs` (4 categorías canónicas, solo lectura).
+`specialties`, `signing-authority-types`,
+`identity-document-types`, `executive-positions`, `observation-reasons`, `rejection-reasons`,
+`closure-reasons`, `organs` (5 categorías canónicas, solo lectura).
 
 > **Eliminados del backend (no usar):** `document-types`, `university-entity-types`,
-> `regional-organ-types`, `minsa-organ-types`, `executing-unit-types`.
+> `regional-organ-types`, `minsa-organ-types`, `executing-unit-types`, `organ-types`.
 
-> Los `estado_codigo` de convenios (p. ej. `SOLICITUD_REGISTRADA`, `VALIDADO_TECNICAMENTE`,
-> `OBSERVADO_DIGEP`, `PENDIENTE_CONAPRES`, `CONAPRES_FAVORABLE`, `CAMPOS_CLINICOS_DEFINIDOS`,
-> `OGAJ_FAVORABLE`, `FIRMADO_MINSA`, `PUBLICADO`, `VIGENTE`, ...) provienen del catálogo
-> `convention-statuses`. Cargarlo para etiquetas y transiciones; no hardcodear nombres.
+> Los `estado_codigo` de convenios provienen del catálogo `convention-statuses`.
+> Cargarlo para etiquetas y transiciones; no hardcodear nombres.

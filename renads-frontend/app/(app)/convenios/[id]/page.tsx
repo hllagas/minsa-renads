@@ -9,6 +9,7 @@ import {
   useCamposClinicos,
   useHistorial,
   useParticipantes,
+  usePartes,
 } from "@/lib/convenios/flow";
 import { useAuthStore, userHasRole } from "@/lib/auth/store";
 import { PageHeader } from "@/components/data/page-header";
@@ -33,6 +34,12 @@ function Dato({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
+function detalleNombre(v: unknown): string {
+  if (!v || typeof v !== "object") return "—";
+  const obj = v as Record<string, unknown>;
+  return String(obj.nombre ?? "—");
+}
+
 export default function ConvenioDetallePage() {
   const params = useParams<{ id: string }>();
   const id = Number(params.id);
@@ -40,6 +47,7 @@ export default function ConvenioDetallePage() {
 
   const { data: c, isLoading, isError } = conventionHooks.useDetail(id);
   const campos = useCamposClinicos(id);
+  const partes = usePartes(id);
   const participantes = useParticipantes(id);
   const historial = useHistorial(id);
 
@@ -56,6 +64,11 @@ export default function ConvenioDetallePage() {
       userHasRole(user, ...a.roles) && (!a.onlyEspecifico || esEspecifico),
   );
 
+  const vigEfectiva = (c as Record<string, unknown>).vigencia_efectiva as
+    | { fecha_inicio?: string; fecha_fin?: string }
+    | null
+    | undefined;
+
   return (
     <div>
       <div className="mb-4">
@@ -68,7 +81,7 @@ export default function ConvenioDetallePage() {
       </div>
       <PageHeader
         title={c.titulo}
-        description={c.codigo || undefined}
+        description={c.nomenclatura || undefined}
         actions={
           <Button
             variant="outline"
@@ -76,6 +89,10 @@ export default function ConvenioDetallePage() {
           />
         }
       />
+
+      {(c as Record<string, unknown>).es_adenda ? (
+        <Badge variant="outline" className="mb-3">Adenda</Badge>
+      ) : null}
 
       {acciones.length ? (
         <div className="mb-6 flex flex-wrap gap-2">
@@ -93,6 +110,7 @@ export default function ConvenioDetallePage() {
       <Tabs defaultValue="datos">
         <TabsList>
           <TabsTrigger value="datos">Datos</TabsTrigger>
+          <TabsTrigger value="partes">Partes firmantes</TabsTrigger>
           <TabsTrigger value="campos">Campos de formación</TabsTrigger>
           <TabsTrigger value="participantes">Participantes</TabsTrigger>
           <TabsTrigger value="historial">Historial</TabsTrigger>
@@ -127,26 +145,124 @@ export default function ConvenioDetallePage() {
                       : "—"
                   }
                 />
+                <Dato
+                  label="Unidad ejecutora"
+                  value={detalleNombre((c as Record<string, unknown>).unidad_ejecutora_detalle)}
+                />
+                <Dato
+                  label="Facultad"
+                  value={detalleNombre((c as Record<string, unknown>).facultad_detalle)}
+                />
                 <Dato label="Fecha de solicitud" value={c.fecha_solicitud} />
                 <Dato label="Inicio de vigencia" value={c.fecha_inicio} />
                 <Dato label="Fin de vigencia" value={c.fecha_fin} />
+                {vigEfectiva ? (
+                  <Dato
+                    label="Vigencia efectiva"
+                    value={`${vigEfectiva.fecha_inicio ?? "?"} – ${vigEfectiva.fecha_fin ?? "?"}`}
+                  />
+                ) : null}
                 <Dato label="Máx. campos de formación" value={c.max_campos_clinicos} />
               </dl>
+
+              {/* Adendas del convenio */}
+              {Array.isArray((c as Record<string, unknown>).adendas) &&
+              ((c as Record<string, unknown>).adendas as unknown[]).length > 0 ? (
+                <div className="mt-6">
+                  <h3 className="mb-2 text-sm font-medium">Adendas</h3>
+                  <SimpleObjectTable
+                    columns={[
+                      { key: "titulo", header: "Título" },
+                      { key: "estado_codigo", header: "Estado" },
+                      { key: "fecha_inicio", header: "Inicio" },
+                      { key: "fecha_fin", header: "Fin" },
+                      {
+                        key: "id",
+                        header: "",
+                        render: (row) => (
+                          <Link
+                            href={`/convenios/${(row as Record<string, unknown>).id}`}
+                            className="text-sm text-primary hover:underline"
+                          >
+                            Ver
+                          </Link>
+                        ),
+                      },
+                    ]}
+                    rows={(c as Record<string, unknown>).adendas as Record<string, unknown>[]}
+                    emptyMessage="Sin adendas."
+                  />
+                </div>
+              ) : null}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="partes">
+          <SimpleObjectTable
+            columns={[
+              { key: "rol_display", header: "Rol" },
+              {
+                key: "organo_directorio_detalle",
+                header: "Órgano",
+                render: (row) => detalleNombre((row as Record<string, unknown>).organo_directorio_detalle),
+              },
+              {
+                key: "organo_representante_detalle",
+                header: "Representante",
+                render: (row) => {
+                  const d = (row as Record<string, unknown>).organo_representante_detalle as Record<string, unknown> | null;
+                  return d ? String(d.nombre ?? "—") : "—";
+                },
+              },
+              {
+                key: "cargo_ejecutivo_detalle",
+                header: "Cargo",
+                render: (row) => {
+                  const d = (row as Record<string, unknown>).cargo_ejecutivo_detalle as Record<string, unknown> | null;
+                  return d ? String(d.nombre_masculino ?? "—") : "—";
+                },
+              },
+              { key: "orden", header: "Orden" },
+              {
+                key: "es_firmante",
+                header: "Firmante",
+                render: (row) => ((row as Record<string, unknown>).es_firmante ? "Sí" : "No"),
+              },
+            ]}
+            rows={partes.data ?? []}
+            emptyMessage="Sin partes firmantes registradas."
+          />
         </TabsContent>
 
         <TabsContent value="campos">
           <SimpleObjectTable
             columns={[
-              { key: "ipress", header: "IPRESS" },
-              { key: "carrera_profesional", header: "Carrera" },
-              { key: "especialidad", header: "Especialidad" },
-              { key: "cantidad_maxima", header: "Cant. máx." },
-              { key: "vigencia_inicio", header: "Vig. inicio" },
-              { key: "vigencia_fin", header: "Vig. fin" },
+              {
+                key: "ipress_detalle",
+                header: "IPRESS",
+                render: (row) => detalleNombre((row as Record<string, unknown>).ipress_detalle),
+              },
+              {
+                key: "carrera_profesional_detalle",
+                header: "Carrera",
+                render: (row) => detalleNombre((row as Record<string, unknown>).carrera_profesional_detalle),
+              },
+              {
+                key: "especialidad_detalle",
+                header: "Especialidad",
+                render: (row) => {
+                  const d = (row as Record<string, unknown>).especialidad_detalle;
+                  return d ? detalleNombre(d) : "—";
+                },
+              },
+              { key: "campos_clinicos_registrados", header: "Registrados" },
+              { key: "campos_clinicos_asignados", header: "Asignados" },
+              { key: "disponibilidad", header: "Disponibles" },
+              { key: "numero_resolucion_conapres", header: "N° Resolución" },
+              { key: "fecha_resolucion_conapres", header: "Fecha resolución" },
             ]}
-            rows={campos.data ?? []}
+            rows={(campos.data?.results as Record<string, unknown>[] | undefined) ?? []}
             emptyMessage="Sin campos de formación."
           />
         </TabsContent>
@@ -157,7 +273,11 @@ export default function ConvenioDetallePage() {
               { key: "tipo_contenido", header: "Tipo entidad" },
               { key: "id_objeto", header: "Id entidad" },
               { key: "tipo_autoridad_firmante", header: "Autoridad firmante" },
-              { key: "es_firmante", header: "Firmante" },
+              {
+                key: "es_firmante",
+                header: "Firmante",
+                render: (row) => ((row as Record<string, unknown>).es_firmante ? "Sí" : "No"),
+              },
             ]}
             rows={participantes.data ?? []}
             emptyMessage="Sin participantes."

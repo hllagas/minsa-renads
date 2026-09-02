@@ -117,6 +117,13 @@ export const clinicalFieldRegistrationsConfig: ResourceConfig = {
       type: "number",
       required: true,
     },
+    {
+      name: "numero_resolucion_conapres",
+      label: "N° Resolución CONAPRES",
+      type: "text",
+      uppercase: false,
+    },
+    { name: "fecha_resolucion_conapres", label: "Fecha resolución CONAPRES", type: "date" },
   ],
 };
 

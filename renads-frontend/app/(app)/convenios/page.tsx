@@ -31,7 +31,7 @@ export default function ConveniosPage() {
 
   const columns = useMemo<ColumnDef<ConventionRead>[]>(
     () => [
-      { accessorKey: "codigo", header: "Código", cell: ({ row }) => row.original.codigo || "—" },
+      { accessorKey: "nomenclatura", header: "Nomenclatura", cell: ({ row }) => row.original.nomenclatura || "—" },
       { accessorKey: "titulo", header: "Título" },
       { accessorKey: "tipo_convenio", header: "Tipo" },
       {

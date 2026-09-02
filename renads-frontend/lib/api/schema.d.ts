@@ -1190,6 +1190,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/conventions/{id}/generar-expediente/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Genera el expediente consolidado (proyecto + adjuntos), lo sube y lo versiona.
+         *
+         *     Concatena (pypdf) el proyecto con las resoluciones de los representantes
+         *     firmantes y de los campos clínicos CONAPRES, y lo adjunta con el anexo
+         *     `EXPEDIENTE`. Escritura: pasa el gate `IsModuleEnabled` del ViewSet.
+         */
+        post: operations["conventions_generar_expediente_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/conventions/{id}/generar-proyecto/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Genera el proyecto de convenio (PDF), lo sube y lo versiona como `Document`.
+         *
+         *     Renderiza la plantilla del convenio (docxtpl), la convierte a PDF (LibreOffice)
+         *     y la adjunta con el anexo `PROYECTO_ADENDA` si es adenda o `PROYECTO_CONVENIO`
+         *     en otro caso. Escritura: pasa el gate `IsModuleEnabled` del ViewSet.
+         */
+        post: operations["conventions_generar_proyecto_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/conventions/{id}/historial/": {
         parameters: {
             query?: never;
@@ -1288,6 +1334,34 @@ export interface paths {
          *     versionadas por `(convenio, documento_anexo)`.
          */
         post: operations["conventions_participantes_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/conventions/{id}/parties/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Partes firmantes del convenio (rol + órgano + representante + cargo).
+         *
+         *     GET lista las partes; POST recibe la lista completa y la sincroniza
+         *     (crear/actualizar/eliminar) vía `services.sincronizar_partes`.
+         */
+        get: operations["conventions_parties_list"];
+        put?: never;
+        /**
+         * @description Partes firmantes del convenio (rol + órgano + representante + cargo).
+         *
+         *     GET lista las partes; POST recibe la lista completa y la sincroniza
+         *     (crear/actualizar/eliminar) vía `services.sincronizar_partes`.
+         */
+        post: operations["conventions_parties_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4371,6 +4445,50 @@ export interface components {
             /** @description Nombre legible en español del modelo */
             readonly verbose_name: string;
         };
+        /**
+         * @description Parte firmante estructurada del convenio (rol + órgano + representante + cargo).
+         *
+         *     El `convenio` se toma de la URL de la acción (read-only). La coherencia
+         *     órgano↔representante↔cargo y la composición de roles las valida el service
+         *     `sincronizar_partes`. Los campos `*_detalle` son de solo lectura para los listados.
+         */
+        ConventionParty: {
+            readonly id: number;
+            /** @description Convenio al que pertenece la parte */
+            readonly convenio: number;
+            /**
+             * Rol de la parte
+             * @description Rol institucional de la parte firmante
+             *
+             *     * `MINSA` - MINSA
+             *     * `UNIVERSIDAD` - Universidad
+             *     * `GOBIERNO_REGIONAL` - Gobierno regional
+             *     * `UNIDAD_EJECUTORA` - Unidad ejecutora
+             *     * `FACULTAD` - Facultad
+             */
+            rol: components["schemas"]["RolEnum"];
+            readonly rol_display: string;
+            /** @description Órgano del directorio que representa la parte */
+            organo_directorio: number;
+            readonly organo_directorio_detalle: string;
+            /** @description Representante que firma por la parte */
+            organo_representante?: number | null;
+            readonly organo_representante_detalle: string;
+            /** @description Cargo ejecutivo del representante */
+            cargo_ejecutivo?: number | null;
+            readonly cargo_ejecutivo_detalle: string;
+            /**
+             * Orden de firma
+             * Format: int64
+             * @description Orden de firma dentro del rol (apoderado = 2)
+             * @default 1
+             */
+            orden: number;
+            /** @description Indica si la parte firma el convenio */
+            es_firmante?: boolean;
+            /** Format: date-time */
+            readonly creado_en: string;
+        };
         ConventionRead: {
             readonly id: number;
             readonly tipo_convenio: string;
@@ -4382,11 +4500,8 @@ export interface components {
             es_adenda?: boolean;
             /** @description Plantilla utilizada */
             plantilla?: number | null;
-            /**
-             * Código
-             * @description Código oficial
-             */
-            codigo?: string;
+            /** @description Nomenclatura oficial del Convenio Marco (se asigna al aprobar DIGEP) */
+            nomenclatura?: string;
             /**
              * Título
              * @description Título / denominación
@@ -4437,6 +4552,7 @@ export interface components {
             fecha_fin?: string | null;
             readonly vigencia_efectiva: string;
             readonly adendas: unknown[];
+            readonly partes_firmantes: unknown[];
             /**
              * Máximo de campos clínicos
              * Format: int64
@@ -4517,11 +4633,6 @@ export interface components {
             convenio_marco?: number | null;
             /** @description Plantilla utilizada */
             plantilla?: number | null;
-            /**
-             * Código
-             * @description Código oficial
-             */
-            codigo?: string;
             /**
              * Título
              * @description Título / denominación
@@ -5087,6 +5198,11 @@ export interface components {
              */
             numero_resolucion_designacion?: string;
             /**
+             * Número de resolución de facultades
+             * @description Número de resolución que otorga facultades al representante
+             */
+            numero_resolucion_facultades?: string;
+            /**
              * Fecha de inicio de facultades
              * Format: date
              * @description Otorgamiento de facultades
@@ -5127,6 +5243,11 @@ export interface components {
              * @description Número de resolución de designación
              */
             numero_resolucion_designacion?: string;
+            /**
+             * Número de resolución de facultades
+             * @description Número de resolución que otorga facultades al representante
+             */
+            numero_resolucion_facultades?: string;
             /**
              * Fecha de inicio de facultades
              * Format: date
@@ -5376,6 +5497,21 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["ContentType"][];
+        };
+        PaginatedConventionPartyList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["ConventionParty"][];
         };
         PaginatedConventionReadList: {
             /** @example 123 */
@@ -6291,11 +6427,6 @@ export interface components {
             /** @description Plantilla utilizada */
             plantilla?: number | null;
             /**
-             * Código
-             * @description Código oficial
-             */
-            codigo?: string;
-            /**
              * Título
              * @description Título / denominación
              */
@@ -6598,6 +6729,11 @@ export interface components {
              * @description Número de resolución de designación
              */
             numero_resolucion_designacion?: string;
+            /**
+             * Número de resolución de facultades
+             * @description Número de resolución que otorga facultades al representante
+             */
+            numero_resolucion_facultades?: string;
             /**
              * Fecha de inicio de facultades
              * Format: date
@@ -7048,6 +7184,15 @@ export interface components {
             /** @default  */
             observacion: string;
         };
+        /**
+         * @description * `MINSA` - MINSA
+         *     * `UNIVERSIDAD` - Universidad
+         *     * `GOBIERNO_REGIONAL` - Gobierno regional
+         *     * `UNIDAD_EJECUTORA` - Unidad ejecutora
+         *     * `FACULTAD` - Facultad
+         * @enum {string}
+         */
+        RolEnum: "MINSA" | "UNIVERSIDAD" | "GOBIERNO_REGIONAL" | "UNIDAD_EJECUTORA" | "FACULTAD";
         RotationRead: {
             readonly id: number;
             /** @description Interno */
@@ -10143,6 +10288,48 @@ export interface operations {
             };
         };
     };
+    conventions_generar_expediente_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Document"];
+                };
+            };
+        };
+    };
+    conventions_generar_proyecto_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Document"];
+                };
+            };
+        };
+    };
     conventions_historial_retrieve: {
         parameters: {
             query?: never;
@@ -10262,6 +10449,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ConventionWrite"];
+                };
+            };
+        };
+    };
+    conventions_parties_list: {
+        parameters: {
+            query?: {
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedConventionPartyList"];
+                };
+            };
+        };
+    };
+    conventions_parties_create: {
+        parameters: {
+            query?: {
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConventionParty"][];
+                "application/x-www-form-urlencoded": components["schemas"]["ConventionParty"][];
+                "multipart/form-data": components["schemas"]["ConventionParty"][];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedConventionPartyList"];
                 };
             };
         };

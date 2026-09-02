@@ -13,7 +13,6 @@ import { Label } from "@/components/ui/label";
 import { EntityCombobox } from "@/components/form/entity-combobox";
 import { DatePicker } from "@/components/form/date-picker";
 import { SolicitanteField } from "@/components/convenios/solicitante-field";
-import { CascadingEntityField } from "@/components/convenios/cascading-entity-field";
 import {
   Select,
   SelectContent,
@@ -24,9 +23,11 @@ import {
 
 /**
  * Formulario de alta de convenio con reglas de negocio Marco/Específico:
- * - `tipo_convenio` se bloquea una vez elegido (no se cambia el tipo del convenio).
- * - `convenio_marco` y `max_campos_clinicos` solo aplican a **Específico**: deshabilitados y
- *   limpiados cuando el tipo es Marco; obligatorios cuando es Específico.
+ * - `tipo_convenio` se bloquea una vez elegido.
+ * - `convenio_marco`, `max_campos_clinicos`, `unidad_ejecutora` y `facultad`
+ *   solo aplican a Específico.
+ * - `facultad` se filtra por universidad.
+ * - `nomenclatura` es asignada por DIGEP; no editable en el alta.
  */
 export function ConvenioCreateForm({
   submitting,
@@ -37,25 +38,27 @@ export function ConvenioCreateForm({
   onSubmit: (payload: FormValues) => void;
   onCancel: () => void;
 }) {
-  const { control, handleSubmit, setValue } = useForm<FormValues>({
+  const { control, handleSubmit, setValue, watch } = useForm<FormValues>({
     defaultValues: {
       tipo_convenio: null,
       titulo: "",
-      codigo: "",
       plantilla: null,
       convenio_marco: null,
       solicitante_tipo_contenido: null,
       solicitante_id_objeto: null,
       organo_directorio: null,
       universidad: null,
+      unidad_ejecutora: null,
+      facultad: null,
       fecha_solicitud: "",
       max_campos_clinicos: "",
     },
   });
 
   const tipoId = useWatch({ control, name: "tipo_convenio" }) as number | null;
+  const universidadId = watch("universidad") as number | null;
 
-  // Catálogo de tipos (pequeño) para saber si el seleccionado es "Específico".
+  // Catálogo de tipos para detectar si es Específico.
   const typesQuery = useQuery({
     queryKey: ["convention-types", "all"],
     queryFn: () => searchResource("convention-types"),
@@ -66,19 +69,24 @@ export function ConvenioCreateForm({
     !!selected &&
     /espec/i.test(String(selected.nombre ?? selected.codigo ?? ""));
 
-  // Opciones del select de tipo (catálogo pequeño → dropdown, no búsqueda).
   const tipoItems = (typesQuery.data ?? []).map((t) => ({
     value: String(t.id),
     label: String(t.nombre ?? t.codigo ?? t.id),
   }));
 
-  // Al pasar a Marco (o sin tipo), limpiar los campos solo-Específico.
   useEffect(() => {
     if (!isEspecifico) {
       setValue("convenio_marco", null);
       setValue("max_campos_clinicos", "");
+      setValue("unidad_ejecutora", null);
+      setValue("facultad", null);
     }
   }, [isEspecifico, setValue]);
+
+  // Resetear facultad al cambiar universidad.
+  useEffect(() => {
+    setValue("facultad", null);
+  }, [universidadId, setValue]);
 
   function submit(values: FormValues) {
     const payload: FormValues = {
@@ -90,20 +98,23 @@ export function ConvenioCreateForm({
       universidad: Number(values.universidad),
       fecha_solicitud: values.fecha_solicitud,
     };
-    if (values.codigo) payload.codigo = values.codigo;
     if (values.plantilla != null) payload.plantilla = Number(values.plantilla);
     if (isEspecifico) {
       if (values.convenio_marco != null)
         payload.convenio_marco = Number(values.convenio_marco);
       if (values.max_campos_clinicos !== "" && values.max_campos_clinicos != null)
         payload.max_campos_clinicos = Number(values.max_campos_clinicos);
+      if (values.unidad_ejecutora != null)
+        payload.unidad_ejecutora = Number(values.unidad_ejecutora);
+      if (values.facultad != null)
+        payload.facultad = Number(values.facultad);
     }
     onSubmit(payload);
   }
 
   return (
     <form onSubmit={handleSubmit(submit)} className="grid gap-4">
-      {/* Tipo de convenio — se bloquea tras elegirlo */}
+      {/* Tipo de convenio */}
       <Controller
         control={control}
         name="tipo_convenio"
@@ -132,7 +143,7 @@ export function ConvenioCreateForm({
         )}
       />
 
-      {/* Título / Código (mayúsculas) */}
+      {/* Título */}
       <Controller
         control={control}
         name="titulo"
@@ -148,16 +159,13 @@ export function ConvenioCreateForm({
           </Row>
         )}
       />
-      {/* Nomenclatura (antes "Código"): solo editable cuando el convenio esté en
-          estado ENVIADO_VICEPAS; en el alta siempre va bloqueada. */}
+
+      {/* Nomenclatura (read-only; la asigna DIGEP en la evaluación técnica) */}
       <Row label="Nomenclatura">
-        <Input
-          disabled
-          placeholder="Se asigna en el estado ENVIADO_VICEPAS"
-        />
+        <Input disabled placeholder="Se asigna en la evaluación técnica (DIGEP)" />
       </Row>
 
-      {/* Plantilla (opcional) */}
+      {/* Plantilla */}
       <Controller
         control={control}
         name="plantilla"
@@ -191,7 +199,7 @@ export function ConvenioCreateForm({
           >
             <EntityCombobox
               endpoint="conventions"
-              toLabel={(row: WithId) => String(row.titulo ?? row.codigo ?? row.id)}
+              toLabel={(row: WithId) => String(row.titulo ?? row.nomenclatura ?? row.id)}
               value={field.value as number | null}
               onChange={(v) => field.onChange(v)}
               disabled={!isEspecifico}
@@ -201,36 +209,87 @@ export function ConvenioCreateForm({
         )}
       />
 
-      {/* Entidad solicitante (control compuesto) */}
+      {/* Entidad solicitante */}
       <SolicitanteField control={control} />
 
-      {/* Órgano del directorio (tipo → entidad en cascada) */}
-      <CascadingEntityField
+      {/* Órgano del directorio */}
+      <Controller
         control={control}
         name="organo_directorio"
-        typeLabel="Tipo de órgano"
-        typeEndpoint="organ-types"
-        entityLabel="Órgano del directorio"
-        entityEndpoint="organ-directories"
-        filterParam="tipo_organo"
-        required
+        rules={{ validate: (v) => (v != null && v !== "") || "Campo obligatorio." }}
+        render={({ field, fieldState }) => (
+          <Row label="Órgano del directorio" required error={fieldState.error?.message}>
+            <EntityCombobox
+              endpoint="organ-directories"
+              value={field.value as number | null}
+              onChange={(v) => field.onChange(v)}
+              placeholder="Buscar órgano del directorio…"
+            />
+          </Row>
+        )}
       />
 
-      {/* Universidad (tipo de entidad → universidad en cascada) */}
-      <CascadingEntityField
+      {/* Universidad */}
+      <Controller
         control={control}
         name="universidad"
-        typeLabel="Tipo de entidad universitaria"
-        typeEndpoint="organ-types"
-        typeParams={{ organo__nombre: "Universidad" }}
-        entityLabel="Universidad"
-        entityEndpoint="universities"
-        filterParam="tipo_entidad"
-        required
-        toLabel={(row) => String(row.nombre ?? row.siglas ?? row.id)}
+        rules={{ validate: (v) => (v != null && v !== "") || "Campo obligatorio." }}
+        render={({ field, fieldState }) => (
+          <Row label="Universidad" required error={fieldState.error?.message}>
+            <EntityCombobox
+              endpoint="universities"
+              toLabel={(row: WithId) => String(row.nombre ?? row.siglas ?? row.id)}
+              value={field.value as number | null}
+              onChange={(v) => field.onChange(v)}
+              placeholder="Buscar universidad…"
+            />
+          </Row>
+        )}
       />
 
-      {/* Fecha de solicitud + Máximo de campos clínicos en una línea */}
+      {/* Unidad ejecutora — solo Específico */}
+      <Controller
+        control={control}
+        name="unidad_ejecutora"
+        render={({ field }) => (
+          <Row label="Unidad ejecutora (solo Específico)">
+            <EntityCombobox
+              endpoint="executing-units"
+              value={field.value as number | null}
+              onChange={(v) => field.onChange(v)}
+              disabled={!isEspecifico}
+              placeholder={isEspecifico ? "Buscar unidad ejecutora…" : "Solo para Específico"}
+            />
+          </Row>
+        )}
+      />
+
+      {/* Facultad — solo Específico, filtrada por universidad */}
+      <Controller
+        control={control}
+        name="facultad"
+        render={({ field }) => (
+          <Row label="Facultad (solo Específico)">
+            <EntityCombobox
+              key={universidadId ?? 0}
+              endpoint="faculties"
+              params={universidadId ? { universidad: String(universidadId) } : undefined}
+              value={field.value as number | null}
+              onChange={(v) => field.onChange(v)}
+              disabled={!isEspecifico || !universidadId}
+              placeholder={
+                !isEspecifico
+                  ? "Solo para Específico"
+                  : !universidadId
+                  ? "Elige primero universidad…"
+                  : "Buscar facultad…"
+              }
+            />
+          </Row>
+        )}
+      />
+
+      {/* Fecha de solicitud + Máximo campos de formación */}
       <div className="grid gap-4 sm:grid-cols-2">
         <Controller
           control={control}
@@ -285,7 +344,6 @@ export function ConvenioCreateForm({
   );
 }
 
-/** Fila etiqueta + control + error, reutilizada por los campos del formulario. */
 function Row({
   label,
   required,

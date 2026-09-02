@@ -43,6 +43,7 @@ export const FLOW_ACTIONS: FlowAction[] = [
       },
       { name: "observaciones", label: "Observaciones", type: "text", uppercase: false },
       { name: "subsanacion", label: "Subsanación", type: "text", uppercase: false },
+      { name: "nomenclatura", label: "Nomenclatura (solo Marco)", type: "text", uppercase: false },
     ],
   },
   {
@@ -55,47 +56,6 @@ export const FLOW_ACTIONS: FlowAction[] = [
       { name: "estado_atencion", label: "Estado de atención", type: "text", uppercase: false },
       { name: "resultado_opinion", label: "Resultado de la opinión", type: "text", uppercase: false },
       { name: "fecha_respuesta", label: "Fecha de respuesta", type: "date" },
-    ],
-  },
-  {
-    key: "campos-clinicos",
-    label: "Agregar campo clínico",
-    roles: ["CONAPRES"],
-    onlyEspecifico: true,
-    fields: [
-      {
-        name: "ipress",
-        label: "IPRESS",
-        type: "select",
-        required: true,
-        optionsEndpoint: "ipress",
-        // Solo IPRESS autorizadas como sede docente (RN: campo clínico exige sede docente).
-        optionsParams: { es_sede_docente: "true" },
-      },
-      {
-        name: "carrera_profesional",
-        label: "Carrera profesional",
-        type: "select",
-        required: true,
-        optionsEndpoint: "professional-careers",
-      },
-      {
-        name: "especialidad",
-        label: "Especialidad",
-        type: "select",
-        required: true,
-        optionsEndpoint: "specialties",
-      },
-      { name: "cantidad_maxima", label: "Cantidad máxima", type: "number", required: true },
-      { name: "vigencia_inicio", label: "Vigencia inicio", type: "date" },
-      { name: "vigencia_fin", label: "Vigencia fin", type: "date" },
-      {
-        name: "ambito_geografico_sanitario",
-        label: "Ámbito geográfico sanitario",
-        type: "select",
-        optionsEndpoint: "health-geographic-scopes",
-      },
-      { name: "observaciones", label: "Observaciones", type: "text", uppercase: false },
     ],
   },
   {
@@ -142,6 +102,17 @@ export const FLOW_ACTIONS: FlowAction[] = [
     fields: [
       { name: "fecha_publicacion", label: "Fecha de publicación", type: "date", required: true },
       { name: "referencia_publicacion", label: "Referencia de publicación", type: "text", uppercase: false },
+    ],
+  },
+  {
+    key: "adenda",
+    label: "Crear adenda",
+    roles: ["Administrador RENADS"],
+    fields: [
+      { name: "titulo", label: "Título (opcional)", type: "text", uppercase: false },
+      { name: "fecha_inicio", label: "Fecha de inicio", type: "date", required: true },
+      { name: "fecha_solicitud", label: "Fecha de solicitud", type: "date" },
+      { name: "fecha_fin", label: "Fecha de fin", type: "date" },
     ],
   },
   {

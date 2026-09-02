@@ -21,7 +21,6 @@ export const CONVENTION_FIELDS: FieldConfig[] = [
     optionsEndpoint: "convention-types",
   },
   { name: "titulo", label: "Título", type: "text", required: true, uppercase: false },
-  { name: "codigo", label: "Nomenclatura", type: "text" },
   {
     name: "plantilla",
     label: "Plantilla",
@@ -33,7 +32,7 @@ export const CONVENTION_FIELDS: FieldConfig[] = [
     label: "Convenio Marco (solo Específico)",
     type: "select",
     optionsEndpoint: "conventions",
-    optionsToLabel: (row: WithId) => String(row.titulo ?? row.codigo ?? row.id),
+    optionsToLabel: (row: WithId) => String(row.titulo ?? row.nomenclatura ?? row.id),
   },
   {
     name: "solicitante_tipo_contenido",
@@ -62,6 +61,18 @@ export const CONVENTION_FIELDS: FieldConfig[] = [
     optionsEndpoint: "universities",
     optionsToLabel: (row: WithId) => String(row.nombre ?? row.siglas ?? row.id),
   },
+  {
+    name: "unidad_ejecutora",
+    label: "Unidad ejecutora (solo Específico)",
+    type: "select",
+    optionsEndpoint: "executing-units",
+  },
+  {
+    name: "facultad",
+    label: "Facultad (solo Específico)",
+    type: "select",
+    optionsEndpoint: "faculties",
+  },
   { name: "fecha_solicitud", label: "Fecha de solicitud", type: "date", required: true },
   { name: "fecha_inicio", label: "Fecha de inicio", type: "date" },
   {
@@ -85,13 +96,12 @@ export const CONVENTION_CREATE_FIELDS: FieldConfig[] = [
     optionsEndpoint: "convention-types",
   },
   { name: "titulo", label: "Título", type: "text", required: true, uppercase: false },
-  { name: "codigo", label: "Nomenclatura", type: "text" },
   {
     name: "convenio_marco",
     label: "Convenio Marco (solo Específico)",
     type: "select",
     optionsEndpoint: "conventions",
-    optionsToLabel: (row: WithId) => String(row.titulo ?? row.codigo ?? row.id),
+    optionsToLabel: (row: WithId) => String(row.titulo ?? row.nomenclatura ?? row.id),
   },
   {
     name: "solicitante",
