@@ -92,7 +92,7 @@ Patrón común: `id` (PK), `codigo` (varchar, único), `nombre` (varchar), `acti
 
 **`tipo_actor = REPRESENTANTE`** (incluye autoridades de CONAPRES): `RESOL_REP` (Resolución de designación del cargo), `DNI_REP` (Documento de identidad).
 
-**`tipo_actor = CONVENIO`** (resoluciones del convenio, `obligatorio = False`): `RESOL_MARCO` (Resolución de aprobación del Convenio Marco), `RESOL_ESPECIFICO` (Resolución de aprobación del Convenio Específico), `RESOL_ADENDA` (Resolución de aprobación de la adenda).
+**`tipo_actor = CONVENIO`** (resoluciones del convenio, `obligatorio = False`): `RESOL_MARCO` (Resolución de aprobación del Convenio Marco), `RESOL_ESPECIFICO` (Resolución de aprobación del Convenio Específico), `RESOL_ADENDA` (Resolución de aprobación de la adenda). **PDF generados por el módulo Convenios** (`obligatorio = False`, migración `internados/0020_seed_anexos_proyecto`): `PROYECTO_CONVENIO` (Proyecto de convenio — PDF generado), `PROYECTO_ADENDA` (Proyecto de adenda — PDF generado), `EXPEDIENTE` (Expediente del convenio — PDF consolidado). Se adjuntan sobre `convenio` vía las acciones `conventions/{id}/generar-proyecto/` y `.../generar-expediente/` (versionadas por `(convenio, documento_anexo)`).
 
 **`tipo_actor = CAMPO_CLINICO`** (resolución CONAPRES de campos clínicos, `obligatorio = False`): `RESOL_CONAPRES` (Resolución CONAPRES de campos clínicos).
 
@@ -107,7 +107,7 @@ hace por entidad según el `tipo_actor`:
 
 - `INTERNO` → `interno` (endpoints `interns/{id}/annex-upload/` y `.../annex-checklist/`).
 - `REPRESENTANTE` → `organo_representante` (cubre autoridades de universidad y CONAPRES).
-- `CONVENIO` → `convenio` (endpoints `conventions/{id}/annex-upload/` y `.../annex-checklist/`; resoluciones `RESOL_MARCO`/`RESOL_ESPECIFICO`/`RESOL_ADENDA`).
+- `CONVENIO` → `convenio` (endpoints `conventions/{id}/annex-upload/` y `.../annex-checklist/`; resoluciones `RESOL_MARCO`/`RESOL_ESPECIFICO`/`RESOL_ADENDA`. Los PDF generados `PROYECTO_CONVENIO`/`PROYECTO_ADENDA`/`EXPEDIENTE` se adjuntan por las acciones `conventions/{id}/generar-proyecto/` y `.../generar-expediente/`).
 - `CAMPO_CLINICO` → `campo_clinico_ipress` (endpoints `clinical-field-registrations/{id}/annex-upload/` y `.../annex-checklist/`; resolución `RESOL_CONAPRES`).
 
 Re-subir el mismo anexo a la misma entidad genera una nueva versión del

@@ -13,6 +13,7 @@ from apps.convenios.models import (
     ConapresOpinion,
     Convention,
     ConventionParticipant,
+    ConventionParty,
     ConventionStatusHistory,
     ConventionTemplate,
     Document,
@@ -50,18 +51,19 @@ class ConventionReadSerializer(serializers.ModelSerializer):
     facultad_detalle = serializers.SerializerMethodField()
     adendas = serializers.SerializerMethodField()
     vigencia_efectiva = serializers.SerializerMethodField()
+    partes_firmantes = serializers.SerializerMethodField()
 
     class Meta:
         model = Convention
         fields = [
             "id", "tipo_convenio", "convenio_marco", "convenio_origen", "es_adenda",
-            "plantilla", "codigo", "titulo",
+            "plantilla", "nomenclatura", "titulo",
             "solicitante_tipo_contenido", "solicitante_id_objeto", "solicitante",
             "organo_directorio", "organo_directorio_nombre", "tipo_organo_directorio",
             "universidad", "universidad_nombre", "tipo_entidad_universidad",
             "unidad_ejecutora", "unidad_ejecutora_detalle", "facultad", "facultad_detalle",
             "estado_actual", "estado_codigo", "fecha_solicitud", "fecha_inicio", "fecha_fin",
-            "vigencia_efectiva", "adendas",
+            "vigencia_efectiva", "adendas", "partes_firmantes",
             "max_campos_clinicos", "creado_por", "creado_en", "actualizado_en",
         ]
 
@@ -92,12 +94,17 @@ class ConventionReadSerializer(serializers.ModelSerializer):
         from apps.convenios import selectors
         return selectors.vigencia_efectiva(obj)
 
+    def get_partes_firmantes(self, obj) -> list:
+        return ConventionPartySerializer(obj.partes_firmantes.all(), many=True).data
+
 
 class ConventionWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Convention
+        # `nomenclatura` no es editable directamente: la asigna el service del gate
+        # de validación técnica del Marco (RN A3).
         fields = [
-            "tipo_convenio", "convenio_marco", "plantilla", "codigo", "titulo",
+            "tipo_convenio", "convenio_marco", "plantilla", "titulo",
             "solicitante_tipo_contenido", "solicitante_id_objeto",
             "organo_directorio", "universidad", "unidad_ejecutora", "facultad",
             "fecha_solicitud", "fecha_inicio", "fecha_fin", "max_campos_clinicos",
@@ -108,7 +115,7 @@ class AdendaWriteSerializer(serializers.Serializer):
     """Entrada de la acción `conventions/{id}/adenda` — nuevo periodo de la adenda."""
 
     titulo = serializers.CharField(required=False, allow_blank=True)
-    codigo = serializers.CharField(required=False, allow_blank=True)
+    nomenclatura = serializers.CharField(required=False, allow_blank=True)
     fecha_solicitud = serializers.DateField(required=False)
     fecha_inicio = serializers.DateField()
     fecha_fin = serializers.DateField(required=False)
@@ -142,6 +149,40 @@ class ConventionParticipantSerializer(serializers.ModelSerializer):
         read_only_fields = ["convenio", "creado_en"]
 
 
+class ConventionPartySerializer(serializers.ModelSerializer):
+    """Parte firmante estructurada del convenio (rol + órgano + representante + cargo).
+
+    El `convenio` se toma de la URL de la acción (read-only). La coherencia
+    órgano↔representante↔cargo y la composición de roles las valida el service
+    `sincronizar_partes`. Los campos `*_detalle` son de solo lectura para los listados.
+    """
+
+    rol_display = serializers.CharField(source="get_rol_display", read_only=True)
+    organo_directorio_detalle = serializers.SerializerMethodField()
+    organo_representante_detalle = serializers.SerializerMethodField()
+    cargo_ejecutivo_detalle = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ConventionParty
+        fields = [
+            "id", "convenio", "rol", "rol_display",
+            "organo_directorio", "organo_directorio_detalle",
+            "organo_representante", "organo_representante_detalle",
+            "cargo_ejecutivo", "cargo_ejecutivo_detalle",
+            "orden", "es_firmante", "creado_en",
+        ]
+        read_only_fields = ["id", "convenio", "creado_en"]
+
+    def get_organo_directorio_detalle(self, obj):
+        return _detalle_fk(obj.organo_directorio, "nombre", "siglas")
+
+    def get_organo_representante_detalle(self, obj):
+        return _detalle_fk(obj.organo_representante, "nombre", "numero_documento_identidad")
+
+    def get_cargo_ejecutivo_detalle(self, obj):
+        return _detalle_fk(obj.cargo_ejecutivo, "nombre_masculino", "nombre_femenino")
+
+
 class ConventionStatusHistorySerializer(serializers.ModelSerializer):
     estado = serializers.CharField(source="estado.nombre", read_only=True)
     estado_codigo = serializers.CharField(source="estado.codigo", read_only=True)
@@ -160,9 +201,16 @@ class CambiarEstadoSerializer(serializers.Serializer):
 
 
 class TechnicalEvaluationSerializer(serializers.ModelSerializer):
+    # `nomenclatura` es entrada de la acción `validar-tecnica`: se exige y persiste en
+    # el convenio (solo Marco validado); NO es campo de `evaluacion_tecnica`.
+    nomenclatura = serializers.CharField(required=False, allow_blank=True, write_only=True)
+
     class Meta:
         model = TechnicalEvaluation
-        fields = ["resultado", "observaciones", "subsanacion", "organo_directorio", "fecha_evaluacion"]
+        fields = [
+            "resultado", "observaciones", "subsanacion", "organo_directorio",
+            "fecha_evaluacion", "nomenclatura",
+        ]
 
 
 class ConapresOpinionSerializer(serializers.ModelSerializer):
@@ -217,7 +265,7 @@ class ClinicalFieldRegistrationSerializer(serializers.ModelSerializer):
         return obj.campos_clinicos_registrados - obj.campos_clinicos_asignados
 
     def get_convenio_detalle(self, obj):
-        return _detalle_fk(obj.convenio, "titulo", "codigo")
+        return _detalle_fk(obj.convenio, "titulo", "nomenclatura")
 
     def get_ipress_detalle(self, obj):
         return _detalle_fk(obj.ipress, "nombre", "codigo_renipress")
@@ -266,7 +314,7 @@ class ClinicalFieldAllocationSerializer(serializers.ModelSerializer):
         ]
 
     def get_convenio_detalle(self, obj):
-        return _detalle_fk(obj.convenio, "titulo", "codigo")
+        return _detalle_fk(obj.convenio, "titulo", "nomenclatura")
 
     def get_ipress_detalle(self, obj):
         return _detalle_fk(obj.ipress, "nombre", "codigo_renipress")

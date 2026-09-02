@@ -11,6 +11,7 @@ from apps.convenios.models import (
     ConventionParticipant,
     ConventionStatusHistory,
     Document,
+    UniversityCareer,
 )
 
 
@@ -90,6 +91,28 @@ def asignaciones_campo_clinico() -> QuerySet[ClinicalFieldAllocation]:
     return ClinicalFieldAllocation.objects.select_related(
         "campo_clinico_ipress", "convenio", "ipress", "carrera_profesional",
         "especialidad", "universidad",
+    )
+
+
+def campos_clinicos_del_especifico(convenio: Convention) -> QuerySet[ClinicalFieldRegistration]:
+    """Registros CONAPRES (`ClinicalFieldRegistration`) del Convenio Específico.
+
+    Lectura pura para poblar la tabla de campos clínicos del expediente: registros
+    de las sedes docentes de la unidad ejecutora del convenio, filtrados por las
+    carreras de la facultad del convenio (`universidad_carrera` activas). No tiene
+    efectos secundarios ni auditoría; el gate de suscripción vive en el service
+    `_exigir_campos_clinicos_conapres`.
+    """
+    carreras_facultad = UniversityCareer.objects.filter(
+        facultad=convenio.facultad, activo=True
+    ).values("carrera_profesional_id")
+    return (
+        ClinicalFieldRegistration.objects.filter(
+            ipress__unidad_ejecutora_id=convenio.unidad_ejecutora_id,
+            ipress__es_sede_docente=True,
+            carrera_profesional_id__in=carreras_facultad,
+        )
+        .select_related("convenio", "ipress", "carrera_profesional", "especialidad")
     )
 
 

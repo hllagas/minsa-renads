@@ -475,6 +475,10 @@ class OrganRepresentative(models.Model):
         "número de resolución de designación", max_length=100, blank=True,
         help_text="Número de resolución de designación",
     )
+    numero_resolucion_facultades = models.CharField(
+        "número de resolución de facultades", max_length=100, blank=True,
+        help_text="Número de resolución que otorga facultades al representante",
+    )
     fecha_inicio_facultades = models.DateField(
         "fecha de inicio de facultades", null=True, blank=True,
         help_text="Otorgamiento de facultades",
@@ -523,6 +527,10 @@ class OrganRepresentativeHistory(models.Model):
     numero_resolucion_designacion = models.CharField(
         "número de resolución de designación", max_length=100, blank=True,
         help_text="Número de resolución de designación",
+    )
+    numero_resolucion_facultades = models.CharField(
+        "número de resolución de facultades", max_length=100, blank=True,
+        help_text="Número de resolución que otorga facultades al representante",
     )
     fecha_inicio_facultades = models.DateField(
         "fecha de inicio de facultades", null=True, blank=True,
@@ -758,7 +766,10 @@ class Convention(models.Model):
         ConventionTemplate, on_delete=models.SET_NULL, db_column="plantilla_id", null=True, blank=True,
         help_text="Plantilla utilizada",
     )
-    codigo = models.CharField("código", max_length=50, blank=True, help_text="Código oficial")
+    nomenclatura = models.CharField(
+        "nomenclatura", max_length=50, blank=True,
+        help_text="Nomenclatura oficial del Convenio Marco (se asigna al aprobar DIGEP)",
+    )
     titulo = models.CharField("título", max_length=255, help_text="Título / denominación")
     solicitante_tipo_contenido = models.ForeignKey(
         ContentType, on_delete=models.PROTECT, db_column="solicitante_tipo_contenido_id",
@@ -836,6 +847,68 @@ class ConventionParticipant(models.Model):
         db_table = "participante_convenio"
         verbose_name = "participante de convenio"
         unique_together = [("convenio", "tipo_contenido", "id_objeto")]
+
+
+# Roles institucionales de una parte firmante del convenio (código en inglés).
+PARTY_ROLE = [
+    ("MINSA", "MINSA"),
+    ("UNIVERSIDAD", "Universidad"),
+    ("GOBIERNO_REGIONAL", "Gobierno regional"),
+    ("UNIDAD_EJECUTORA", "Unidad ejecutora"),
+    ("FACULTAD", "Facultad"),
+]
+
+
+class ConventionParty(models.Model):
+    """Parte firmante estructurada de un convenio (rol + órgano + representante + cargo).
+
+    Reemplaza el uso polimórfico para las partes firmantes con una relación explícita
+    por rol institucional. La coherencia órgano↔representante↔cargo se valida en el
+    service ``sincronizar_partes`` (no en ``clean()``): este modelo no lleva lógica de
+    negocio.
+    """
+
+    convenio = models.ForeignKey(
+        Convention, on_delete=models.CASCADE, db_column="convenio_id",
+        related_name="partes_firmantes", help_text="Convenio al que pertenece la parte",
+    )
+    rol = models.CharField(
+        "rol de la parte", max_length=20, choices=PARTY_ROLE, db_column="rol",
+        help_text="Rol institucional de la parte firmante",
+    )
+    organo_directorio = models.ForeignKey(
+        OrganDirectory, on_delete=models.PROTECT, db_column="organo_directorio_id",
+        related_name="+", help_text="Órgano del directorio que representa la parte",
+    )
+    organo_representante = models.ForeignKey(
+        OrganRepresentative, on_delete=models.PROTECT, db_column="organo_representante_id",
+        null=True, blank=True, related_name="+",
+        help_text="Representante que firma por la parte",
+    )
+    cargo_ejecutivo = models.ForeignKey(
+        ExecutivePosition, on_delete=models.PROTECT, db_column="cargo_ejecutivo_id",
+        null=True, blank=True, related_name="+",
+        help_text="Cargo ejecutivo del representante",
+    )
+    orden = models.PositiveSmallIntegerField(
+        "orden de firma", default=1, db_column="orden",
+        help_text="Orden de firma dentro del rol (apoderado = 2)",
+    )
+    es_firmante = models.BooleanField(
+        "es firmante", default=True, db_column="es_firmante",
+        help_text="Indica si la parte firma el convenio",
+    )
+    creado_en = models.DateTimeField("creado en", auto_now_add=True, db_column="creado_en")
+
+    class Meta:
+        db_table = "parte_convenio"
+        verbose_name = "parte de convenio"
+        verbose_name_plural = "partes de convenio"
+        unique_together = (("convenio", "rol", "orden"),)
+        ordering = ["convenio", "orden"]
+
+    def __str__(self):
+        return f"{self.convenio_id} — {self.rol} ({self.orden})"
 
 
 class ConventionStatusHistory(models.Model):

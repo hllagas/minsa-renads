@@ -21,6 +21,15 @@ google-cloud-storage==3.13.0
 # Backend Django Storage para GCS: ImageField de logos (django-storages[google])
 django-storages==1.14.6
 
+# Almacenamiento de objetos en Cloudflare R2 (S3-compatible): backend documental y de logos
+boto3==1.43.86
+
+# Generación del proyecto de convenio en PDF (rellenado de plantillas Word docxtpl → PDF)
+docxtpl==0.20.2
+
+# Ensamblado del expediente PDF (merge de PDFs adjuntos)
+pypdf==6.14.2
+
 # Procesamiento de imágenes: requerido por ImageField (validación de imagen)
 Pillow==11.3.0
 

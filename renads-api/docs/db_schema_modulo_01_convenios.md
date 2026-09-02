@@ -316,6 +316,7 @@ Representantes/autoridades de un órgano del directorio (FK **directo** a `organ
 | `cargo_ejecutivo_id` | FK → `cargo_ejecutivo` (PROTECT) | No | Cargo ejecutivo |
 | `fecha_inicio_designacion` | date | No | Inicio de la designación |
 | `numero_resolucion_designacion` | varchar(100) | Sí | Número de resolución de designación |
+| `numero_resolucion_facultades` | varchar(100) | Sí | Número de resolución que otorga facultades al representante |
 | `fecha_inicio_facultades` | date | Sí | Otorgamiento de facultades |
 | `activo` | bool | No | |
 
@@ -337,6 +338,7 @@ Snapshot denormalizado de un representante dado de baja (preserva el estado aunq
 | `cargo_ejecutivo_id` | FK → `cargo_ejecutivo` (PROTECT) | No | Cargo ejecutivo |
 | `fecha_inicio_designacion` | date | No | Inicio de la designación |
 | `numero_resolucion_designacion` | varchar(100) | Sí | Número de resolución de designación |
+| `numero_resolucion_facultades` | varchar(100) | Sí | Número de resolución que otorga facultades al representante |
 | `fecha_inicio_facultades` | date | Sí | Otorgamiento de facultades |
 | `fecha_baja` | date | No | Fecha en que se dio de baja al representante |
 | `motivo` | varchar(255) | Sí | Motivo de la baja |
@@ -424,7 +426,7 @@ evitando redundancia. En el formulario son selectores en cascada que filtran la 
 | `convenio_origen_id` | FK → `convenio` (self, PROTECT) | Sí | Convenio (Marco o Específico) que esta adenda amplía (`related_name='adendas'`) |
 | `es_adenda` | bool | No (default `false`) | Marca la fila como adenda de ampliación (derivable de `convenio_origen`; explícito para filtros) |
 | `plantilla_id` | FK → `plantilla_convenio` | Sí | Plantilla utilizada |
-| `codigo` | varchar(50) | Sí | Código oficial |
+| `nomenclatura` | varchar(50) | Sí | Nomenclatura oficial del Convenio Marco (se asigna al aprobar DIGEP; renombra a `codigo`). No editable por PATCH libre: la fija el gate de `registrar_evaluacion_tecnica` (solo Marco validado) |
 | `titulo` | varchar(255) | No | Título / denominación |
 | `solicitante_tipo_contenido_id` | FK → `django_content_type` | No | Tipo de entidad solicitante |
 | `solicitante_id_objeto` | int | No | Identificador de la entidad solicitante |
@@ -453,6 +455,23 @@ evitando redundancia. En el formulario son selectores en cascada que filtran la 
 | `es_firmante` | bool | No | Indica si firma el convenio |
 | `creado_en` | datetime | No | |
 | **Único** | (`convenio_id`, `tipo_contenido_id`, `id_objeto`) | | |
+
+### `parte_convenio` (partes firmantes estructuradas por rol)
+
+Partes firmantes del convenio con relación explícita por rol institucional (no polimórfica). **Se conserva** `participante_convenio` (no la reemplaza). Se sincroniza (idempotente) por `(convenio, rol, orden)` vía `services.sincronizar_partes` y el endpoint `POST /api/v1/conventions/{id}/parties/`. La coherencia órgano↔representante↔cargo y la composición de roles requerida por tipo/categoría (Marco Lima ⇒ MINSA+UNIVERSIDAD; Marco región ⇒ MINSA+GOBIERNO_REGIONAL+UNIVERSIDAD; Específico ⇒ UNIDAD_EJECUTORA+FACULTAD) se validan en el service (no en `clean()`).
+
+| Columna | Tipo | Null | Descripción |
+|---------|------|------|-------------|
+| `id` | PK | No | |
+| `convenio_id` | FK → `convenio` (CASCADE) | No | Convenio al que pertenece la parte (`related_name='partes_firmantes'`) |
+| `rol` | varchar(20) | No | Rol institucional: `MINSA` / `UNIVERSIDAD` / `GOBIERNO_REGIONAL` / `UNIDAD_EJECUTORA` / `FACULTAD` |
+| `organo_directorio_id` | FK → `organo_directorio` (PROTECT) | No | Órgano del directorio que representa la parte |
+| `organo_representante_id` | FK → `organo_representante` (PROTECT) | Sí | Representante que firma por la parte |
+| `cargo_ejecutivo_id` | FK → `cargo_ejecutivo` (PROTECT) | Sí | Cargo ejecutivo del representante |
+| `orden` | smallint | No (default `1`) | Orden de firma dentro del rol (apoderado = 2) |
+| `es_firmante` | bool | No (default `true`) | Indica si la parte firma el convenio |
+| `creado_en` | datetime | No | |
+| **Único** | (`convenio_id`, `rol`, `orden`) | | |
 
 ### `historial_estado_convenio` (trazabilidad — RNF-AUD-03)
 
@@ -691,6 +710,7 @@ convenio >── django_content_type (entidad solicitante, polimórfico)
 convenio >── organo_directorio / universidad
 convenio >── estado_convenio (estado_actual)
 convenio ──< participante_convenio >── django_content_type (participante polimórfico)
+convenio ──< parte_convenio >── organo_directorio / organo_representante / cargo_ejecutivo   (partes firmantes por rol)
 convenio ──< historial_estado_convenio >── estado_convenio
 convenio ──< evaluacion_tecnica >── organo_directorio
 convenio ──< opinion_conapres                    (solo Específico)

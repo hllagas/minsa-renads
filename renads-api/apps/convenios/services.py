@@ -18,6 +18,7 @@ from apps.convenios.models import (
     ConapresOpinion,
     Convention,
     ConventionParticipant,
+    ConventionParty,
     ConventionStatus,
     ConventionStatusHistory,
     Ipress,
@@ -109,6 +110,16 @@ def _exigir_marco(convenio: Convention, actividad: str) -> None:
         raise ValidationError(f"{actividad} solo aplica a Convenios Marco.")
 
 
+def _validar_nomenclatura(convenio: Convention, nomenclatura: str) -> None:
+    """Gate de nomenclatura del Convenio Marco (se asigna al aprobar DIGEP)."""
+    if convenio.tipo_convenio.codigo != "MARCO":
+        raise ValidationError({"nomenclatura": "La nomenclatura solo aplica a Convenios Marco."})
+    if not (nomenclatura or "").strip():
+        raise ValidationError(
+            {"nomenclatura": "Requerida para aprobar la validación técnica del Marco."}
+        )
+
+
 def _validar_partes_por_tipo(*, tipo_codigo, marco, universidad, unidad_ejecutora, facultad):
     """Valida las partes (unidad ejecutora / facultad) según el tipo de convenio.
 
@@ -138,6 +149,36 @@ def _validar_partes_por_tipo(*, tipo_codigo, marco, universidad, unidad_ejecutor
             raise ValidationError(
                 {"facultad": "La facultad debe pertenecer a la universidad del Convenio Marco."}
             )
+
+
+def _validar_composicion_partes(*, tipo_codigo, categoria_organo, roles_presentes) -> None:
+    """Valida la composición de roles requerida por tipo/categoría del convenio.
+
+    - MARCO + órgano MINSA_DIRIS (Lima): requiere MINSA + UNIVERSIDAD.
+    - MARCO + órgano GOBIERNO_REGIONAL (región): requiere MINSA + GOBIERNO_REGIONAL + UNIVERSIDAD.
+    - ESPECIFICO: requiere UNIDAD_EJECUTORA + FACULTAD (apoderado orden=2 opcional).
+
+    `roles_presentes` es un conjunto/colección de códigos de rol (PARTY_ROLE).
+    """
+    roles = set(roles_presentes)
+    if tipo_codigo == "MARCO":
+        if categoria_organo == "MINSA_DIRIS":
+            requeridos = {"MINSA", "UNIVERSIDAD"}
+        elif categoria_organo == "GOBIERNO_REGIONAL":
+            requeridos = {"MINSA", "GOBIERNO_REGIONAL", "UNIVERSIDAD"}
+        else:
+            requeridos = set()
+    elif tipo_codigo == "ESPECIFICO":
+        requeridos = {"UNIDAD_EJECUTORA", "FACULTAD"}
+    else:
+        requeridos = set()
+
+    faltantes = requeridos - roles
+    if faltantes:
+        etiquetas = ", ".join(sorted(faltantes))
+        raise ValidationError(
+            f"Faltan las partes requeridas para este tipo de convenio: {etiquetas}."
+        )
 
 
 def _exigir_campos_clinicos_conapres(convenio: Convention) -> None:
@@ -220,7 +261,7 @@ def crear_convenio(*, datos: dict, usuario) -> Convention:
         tipo_convenio=tipo,
         convenio_marco=marco,
         plantilla=datos.get("plantilla"),
-        codigo=datos.get("codigo", ""),
+        nomenclatura=datos.get("nomenclatura", ""),
         titulo=datos["titulo"],
         solicitante_tipo_contenido=datos["solicitante_tipo_contenido"],
         solicitante_id_objeto=datos["solicitante_id_objeto"],
@@ -274,7 +315,7 @@ def crear_adenda(*, convenio_origen: Convention, datos: dict, usuario) -> Conven
         convenio_origen=convenio_origen,
         es_adenda=True,
         plantilla=convenio_origen.plantilla,
-        codigo=datos.get("codigo", ""),
+        nomenclatura=datos.get("nomenclatura", ""),
         titulo=titulo,
         solicitante_tipo_contenido_id=convenio_origen.solicitante_tipo_contenido_id,
         solicitante_id_objeto=convenio_origen.solicitante_id_objeto,
@@ -299,8 +340,10 @@ def crear_adenda(*, convenio_origen: Convention, datos: dict, usuario) -> Conven
 @transaction.atomic
 def actualizar_convenio(*, convenio: Convention, datos: dict, usuario) -> Convention:
     """Actualiza campos editables del convenio (no el estado: usar `cambiar_estado`)."""
+    # `nomenclatura` NO se edita por PATCH libre: se asigna vía el gate de la
+    # validación técnica del Marco (`registrar_evaluacion_tecnica`).
     editables = [
-        "codigo", "titulo", "plantilla", "organo_directorio", "universidad",
+        "titulo", "plantilla", "organo_directorio", "universidad",
         "unidad_ejecutora", "facultad",
         "fecha_inicio", "fecha_fin", "max_campos_clinicos",
     ]
@@ -347,9 +390,23 @@ def cambiar_estado(*, convenio: Convention, nuevo_estado_codigo: str, usuario, o
 
 @transaction.atomic
 def registrar_evaluacion_tecnica(*, convenio: Convention, datos: dict, usuario) -> TechnicalEvaluation:
+    # `nomenclatura` no es campo de `evaluacion_tecnica`: se recibe por el serializer
+    # de la acción y se persiste en el convenio (solo Marco validado).
+    nomenclatura = datos.pop("nomenclatura", None)
     evaluacion = TechnicalEvaluation.objects.create(convenio=convenio, evaluado_por=usuario, **datos)
     registrar_auditoria(usuario, "CREAR", evaluacion)
     if evaluacion.resultado == "VALIDADO":
+        # Gate de nomenclatura: al aprobar DIGEP un Convenio Marco, exige y persiste
+        # la nomenclatura oficial ANTES de pasar a VALIDADO_TECNICAMENTE.
+        if convenio.tipo_convenio.codigo == "MARCO":
+            _validar_nomenclatura(convenio, nomenclatura or "")
+            anterior = convenio.nomenclatura
+            convenio.nomenclatura = nomenclatura.strip()
+            convenio.save(update_fields=["nomenclatura", "actualizado_en"])
+            registrar_auditoria(
+                usuario, "ACTUALIZAR", convenio,
+                nombre_campo="nomenclatura", valor_anterior=anterior, valor_nuevo=convenio.nomenclatura,
+            )
         _set_estado(convenio, "VALIDADO_TECNICAMENTE", usuario)
     elif evaluacion.resultado == "OBSERVADO":
         _set_estado(convenio, "OBSERVADO_DIGEP", usuario)
@@ -602,6 +659,7 @@ _CAMPOS_SNAPSHOT_REPRESENTANTE = [
     "organo_directorio", "nombre", "tipo_documento_identidad",
     "numero_documento_identidad", "sexo", "cargo_ejecutivo",
     "fecha_inicio_designacion", "numero_resolucion_designacion",
+    "numero_resolucion_facultades",
     "fecha_inicio_facultades",
 ]
 
@@ -751,3 +809,111 @@ def sincronizar_carreras_facultad(*, facultad, carreras_ids, usuario) -> list[Un
     return list(
         UniversityCareer.objects.filter(facultad=facultad, activo=True).order_by("id")
     )
+
+
+# ---------------------------------------------------------------------------
+# Partes firmantes del convenio (sincronización en lote)
+# ---------------------------------------------------------------------------
+def _validar_coherencia_parte(*, organo_directorio, organo_representante, cargo_ejecutivo) -> None:
+    """Coherencia órgano↔representante↔cargo de una parte firmante.
+
+    - El representante (si se envía) debe pertenecer al mismo órgano del directorio.
+    - El cargo (si se envía y tiene órgano directivo) debe pertenecer al mismo órgano.
+      Los cargos legacy sin ``organo_directivo`` no se validan.
+    """
+    if (
+        organo_representante is not None
+        and organo_representante.organo_directorio_id != organo_directorio.id
+    ):
+        raise ValidationError(
+            {"organo_representante": "El representante no pertenece al órgano del directorio indicado."}
+        )
+    if (
+        cargo_ejecutivo is not None
+        and cargo_ejecutivo.organo_directivo_id
+        and cargo_ejecutivo.organo_directivo_id != organo_directorio.id
+    ):
+        raise ValidationError(
+            {"cargo_ejecutivo": "El cargo no pertenece al órgano del directorio indicado."}
+        )
+
+
+@transaction.atomic
+def sincronizar_partes(*, convenio: Convention, datos: list[dict], usuario) -> list[ConventionParty]:
+    """Sincroniza (idempotente) las partes firmantes de un convenio.
+
+    Cada elemento de ``datos`` es un dict con ``rol``, ``organo_directorio``,
+    ``organo_representante`` (opcional), ``cargo_ejecutivo`` (opcional), ``orden`` y
+    ``es_firmante``. Reconcilia por la clave ``(convenio, rol, orden)``: crea las
+    partes nuevas, actualiza las existentes y elimina las que ya no estén en el
+    payload. Valida la coherencia órgano↔representante↔cargo de cada parte y la
+    composición de roles requerida según el tipo/categoría del convenio. Toda
+    escritura queda auditada. Devuelve las partes resultantes del convenio.
+    """
+    # Normaliza el payload y valida coherencia por parte.
+    entradas: dict[tuple[str, int], dict] = {}
+    roles_presentes: set[str] = set()
+    for item in datos:
+        organo_directorio = item["organo_directorio"]
+        organo_representante = item.get("organo_representante")
+        cargo_ejecutivo = item.get("cargo_ejecutivo")
+        _validar_coherencia_parte(
+            organo_directorio=organo_directorio,
+            organo_representante=organo_representante,
+            cargo_ejecutivo=cargo_ejecutivo,
+        )
+        orden = item.get("orden", 1)
+        clave = (item["rol"], orden)
+        if clave in entradas:
+            raise ValidationError(
+                f"Parte duplicada para el rol {item['rol']} con orden {orden}."
+            )
+        entradas[clave] = {
+            "rol": item["rol"],
+            "organo_directorio": organo_directorio,
+            "organo_representante": organo_representante,
+            "cargo_ejecutivo": cargo_ejecutivo,
+            "orden": orden,
+            "es_firmante": item.get("es_firmante", True),
+        }
+        roles_presentes.add(item["rol"])
+
+    # Composición de roles requerida por tipo/categoría (exigida al sincronizar).
+    _validar_composicion_partes(
+        tipo_codigo=convenio.tipo_convenio.codigo,
+        categoria_organo=convenio.organo_directorio.categoria if convenio.organo_directorio_id else None,
+        roles_presentes=roles_presentes,
+    )
+
+    existentes = {
+        (parte.rol, parte.orden): parte
+        for parte in convenio.partes_firmantes.select_for_update()
+    }
+
+    # Alta / actualización de las partes enviadas.
+    for clave, valores in entradas.items():
+        parte = existentes.get(clave)
+        if parte is None:
+            parte = ConventionParty.objects.create(convenio=convenio, **valores)
+            registrar_auditoria(usuario, "CREAR", parte)
+        else:
+            cambiado = False
+            for campo in ("organo_directorio", "organo_representante", "cargo_ejecutivo", "es_firmante"):
+                if getattr(parte, campo) != valores[campo]:
+                    setattr(parte, campo, valores[campo])
+                    cambiado = True
+            if cambiado:
+                parte.save(update_fields=[
+                    "organo_directorio", "organo_representante", "cargo_ejecutivo", "es_firmante",
+                ])
+                registrar_auditoria(usuario, "ACTUALIZAR", parte)
+
+    # Baja (delete) de las partes que ya no están en el payload.
+    for clave, parte in existentes.items():
+        if clave not in entradas:
+            pk = parte.pk
+            parte.delete()
+            parte.pk = pk
+            registrar_auditoria(usuario, "ELIMINAR", parte)
+
+    return list(convenio.partes_firmantes.order_by("orden", "id"))

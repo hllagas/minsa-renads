@@ -238,17 +238,133 @@ class GoogleCloudStorage:
             )
 
 
+class CloudflareR2Storage:
+    """Backend de almacenamiento documental sobre Cloudflare R2 (S3-compatible).
+
+    Cumple estructuralmente el `Protocol` `DocumentStorage`. R2 expone una API
+    compatible con S3, por lo que se usa el cliente `boto3` apuntando al endpoint
+    de R2 (`settings.R2_ENDPOINT_URL`) con `region_name="auto"` y firma `s3v4`.
+    Los objetos viven en un bucket privado: la única vía de lectura es un
+    presigned URL de corta duración (nunca URL pública ni la key en crudo).
+
+    El cliente boto3 se construye perezosamente (una sola vez por instancia); el
+    factory `get_document_storage()` cachea la instancia por proceso. El import de
+    `boto3` se difiere hasta el primer uso para no exigir la dependencia en el
+    arranque cuando R2 está deshabilitado.
+    """
+
+    def __init__(self) -> None:
+        from django.conf import settings
+
+        if not settings.R2_BUCKET:
+            raise RuntimeError(
+                "R2 está habilitado (R2_ENABLED=True) pero falta R2_BUCKET. "
+                "Defina el bucket del entorno en el archivo .env."
+            )
+        self._settings = settings
+        self._client = None
+
+    def _get_client(self):
+        """Construye (perezosamente) el cliente S3 de boto3 para Cloudflare R2.
+
+        Se difiere hasta el primer uso para no importar `boto3` en el arranque; si
+        la librería no está instalada se traduce a un mensaje en español para el
+        operador.
+        """
+        if self._client is not None:
+            return self._client
+
+        try:
+            import boto3
+            from botocore.config import Config
+        except ImportError as exc:  # pragma: no cover - dependencia obligatoria
+            raise RuntimeError(
+                "La librería boto3 no está instalada; "
+                "no es posible usar el almacenamiento en Cloudflare R2."
+            ) from exc
+
+        self._client = boto3.client(
+            "s3",
+            endpoint_url=self._settings.R2_ENDPOINT_URL,
+            region_name="auto",
+            aws_access_key_id=self._settings.R2_ACCESS_KEY_ID,
+            aws_secret_access_key=self._settings.R2_SECRET_ACCESS_KEY,
+            config=Config(signature_version="s3v4"),
+        )
+        return self._client
+
+    def subir(self, archivo, ruta: str) -> str:
+        """Sube el binario a R2 y devuelve la key del objeto (`referencia_externa`).
+
+        `ruta` se usa como nombre base propuesto (típicamente el nombre del
+        archivo original); la key final se organiza como
+        `{prefijo}/{uuid4}-{nombre_seguro}` para evitar colisiones y garantizar
+        unicidad. Devuelve la key del objeto, nunca una URL.
+        """
+        client = self._get_client()
+        nombre = _nombre_seguro(ruta)
+        prefijo = (self._settings.R2_OBJECT_PREFIX or "").strip("/")
+        partes = [p for p in (prefijo, f"{uuid4()}-{nombre}") if p]
+        key = "/".join(partes)
+
+        content_type = getattr(archivo, "content_type", None)
+        extra_args = {"ContentType": content_type} if content_type else {}
+        # Rebobina el archivo por si ya fue leído durante la validación.
+        if hasattr(archivo, "seek"):
+            archivo.seek(0)
+        client.upload_fileobj(
+            archivo,
+            self._settings.R2_BUCKET,
+            key,
+            ExtraArgs=extra_args,
+        )
+        return key
+
+    def url_firmada(self, referencia: str) -> str:
+        """Devuelve un presigned URL de descarga (GET) de corta duración.
+
+        Firma con `s3v4`; nunca devuelve una URL pública ni la key en crudo.
+        """
+        client = self._get_client()
+        return client.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": self._settings.R2_BUCKET, "Key": referencia},
+            ExpiresIn=self._settings.R2_SIGNED_URL_EXPIRATION,
+        )
+
+    def eliminar(self, referencia: str) -> None:
+        """Elimina el objeto del bucket; tolera que el binario ya no exista.
+
+        Si el objeto no está (por ejemplo, ya fue borrado), se registra un aviso
+        y no se propaga el error, de modo que el borrado del `Document` no falle.
+        """
+        client = self._get_client()
+        try:
+            client.delete_object(Bucket=self._settings.R2_BUCKET, Key=referencia)
+        except Exception:
+            logger.warning(
+                "No se pudo eliminar el objeto '%s' del bucket R2 '%s'; se omite el borrado.",
+                referencia,
+                self._settings.R2_BUCKET,
+            )
+
+
 @lru_cache(maxsize=1)
 def get_document_storage() -> DocumentStorage:
     """Devuelve el backend de almacenamiento según la configuración del proyecto.
 
-    Retorna una instancia de `GoogleCloudStorage` cuando `GCS_ENABLED=True` y
-    `GCS_BUCKET_NAME` está definido; en cualquier otro caso devuelve el stub
-    `ReferenciaExternaStorage`. La instancia se cachea (una sola construcción del
-    cliente GCS por proceso).
+    Precedencia de selección:
+    1. `CloudflareR2Storage` cuando `R2_ENABLED=True` y `R2_BUCKET` está definido.
+    2. `GoogleCloudStorage` (legacy) cuando `GCS_ENABLED=True` y `GCS_BUCKET_NAME`
+       está definido.
+    3. En cualquier otro caso, el stub `ReferenciaExternaStorage`.
+
+    La instancia se cachea (una sola construcción del cliente por proceso).
     """
     from django.conf import settings
 
+    if getattr(settings, "R2_ENABLED", False) and getattr(settings, "R2_BUCKET", ""):
+        return CloudflareR2Storage()
     if getattr(settings, "GCS_ENABLED", False) and getattr(settings, "GCS_BUCKET_NAME", ""):
         return GoogleCloudStorage()
     return ReferenciaExternaStorage()

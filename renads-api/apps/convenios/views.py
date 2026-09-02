@@ -42,6 +42,7 @@ from apps.convenios.serializers import (
     ClinicalFieldRegistrationSerializer,
     ConapresOpinionSerializer,
     ConventionParticipantSerializer,
+    ConventionPartySerializer,
     ConventionReadSerializer,
     ConventionStatusHistorySerializer,
     ConventionTemplateSerializer,
@@ -72,7 +73,7 @@ class ConventionViewSet(AnnexAttachmentMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsInstitutionalMember, ConventionScope, IsModuleEnabled]
     module_content_type = ("convenios", "convention")
     filterset_class = ConventionFilter
-    search_fields = ["titulo", "codigo"]
+    search_fields = ["titulo", "nomenclatura"]
     ordering_fields = ["fecha_solicitud", "fecha_inicio", "fecha_fin", "id"]
     ordering = ["-id"]
 
@@ -193,6 +194,30 @@ class ConventionViewSet(AnnexAttachmentMixin, viewsets.ModelViewSet):
         qs = selectors.historial_convenio(convenio)
         return Response(ConventionStatusHistorySerializer(qs, many=True).data)
 
+    @extend_schema(
+        request=ConventionPartySerializer(many=True),
+        responses=ConventionPartySerializer(many=True),
+    )
+    @action(detail=True, methods=["get", "post"], url_path="parties")
+    def parties(self, request, pk=None):
+        """Partes firmantes del convenio (rol + órgano + representante + cargo).
+
+        GET lista las partes; POST recibe la lista completa y la sincroniza
+        (crear/actualizar/eliminar) vía `services.sincronizar_partes`.
+        """
+        convenio = self.get_object()
+        if request.method == "POST":
+            ser = ConventionPartySerializer(data=request.data, many=True)
+            ser.is_valid(raise_exception=True)
+            partes = services.sincronizar_partes(
+                convenio=convenio, datos=ser.validated_data, usuario=request.user
+            )
+            return Response(ConventionPartySerializer(partes, many=True).data)
+        qs = convenio.partes_firmantes.select_related(
+            "organo_directorio", "organo_representante", "cargo_ejecutivo"
+        ).order_by("orden", "id")
+        return Response(ConventionPartySerializer(qs, many=True).data)
+
     @action(detail=True, methods=["post"], url_path="adenda")
     def adenda(self, request, pk=None):
         """Crea una adenda de ampliación del convenio (nuevo periodo de vigencia).
@@ -215,6 +240,69 @@ class ConventionViewSet(AnnexAttachmentMixin, viewsets.ModelViewSet):
             usuario=request.user,
         )
         return Response(ConventionReadSerializer(adenda).data, status=201)
+
+    def _adjuntar_pdf_generado(self, convenio, pdf_bytes, codigo_anexo, request):
+        """Sube un PDF generado al storage y lo versiona como `Document` (helper interno).
+
+        Resuelve el `documento_anexo` por `codigo`, sube el binario al backend activo
+        y llama `adjuntar_documento` (versionado por `(objeto, documento_anexo)` +
+        auditoría). Devuelve el `Document` creado.
+        """
+        import io
+
+        from apps.internados.models import AnnexDocument
+
+        try:
+            anexo = AnnexDocument.objects.get(codigo=codigo_anexo)
+        except AnnexDocument.DoesNotExist as exc:
+            raise APIException(
+                f"No existe el documento anexo '{codigo_anexo}'; ejecute las "
+                "migraciones de datos del proyecto."
+            ) from exc
+
+        buffer = io.BytesIO(pdf_bytes)
+        buffer.name = f"{codigo_anexo.lower()}_{convenio.pk}.pdf"
+        buffer.content_type = "application/pdf"
+        referencia = self.storage.subir(buffer, ruta=buffer.name)
+        return adjuntar_documento(
+            convenio,
+            referencia_externa=referencia,
+            usuario=request.user,
+            documento_anexo=anexo,
+        )
+
+    @extend_schema(request=None, responses=DocumentSerializer)
+    @action(detail=True, methods=["post"], url_path="generar-proyecto")
+    def generar_proyecto(self, request, pk=None):
+        """Genera el proyecto de convenio (PDF), lo sube y lo versiona como `Document`.
+
+        Renderiza la plantilla del convenio (docxtpl), la convierte a PDF (LibreOffice)
+        y la adjunta con el anexo `PROYECTO_ADENDA` si es adenda o `PROYECTO_CONVENIO`
+        en otro caso. Escritura: pasa el gate `IsModuleEnabled` del ViewSet.
+        """
+        from apps.convenios import pdf
+
+        convenio = self.get_object()
+        pdf_bytes = pdf.generar_proyecto(convenio)
+        codigo = "PROYECTO_ADENDA" if convenio.es_adenda else "PROYECTO_CONVENIO"
+        documento = self._adjuntar_pdf_generado(convenio, pdf_bytes, codigo, request)
+        return Response(DocumentSerializer(documento).data, status=201)
+
+    @extend_schema(request=None, responses=DocumentSerializer)
+    @action(detail=True, methods=["post"], url_path="generar-expediente")
+    def generar_expediente(self, request, pk=None):
+        """Genera el expediente consolidado (proyecto + adjuntos), lo sube y lo versiona.
+
+        Concatena (pypdf) el proyecto con las resoluciones de los representantes
+        firmantes y de los campos clínicos CONAPRES, y lo adjunta con el anexo
+        `EXPEDIENTE`. Escritura: pasa el gate `IsModuleEnabled` del ViewSet.
+        """
+        from apps.convenios import pdf
+
+        convenio = self.get_object()
+        pdf_bytes = pdf.generar_expediente(convenio)
+        documento = self._adjuntar_pdf_generado(convenio, pdf_bytes, "EXPEDIENTE", request)
+        return Response(DocumentSerializer(documento).data, status=201)
 
 
 class ProtectedDeleteConflict(APIException):

@@ -170,6 +170,45 @@ GCS_ALLOWED_CONTENT_TYPES = [
 
 
 # ---------------------------------------------------------------------------
+# Almacenamiento documental — Cloudflare R2 (S3-compatible, RNF-DOC-01/02/03)
+# ---------------------------------------------------------------------------
+# R2 expone una API compatible con S3, por lo que se usa `boto3` (backend
+# documental custom `CloudflareR2Storage`) y `storages.backends.s3.S3Boto3Storage`
+# (ImageField de logos) apuntando al endpoint de R2 con `region_name="auto"` y
+# firma `s3v4`. El bucket es privado: la lectura es siempre vía presigned URL de
+# corta duración.
+#
+# En dev R2 puede quedar deshabilitado (`R2_ENABLED=False`, default): en ese caso
+# el sistema usa el backend legacy GCS (si está habilitado) o el stub por
+# referencia externa (`ReferenciaExternaStorage`), sin contactar ningún backend.
+# El endpoint S3 de R2 tiene el formato
+# `https://<account_id>.r2.cloudflarestorage.com`.
+R2_ENABLED = config("R2_ENABLED", default=False, cast=bool)
+# Account ID de Cloudflare (parte del endpoint S3 de R2).
+R2_ACCOUNT_ID = config("R2_ACCOUNT_ID", default="")
+# Access key y secret del token de API de R2. Se definen por .env, nunca aquí.
+R2_ACCESS_KEY_ID = config("R2_ACCESS_KEY_ID", default="")
+R2_SECRET_ACCESS_KEY = config("R2_SECRET_ACCESS_KEY", default="")
+# Bucket del entorno (obligatorio si R2_ENABLED).
+R2_BUCKET = config("R2_BUCKET", default="renads-media")
+# Endpoint S3 de R2: https://<account_id>.r2.cloudflarestorage.com
+R2_ENDPOINT_URL = config("R2_ENDPOINT_URL", default="")
+# Prefijo/carpeta opcional para organizar las keys de los documentos (PDFs).
+R2_OBJECT_PREFIX = config("R2_OBJECT_PREFIX", default="")
+# Vigencia del presigned URL de descarga, en segundos (default 15 minutos).
+R2_SIGNED_URL_EXPIRATION = config("R2_SIGNED_URL_EXPIRATION", default=900, cast=int)
+# Tamaño máximo de subida, en bytes (default 25 MiB).
+R2_MAX_UPLOAD_BYTES = config("R2_MAX_UPLOAD_BYTES", default=26214400, cast=int)
+# Content-types permitidos para subida (PDF e imágenes). Lista fija, no parametrizable.
+R2_ALLOWED_CONTENT_TYPES = [
+    "application/pdf",
+    "image/png",
+    "image/jpeg",
+    "image/webp",
+]
+
+
+# ---------------------------------------------------------------------------
 # Almacenamiento de imágenes — django-storages sobre GCS (ImageField de logos)
 # ---------------------------------------------------------------------------
 # Los `ImageField` de logos (5 entidades) se persisten vía `STORAGES["default"]`.
@@ -206,7 +245,29 @@ GS_FILE_OVERWRITE = config("GS_FILE_OVERWRITE", default=False, cast=bool)
 # keyless (impersonación de `GCS_SIGNING_SA`). Con GCS deshabilitado se mantiene el
 # `FileSystemStorage` por defecto (disco local — solo dev/arranques sin nube).
 # La construcción de credenciales es perezosa: solo corre si el backend GCS activa.
-if GCS_ENABLED and GS_BUCKET_NAME:
+#
+# Precedencia: R2 (S3-compatible) tiene prioridad sobre GCS. Con R2 habilitado los
+# `ImageField` de logos se guardan en el bucket R2 vía `S3Boto3Storage` de
+# django-storages (bucket privado: `querystring_auth=True` y `default_acl=None`
+# hacen que `.url` devuelva un presigned URL). Si ninguno está habilitado se
+# mantiene el `FileSystemStorage` por defecto (disco local — solo dev/sin nube).
+if R2_ENABLED and R2_BUCKET:
+    STORAGES["default"] = {
+        "BACKEND": "storages.backends.s3.S3Boto3Storage",
+        "OPTIONS": {
+            "endpoint_url": R2_ENDPOINT_URL,
+            "access_key": R2_ACCESS_KEY_ID,
+            "secret_key": R2_SECRET_ACCESS_KEY,
+            "bucket_name": R2_BUCKET,
+            "region_name": "auto",
+            "querystring_auth": True,
+            "location": "logos",
+            "default_acl": None,
+            "file_overwrite": False,
+            "signature_version": "s3v4",
+        },
+    }
+elif GCS_ENABLED and GS_BUCKET_NAME:
     from apps.common.storage import get_impersonated_credentials
 
     STORAGES["default"] = {

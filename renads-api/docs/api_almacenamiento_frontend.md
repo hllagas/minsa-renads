@@ -137,7 +137,7 @@ Entidades con anexos y su actor:
 |-----------------------|---------------------------------|
 | `interns`             | `INTERNO` |
 | `organ-representatives` | `REPRESENTANTE` (cubre autoridades de universidad y CONAPRES) |
-| `conventions`         | `CONVENIO` (resoluciones `RESOL_MARCO`/`RESOL_ESPECIFICO`/`RESOL_ADENDA`) |
+| `conventions`         | `CONVENIO` (resoluciones `RESOL_MARCO`/`RESOL_ESPECIFICO`/`RESOL_ADENDA`; PDF generados `PROYECTO_CONVENIO`/`PROYECTO_ADENDA`/`EXPEDIENTE`) |
 | `clinical-field-registrations` | `CAMPO_CLINICO` (resolución `RESOL_CONAPRES`) |
 
 > **Cambio de refactor:** las declaraciones juradas del interno (actor `INTERNO`) se
@@ -234,6 +234,37 @@ Ejemplo de respuesta de `annex-upload` (`documento_adjunto`):
 
 ---
 
+## Generación de PDF del convenio (proyecto y expediente)
+
+El módulo Convenios genera el PDF del **proyecto de convenio/adenda** y del
+**expediente consolidado** a partir de plantillas Word templatizadas (docxtpl),
+convertidas a PDF con **LibreOffice headless** (`soffice --headless --convert-to
+pdf`) y — en el expediente — concatenadas con los adjuntos vía **pypdf**. El PDF
+resultante se sube al storage activo (Cloudflare R2/GCS/stub) y se versiona como
+`documento_adjunto` con el `documento_anexo` correspondiente (actor `CONVENIO`).
+
+| Método | Ruta | Cuerpo | Respuesta | Anexo (`documento_anexo`) |
+|--------|------|--------|-----------|---------------------------|
+| `POST` | `/api/v1/conventions/{id}/generar-proyecto/` | — | `201` `documento_adjunto` | `PROYECTO_ADENDA` si `es_adenda`, si no `PROYECTO_CONVENIO` |
+| `POST` | `/api/v1/conventions/{id}/generar-expediente/` | — | `201` `documento_adjunto` | `EXPEDIENTE` |
+
+- Ambos endpoints son **escritura**: pasan el gate temporal `IsModuleEnabled`
+  (módulo `convenios/convention`) y los permisos del ViewSet (`ConventionScope`).
+  Fuera de la ventana del calendario administrativo devuelven `403`
+  (`MODULO_FUERA_DE_VENTANA`), salvo superusuario/`Administrador RENADS`.
+- El versionado sigue la regla `(objeto, documento_anexo)`: una segunda generación
+  del mismo anexo crea `version = n+1` y marca la anterior `REEMPLAZADO`.
+- El **expediente** concatena el proyecto + las resoluciones de los representantes
+  firmantes (`REPRESENTANTE`) y las resoluciones CONAPRES de los campos clínicos
+  (`CAMPO_CLINICO`); los adjuntos faltantes o ilegibles se **omiten** sin fallar.
+- Requiere **LibreOffice** instalado en el servidor (dependencia de sistema, no pip).
+  Si `soffice` no está en el PATH la respuesta es `500` con mensaje en español.
+
+Descarga: el `referencia_externa` del `documento_adjunto` devuelto se resuelve a un
+signed URL vía `GET /api/v1/documents/{id}/url-descarga/`.
+
+---
+
 ## Documentos generales (Etapa 1, referencia)
 
 | Método | Ruta | Cuerpo | Respuesta |
@@ -264,6 +295,7 @@ Ejemplo de respuesta de `annex-upload` (`documento_adjunto`):
 | `annex-upload` (interns) | `Universidad` / `Administrador RENADS` (alcance por la universidad del estudiante) o el propio `Interno` (RN-22) | — |
 | `annex-upload` (organ-representatives) | `Administrador RENADS` | — |
 | `annex-upload` (conventions) | Miembro institucional con alcance del convenio (`ConventionScope`) | — |
+| `generar-proyecto` / `generar-expediente` (conventions) | Miembro institucional con alcance del convenio (`ConventionScope`) + gate temporal `IsModuleEnabled` | — |
 | `annex-upload` (clinical-field-registrations) | `CONAPRES` | — |
 | `annex-checklist` | — | Autenticados con alcance |
 | `documents/upload` | Miembro institucional autenticado | — |
