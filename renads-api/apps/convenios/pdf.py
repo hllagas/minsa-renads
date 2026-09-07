@@ -207,30 +207,30 @@ def construir_contexto(convenio) -> dict:
 
 
 def _seleccionar_plantilla(convenio) -> Path:
-    """Devuelve la ruta de la plantilla `.docx` según (tipo, es_adenda, categoría).
+    """Devuelve la ruta de la plantilla `.docx` según (tipo, es_adenda, órgano).
 
-    Determinista. Las adendas usan `adenda.docx`. Marco/Específico se separan por la
-    categoría del órgano del directorio (`MINSA_DIRIS` = Lima; `GOBIERNO_REGIONAL` =
+    Determinista. Las adendas usan `adenda.docx`. Marco/Específico se separan por el
+    `organo` del órgano del directorio (`MINSA DIRIS` = Lima; `Gobierno Regional` =
     región). Lanza `RuntimeError` en español si no hay plantilla para la combinación.
     """
     if convenio.es_adenda:
         return PLANTILLAS_DIR / "adenda.docx"
 
     tipo = (convenio.tipo_convenio.codigo or "").upper()
-    categoria = getattr(convenio.organo_directorio, "categoria", "")
+    organo = getattr(getattr(convenio.organo_directorio, "organo", None), "nombre", "")
 
     mapa = {
-        ("MARCO", "MINSA_DIRIS"): "modelo_1_marco_lima.docx",
-        ("MARCO", "GOBIERNO_REGIONAL"): "modelo_2_marco_region.docx",
-        ("ESPECIFICO", "MINSA_DIRIS"): "modelo_3_especifico_lima.docx",
-        ("ESPECIFICO", "GOBIERNO_REGIONAL"): "modelo_4_especifico_region.docx",
+        ("MARCO", "MINSA DIRIS"): "modelo_1_marco_lima.docx",
+        ("MARCO", "Gobierno Regional"): "modelo_2_marco_region.docx",
+        ("ESPECIFICO", "MINSA DIRIS"): "modelo_3_especifico_lima.docx",
+        ("ESPECIFICO", "Gobierno Regional"): "modelo_4_especifico_region.docx",
     }
-    nombre = mapa.get((tipo, categoria))
+    nombre = mapa.get((tipo, organo))
     if nombre is None:
         raise RuntimeError(
             "No existe una plantilla de convenio para la combinación "
-            f"tipo='{tipo}', categoría='{categoria}'. Verifique el tipo de convenio "
-            "y la categoría del órgano del directorio."
+            f"tipo='{tipo}', organo='{organo}'. Verifique el tipo de convenio "
+            "y el órgano del directorio."
         )
     return PLANTILLAS_DIR / nombre
 

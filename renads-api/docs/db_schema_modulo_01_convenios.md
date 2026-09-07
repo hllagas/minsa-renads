@@ -50,6 +50,8 @@ Tablas paramétricas (RNF-MAN-01). Patrón común: `id` (PK), `codigo` (varchar,
 
 `red` y `microred` **no** son catálogos `Catalog` (su `codigo` no es único global sino por padre, vía `unique_together`). Cuelgan de `ambito_geografico_sanitario`: `ambito_geografico_sanitario → red → microred`.
 
+**Mapeo RENIPRESS/SUSALUD y enlace por id surrogate.** La jerarquía se alimenta de RENIPRESS/SUSALUD: `codigo_DISA`/`DISA` → `ambito_geografico_sanitario.codigo`/`.nombre` (único global); `Codigo_Red` → `red.codigo` (único dentro del ámbito); `Codigo_Microred` → `microred.codigo` (único dentro de la red); y el código único de 8 dígitos de la IPRESS → `ipress.codigo_renipress`. Los FK jerárquicos se enlazan por **id surrogate** (`ambito_geografico_sanitario_id`, `red_id`, `microred_id`), **no** por el `codigo` varchar: los códigos de red/microred no son únicos a nivel nacional (se repiten entre DISAs, únicos solo dentro del padre vía `unique_together`). El loader resuelve `codigo → id` durante la carga.
+
 #### `red`
 
 | Columna | Tipo | Null | Descripción |
@@ -178,7 +180,7 @@ Endpoint: `/api/v1/executing-units/` (CRUD con logo, escritura solo `Administrad
 | `id` | PK | No | |
 | `unidad_ejecutora_id` | FK → `unidad_ejecutora` | No | Unidad ejecutora a la que pertenece |
 | `nombre` | varchar(255) | No | Nombre del establecimiento |
-| `codigo_renipress` | varchar(20) | Sí | Código RENIPRESS |
+| `codigo_renipress` | varchar(20) | No | Código único RENIPRESS del establecimiento (unique, requerido) |
 | `direccion` | varchar(500) | Sí | Dirección |
 | `ubigeo_id` | FK → `ubigeo` | Sí | Ubicación geográfica (UBIGEO) |
 | `ambito_geografico_sanitario_id` | FK → `ambito_geografico_sanitario` | No | Ámbito geográfico sanitario |
@@ -193,6 +195,8 @@ Endpoint: `/api/v1/executing-units/` (CRUD con logo, escritura solo `Administrad
 | `referencia_logo` | varchar(500) | Sí | Logo institucional (`ImageField`; guarda el path del objeto en el repositorio de medios). Nullable. |
 | `activo` | bool | No | |
 
+> **Coherencia `microred ↔ ámbito` (denormalización deliberada):** si `microred_id` no es nulo, `microred.red.ambito_geografico_sanitario` debe coincidir con `ipress.ambito_geografico_sanitario` (el ámbito directo es la fuente autoritativa; RN-25 deriva de `ipress.ambito_geografico_sanitario_id`). Validado en `Ipress.clean()` y en el `validate()` del serializer del `IpressViewSet` (create y PATCH parcial). Si `microred_id` es nulo, no se valida.
+>
 > La **sede docente** del módulo de convenios es una `ipress`.
 >
 > **Autorización de sede docente (CONAPRES):** una `ipress` solo actúa como sede docente si **CONAPRES** la autoriza y registra tras verificar los criterios de evaluación: establecimiento **asistencial**, perteneciente al **MINSA** o a la **sanidad de las Fuerzas Armadas/Policiales**, y de gestión **pública**.

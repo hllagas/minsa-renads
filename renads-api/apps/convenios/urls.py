@@ -46,5 +46,10 @@ urlpatterns = [
         views.SolicitanteContentTypeView.as_view(),
         name="solicitante-content-types",
     ),
+    path(
+        "representante-content-types/",
+        views.RepresentanteContentTypeView.as_view(),
+        name="representante-content-types",
+    ),
     *router.urls,
 ]

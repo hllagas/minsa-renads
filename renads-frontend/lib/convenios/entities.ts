@@ -55,20 +55,6 @@ const ubigeoLabel = (r: WithId) =>
 /** Filtro `activo` reutilizable (boolean Sí/No). */
 const activoFilter: FilterConfig = { name: "activo", label: "Activo", type: "boolean" };
 
-/** Categorías del directorio de órganos (matches backend `ORGAN_DIRECTORY_CATEGORY`). */
-const ORGAN_DIRECTORY_CATEGORY = [
-  { value: "ORGANO_MINSA", label: "Órgano del MINSA" },
-  { value: "UNIVERSIDAD", label: "Universidad" },
-  { value: "GOBIERNO_REGIONAL", label: "Gobierno Regional" },
-  { value: "MINSA_DIRIS", label: "MINSA DIRIS" },
-  { value: "UNIDAD_EJECUTORA", label: "Unidad Ejecutora" },
-];
-
-const categoriaLabel = (v: unknown): string => {
-  const found = ORGAN_DIRECTORY_CATEGORY.find((c) => c.value === v);
-  return found ? found.label : String(v ?? "—");
-};
-
 /**
  * Configuración de las entidades organizacionales del módulo Convenios.
  * Fuente de verdad única: la consumen tanto `/convenios/maestros` como `/catalogos/entidades`.
@@ -121,8 +107,9 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         name: "tipo_entidad",
         label: "Tipo de entidad",
         type: "select",
+        // El filtro por `organo` (id de "Universidad") lo inyecta la página en runtime
+        // (los ids de `organs` dependen de la BD — nunca se hardcodean).
         optionsEndpoint: "organ-directories",
-        optionsParams: { categoria: "UNIVERSIDAD" },
       },
       {
         name: "tipo_autorizacion",
@@ -153,8 +140,8 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         label: "Tipo de entidad",
         type: "select",
         required: true,
+        // `optionsParams:{organo:<id de "Universidad">}` inyectado por la página (runtime).
         optionsEndpoint: "organ-directories",
-        optionsParams: { categoria: "UNIVERSIDAD" },
       },
       {
         name: "tipo_autorizacion",
@@ -393,8 +380,8 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         name: "tipo_organo",
         label: "Tipo de unidad ejecutora",
         type: "select",
+        // Filtro por `organo` (id de "Unidad Ejecutora") inyectado por la página (runtime).
         optionsEndpoint: "organ-directories",
-        optionsParams: { categoria: "UNIDAD_EJECUTORA" },
       },
       activoFilter,
     ],
@@ -418,8 +405,8 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         label: "Tipo de unidad ejecutora",
         type: "select",
         required: true,
+        // `optionsParams:{organo:<id de "Unidad Ejecutora">}` inyectado por la página (runtime).
         optionsEndpoint: "organ-directories",
-        optionsParams: { categoria: "UNIDAD_EJECUTORA" },
       },
 
       // ── Ubicación ─────────────────────────────────────────────────────────
@@ -447,9 +434,9 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     searchPlaceholder: "Buscar por nombre o siglas…",
     columns: [
       {
-        key: "categoria",
-        header: "Categoría",
-        render: (r) => categoriaLabel(r.categoria),
+        key: "organo",
+        header: "Órgano",
+        render: (r) => detalleNombre(r.organo_detalle),
       },
       { key: "nombre", header: "Nombre" },
       { key: "siglas", header: "Siglas" },
@@ -462,10 +449,11 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     ],
     filters: [
       {
-        name: "categoria",
-        label: "Categoría",
+        name: "organo",
+        label: "Órgano",
         type: "select",
-        choices: ORGAN_DIRECTORY_CATEGORY,
+        optionsEndpoint: "organs",
+        optionsToLabel: (o) => String(o.nombre ?? o.id),
       },
       {
         name: "gobierno_regional",
@@ -477,11 +465,12 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     ],
     fields: [
       {
-        name: "categoria",
-        label: "Categoría",
+        name: "organo",
+        label: "Órgano",
         type: "select",
         required: true,
-        choices: ORGAN_DIRECTORY_CATEGORY,
+        optionsEndpoint: "organs",
+        optionsToLabel: (o) => String(o.nombre ?? o.id),
       },
       {
         name: "gobierno_regional",

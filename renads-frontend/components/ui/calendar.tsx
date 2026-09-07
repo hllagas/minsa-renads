@@ -7,6 +7,7 @@ import {
   DayPicker,
   getDefaultClassNames,
   type ChevronProps,
+  type DropdownProps,
 } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
@@ -106,9 +107,52 @@ function Calendar({
       components={{
         Chevron: CalendarChevron,
         DayButton: CalendarDayButton,
+        Dropdown: CalendarDropdown,
       }}
       {...props}
     />
+  )
+}
+
+/**
+ * Desplegable de mes/año (captionLayout="dropdown"). Reemplaza al `Dropdown` por defecto de
+ * react-day-picker, que renderiza un `<select>` MÁS un `<span>` con la etiqueta visible: al
+ * estilar el `<select>` como pill se veían ambos (pill + texto duplicado, desalineados). Aquí
+ * se renderiza solo el `<select>` nativo estilado, sin el span duplicado.
+ */
+function CalendarDropdown({
+  options,
+  value,
+  onChange,
+  className,
+  ...props
+}: DropdownProps) {
+  // El desplegable de año lista valores >= 1000: se ordena descendente (año más reciente
+  // primero). El de mes (valores 0–11) conserva el orden natural.
+  const isYear = (options?.[0]?.value ?? 0) >= 1000
+  const items = isYear ? [...(options ?? [])].reverse() : options ?? []
+
+  return (
+    <select
+      // rdp v10 no propaga `classNames.dropdown` al componente custom, así que el estilo del
+      // pill se aplica aquí explícitamente (borde, alto y colores legibles en claro/oscuro).
+      className={cn(
+        buttonVariants({ variant: "outline", size: "sm" }),
+        "h-7 w-fit rounded-md px-2 font-medium capitalize",
+        "bg-popover text-popover-foreground",
+        "[&>option]:bg-popover [&>option]:text-popover-foreground",
+        className,
+      )}
+      value={value}
+      onChange={onChange}
+      {...props}
+    >
+      {items.map((opt) => (
+        <option key={opt.value} value={opt.value} disabled={opt.disabled}>
+          {opt.label}
+        </option>
+      ))}
+    </select>
   )
 }
 

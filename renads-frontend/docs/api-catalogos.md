@@ -91,7 +91,7 @@ Añadidos a `regional-governments`: `sigla`, `ubigeo`, `numero_ruc`, `direccion`
 | Endpoint | Filtros (`filterset_fields`) | Search | Detalles |
 |----------|------------------------------|--------|----------|
 | `organs` | — | — | Solo lectura. **5** categorías canónicas (`ORGANO_MINSA`, `UNIVERSIDAD`, `GOBIERNO_REGIONAL`, `MINSA_DIRIS`, `UNIDAD_EJECUTORA`). |
-| `organ-directories` | `categoria`, `gobierno_regional`, `activo` | `nombre`, `siglas` | `gobierno_regional_detalle` (string) |
+| `organ-directories` | `organo`, `gobierno_regional`, `activo` | `nombre`, `siglas` | `gobierno_regional_detalle`, `organo_detalle` |
 | `executing-units` | `tipo_organo`, `gobierno_regional`, `activo` | `nombre`, `codigo` | `tipo_organo_detalle`, `gobierno_regional_detalle`, `ubigeo_detalle` |
 | `regional-governments` | `region`, `ubigeo`, `activo` | `nombre` | `ubigeo_detalle` (string) |
 | `ipress` | `unidad_ejecutora`, `ambito_geografico_sanitario`, `es_sede_docente`, `activo` | `nombre`, `codigo_renipress` | — |
@@ -105,20 +105,26 @@ Añadidos a `regional-governments`: `sigla`, `ubigeo`, `numero_ruc`, `direccion`
 
 > Los campos `*_detalle` son **objetos JSON** (no strings). `_detalle_nombre` → `{id, codigo, nombre}`; `_detalle_ubigeo` → `{id, codigo, distrito, provincia, departamento}`. En columnas usar `detalleNombre(r.*_detalle)` o `ubigeoDetalleLabel(r.ubigeo_detalle)`. Nunca `String(r.*_detalle)` (produce `[object Object]`).
 
-### `organ-directories` — campo `categoria`
+### `organ-directories` — campo `organo` (FK) + RN de unicidad
 
-El campo `categoria` es un CharField con choices (reemplaza al FK `organo`). Valores:
+**Refactor 2026-09-07 (mig 0039):** el discriminador dejó de ser el CharField `categoria`
+y ahora es la **FK `organo → organs`** (tabla canónica de 5 filas, id-based). La respuesta
+expone `organo` (id) + `organo_detalle: {id, codigo:null, nombre}`. **Filtrar por id:**
+`?organo=<id>` (no `?categoria=`). Los ids de `organs` dependen de la BD → resolverlos vía
+`GET /organs/` (mapa por `nombre`), nunca hardcodear.
 
-| Valor | Label |
-|-------|-------|
-| `ORGANO_MINSA` | Órgano del MINSA |
-| `UNIVERSIDAD` | Universidad |
-| `GOBIERNO_REGIONAL` | Gobierno Regional |
-| `MINSA_DIRIS` | MINSA DIRIS |
-| `UNIDAD_EJECUTORA` | Unidad Ejecutora |
+Nombres canónicos de `organs` (para resolver el id): `MINSA Administrativo`, `Universidad`,
+`Gobierno Regional`, `Unidad Ejecutora`, `MINSA DIRIS`. `University.tipo_entidad` filtra por
+`?organo=<id de "Universidad">`; `ExecutingUnit.tipo_organo` por `?organo=<id de "Unidad Ejecutora">`.
 
-Filtrar por categoría: `?categoria=GOBIERNO_REGIONAL`. No hay `tipo_organo` ni `ubigeo` en el directorio.
-`gobierno_regional` (FK opcional) aplica solo a categorías regionales.
+**RN de unicidad — `(organo, gobierno_regional, nombre)`** (reemplaza «uno por GORE»): un
+GORE puede tener varios órganos con **nombre distinto**. Dos constraints parciales:
+`uniq_organo_dir_organo_gore_nombre` (cuando hay GORE) y `uniq_organo_dir_organo_nombre_sin_gore`
+(cuando `gobierno_regional` es NULL — MINSA/DIRIS/tipos). Comparación de nombre **exacta**. El
+serializer valida antes de la BD → **HTTP 400** en `nombre` («Ya existe un órgano del directorio
+con este nombre para el mismo órgano [y gobierno regional]…»). El front lo muestra vía `extractApiError`.
+
+`gobierno_regional` (FK opcional) aplica solo a órganos regionales.
 
 ### `regional-governments` — campos de contacto e identificación
 
@@ -167,38 +173,51 @@ Usar `organ-directories` con filtro `?categoria=<VALOR>` según corresponda.
 
 ---
 
-## 3. Representantes de órgano — `organ-representatives`
+## 3. Representantes de entidad — `organ-representatives`
 
-CRUD directo (representante con FK directa a `organo_directorio`). **Reemplaza** al antiguo
-`representatives` (polimórfico) eliminado en el refactor 2026-08-29.
+**Refactor 2026-09-07 (mig 0038):** representante **polimórfico**. Ya NO usa la FK
+`organo_directorio`; ahora enlaza a **cualquier** entidad del proceso vía `tipo_contenido`
+(ContentType) + `id_objeto`. Modelos permitidos: `OrganDirectory` (MINSA/GORE/DIRIS),
+`University`, `ExecutingUnit`, `Conapres`, `Ipress`. Un ContentType no permitido → 400.
 
 Escritura solo **`Administrador RENADS`** (`IsAdminRoleOrReadOnly`).
 AnnexAttachmentMixin: adjunta PDFs del actor `REPRESENTANTE` (`annex-upload`/`annex-checklist`).
 
 Al crear, el backend ejecuta `registrar_organo_representante`: da de baja automáticamente al
-representante anterior activo del mismo par `(organo_directorio, cargo_ejecutivo)` y lo mueve al
-histórico (`organ-representative-history`).
+representante anterior activo del mismo par **`(tipo_contenido, id_objeto, cargo_ejecutivo)`**
+(entidad × cargo) y lo mueve al histórico (`organ-representative-history`). Entidades distintas
+con el mismo cargo no se afectan entre sí.
 
-**Filtros:** `organo_directorio`, `cargo_ejecutivo`, `activo`.
+**Filtros:** `tipo_contenido`, `id_objeto`, `cargo_ejecutivo`, `activo`.
 **Search:** `nombre`, `numero_documento_identidad`.
+
+### Tipos de entidad — `GET /representante-content-types/`
+
+Devuelve `[{ id, app_label, model }]` de los 5 modelos permitidos (ids de `ContentType`,
+dependientes de la BD). El front resuelve `tipo_contenido` a partir del `model`. MINSA/GORE/DIRIS
+comparten el mismo ContentType (`organdirectory`) y se distinguen en la UI por `categoria`.
 
 ### OrganRepresentative — campos
 
 ```
-id (readonly), nombre, numero_documento_identidad, sexo (M|F),
+id (readonly), tipo_contenido (FK int → ContentType), id_objeto (int),
+entidad_detalle (readonly: { tipo, id, nombre }),
+nombre, numero_documento_identidad, sexo (M|F),
 fecha_inicio_designacion (date), numero_resolucion_designacion?,
-fecha_inicio_facultades? (date|null), activo?,
-organo_directorio (FK int), tipo_documento_identidad (FK int → identity-document-types),
+numero_resolucion_facultades?, fecha_inicio_facultades? (date|null), activo?,
+tipo_documento_identidad (FK int → identity-document-types),
 cargo_ejecutivo (FK int → executive-positions)
 ```
 
-> No expone `*_detalle` — el serializer usa `fields = "__all__"`. En tabla mostrar
-> `nombre`, `numero_documento_identidad`, `sexo`, `fecha_inicio_designacion`, `activo`.
+> **Coherencia cargo↔entidad (RN, 400):** un cargo con `organo_directivo` asignado solo aplica a
+> ese OrganDirectory (`tipo_contenido=organdirectory` e `id_objeto=organo_directivo`); un cargo
+> **global** (`organo_directivo` nulo) aplica a cualquier entidad. Para listar cargos globales:
+> `executive-positions?organo_directivo__isnull=true&activo=true`.
 
 ### Histórico — `organ-representative-history` (solo lectura)
 
-Registro de representantes dados de baja. Filtros: `organo_directorio`, `cargo_ejecutivo`, `representante`.
-Campos adicionales: `fecha_baja`, `motivo`, `creado_en`.
+Registro de representantes dados de baja. Filtros: `tipo_contenido`, `id_objeto`,
+`cargo_ejecutivo`, `representante`. Campos adicionales: `fecha_baja`, `motivo`, `creado_en`.
 
 ---
 

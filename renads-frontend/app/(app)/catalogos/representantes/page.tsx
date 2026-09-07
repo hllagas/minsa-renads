@@ -3,26 +3,22 @@
 import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useForm, Controller, useWatch } from "react-hook-form";
-import {
-  useQuery,
-  useMutation,
-  useQueries,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import {
-  Loader2,
-  Search,
-  Pencil,
-  Trash2,
-  Plus,
-  Building2,
-} from "lucide-react";
+import { Loader2, Search, Pencil, Trash2, Plus, Building2 } from "lucide-react";
 
 import { api, type Paginated } from "@/lib/api/client";
 import type { WithId } from "@/lib/api/query";
 import { extractApiError } from "@/lib/api/errors";
 import { useAuthStore, userHasRole } from "@/lib/auth/store";
+import {
+  REPRESENTANTE_ENTITIES,
+  findEntityOption,
+  listRepresentanteTypes,
+  resolveTipoContenidoId,
+  type RepresentanteEntityOption,
+} from "@/lib/catalogos/representantes-entities";
+import { organIdByNombre, useOrgans } from "@/lib/catalogos/organs";
 import { EntityCombobox } from "@/components/form/entity-combobox";
 import { DatePicker } from "@/components/form/date-picker";
 import { AnnexChecklistAction } from "@/components/almacenamiento/annex-checklist-dialog";
@@ -58,23 +54,26 @@ import {
 
 // ---------- Types ----------
 
+interface EntidadDetalle {
+  tipo: string;
+  id: number;
+  nombre: string;
+}
+
 interface Representative extends WithId {
   nombre: string;
   numero_documento_identidad: string;
   sexo: "M" | "F";
   fecha_inicio_designacion: string;
   numero_resolucion_designacion: string | null;
+  numero_resolucion_facultades: string | null;
   fecha_inicio_facultades: string | null;
-  organo_directorio: number;
+  tipo_contenido: number;
+  id_objeto: number;
+  entidad_detalle: EntidadDetalle | null;
   cargo_ejecutivo: number;
   tipo_documento_identidad: number;
   activo: boolean;
-}
-
-interface OrgDirectory extends WithId {
-  nombre: string;
-  gobierno_regional: number | null;
-  categoria: string;
 }
 
 interface ExecPosition extends WithId {
@@ -101,10 +100,7 @@ async function fetchAllPages<T extends WithId>(
   return acc;
 }
 
-function resolveCargoLabel(
-  sexo: "M" | "F" | string,
-  execPos: ExecPosition,
-): string {
+function resolveCargoLabel(sexo: "M" | "F" | string, execPos: ExecPosition): string {
   if (sexo === "M") return execPos.nombre_masculino || "—";
   return execPos.nombre_femenino || execPos.nombre_masculino || "—";
 }
@@ -115,88 +111,75 @@ export default function RepresentantesPage() {
   const user = useAuthStore((s) => s.user);
   const isAdmin = userHasRole(user, "Administrador RENADS");
 
-  const [gobRegId, setGobRegId] = useState<number | null>(null);
+  const [tipoKey, setTipoKey] = useState<string>("");
+  const [entidadId, setEntidadId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [editRow, setEditRow] = useState<Representative | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteRow, setDeleteRow] = useState<Representative | null>(null);
 
   const queryClient = useQueryClient();
+  const tipoOpt = tipoKey ? findEntityOption(tipoKey) : undefined;
 
-  // Organ directories for selected GR
-  const orgDirQuery = useQuery({
-    queryKey: ["organ-directories", "by-gr", gobRegId],
-    queryFn: () =>
-      fetchAllPages<OrgDirectory>("organ-directories", {
-        gobierno_regional: String(gobRegId!),
-      }),
-    enabled: gobRegId != null,
-    staleTime: 5 * 60_000,
+  // ContentTypes elegibles (ids dependientes de la BD): se resuelve tipo_contenido por model.
+  const typesQuery = useQuery({
+    queryKey: ["representante-content-types"],
+    queryFn: listRepresentanteTypes,
+    staleTime: 30 * 60_000,
   });
+  const tipoContenidoId = tipoOpt
+    ? resolveTipoContenidoId(tipoOpt.model, typesQuery.data)
+    : undefined;
 
-  // All executive positions — for gendered label lookup
+  // Para MINSA/GORE/DIRIS el paso 2 filtra `organ-directories?organo=<id>`; el id se resuelve
+  // en runtime desde el catálogo `organs` (nunca hardcodeado). Las otras 4 entidades no filtran.
+  const organsQuery = useOrgans();
+  const organoIdPaso2 = tipoOpt?.organoNombre
+    ? organIdByNombre(organsQuery.data, tipoOpt.organoNombre)
+    : undefined;
+  const paso2Params =
+    organoIdPaso2 != null ? { organo: String(organoIdPaso2) } : undefined;
+
+  // Cargos para resolver la etiqueta del cargo en la tabla (id → nombres por género).
   const execPosQuery = useQuery({
     queryKey: ["executive-positions", "all-lookup"],
     queryFn: () => fetchAllPages<ExecPosition>("executive-positions"),
     staleTime: 10 * 60_000,
   });
-
-  const orgDirMap = useMemo(() => {
-    const m = new Map<number, OrgDirectory>();
-    for (const d of orgDirQuery.data ?? []) m.set(d.id, d);
-    return m;
-  }, [orgDirQuery.data]);
-
   const execPosMap = useMemo(() => {
     const m = new Map<number, ExecPosition>();
     for (const p of execPosQuery.data ?? []) m.set(p.id, p);
     return m;
   }, [execPosQuery.data]);
 
-  const orgDirIds = useMemo(
-    () => (orgDirQuery.data ?? []).map((d) => d.id),
-    [orgDirQuery.data],
-  );
-
-  // Parallel fetch: representatives per organ directory
-  const repQueries = useQueries({
-    queries: orgDirIds.map((id) => ({
-      queryKey: ["organ-representatives", "by-orgdir", id] as const,
-      queryFn: () =>
-        fetchAllPages<Representative>("organ-representatives", {
-          organo_directorio: String(id),
-        }),
-      staleTime: 0,
-      enabled: gobRegId != null,
-    })),
+  // Representantes de la entidad seleccionada (una sola consulta por entidad).
+  const repsQuery = useQuery({
+    queryKey: ["organ-representatives", "by-entity", tipoContenidoId, entidadId],
+    queryFn: () =>
+      fetchAllPages<Representative>("organ-representatives", {
+        tipo_contenido: String(tipoContenidoId!),
+        id_objeto: String(entidadId!),
+      }),
+    enabled: tipoContenidoId != null && entidadId != null,
+    staleTime: 0,
   });
-
-  const allReps = useMemo(
-    () => repQueries.flatMap((q) => q.data ?? []),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [JSON.stringify(repQueries.map((q) => q.dataUpdatedAt))],
-  );
-
-  const isLoadingReps =
-    gobRegId != null &&
-    (orgDirQuery.isLoading || repQueries.some((q) => q.isLoading));
 
   const filteredReps = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return allReps;
-    return allReps.filter(
+    const all = repsQuery.data ?? [];
+    if (!q) return all;
+    return all.filter(
       (r) =>
         r.nombre.toLowerCase().includes(q) ||
         r.numero_documento_identidad.toLowerCase().includes(q),
     );
-  }, [allReps, search]);
+  }, [repsQuery.data, search]);
 
   const invalidateReps = () =>
     queryClient.invalidateQueries({
-      queryKey: ["organ-representatives", "by-orgdir"],
+      queryKey: ["organ-representatives", "by-entity"],
     });
 
-  // Delete
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       await api.delete(`/organ-representatives/${id}/`);
@@ -211,6 +194,8 @@ export default function RepresentantesPage() {
       setDeleteRow(null);
     },
   });
+
+  const entidadElegida = tipoContenidoId != null && entidadId != null;
 
   return (
     <div className="grid gap-6">
@@ -228,10 +213,11 @@ export default function RepresentantesPage() {
             Autoridades Representantes por Entidad
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Selecciona un gobierno regional para gestionar sus representantes.
+            Registra las autoridades o representantes de cualquier entidad del proceso
+            (MINSA, Gobierno Regional, DIRIS, Universidad, Unidad Ejecutora, CONAPRES, IPRESS).
           </p>
         </div>
-        {gobRegId != null && isAdmin && (
+        {entidadElegida && isAdmin && (
           <Button
             size="sm"
             onClick={() => {
@@ -245,30 +231,63 @@ export default function RepresentantesPage() {
         )}
       </div>
 
-      {/* GR selector */}
+      {/* Paso 1 — Tipo de entidad */}
       <div className="grid gap-1.5 max-w-md">
         <label className="text-sm font-medium flex items-center gap-2">
           <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold">
             1
           </span>
-          Gobierno Regional
+          Tipo de entidad
         </label>
-        <EntityCombobox
-          endpoint="regional-governments"
-          value={gobRegId}
-          onChange={(id) => {
-            setGobRegId(id);
+        <Select
+          value={tipoKey}
+          onValueChange={(v) => {
+            setTipoKey(v ?? "");
+            setEntidadId(null);
             setSearch("");
           }}
-          placeholder="Buscar gobierno regional…"
-          toLabel={(r) => String(r.nombre ?? r.id)}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Selecciona el tipo de entidad…" />
+          </SelectTrigger>
+          <SelectContent>
+            {REPRESENTANTE_ENTITIES.map((opt) => (
+              <SelectItem key={opt.key} value={opt.key}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Paso 2 — Entidad concreta */}
+      <div className="grid gap-1.5 max-w-md">
+        <label className="text-sm font-medium flex items-center gap-2">
+          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold">
+            2
+          </span>
+          Entidad
+        </label>
+        <EntityCombobox
+          endpoint={tipoOpt?.endpoint ?? "organ-directories"}
+          params={paso2Params}
+          value={entidadId}
+          onChange={(id) => {
+            setEntidadId(id);
+            setSearch("");
+          }}
+          placeholder={
+            tipoOpt ? `Buscar ${tipoOpt.label.toLowerCase()}…` : "Elige primero el tipo…"
+          }
+          disabled={!tipoOpt}
+          toLabel={(r) => String(r.nombre ?? r.siglas ?? r.id)}
         />
       </div>
 
       {/* Table area */}
-      {!gobRegId ? (
+      {!entidadElegida ? (
         <EmptyState />
-      ) : isLoadingReps ? (
+      ) : repsQuery.isLoading || execPosQuery.isLoading ? (
         <TableSkeleton />
       ) : (
         <div className="grid gap-4">
@@ -293,9 +312,6 @@ export default function RepresentantesPage() {
               <thead>
                 <tr className="border-b bg-muted/50">
                   <th className="text-left font-medium text-muted-foreground px-4 py-3">
-                    Órgano del directorio
-                  </th>
-                  <th className="text-left font-medium text-muted-foreground px-4 py-3">
                     Representante
                   </th>
                   <th className="text-left font-medium text-muted-foreground px-4 py-3">
@@ -306,6 +322,9 @@ export default function RepresentantesPage() {
                   </th>
                   <th className="text-left font-medium text-muted-foreground px-4 py-3">
                     N° resolución
+                  </th>
+                  <th className="text-left font-medium text-muted-foreground px-4 py-3">
+                    Activo
                   </th>
                   {isAdmin && <th className="w-28 px-4 py-3" />}
                 </tr>
@@ -319,12 +338,11 @@ export default function RepresentantesPage() {
                     >
                       {search
                         ? "No hay representantes que coincidan con la búsqueda."
-                        : "No hay representantes registrados para este gobierno regional."}
+                        : "No hay representantes registrados para esta entidad."}
                     </td>
                   </tr>
                 ) : (
                   filteredReps.map((rep) => {
-                    const orgDir = orgDirMap.get(rep.organo_directorio);
                     const execPos = execPosMap.get(rep.cargo_ejecutivo);
                     const cargo = execPos
                       ? resolveCargoLabel(rep.sexo, execPos)
@@ -334,9 +352,6 @@ export default function RepresentantesPage() {
                         key={rep.id}
                         className="border-b last:border-0 hover:bg-muted/30 transition-colors"
                       >
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {orgDir?.nombre ?? `#${rep.organo_directorio}`}
-                        </td>
                         <td className="px-4 py-3 font-medium">{rep.nombre}</td>
                         <td className="px-4 py-3">{cargo}</td>
                         <td className="px-4 py-3 tabular-nums">
@@ -344,6 +359,11 @@ export default function RepresentantesPage() {
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">
                           {rep.numero_resolucion_designacion || "—"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge variant={rep.activo ? "secondary" : "outline"}>
+                            {rep.activo ? "Sí" : "No"}
+                          </Badge>
                         </td>
                         {isAdmin && (
                           <td className="px-4 py-3">
@@ -387,20 +407,24 @@ export default function RepresentantesPage() {
       )}
 
       {/* Create/Edit dialog */}
-      <RepresentativeDialog
-        open={dialogOpen}
-        row={editRow}
-        gobRegId={gobRegId}
-        onClose={() => {
-          setDialogOpen(false);
-          setEditRow(null);
-        }}
-        onSuccess={() => {
-          setDialogOpen(false);
-          setEditRow(null);
-          invalidateReps();
-        }}
-      />
+      {tipoOpt && tipoContenidoId != null && entidadId != null && (
+        <RepresentativeDialog
+          open={dialogOpen}
+          row={editRow}
+          tipoOpt={tipoOpt}
+          tipoContenidoId={tipoContenidoId}
+          idObjeto={entidadId}
+          onClose={() => {
+            setDialogOpen(false);
+            setEditRow(null);
+          }}
+          onSuccess={() => {
+            setDialogOpen(false);
+            setEditRow(null);
+            invalidateReps();
+          }}
+        />
+      )}
 
       {/* Delete confirmation */}
       <AlertDialog
@@ -413,8 +437,8 @@ export default function RepresentantesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar representante?</AlertDialogTitle>
             <AlertDialogDescription>
-              Se eliminará a <strong>{deleteRow?.nombre}</strong>. Esta acción
-              no se puede deshacer.
+              Se eliminará a <strong>{deleteRow?.nombre}</strong>. Esta acción no se
+              puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -444,74 +468,75 @@ interface RepFormValues {
   tipo_documento_identidad: number | null;
   numero_documento_identidad: string;
   sexo: "M" | "F" | "";
-  organo_directorio: number | null;
   cargo_ejecutivo: number | null;
   fecha_inicio_designacion: string;
   numero_resolucion_designacion: string;
+  numero_resolucion_facultades: string;
   fecha_inicio_facultades: string;
   activo: boolean;
 }
 
+const EMPTY_FORM: RepFormValues = {
+  nombre: "",
+  tipo_documento_identidad: null,
+  numero_documento_identidad: "",
+  sexo: "",
+  cargo_ejecutivo: null,
+  fecha_inicio_designacion: "",
+  numero_resolucion_designacion: "",
+  numero_resolucion_facultades: "",
+  fecha_inicio_facultades: "",
+  activo: true,
+};
+
 function RepresentativeDialog({
   open,
   row,
-  gobRegId,
+  tipoOpt,
+  tipoContenidoId,
+  idObjeto,
   onClose,
   onSuccess,
 }: {
   open: boolean;
   row: Representative | null;
-  gobRegId: number | null;
+  tipoOpt: RepresentanteEntityOption;
+  tipoContenidoId: number;
+  idObjeto: number;
   onClose: () => void;
   onSuccess: () => void;
 }) {
   const isEdit = row != null;
 
   const { control, handleSubmit, reset, setValue } = useForm<RepFormValues>({
-    defaultValues: {
-      nombre: "",
-      tipo_documento_identidad: null,
-      numero_documento_identidad: "",
-      sexo: "",
-      organo_directorio: null,
-      cargo_ejecutivo: null,
-      fecha_inicio_designacion: "",
-      numero_resolucion_designacion: "",
-      fecha_inicio_facultades: "",
-      activo: true,
-    },
+    defaultValues: EMPTY_FORM,
   });
 
   const sexo = useWatch({ control, name: "sexo" }) as "M" | "F" | "";
-  const orgDirId = useWatch({ control, name: "organo_directorio" });
 
-  // Fetch cargos ejecutivos for the selected organ directory.
-  // executive-positions now FK directly to organ-directories via organo_directivo.
-  const { data: dirPositions, isLoading: positionsLoading } = useQuery({
-    queryKey: ["executive-positions", "by-orgdir", orgDirId],
-    queryFn: () =>
-      fetchAllPages<{
-        id: number;
-        nombre_masculino: string;
-        nombre_femenino: string | null;
-      }>("executive-positions", {
-        organo_directivo: String(orgDirId!),
+  // Cargos disponibles = globales ∪ (por órgano, si la entidad es OrganDirectory).
+  const cargosQuery = useQuery({
+    queryKey: ["executive-positions", "form", tipoOpt.key, idObjeto],
+    queryFn: async () => {
+      const globales = await fetchAllPages<ExecPosition>("executive-positions", {
+        organo_directivo__isnull: "true",
         activo: "true",
-      }),
-    enabled: !!orgDirId,
+      });
+      if (!tipoOpt.esOrganDirectory) return globales;
+      const porOrgano = await fetchAllPages<ExecPosition>("executive-positions", {
+        organo_directivo: String(idObjeto),
+        activo: "true",
+      });
+      // Fusiona sin duplicar por id.
+      const map = new Map<number, ExecPosition>();
+      for (const p of [...globales, ...porOrgano]) map.set(p.id, p);
+      return Array.from(map.values());
+    },
+    enabled: open,
     staleTime: 2 * 60_000,
   });
+  const cargoOptions = cargosQuery.data ?? [];
 
-  const cargoOptions = useMemo(() => {
-    if (!dirPositions) return [];
-    return dirPositions.map((p) => ({
-      id: p.id,
-      nombre_masculino: p.nombre_masculino,
-      nombre_femenino: p.nombre_femenino,
-    }));
-  }, [dirPositions]);
-
-  // Reset form when dialog opens
   useEffect(() => {
     if (!open) return;
     if (row) {
@@ -520,41 +545,31 @@ function RepresentativeDialog({
         tipo_documento_identidad: row.tipo_documento_identidad,
         numero_documento_identidad: row.numero_documento_identidad,
         sexo: row.sexo,
-        organo_directorio: row.organo_directorio,
         cargo_ejecutivo: row.cargo_ejecutivo,
         fecha_inicio_designacion: row.fecha_inicio_designacion,
         numero_resolucion_designacion: row.numero_resolucion_designacion ?? "",
+        numero_resolucion_facultades: row.numero_resolucion_facultades ?? "",
         fecha_inicio_facultades: row.fecha_inicio_facultades ?? "",
         activo: row.activo,
       });
     } else {
-      reset({
-        nombre: "",
-        tipo_documento_identidad: null,
-        numero_documento_identidad: "",
-        sexo: "",
-        organo_directorio: null,
-        cargo_ejecutivo: null,
-        fecha_inicio_designacion: "",
-        numero_resolucion_designacion: "",
-        fecha_inicio_facultades: "",
-        activo: true,
-      });
+      reset(EMPTY_FORM);
     }
   }, [open, row, reset]);
 
   const saveMutation = useMutation({
     mutationFn: async (values: RepFormValues) => {
       const payload = {
+        tipo_contenido: tipoContenidoId,
+        id_objeto: idObjeto,
         nombre: values.nombre,
         tipo_documento_identidad: values.tipo_documento_identidad,
         numero_documento_identidad: values.numero_documento_identidad,
         sexo: values.sexo,
-        organo_directorio: values.organo_directorio,
         cargo_ejecutivo: values.cargo_ejecutivo,
         fecha_inicio_designacion: values.fecha_inicio_designacion,
-        numero_resolucion_designacion:
-          values.numero_resolucion_designacion || null,
+        numero_resolucion_designacion: values.numero_resolucion_designacion || null,
+        numero_resolucion_facultades: values.numero_resolucion_facultades || null,
         fecha_inicio_facultades: values.fecha_inicio_facultades || null,
         activo: values.activo,
       };
@@ -565,9 +580,7 @@ function RepresentativeDialog({
       }
     },
     onSuccess() {
-      toast.success(
-        isEdit ? "Representante actualizado." : "Representante registrado.",
-      );
+      toast.success(isEdit ? "Representante actualizado." : "Representante registrado.");
       onSuccess();
     },
     onError(err) {
@@ -575,11 +588,12 @@ function RepresentativeDialog({
     },
   });
 
-  // Show codigo (abbreviation) for identity document types
   const docTypeLabel = (r: WithId) => {
-    const row = r as { codigo?: string; nombre?: string };
-    return row.codigo ?? row.nombre ?? String(r.id);
+    const rec = r as { codigo?: string; nombre?: string };
+    return rec.codigo ?? rec.nombre ?? String(r.id);
   };
+
+  const entidadNombre = row?.entidad_detalle?.nombre;
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
@@ -590,6 +604,11 @@ function RepresentativeDialog({
           </DialogTitle>
         </DialogHeader>
 
+        <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
+          <span className="text-muted-foreground">{tipoOpt.label}:</span>{" "}
+          <span className="font-medium">{entidadNombre ?? "entidad seleccionada"}</span>
+        </div>
+
         <form
           onSubmit={handleSubmit((v) => saveMutation.mutate(v))}
           className="grid gap-3 px-1 pb-1"
@@ -597,7 +616,6 @@ function RepresentativeDialog({
           {/* ── Datos personales ── */}
           <SectionHeader label="Datos personales" />
 
-          {/* Nombre */}
           <Controller
             control={control}
             name="nombre"
@@ -611,7 +629,6 @@ function RepresentativeDialog({
             )}
           />
 
-          {/* Tipo doc | N° doc | Sexo — 3 cols */}
           <div className="grid grid-cols-3 gap-3">
             <Controller
               control={control}
@@ -644,13 +661,7 @@ function RepresentativeDialog({
               render={({ field, fieldState }) => (
                 <div className="grid gap-1">
                   <Label>Sexo *</Label>
-                  <Select
-                    value={field.value}
-                    onValueChange={(v) => {
-                      field.onChange(v);
-                      setValue("cargo_ejecutivo", null);
-                    }}
-                  >
+                  <Select value={field.value} onValueChange={field.onChange}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Seleccionar…" />
                     </SelectTrigger>
@@ -668,100 +679,74 @@ function RepresentativeDialog({
           {/* ── Designación ── */}
           <SectionHeader label="Designación" />
 
-          {/* Órgano | Cargo — 2 cols; cargo bloqueado hasta elegir sexo */}
-          <div className="grid grid-cols-2 gap-3">
-            <Controller
-              control={control}
-              name="organo_directorio"
-              rules={{ required: "Campo obligatorio." }}
-              render={({ field, fieldState }) => (
+          <Controller
+            control={control}
+            name="cargo_ejecutivo"
+            rules={{ required: "Campo obligatorio." }}
+            render={({ field, fieldState }) => {
+              const disabled = !sexo;
+              const selectedLabel = (() => {
+                const opt = cargoOptions.find((o) => o.id === field.value);
+                if (!opt) return undefined;
+                return sexo === "M"
+                  ? opt.nombre_masculino
+                  : (opt.nombre_femenino ?? opt.nombre_masculino);
+              })();
+              return (
                 <div className="grid gap-1">
-                  <Label>Órgano del directorio *</Label>
-                  <EntityCombobox
-                    endpoint="organ-directories"
-                    params={gobRegId ? { gobierno_regional: String(gobRegId) } : undefined}
-                    value={field.value}
-                    onChange={(id) => {
-                      if (id !== field.value) setValue("cargo_ejecutivo", null);
-                      field.onChange(id);
-                    }}
-                  />
-                  {fieldState.error && <p className="text-xs text-destructive">{fieldState.error.message}</p>}
-                </div>
-              )}
-            />
-            <Controller
-              control={control}
-              name="cargo_ejecutivo"
-              rules={{ required: "Campo obligatorio." }}
-              render={({ field, fieldState }) => {
-                const disabled = !sexo || !orgDirId;
-                const hint = !sexo
-                  ? "— elige sexo primero"
-                  : !orgDirId
-                    ? "— elige órgano primero"
-                    : undefined;
-                const selectedLabel = (() => {
-                  const opt = cargoOptions.find((o) => o.id === field.value);
-                  if (!opt) return undefined;
-                  return sexo === "M"
-                    ? opt.nombre_masculino
-                    : (opt.nombre_femenino ?? opt.nombre_masculino);
-                })();
-                return (
-                  <div className="grid gap-1">
-                    <Label>
-                      Cargo ejecutivo *{" "}
-                      {hint && (
-                        <span className="text-xs text-amber-600 font-normal">{hint}</span>
-                      )}
-                    </Label>
-                    <Select
-                      value={field.value ? String(field.value) : ""}
-                      onValueChange={(v) => field.onChange(v ? Number(v) : null)}
-                      disabled={disabled}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue
-                          placeholder={
-                            positionsLoading
-                              ? "Cargando cargos…"
-                              : cargoOptions.length === 0 && orgDirId
-                                ? "Sin cargos configurados"
-                                : "Seleccionar cargo…"
-                          }
-                        >
-                          {selectedLabel}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {cargoOptions.length === 0 && !positionsLoading && orgDirId && (
-                          <div className="px-3 py-4 text-xs text-muted-foreground text-center">
-                            No hay cargos configurados para este órgano.
-                            <br />
-                            Configure en Catálogos → Cargos ejecutivos.
-                          </div>
-                        )}
-                        {cargoOptions.map((opt) => (
-                          <SelectItem key={opt.id} value={String(opt.id)}>
-                            {sexo === "M"
-                              ? opt.nombre_masculino
-                              : (opt.nombre_femenino ?? opt.nombre_masculino)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {fieldState.error && (
-                      <p className="text-xs text-destructive">{fieldState.error.message}</p>
+                  <Label>
+                    Cargo ejecutivo *{" "}
+                    {!sexo && (
+                      <span className="text-xs text-amber-600 font-normal">
+                        — elige sexo primero
+                      </span>
                     )}
-                  </div>
-                );
-              }}
-            />
-          </div>
+                  </Label>
+                  <Select
+                    value={field.value ? String(field.value) : ""}
+                    onValueChange={(v) => field.onChange(v ? Number(v) : null)}
+                    disabled={disabled}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue
+                        placeholder={
+                          cargosQuery.isLoading
+                            ? "Cargando cargos…"
+                            : cargoOptions.length === 0
+                              ? "Sin cargos disponibles"
+                              : "Seleccionar cargo…"
+                        }
+                      >
+                        {selectedLabel}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cargoOptions.length === 0 && !cargosQuery.isLoading && (
+                        <div className="px-3 py-4 text-xs text-muted-foreground text-center">
+                          No hay cargos disponibles.
+                          <br />
+                          Configure cargos (globales o del órgano) en Catálogos → Cargos ejecutivos.
+                        </div>
+                      )}
+                      {cargoOptions.map((opt) => (
+                        <SelectItem key={opt.id} value={String(opt.id)}>
+                          {sexo === "M"
+                            ? opt.nombre_masculino
+                            : (opt.nombre_femenino ?? opt.nombre_masculino)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {fieldState.error && (
+                    <p className="text-xs text-destructive">{fieldState.error.message}</p>
+                  )}
+                </div>
+              );
+            }}
+          />
 
-          {/* Fecha designación | N° resolución | Fecha facultades — 3 cols */}
-          <div className="grid grid-cols-3 gap-3">
+          {/* Designación: fecha + N° resolución — 2 cols */}
+          <div className="grid grid-cols-2 gap-3">
             <Controller
               control={control}
               name="fecha_inicio_designacion"
@@ -779,11 +764,15 @@ function RepresentativeDialog({
               name="numero_resolucion_designacion"
               render={({ field }) => (
                 <div className="grid gap-1">
-                  <Label>N° resolución</Label>
+                  <Label>N° resolución de designación</Label>
                   <Input value={field.value} onChange={field.onChange} onBlur={field.onBlur} autoComplete="off" />
                 </div>
               )}
             />
+          </div>
+
+          {/* Facultades: fecha + N° resolución — 2 cols */}
+          <div className="grid grid-cols-2 gap-3">
             <Controller
               control={control}
               name="fecha_inicio_facultades"
@@ -791,6 +780,16 @@ function RepresentativeDialog({
                 <div className="grid gap-1">
                   <Label>Fecha inicio de facultades</Label>
                   <DatePicker value={field.value} onChange={field.onChange} />
+                </div>
+              )}
+            />
+            <Controller
+              control={control}
+              name="numero_resolucion_facultades"
+              render={({ field }) => (
+                <div className="grid gap-1">
+                  <Label>N° resolución de facultades</Label>
+                  <Input value={field.value} onChange={field.onChange} onBlur={field.onBlur} autoComplete="off" />
                 </div>
               )}
             />
@@ -810,7 +809,6 @@ function RepresentativeDialog({
             )}
           />
 
-          {/* Actions */}
           <div className="flex justify-end gap-2 pt-1">
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
             <Button type="submit" disabled={saveMutation.isPending}>
@@ -841,11 +839,11 @@ function EmptyState() {
     <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 gap-3 text-center">
       <Building2 className="h-10 w-10 text-muted-foreground/40" />
       <p className="text-sm font-medium text-muted-foreground">
-        Selecciona un gobierno regional para continuar
+        Selecciona un tipo de entidad y una entidad para continuar
       </p>
       <p className="text-xs text-muted-foreground/60 max-w-xs">
-        Los representantes se gestionan por entidad dentro de cada gobierno
-        regional.
+        Los representantes se gestionan por entidad (MINSA, GORE, DIRIS, Universidad,
+        Unidad Ejecutora, CONAPRES o IPRESS).
       </p>
     </div>
   );

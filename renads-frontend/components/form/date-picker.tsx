@@ -31,6 +31,19 @@ function dateToDisplay(date: Date | undefined): string {
 }
 
 /**
+ * Enmascara la entrada manual al formato `dd/MM/yyyy`: descarta no-dígitos, limita a 8 cifras e
+ * inserta las barras automáticamente conforme se escribe (2→`dd/`, 4→`dd/MM/`). Así el usuario no
+ * puede romper el formato al tipear.
+ */
+function maskDate(raw: string): string {
+  const digits = raw.replace(/\D/g, "").slice(0, 8);
+  const parts = [digits.slice(0, 2)];
+  if (digits.length > 2) parts.push(digits.slice(2, 4));
+  if (digits.length > 4) parts.push(digits.slice(4, 8));
+  return parts.join("/");
+}
+
+/**
  * Selector de fecha (patrón «input calendar» de shadcn): un `Input` donde se puede **escribir**
  * la fecha (`dd/MM/yyyy`) más un `Popover` + `Calendar` (react-day-picker) con navegación por
  * **desplegables de mes/año** — clave para fechas lejanas (p. ej. nacimiento). El valor y
@@ -74,6 +87,9 @@ export function DatePicker({
       onChange("");
       return;
     }
+    // Solo se confirma con la fecha completa (`dd/MM/yyyy` = 10 caracteres); las entradas
+    // parciales no deben parsearse (evita interpretar «12/05/20» como el año 20).
+    if (trimmed.length < 10) return;
     const parsed = parse(trimmed, DISPLAY_FORMAT, new Date());
     if (isValid(parsed)) onChange(dateToIso(parsed));
   }
@@ -86,11 +102,13 @@ export function DatePicker({
         placeholder={placeholder}
         disabled={disabled}
         inputMode="numeric"
+        maxLength={10}
         aria-invalid={ariaInvalid}
         className="bg-field pr-9"
         onChange={(e) => {
-          setText(e.target.value);
-          commitText(e.target.value);
+          const masked = maskDate(e.target.value);
+          setText(masked);
+          commitText(masked);
         }}
         onBlur={() => setText(dateToDisplay(isoToDate(value)))}
       />

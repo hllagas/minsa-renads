@@ -2438,10 +2438,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /** @description CRUD del directorio unificado de órganos (RN: único por organo+GORE+nombre). */
         get: operations["organ_directories_list"];
         put?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /** @description CRUD del directorio unificado de órganos (RN: único por organo+GORE+nombre). */
         post: operations["organ_directories_create"];
         delete?: never;
         options?: never;
@@ -2456,16 +2456,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /** @description CRUD del directorio unificado de órganos (RN: único por organo+GORE+nombre). */
         get: operations["organ_directories_retrieve"];
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /** @description CRUD del directorio unificado de órganos (RN: único por organo+GORE+nombre). */
         put: operations["organ_directories_update"];
         post?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /** @description CRUD del directorio unificado de órganos (RN: único por organo+GORE+nombre). */
         delete: operations["organ_directories_destroy"];
         options?: never;
         head?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /** @description CRUD del directorio unificado de órganos (RN: único por organo+GORE+nombre). */
         patch: operations["organ_directories_partial_update"];
         trace?: never;
     };
@@ -2476,7 +2476,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Histórico de bajas de representantes de órgano (solo lectura). */
+        /** @description Histórico de bajas de representantes de entidad (solo lectura). */
         get: operations["organ_representative_history_list"];
         put?: never;
         post?: never;
@@ -2493,7 +2493,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Histórico de bajas de representantes de órgano (solo lectura). */
+        /** @description Histórico de bajas de representantes de entidad (solo lectura). */
         get: operations["organ_representative_history_retrieve"];
         put?: never;
         post?: never;
@@ -2511,23 +2511,23 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description CRUD de representantes de órgano (FK directo al directorio) + adjunto real de anexos.
+         * @description CRUD de representantes de entidad (relación polimórfica) + adjunto real de anexos.
          *
          *     Escritura solo Administrador RENADS. Al crear, delega en el service
          *     `registrar_organo_representante` (da de baja al anterior activo del mismo par
-         *     `(organo_directorio, cargo_ejecutivo)` y lo copia al histórico). Adjunta PDFs
-         *     de anexos del actor `REPRESENTANTE` (resolución del cargo, documento de
+         *     `(tipo_contenido, id_objeto, cargo_ejecutivo)` y lo copia al histórico). Adjunta
+         *     PDFs de anexos del actor `REPRESENTANTE` (resolución del cargo, documento de
          *     identidad) vía `annex-upload`/`annex-checklist`.
          */
         get: operations["organ_representatives_list"];
         put?: never;
         /**
-         * @description CRUD de representantes de órgano (FK directo al directorio) + adjunto real de anexos.
+         * @description CRUD de representantes de entidad (relación polimórfica) + adjunto real de anexos.
          *
          *     Escritura solo Administrador RENADS. Al crear, delega en el service
          *     `registrar_organo_representante` (da de baja al anterior activo del mismo par
-         *     `(organo_directorio, cargo_ejecutivo)` y lo copia al histórico). Adjunta PDFs
-         *     de anexos del actor `REPRESENTANTE` (resolución del cargo, documento de
+         *     `(tipo_contenido, id_objeto, cargo_ejecutivo)` y lo copia al histórico). Adjunta
+         *     PDFs de anexos del actor `REPRESENTANTE` (resolución del cargo, documento de
          *     identidad) vía `annex-upload`/`annex-checklist`.
          */
         post: operations["organ_representatives_create"];
@@ -2545,45 +2545,45 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description CRUD de representantes de órgano (FK directo al directorio) + adjunto real de anexos.
+         * @description CRUD de representantes de entidad (relación polimórfica) + adjunto real de anexos.
          *
          *     Escritura solo Administrador RENADS. Al crear, delega en el service
          *     `registrar_organo_representante` (da de baja al anterior activo del mismo par
-         *     `(organo_directorio, cargo_ejecutivo)` y lo copia al histórico). Adjunta PDFs
-         *     de anexos del actor `REPRESENTANTE` (resolución del cargo, documento de
+         *     `(tipo_contenido, id_objeto, cargo_ejecutivo)` y lo copia al histórico). Adjunta
+         *     PDFs de anexos del actor `REPRESENTANTE` (resolución del cargo, documento de
          *     identidad) vía `annex-upload`/`annex-checklist`.
          */
         get: operations["organ_representatives_retrieve"];
         /**
-         * @description CRUD de representantes de órgano (FK directo al directorio) + adjunto real de anexos.
+         * @description CRUD de representantes de entidad (relación polimórfica) + adjunto real de anexos.
          *
          *     Escritura solo Administrador RENADS. Al crear, delega en el service
          *     `registrar_organo_representante` (da de baja al anterior activo del mismo par
-         *     `(organo_directorio, cargo_ejecutivo)` y lo copia al histórico). Adjunta PDFs
-         *     de anexos del actor `REPRESENTANTE` (resolución del cargo, documento de
+         *     `(tipo_contenido, id_objeto, cargo_ejecutivo)` y lo copia al histórico). Adjunta
+         *     PDFs de anexos del actor `REPRESENTANTE` (resolución del cargo, documento de
          *     identidad) vía `annex-upload`/`annex-checklist`.
          */
         put: operations["organ_representatives_update"];
         post?: never;
         /**
-         * @description CRUD de representantes de órgano (FK directo al directorio) + adjunto real de anexos.
+         * @description CRUD de representantes de entidad (relación polimórfica) + adjunto real de anexos.
          *
          *     Escritura solo Administrador RENADS. Al crear, delega en el service
          *     `registrar_organo_representante` (da de baja al anterior activo del mismo par
-         *     `(organo_directorio, cargo_ejecutivo)` y lo copia al histórico). Adjunta PDFs
-         *     de anexos del actor `REPRESENTANTE` (resolución del cargo, documento de
+         *     `(tipo_contenido, id_objeto, cargo_ejecutivo)` y lo copia al histórico). Adjunta
+         *     PDFs de anexos del actor `REPRESENTANTE` (resolución del cargo, documento de
          *     identidad) vía `annex-upload`/`annex-checklist`.
          */
         delete: operations["organ_representatives_destroy"];
         options?: never;
         head?: never;
         /**
-         * @description CRUD de representantes de órgano (FK directo al directorio) + adjunto real de anexos.
+         * @description CRUD de representantes de entidad (relación polimórfica) + adjunto real de anexos.
          *
          *     Escritura solo Administrador RENADS. Al crear, delega en el service
          *     `registrar_organo_representante` (da de baja al anterior activo del mismo par
-         *     `(organo_directorio, cargo_ejecutivo)` y lo copia al histórico). Adjunta PDFs
-         *     de anexos del actor `REPRESENTANTE` (resolución del cargo, documento de
+         *     `(tipo_contenido, id_objeto, cargo_ejecutivo)` y lo copia al histórico). Adjunta
+         *     PDFs de anexos del actor `REPRESENTANTE` (resolución del cargo, documento de
          *     identidad) vía `annex-upload`/`annex-checklist`.
          */
         patch: operations["organ_representatives_partial_update"];
@@ -3020,6 +3020,26 @@ export interface paths {
             cookie?: never;
         };
         get: operations["relationship_types_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/representante-content-types/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tipos de entidad de representante
+         * @description Lista los ContentType elegibles como entidad de un representante. El `id` es el valor que espera `tipo_contenido` y `model` permite resolver el endpoint de la entidad concreta.
+         */
+        get: operations["representante_content_types_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4254,15 +4274,6 @@ export interface components {
             responsables?: string;
             content_types?: number[];
         };
-        /**
-         * @description * `ORGANO_MINSA` - Órgano del MINSA
-         *     * `UNIVERSIDAD` - Universidad
-         *     * `GOBIERNO_REGIONAL` - Gobierno Regional
-         *     * `MINSA_DIRIS` - MINSA DIRIS
-         *     * `UNIDAD_EJECUTORA` - Unidad Ejecutora
-         * @enum {string}
-         */
-        CategoriaEnum: "ORGANO_MINSA" | "UNIVERSIDAD" | "GOBIERNO_REGIONAL" | "MINSA_DIRIS" | "UNIDAD_EJECUTORA";
         CategoryAuto: {
             readonly id: number;
             /**
@@ -4805,7 +4816,7 @@ export interface components {
              */
             direccion?: string;
             activo?: boolean;
-            /** @description Tipo de unidad ejecutora del directorio (categoría UNIDAD_EJECUTORA) */
+            /** @description Tipo de unidad ejecutora del directorio (organo=Unidad Ejecutora) */
             tipo_organo: number;
             /** @description Gobierno regional al que pertenece */
             gobierno_regional: number;
@@ -5011,63 +5022,6 @@ export interface components {
             /** @description Parentesco del contacto de emergencia */
             contacto_emergencia_parentesco?: number | null;
         };
-        IpressAuto: {
-            readonly id: number;
-            readonly referencia_logo: string;
-            readonly categoria_detalle: string;
-            readonly tipo_clasificacion_detalle: string;
-            readonly ambito_geografico_sanitario_detalle: string;
-            readonly microred_detalle: string;
-            readonly ubigeo_detalle: string;
-            /** @description Nombre del establecimiento */
-            nombre: string;
-            /**
-             * Código RENIPRESS
-             * @description Código RENIPRESS
-             */
-            codigo_renipress?: string;
-            /**
-             * Dirección
-             * @description Dirección
-             */
-            direccion?: string;
-            /**
-             * Format: decimal
-             * @description Latitud (coordenada geográfica)
-             */
-            latitud?: string | null;
-            /**
-             * Format: decimal
-             * @description Longitud (coordenada geográfica)
-             */
-            longitud?: string | null;
-            /**
-             * Cantidad de camas
-             * Format: int64
-             * @description Número de camas del establecimiento
-             */
-            cantidad_camas?: number | null;
-            /**
-             * Número de RUC
-             * @description RUC (11 dígitos; texto para conservar ceros a la izquierda)
-             */
-            numero_ruc?: string;
-            /** @description Autorizada por CONAPRES como sede docente (asistencial, MINSA/FF.AA.-FF.PP., pública) */
-            es_sede_docente?: boolean;
-            activo?: boolean;
-            /** @description Unidad ejecutora a la que pertenece */
-            unidad_ejecutora: number;
-            /** @description Ubicación geográfica (UBIGEO) */
-            ubigeo?: number | null;
-            /** @description Ámbito geográfico sanitario */
-            ambito_geografico_sanitario: number;
-            /** @description Categoría del establecimiento */
-            categoria?: number | null;
-            /** @description Tipo de clasificación del establecimiento */
-            tipo_clasificacion?: number | null;
-            /** @description Microred a la que pertenece el establecimiento */
-            microred?: number | null;
-        };
         /**
          * @description Subida del logo de una entidad (multipart): valida tipo y tamaño del binario.
          *
@@ -5141,37 +5095,24 @@ export interface components {
             /** @description Indica si está activo */
             estado?: boolean;
         };
-        OrganDirectoryAuto: {
-            readonly id: number;
-            readonly gobierno_regional_detalle: string;
-            /**
-             * Categoría
-             * @description Categoría del órgano (discriminador)
-             *
-             *     * `ORGANO_MINSA` - Órgano del MINSA
-             *     * `UNIVERSIDAD` - Universidad
-             *     * `GOBIERNO_REGIONAL` - Gobierno Regional
-             *     * `MINSA_DIRIS` - MINSA DIRIS
-             *     * `UNIDAD_EJECUTORA` - Unidad Ejecutora
-             */
-            categoria: components["schemas"]["CategoriaEnum"];
-            /** @description Nombre del órgano */
-            nombre: string;
-            /** @description Siglas */
-            siglas?: string;
-            activo?: boolean;
-            /** @description GORE (solo órganos regionales) */
-            gobierno_regional?: number | null;
-        };
         /**
-         * @description Representante de un órgano del directorio (FK directo).
+         * @description Representante de una entidad (relación polimórfica `entidad`).
          *
-         *     Valida la unicidad del documento entre representantes activos y la coherencia
-         *     del cargo con el órgano del directorio. La baja del representante anterior
-         *     (histórico) la resuelve el service ``registrar_organo_representante``.
+         *     Valida: (a) unicidad del documento entre representantes activos, (b) que la entidad
+         *     (`tipo_contenido`) sea uno de los modelos permitidos, y (c) la coherencia cargo↔entidad
+         *     (cargo por órgano ⇒ la entidad debe ser ese OrganDirectory; cargo global ⇒ cualquiera).
+         *     La baja del representante anterior (histórico) la resuelve el service
+         *     ``registrar_organo_representante``.
          */
         OrganRepresentative: {
             readonly id: number;
+            readonly entidad_detalle: string;
+            /**
+             * Id del objeto
+             * Format: int64
+             * @description Id de la entidad representada
+             */
+            id_objeto: number;
             /** @description Nombre del representante */
             nombre: string;
             /**
@@ -5209,8 +5150,8 @@ export interface components {
              */
             fecha_inicio_facultades?: string | null;
             activo?: boolean;
-            /** @description Órgano del directorio representado */
-            organo_directorio: number;
+            /** @description Tipo de entidad representada (ContentType) */
+            tipo_contenido: number;
             /** @description Tipo de documento de identidad */
             tipo_documento_identidad: number;
             /** @description Cargo ejecutivo */
@@ -5218,6 +5159,12 @@ export interface components {
         };
         OrganRepresentativeHistoryAuto: {
             readonly id: number;
+            /**
+             * Id del objeto
+             * Format: int64
+             * @description Id de la entidad representada
+             */
+            id_objeto: number;
             /** @description Nombre del representante */
             nombre: string;
             /**
@@ -5266,8 +5213,8 @@ export interface components {
             readonly creado_en: string;
             /** @description Representante dado de baja */
             representante: number;
-            /** @description Órgano del directorio representado */
-            organo_directorio: number;
+            /** @description Tipo de entidad representada (ContentType) */
+            tipo_contenido: number;
             /** @description Tipo de documento de identidad */
             tipo_documento_identidad: number;
             /** @description Cargo ejecutivo */
@@ -5708,21 +5655,6 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["InternshipStatusAuto"][];
         };
-        PaginatedIpressAutoList: {
-            /** @example 123 */
-            count: number;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=4
-             */
-            next?: string | null;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=2
-             */
-            previous?: string | null;
-            results: components["schemas"]["IpressAuto"][];
-        };
         PaginatedMicroredAutoList: {
             /** @example 123 */
             count: number;
@@ -5767,21 +5699,6 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["OrganAuto"][];
-        };
-        PaginatedOrganDirectoryAutoList: {
-            /** @example 123 */
-            count: number;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=4
-             */
-            next?: string | null;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=2
-             */
-            previous?: string | null;
-            results: components["schemas"]["OrganDirectoryAuto"][];
         };
         PaginatedOrganRepresentativeHistoryAutoList: {
             /** @example 123 */
@@ -6158,6 +6075,36 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["UserRead"][];
         };
+        Paginated_IpressList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["_Ipress"][];
+        };
+        Paginated_OrganDirectoryList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["_OrganDirectory"][];
+        };
         PatchedAcademicLevelAuto: {
             readonly id?: number;
             /**
@@ -6491,7 +6438,7 @@ export interface components {
              */
             direccion?: string;
             activo?: boolean;
-            /** @description Tipo de unidad ejecutora del directorio (categoría UNIDAD_EJECUTORA) */
+            /** @description Tipo de unidad ejecutora del directorio (organo=Unidad Ejecutora) */
             tipo_organo?: number;
             /** @description Gobierno regional al que pertenece */
             gobierno_regional?: number;
@@ -6596,63 +6543,6 @@ export interface components {
             /** @description Parentesco del contacto de emergencia */
             contacto_emergencia_parentesco?: number | null;
         };
-        PatchedIpressAuto: {
-            readonly id?: number;
-            readonly referencia_logo?: string;
-            readonly categoria_detalle?: string;
-            readonly tipo_clasificacion_detalle?: string;
-            readonly ambito_geografico_sanitario_detalle?: string;
-            readonly microred_detalle?: string;
-            readonly ubigeo_detalle?: string;
-            /** @description Nombre del establecimiento */
-            nombre?: string;
-            /**
-             * Código RENIPRESS
-             * @description Código RENIPRESS
-             */
-            codigo_renipress?: string;
-            /**
-             * Dirección
-             * @description Dirección
-             */
-            direccion?: string;
-            /**
-             * Format: decimal
-             * @description Latitud (coordenada geográfica)
-             */
-            latitud?: string | null;
-            /**
-             * Format: decimal
-             * @description Longitud (coordenada geográfica)
-             */
-            longitud?: string | null;
-            /**
-             * Cantidad de camas
-             * Format: int64
-             * @description Número de camas del establecimiento
-             */
-            cantidad_camas?: number | null;
-            /**
-             * Número de RUC
-             * @description RUC (11 dígitos; texto para conservar ceros a la izquierda)
-             */
-            numero_ruc?: string;
-            /** @description Autorizada por CONAPRES como sede docente (asistencial, MINSA/FF.AA.-FF.PP., pública) */
-            es_sede_docente?: boolean;
-            activo?: boolean;
-            /** @description Unidad ejecutora a la que pertenece */
-            unidad_ejecutora?: number;
-            /** @description Ubicación geográfica (UBIGEO) */
-            ubigeo?: number | null;
-            /** @description Ámbito geográfico sanitario */
-            ambito_geografico_sanitario?: number;
-            /** @description Categoría del establecimiento */
-            categoria?: number | null;
-            /** @description Tipo de clasificación del establecimiento */
-            tipo_clasificacion?: number | null;
-            /** @description Microred a la que pertenece el establecimiento */
-            microred?: number | null;
-        };
         PatchedMicroredAuto: {
             readonly id?: number;
             /**
@@ -6673,37 +6563,24 @@ export interface components {
             /** @description Indica si está activo */
             estado?: boolean;
         };
-        PatchedOrganDirectoryAuto: {
-            readonly id?: number;
-            readonly gobierno_regional_detalle?: string;
-            /**
-             * Categoría
-             * @description Categoría del órgano (discriminador)
-             *
-             *     * `ORGANO_MINSA` - Órgano del MINSA
-             *     * `UNIVERSIDAD` - Universidad
-             *     * `GOBIERNO_REGIONAL` - Gobierno Regional
-             *     * `MINSA_DIRIS` - MINSA DIRIS
-             *     * `UNIDAD_EJECUTORA` - Unidad Ejecutora
-             */
-            categoria?: components["schemas"]["CategoriaEnum"];
-            /** @description Nombre del órgano */
-            nombre?: string;
-            /** @description Siglas */
-            siglas?: string;
-            activo?: boolean;
-            /** @description GORE (solo órganos regionales) */
-            gobierno_regional?: number | null;
-        };
         /**
-         * @description Representante de un órgano del directorio (FK directo).
+         * @description Representante de una entidad (relación polimórfica `entidad`).
          *
-         *     Valida la unicidad del documento entre representantes activos y la coherencia
-         *     del cargo con el órgano del directorio. La baja del representante anterior
-         *     (histórico) la resuelve el service ``registrar_organo_representante``.
+         *     Valida: (a) unicidad del documento entre representantes activos, (b) que la entidad
+         *     (`tipo_contenido`) sea uno de los modelos permitidos, y (c) la coherencia cargo↔entidad
+         *     (cargo por órgano ⇒ la entidad debe ser ese OrganDirectory; cargo global ⇒ cualquiera).
+         *     La baja del representante anterior (histórico) la resuelve el service
+         *     ``registrar_organo_representante``.
          */
         PatchedOrganRepresentative: {
             readonly id?: number;
+            readonly entidad_detalle?: string;
+            /**
+             * Id del objeto
+             * Format: int64
+             * @description Id de la entidad representada
+             */
+            id_objeto?: number;
             /** @description Nombre del representante */
             nombre?: string;
             /**
@@ -6741,8 +6618,8 @@ export interface components {
              */
             fecha_inicio_facultades?: string | null;
             activo?: boolean;
-            /** @description Órgano del directorio representado */
-            organo_directorio?: number;
+            /** @description Tipo de entidad representada (ContentType) */
+            tipo_contenido?: number;
             /** @description Tipo de documento de identidad */
             tipo_documento_identidad?: number;
             /** @description Cargo ejecutivo */
@@ -6979,7 +6856,7 @@ export interface components {
             activo?: boolean;
             /** @description Pública / privada */
             tipo_gestion?: number;
-            /** @description Tipo de entidad del directorio (categoría UNIVERSIDAD) */
+            /** @description Tipo de entidad del directorio (organo=Universidad) */
             tipo_entidad?: number;
             /** @description Licenciada / Denegada / Pendiente */
             tipo_autorizacion?: number;
@@ -7068,6 +6945,94 @@ export interface components {
              */
             is_superuser?: boolean;
             groups?: number[];
+        };
+        /**
+         * @description Serializer de IPRESS con validación de coherencia geográfica microred ↔ ámbito.
+         *
+         *     Mantiene `fields="__all__"`, los `*_detalle` y el logo como URL de solo lectura del
+         *     auto-serializer base. El auto-serializer (`ModelSerializer`) no ejecuta `Model.clean()`,
+         *     por lo que aquí se engancha la RN de coherencia (ajuste B de la spec) resolviendo el
+         *     estado final del objeto (create y PATCH parcial) contra `Ipress.clean()`.
+         */
+        Patched_Ipress: {
+            readonly id?: number;
+            readonly referencia_logo?: string;
+            readonly categoria_detalle?: string;
+            readonly tipo_clasificacion_detalle?: string;
+            readonly ambito_geografico_sanitario_detalle?: string;
+            readonly microred_detalle?: string;
+            readonly ubigeo_detalle?: string;
+            /** @description Nombre del establecimiento */
+            nombre?: string;
+            /**
+             * Código RENIPRESS
+             * @description Código único RENIPRESS del establecimiento
+             */
+            codigo_renipress?: string;
+            /**
+             * Dirección
+             * @description Dirección
+             */
+            direccion?: string;
+            /**
+             * Format: decimal
+             * @description Latitud (coordenada geográfica)
+             */
+            latitud?: string | null;
+            /**
+             * Format: decimal
+             * @description Longitud (coordenada geográfica)
+             */
+            longitud?: string | null;
+            /**
+             * Cantidad de camas
+             * Format: int64
+             * @description Número de camas del establecimiento
+             */
+            cantidad_camas?: number | null;
+            /**
+             * Número de RUC
+             * @description RUC (11 dígitos; texto para conservar ceros a la izquierda)
+             */
+            numero_ruc?: string;
+            /** @description Autorizada por CONAPRES como sede docente (asistencial, MINSA/FF.AA.-FF.PP., pública) */
+            es_sede_docente?: boolean;
+            activo?: boolean;
+            /** @description Unidad ejecutora a la que pertenece */
+            unidad_ejecutora?: number;
+            /** @description Ubicación geográfica (UBIGEO) */
+            ubigeo?: number | null;
+            /** @description Ámbito geográfico sanitario */
+            ambito_geografico_sanitario?: number;
+            /** @description Categoría del establecimiento */
+            categoria?: number | null;
+            /** @description Tipo de clasificación del establecimiento */
+            tipo_clasificacion?: number | null;
+            /** @description Microred a la que pertenece el establecimiento */
+            microred?: number | null;
+        };
+        /**
+         * @description Serializer de órganos del directorio con RN de unicidad `(organo, gobierno_regional, nombre)`.
+         *
+         *     RN: un GORE puede tener varios órganos del directorio, pero el nombre no se repite
+         *     dentro del mismo `(organo, gobierno_regional)`. Para los órganos sin GORE
+         *     (MINSA/UNIVERSIDAD/DIRIS/tipos) la unicidad aplica sobre `(organo, nombre)`. El
+         *     auto-serializer no aplica esta regla, así que se valida aquí y se devuelve un 400
+         *     legible en vez del IntegrityError 500 de las ``UniqueConstraint`` parciales de la BD.
+         */
+        Patched_OrganDirectory: {
+            readonly id?: number;
+            readonly gobierno_regional_detalle?: string;
+            readonly organo_detalle?: string;
+            /** @description Nombre del órgano */
+            nombre?: string;
+            /** @description Siglas */
+            siglas?: string;
+            activo?: boolean;
+            /** @description Categoría del órgano (FK a la tabla canónica `organo`) */
+            organo?: number;
+            /** @description GORE (solo órganos regionales) */
+            gobierno_regional?: number | null;
         };
         /** @description Catálogo de permisos (solo lectura) con el `content_type` desglosado. */
         Permission: {
@@ -7586,7 +7551,7 @@ export interface components {
             activo?: boolean;
             /** @description Pública / privada */
             tipo_gestion: number;
-            /** @description Tipo de entidad del directorio (categoría UNIVERSIDAD) */
+            /** @description Tipo de entidad del directorio (organo=Universidad) */
             tipo_entidad: number;
             /** @description Licenciada / Denegada / Pendiente */
             tipo_autorizacion: number;
@@ -7799,6 +7764,94 @@ export interface components {
              */
             is_superuser?: boolean;
             groups?: number[];
+        };
+        /**
+         * @description Serializer de IPRESS con validación de coherencia geográfica microred ↔ ámbito.
+         *
+         *     Mantiene `fields="__all__"`, los `*_detalle` y el logo como URL de solo lectura del
+         *     auto-serializer base. El auto-serializer (`ModelSerializer`) no ejecuta `Model.clean()`,
+         *     por lo que aquí se engancha la RN de coherencia (ajuste B de la spec) resolviendo el
+         *     estado final del objeto (create y PATCH parcial) contra `Ipress.clean()`.
+         */
+        _Ipress: {
+            readonly id: number;
+            readonly referencia_logo: string;
+            readonly categoria_detalle: string;
+            readonly tipo_clasificacion_detalle: string;
+            readonly ambito_geografico_sanitario_detalle: string;
+            readonly microred_detalle: string;
+            readonly ubigeo_detalle: string;
+            /** @description Nombre del establecimiento */
+            nombre: string;
+            /**
+             * Código RENIPRESS
+             * @description Código único RENIPRESS del establecimiento
+             */
+            codigo_renipress: string;
+            /**
+             * Dirección
+             * @description Dirección
+             */
+            direccion?: string;
+            /**
+             * Format: decimal
+             * @description Latitud (coordenada geográfica)
+             */
+            latitud?: string | null;
+            /**
+             * Format: decimal
+             * @description Longitud (coordenada geográfica)
+             */
+            longitud?: string | null;
+            /**
+             * Cantidad de camas
+             * Format: int64
+             * @description Número de camas del establecimiento
+             */
+            cantidad_camas?: number | null;
+            /**
+             * Número de RUC
+             * @description RUC (11 dígitos; texto para conservar ceros a la izquierda)
+             */
+            numero_ruc?: string;
+            /** @description Autorizada por CONAPRES como sede docente (asistencial, MINSA/FF.AA.-FF.PP., pública) */
+            es_sede_docente?: boolean;
+            activo?: boolean;
+            /** @description Unidad ejecutora a la que pertenece */
+            unidad_ejecutora: number;
+            /** @description Ubicación geográfica (UBIGEO) */
+            ubigeo?: number | null;
+            /** @description Ámbito geográfico sanitario */
+            ambito_geografico_sanitario: number;
+            /** @description Categoría del establecimiento */
+            categoria?: number | null;
+            /** @description Tipo de clasificación del establecimiento */
+            tipo_clasificacion?: number | null;
+            /** @description Microred a la que pertenece el establecimiento */
+            microred?: number | null;
+        };
+        /**
+         * @description Serializer de órganos del directorio con RN de unicidad `(organo, gobierno_regional, nombre)`.
+         *
+         *     RN: un GORE puede tener varios órganos del directorio, pero el nombre no se repite
+         *     dentro del mismo `(organo, gobierno_regional)`. Para los órganos sin GORE
+         *     (MINSA/UNIVERSIDAD/DIRIS/tipos) la unicidad aplica sobre `(organo, nombre)`. El
+         *     auto-serializer no aplica esta regla, así que se valida aquí y se devuelve un 400
+         *     legible en vez del IntegrityError 500 de las ``UniqueConstraint`` parciales de la BD.
+         */
+        _OrganDirectory: {
+            readonly id: number;
+            readonly gobierno_regional_detalle: string;
+            readonly organo_detalle: string;
+            /** @description Nombre del órgano */
+            nombre: string;
+            /** @description Siglas */
+            siglas?: string;
+            activo?: boolean;
+            /** @description Categoría del órgano (FK a la tabla canónica `organo`) */
+            organo: number;
+            /** @description GORE (solo órganos regionales) */
+            gobierno_regional?: number | null;
         };
     };
     responses: never;
@@ -10904,6 +10957,7 @@ export interface operations {
                 /** @description Qué campo usar para ordenar los resultados. */
                 ordering?: string;
                 organo_directivo?: number;
+                organo_directivo__isnull?: boolean;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
                 page?: number;
                 /** @description Un término de búsqueda. */
@@ -12050,7 +12104,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PaginatedIpressAutoList"];
+                    "application/json": components["schemas"]["Paginated_IpressList"];
                 };
             };
         };
@@ -12064,9 +12118,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["IpressAuto"];
-                "application/x-www-form-urlencoded": components["schemas"]["IpressAuto"];
-                "multipart/form-data": components["schemas"]["IpressAuto"];
+                "application/json": components["schemas"]["_Ipress"];
+                "application/x-www-form-urlencoded": components["schemas"]["_Ipress"];
+                "multipart/form-data": components["schemas"]["_Ipress"];
             };
         };
         responses: {
@@ -12075,7 +12129,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IpressAuto"];
+                    "application/json": components["schemas"]["_Ipress"];
                 };
             };
         };
@@ -12097,7 +12151,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IpressAuto"];
+                    "application/json": components["schemas"]["_Ipress"];
                 };
             };
         };
@@ -12114,9 +12168,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["IpressAuto"];
-                "application/x-www-form-urlencoded": components["schemas"]["IpressAuto"];
-                "multipart/form-data": components["schemas"]["IpressAuto"];
+                "application/json": components["schemas"]["_Ipress"];
+                "application/x-www-form-urlencoded": components["schemas"]["_Ipress"];
+                "multipart/form-data": components["schemas"]["_Ipress"];
             };
         };
         responses: {
@@ -12125,7 +12179,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IpressAuto"];
+                    "application/json": components["schemas"]["_Ipress"];
                 };
             };
         };
@@ -12163,9 +12217,9 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["PatchedIpressAuto"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedIpressAuto"];
-                "multipart/form-data": components["schemas"]["PatchedIpressAuto"];
+                "application/json": components["schemas"]["Patched_Ipress"];
+                "application/x-www-form-urlencoded": components["schemas"]["Patched_Ipress"];
+                "multipart/form-data": components["schemas"]["Patched_Ipress"];
             };
         };
         responses: {
@@ -12174,7 +12228,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IpressAuto"];
+                    "application/json": components["schemas"]["_Ipress"];
                 };
             };
         };
@@ -12191,9 +12245,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["IpressAuto"];
-                "application/x-www-form-urlencoded": components["schemas"]["IpressAuto"];
-                "multipart/form-data": components["schemas"]["IpressAuto"];
+                "application/json": components["schemas"]["_Ipress"];
+                "application/x-www-form-urlencoded": components["schemas"]["_Ipress"];
+                "multipart/form-data": components["schemas"]["_Ipress"];
             };
         };
         responses: {
@@ -12202,7 +12256,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IpressAuto"];
+                    "application/json": components["schemas"]["_Ipress"];
                 };
             };
         };
@@ -12613,19 +12667,10 @@ export interface operations {
         parameters: {
             query?: {
                 activo?: boolean;
-                /**
-                 * @description Categoría del órgano (discriminador)
-                 *
-                 *     * `ORGANO_MINSA` - Órgano del MINSA
-                 *     * `UNIVERSIDAD` - Universidad
-                 *     * `GOBIERNO_REGIONAL` - Gobierno Regional
-                 *     * `MINSA_DIRIS` - MINSA DIRIS
-                 *     * `UNIDAD_EJECUTORA` - Unidad Ejecutora
-                 */
-                categoria?: "GOBIERNO_REGIONAL" | "MINSA_DIRIS" | "ORGANO_MINSA" | "UNIDAD_EJECUTORA" | "UNIVERSIDAD";
                 gobierno_regional?: number;
                 /** @description Qué campo usar para ordenar los resultados. */
                 ordering?: string;
+                organo?: number;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
                 page?: number;
                 /** @description Un término de búsqueda. */
@@ -12642,7 +12687,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PaginatedOrganDirectoryAutoList"];
+                    "application/json": components["schemas"]["Paginated_OrganDirectoryList"];
                 };
             };
         };
@@ -12656,9 +12701,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["OrganDirectoryAuto"];
-                "application/x-www-form-urlencoded": components["schemas"]["OrganDirectoryAuto"];
-                "multipart/form-data": components["schemas"]["OrganDirectoryAuto"];
+                "application/json": components["schemas"]["_OrganDirectory"];
+                "application/x-www-form-urlencoded": components["schemas"]["_OrganDirectory"];
+                "multipart/form-data": components["schemas"]["_OrganDirectory"];
             };
         };
         responses: {
@@ -12667,7 +12712,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrganDirectoryAuto"];
+                    "application/json": components["schemas"]["_OrganDirectory"];
                 };
             };
         };
@@ -12689,7 +12734,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrganDirectoryAuto"];
+                    "application/json": components["schemas"]["_OrganDirectory"];
                 };
             };
         };
@@ -12706,9 +12751,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["OrganDirectoryAuto"];
-                "application/x-www-form-urlencoded": components["schemas"]["OrganDirectoryAuto"];
-                "multipart/form-data": components["schemas"]["OrganDirectoryAuto"];
+                "application/json": components["schemas"]["_OrganDirectory"];
+                "application/x-www-form-urlencoded": components["schemas"]["_OrganDirectory"];
+                "multipart/form-data": components["schemas"]["_OrganDirectory"];
             };
         };
         responses: {
@@ -12717,7 +12762,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrganDirectoryAuto"];
+                    "application/json": components["schemas"]["_OrganDirectory"];
                 };
             };
         };
@@ -12755,9 +12800,9 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["PatchedOrganDirectoryAuto"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedOrganDirectoryAuto"];
-                "multipart/form-data": components["schemas"]["PatchedOrganDirectoryAuto"];
+                "application/json": components["schemas"]["Patched_OrganDirectory"];
+                "application/x-www-form-urlencoded": components["schemas"]["Patched_OrganDirectory"];
+                "multipart/form-data": components["schemas"]["Patched_OrganDirectory"];
             };
         };
         responses: {
@@ -12766,7 +12811,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrganDirectoryAuto"];
+                    "application/json": components["schemas"]["_OrganDirectory"];
                 };
             };
         };
@@ -12775,14 +12820,15 @@ export interface operations {
         parameters: {
             query?: {
                 cargo_ejecutivo?: number;
+                id_objeto?: number;
                 /** @description Qué campo usar para ordenar los resultados. */
                 ordering?: string;
-                organo_directorio?: number;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
                 page?: number;
                 representante?: number;
                 /** @description Un término de búsqueda. */
                 search?: string;
+                tipo_contenido?: number;
             };
             header?: never;
             path?: never;
@@ -12827,13 +12873,14 @@ export interface operations {
             query?: {
                 activo?: boolean;
                 cargo_ejecutivo?: number;
+                id_objeto?: number;
                 /** @description Qué campo usar para ordenar los resultados. */
                 ordering?: string;
-                organo_directorio?: number;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
                 page?: number;
                 /** @description Un término de búsqueda. */
                 search?: string;
+                tipo_contenido?: number;
             };
             header?: never;
             path?: never;
@@ -12881,7 +12928,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este representante de órgano. */
+                /** @description Un valor de entero único que identifique este representante de entidad. */
                 id: number;
             };
             cookie?: never;
@@ -12903,7 +12950,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este representante de órgano. */
+                /** @description Un valor de entero único que identifique este representante de entidad. */
                 id: number;
             };
             cookie?: never;
@@ -12931,7 +12978,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este representante de órgano. */
+                /** @description Un valor de entero único que identifique este representante de entidad. */
                 id: number;
             };
             cookie?: never;
@@ -12952,7 +12999,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este representante de órgano. */
+                /** @description Un valor de entero único que identifique este representante de entidad. */
                 id: number;
             };
             cookie?: never;
@@ -12980,7 +13027,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este representante de órgano. */
+                /** @description Un valor de entero único que identifique este representante de entidad. */
                 id: number;
             };
             cookie?: never;
@@ -13003,7 +13050,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este representante de órgano. */
+                /** @description Un valor de entero único que identifique este representante de entidad. */
                 id: number;
             };
             cookie?: never;
@@ -13742,6 +13789,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RelationshipTypeAuto"];
+                };
+            };
+        };
+    };
+    representante_content_types_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SolicitanteContentType"][];
                 };
             };
         };

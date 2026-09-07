@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 
 import { CATALOGO_ENTITY_CONFIGS } from "@/lib/catalogos/entities";
+import { ORGAN_NOMBRE, organIdByNombre, useOrgans } from "@/lib/catalogos/organs";
+import type { ResourceConfig } from "@/lib/crud/types";
 import { useAuthStore, userHasRole } from "@/lib/auth/store";
 import { hasAnnexes, hasLogo } from "@/lib/api/storage";
 import type { RowAction } from "@/lib/crud/types";
@@ -19,11 +21,43 @@ import { EntityLogo } from "@/components/ui/entity-logo";
 import { Button } from "@/components/ui/button";
 
 /** CRUD de una entidad organizacional/académica, resuelta por el slug de la ruta. */
+/** Inyecta `optionsParams:{organo:<id>}` en el campo y filtro `fieldName` (select por organo). */
+function injectOrganoParam(
+  config: ResourceConfig,
+  fieldName: string,
+  organId: number,
+): ResourceConfig {
+  const params = { organo: String(organId) };
+  const patch = <T extends { name: string; optionsParams?: Record<string, string> }>(
+    item: T,
+  ): T => (item.name === fieldName ? { ...item, optionsParams: params } : item);
+  return {
+    ...config,
+    fields: config.fields.map(patch),
+    filters: config.filters?.map(patch),
+  };
+}
+
 export default function EntidadCatalogoPage() {
   const params = useParams<{ entidad: string }>();
-  const config = CATALOGO_ENTITY_CONFIGS[params.entidad];
+  const baseConfig = CATALOGO_ENTITY_CONFIGS[params.entidad];
   const user = useAuthStore((s) => s.user);
   const entidad = params.entidad;
+
+  // `universities.tipo_entidad` y `executing-units.tipo_organo` filtran `organ-directories`
+  // por el `organo` correspondiente. Los ids de `organs` dependen de la BD → se resuelven en
+  // runtime (nunca hardcodeados). Ver `lib/catalogos/organs.ts`.
+  const needsOrgan = entidad === "universities" || entidad === "executing-units";
+  const organsQuery = useOrgans();
+  const config = useMemo<ResourceConfig | undefined>(() => {
+    if (!baseConfig || !needsOrgan || !organsQuery.data) return baseConfig;
+    if (entidad === "universities") {
+      const id = organIdByNombre(organsQuery.data, ORGAN_NOMBRE.UNIVERSIDAD);
+      return id ? injectOrganoParam(baseConfig, "tipo_entidad", id) : baseConfig;
+    }
+    const id = organIdByNombre(organsQuery.data, ORGAN_NOMBRE.UE);
+    return id ? injectOrganoParam(baseConfig, "tipo_organo", id) : baseConfig;
+  }, [baseConfig, needsOrgan, entidad, organsQuery.data]);
 
   // Niveles académicos — solo se usa para calcular el filtro inicial de "Pregrado".
   const isProfessionalCareers = entidad === "professional-careers";

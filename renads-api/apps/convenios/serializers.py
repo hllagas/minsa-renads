@@ -367,17 +367,43 @@ class PublicationSerializer(serializers.ModelSerializer):
         fields = ["fecha_publicacion", "referencia_publicacion"]
 
 
-class OrganRepresentativeSerializer(serializers.ModelSerializer):
-    """Representante de un órgano del directorio (FK directo).
+# Modelos que un representante puede representar (relación polimórfica `entidad`).
+# Se validan por `app_label.model` para no depender de ids de ContentType.
+REPRESENTANTE_MODELOS_PERMITIDOS = {
+    "convenios.organdirectory",
+    "convenios.university",
+    "convenios.executingunit",
+    "convenios.conapres",
+    "convenios.ipress",
+}
 
-    Valida la unicidad del documento entre representantes activos y la coherencia
-    del cargo con el órgano del directorio. La baja del representante anterior
-    (histórico) la resuelve el service ``registrar_organo_representante``.
+
+class OrganRepresentativeSerializer(serializers.ModelSerializer):
+    """Representante de una entidad (relación polimórfica `entidad`).
+
+    Valida: (a) unicidad del documento entre representantes activos, (b) que la entidad
+    (`tipo_contenido`) sea uno de los modelos permitidos, y (c) la coherencia cargo↔entidad
+    (cargo por órgano ⇒ la entidad debe ser ese OrganDirectory; cargo global ⇒ cualquiera).
+    La baja del representante anterior (histórico) la resuelve el service
+    ``registrar_organo_representante``.
     """
+
+    entidad_detalle = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = OrganRepresentative
         fields = "__all__"
+
+    def get_entidad_detalle(self, obj):
+        """`{tipo, id, nombre}` de la entidad representada (para mostrar sin joins)."""
+        entidad = obj.entidad
+        if entidad is None:
+            return None
+        return {
+            "tipo": obj.tipo_contenido.model,
+            "id": obj.id_objeto,
+            "nombre": str(entidad),
+        }
 
     def validate(self, attrs):
         tipo_doc = attrs.get(
@@ -399,17 +425,36 @@ class OrganRepresentativeSerializer(serializers.ModelSerializer):
                     {"numero_documento_identidad": "Ya existe un representante activo con ese documento."}
                 )
 
-        organo_directorio = attrs.get(
-            "organo_directorio", getattr(self.instance, "organo_directorio", None)
+        tipo_contenido = attrs.get(
+            "tipo_contenido", getattr(self.instance, "tipo_contenido", None)
         )
-        cargo = attrs.get("cargo_ejecutivo", getattr(self.instance, "cargo_ejecutivo", None))
-        if organo_directorio is not None and cargo is not None:
-            # Coherencia cargo↔órgano: el cargo debe pertenecer al mismo órgano
-            # directivo que representa (match directo de entidad). Si el cargo aún no
-            # tiene órgano directivo asignado (filas legacy), no se valida.
-            if cargo.organo_directivo_id and cargo.organo_directivo_id != organo_directorio.id:
+        id_objeto = attrs.get("id_objeto", getattr(self.instance, "id_objeto", None))
+
+        # (b) La entidad debe ser uno de los modelos permitidos y existir.
+        if tipo_contenido is not None:
+            etiqueta = f"{tipo_contenido.app_label}.{tipo_contenido.model}"
+            if etiqueta not in REPRESENTANTE_MODELOS_PERMITIDOS:
                 raise serializers.ValidationError(
-                    {"cargo_ejecutivo": "El cargo no corresponde al órgano del directorio seleccionado."}
+                    {"tipo_contenido": "Tipo de entidad no permitido para representantes."}
+                )
+            if id_objeto is not None:
+                modelo = tipo_contenido.model_class()
+                if modelo is None or not modelo._default_manager.filter(pk=id_objeto).exists():
+                    raise serializers.ValidationError(
+                        {"id_objeto": "La entidad referenciada no existe."}
+                    )
+
+        # (c) Coherencia cargo↔entidad (D4): un cargo con órgano directivo asignado solo
+        # aplica a ese OrganDirectory; un cargo global (sin órgano) aplica a cualquiera.
+        cargo = attrs.get("cargo_ejecutivo", getattr(self.instance, "cargo_ejecutivo", None))
+        if cargo is not None and cargo.organo_directivo_id:
+            es_organ_directory = (
+                tipo_contenido is not None
+                and tipo_contenido.model == "organdirectory"
+            )
+            if not es_organ_directory or cargo.organo_directivo_id != id_objeto:
+                raise serializers.ValidationError(
+                    {"cargo_ejecutivo": "El cargo no corresponde a la entidad seleccionada."}
                 )
         return attrs
 

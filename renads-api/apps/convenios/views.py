@@ -1,6 +1,7 @@
 """ViewSets del módulo Convenios (bloque núcleo). Vistas delgadas: delegan en services/selectors."""
 
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import ProtectedError
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers as drf_serializers
@@ -444,8 +445,12 @@ def _detalle_nombre(rel):
 
 
 def _detalle_organo_directorio(rel):
-    """Detalle legible de un órgano del directorio (`nombre` + categoría, sin `codigo`)."""
-    return {"id": rel.id, "nombre": rel.nombre, "categoria": rel.get_categoria_display()}
+    """Detalle legible de un órgano del directorio (`nombre` + su `organo` canónico)."""
+    return {
+        "id": rel.id,
+        "nombre": rel.nombre,
+        "organo": getattr(rel.organo, "nombre", None),
+    }
 
 
 def _detalle_ubigeo(rel):
@@ -551,6 +556,43 @@ def _entity_viewset(
     return type(f"{model.__name__}ViewSet", tuple(bases), atributos)
 
 
+class _IpressSerializer(
+    _auto_serializer(
+        m.Ipress,
+        detalles={
+            "categoria": _detalle_nombre,
+            "tipo_clasificacion": _detalle_nombre,
+            "ambito_geografico_sanitario": _detalle_nombre,
+            "microred": _detalle_nombre,
+            "ubigeo": _detalle_ubigeo,
+        },
+    )
+):
+    """Serializer de IPRESS con validación de coherencia geográfica microred ↔ ámbito.
+
+    Mantiene `fields="__all__"`, los `*_detalle` y el logo como URL de solo lectura del
+    auto-serializer base. El auto-serializer (`ModelSerializer`) no ejecuta `Model.clean()`,
+    por lo que aquí se engancha la RN de coherencia (ajuste B de la spec) resolviendo el
+    estado final del objeto (create y PATCH parcial) contra `Ipress.clean()`.
+    """
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        # Estado final del objeto: para PATCH parcial, se parte de la instancia y se
+        # aplican los campos enviados; para create, solo los campos del payload.
+        microred = attrs.get("microred", getattr(self.instance, "microred", None))
+        ambito = attrs.get(
+            "ambito_geografico_sanitario",
+            getattr(self.instance, "ambito_geografico_sanitario", None),
+        )
+        instancia = m.Ipress(microred=microred, ambito_geografico_sanitario=ambito)
+        try:
+            instancia.clean()
+        except DjangoValidationError as exc:
+            raise drf_serializers.ValidationError(exc.message_dict)
+        return attrs
+
+
 class IpressViewSet(
     LogoStorageMixin,
     _entity_viewset(
@@ -573,16 +615,7 @@ class IpressViewSet(
         "microred",
         "ubigeo",
     ).all()
-    serializer_class = _auto_serializer(
-        m.Ipress,
-        detalles={
-            "categoria": _detalle_nombre,
-            "tipo_clasificacion": _detalle_nombre,
-            "ambito_geografico_sanitario": _detalle_nombre,
-            "microred": _detalle_nombre,
-            "ubigeo": _detalle_ubigeo,
-        },
-    )
+    serializer_class = _IpressSerializer
 
     @action(detail=True, methods=["post"], url_path="autorizar-sede-docente")
     def autorizar_sede_docente(self, request, pk=None):
@@ -658,6 +691,66 @@ class UniversityCareerViewSet(
     serializer_class = UniversityCareerSerializer
 
 
+class _OrganDirectorySerializer(
+    _auto_serializer(
+        m.OrganDirectory,
+        detalles={"gobierno_regional": _detalle_nombre, "organo": _detalle_nombre},
+    )
+):
+    """Serializer de órganos del directorio con RN de unicidad `(organo, gobierno_regional, nombre)`.
+
+    RN: un GORE puede tener varios órganos del directorio, pero el nombre no se repite
+    dentro del mismo `(organo, gobierno_regional)`. Para los órganos sin GORE
+    (MINSA/UNIVERSIDAD/DIRIS/tipos) la unicidad aplica sobre `(organo, nombre)`. El
+    auto-serializer no aplica esta regla, así que se valida aquí y se devuelve un 400
+    legible en vez del IntegrityError 500 de las ``UniqueConstraint`` parciales de la BD.
+    """
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        # Estado final del objeto (soporta PATCH parcial partiendo de la instancia).
+        organo = attrs.get("organo", getattr(self.instance, "organo", None))
+        gore = attrs.get(
+            "gobierno_regional", getattr(self.instance, "gobierno_regional", None)
+        )
+        nombre = attrs.get("nombre", getattr(self.instance, "nombre", None))
+        if organo is not None and nombre is not None:
+            qs = m.OrganDirectory._default_manager.filter(organo=organo, nombre=nombre)
+            # Con GORE: unicidad por (organo, gore, nombre). Sin GORE: por (organo, nombre).
+            qs = qs.filter(gobierno_regional=gore) if gore is not None else qs.filter(
+                gobierno_regional__isnull=True
+            )
+            if self.instance is not None:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise drf_serializers.ValidationError(
+                    {
+                        "nombre": (
+                            "Ya existe un órgano del directorio con este nombre para el "
+                            "mismo órgano"
+                            + (" y gobierno regional." if gore is not None else ".")
+                        )
+                    }
+                )
+        return attrs
+
+
+class OrganDirectoryViewSet(
+    _entity_viewset(
+        m.OrganDirectory,
+        filterset_fields=["organo", "gobierno_regional", "activo"],
+        search_fields=["nombre", "siglas"],
+        detalles={"gobierno_regional": _detalle_nombre, "organo": _detalle_nombre},
+    ),
+):
+    """CRUD del directorio unificado de órganos (RN: único por organo+GORE+nombre)."""
+
+    queryset = m.OrganDirectory._default_manager.select_related(
+        "gobierno_regional", "organo"
+    ).all()
+    serializer_class = _OrganDirectorySerializer
+
+
 # Catálogos (solo lectura): basename -> ViewSet
 CATALOG_VIEWSETS = {
     "regions": _catalog_viewset(m.Region),
@@ -680,7 +773,9 @@ ENTITY_VIEWSETS = {
     ),
     "executive-positions": _entity_viewset(
         m.ExecutivePosition,
-        filterset_fields=["organo_directivo", "activo"],
+        # `organo_directivo__isnull=true` lista los cargos globales (sin órgano),
+        # reutilizables por cualquier entidad (representantes multi-entidad).
+        filterset_fields={"organo_directivo": ["exact", "isnull"], "activo": ["exact"]},
         search_fields=["nombre_masculino", "nombre_femenino"],
         detalles={"organo_directivo": _detalle_organo_directorio},
     ),
@@ -711,12 +806,7 @@ ENTITY_VIEWSETS = {
         logo=True,
         detalles={"ubigeo": _detalle_ubigeo},
     ),
-    "organ-directories": _entity_viewset(
-        m.OrganDirectory,
-        filterset_fields=["categoria", "gobierno_regional", "activo"],
-        search_fields=["nombre", "siglas"],
-        detalles={"gobierno_regional": _detalle_nombre},
-    ),
+    "organ-directories": OrganDirectoryViewSet,
     "executing-units": _entity_viewset(
         m.ExecutingUnit,
         filterset_fields=["tipo_organo", "gobierno_regional", "activo"],
@@ -772,21 +862,22 @@ class UbigeoViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class OrganRepresentativeViewSet(AnnexAttachmentMixin, AuditedModelViewSet):
-    """CRUD de representantes de órgano (FK directo al directorio) + adjunto real de anexos.
+    """CRUD de representantes de entidad (relación polimórfica) + adjunto real de anexos.
 
     Escritura solo Administrador RENADS. Al crear, delega en el service
     `registrar_organo_representante` (da de baja al anterior activo del mismo par
-    `(organo_directorio, cargo_ejecutivo)` y lo copia al histórico). Adjunta PDFs
-    de anexos del actor `REPRESENTANTE` (resolución del cargo, documento de
+    `(tipo_contenido, id_objeto, cargo_ejecutivo)` y lo copia al histórico). Adjunta
+    PDFs de anexos del actor `REPRESENTANTE` (resolución del cargo, documento de
     identidad) vía `annex-upload`/`annex-checklist`.
     """
 
+    # `entidad` es GenericForeignKey (no admite select_related); se precarga el ContentType.
     queryset = m.OrganRepresentative.objects.select_related(
-        "organo_directorio", "cargo_ejecutivo", "tipo_documento_identidad"
+        "tipo_contenido", "cargo_ejecutivo", "tipo_documento_identidad"
     )
     serializer_class = OrganRepresentativeSerializer
     permission_classes = [IsAuthenticated, IsAdminRoleOrReadOnly]
-    filterset_fields = ["organo_directorio", "cargo_ejecutivo", "activo"]
+    filterset_fields = ["tipo_contenido", "id_objeto", "cargo_ejecutivo", "activo"]
     search_fields = ["nombre", "numero_documento_identidad"]
     ordering = ["id"]
     annex_actor = "REPRESENTANTE"
@@ -798,14 +889,14 @@ class OrganRepresentativeViewSet(AnnexAttachmentMixin, AuditedModelViewSet):
 
 
 class OrganRepresentativeHistoryViewSet(viewsets.ReadOnlyModelViewSet):
-    """Histórico de bajas de representantes de órgano (solo lectura)."""
+    """Histórico de bajas de representantes de entidad (solo lectura)."""
 
     queryset = m.OrganRepresentativeHistory.objects.select_related(
-        "representante", "organo_directorio", "cargo_ejecutivo"
+        "representante", "tipo_contenido", "cargo_ejecutivo"
     ).all()
     serializer_class = _auto_serializer(m.OrganRepresentativeHistory)
     permission_classes = [IsAuthenticated]
-    filterset_fields = ["organo_directorio", "cargo_ejecutivo", "representante"]
+    filterset_fields = ["tipo_contenido", "id_objeto", "cargo_ejecutivo", "representante"]
     ordering = ["-fecha_baja", "-id"]
 
 
@@ -939,6 +1030,49 @@ class SolicitanteContentTypeView(APIView):
     )
     def get(self, request):
         cts = ContentType.objects.get_for_models(*SOLICITANTE_MODELS)
+        data = [
+            {"id": ct.id, "app_label": ct.app_label, "model": ct.model}
+            for ct in cts.values()
+        ]
+        data.sort(key=lambda item: item["id"])
+        return Response(SolicitanteContentTypeSerializer(data, many=True).data)
+
+
+# Entidades cuyos representantes/autoridades se registran (relación polimórfica `entidad`).
+# MINSA/GORE/DIRIS son el mismo modelo `OrganDirectory` (se discriminan por `organo` en
+# el front), por eso NO incluye `RegionalGovernment` (a diferencia de SOLICITANTE_MODELS).
+REPRESENTANTE_MODELS = (
+    m.OrganDirectory,
+    m.University,
+    m.ExecutingUnit,
+    m.Conapres,
+    m.Ipress,
+)
+
+
+class RepresentanteContentTypeView(APIView):
+    """Lista los `ContentType` elegibles como entidad de un representante/autoridad.
+
+    El frontend usa esta lista para resolver `tipo_contenido` a partir del `model`
+    (los ids de `ContentType` dependen de la BD, por eso se exponen vía API). Los 3
+    «tipos» de OrganDirectory (MINSA/GORE/DIRIS) comparten el mismo ContentType y se
+    distinguen en la UI por el filtro `categoria`.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        responses=SolicitanteContentTypeSerializer(many=True),
+        summary="Tipos de entidad de representante",
+        description=(
+            "Lista los ContentType elegibles como entidad de un representante. El `id` es "
+            "el valor que espera `tipo_contenido` y `model` permite resolver el endpoint de "
+            "la entidad concreta."
+        ),
+        tags=["convenios"],
+    )
+    def get(self, request):
+        cts = ContentType.objects.get_for_models(*REPRESENTANTE_MODELS)
         data = [
             {"id": ct.id, "app_label": ct.app_label, "model": ct.model}
             for ct in cts.values()

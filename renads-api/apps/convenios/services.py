@@ -656,7 +656,7 @@ def agregar_participante(*, convenio: Convention, datos: dict, usuario) -> Conve
 # Representantes de órgano (directorio) — histórico de bajas
 # ---------------------------------------------------------------------------
 _CAMPOS_SNAPSHOT_REPRESENTANTE = [
-    "organo_directorio", "nombre", "tipo_documento_identidad",
+    "tipo_contenido", "id_objeto", "nombre", "tipo_documento_identidad",
     "numero_documento_identidad", "sexo", "cargo_ejecutivo",
     "fecha_inicio_designacion", "numero_resolucion_designacion",
     "numero_resolucion_facultades",
@@ -666,19 +666,22 @@ _CAMPOS_SNAPSHOT_REPRESENTANTE = [
 
 @transaction.atomic
 def registrar_organo_representante(*, datos: dict, usuario) -> OrganRepresentative:
-    """Registra un representante de órgano, dando de baja al anterior activo del mismo par.
+    """Registra un representante de entidad, dando de baja al anterior activo del mismo par.
 
     RN — histórico de representantes: al designar un nuevo representante para un par
-    ``(organo_directorio, cargo_ejecutivo)`` que ya tiene uno activo, el anterior se
-    marca ``activo=False`` y se copia a ``OrganRepresentativeHistory`` (snapshot
-    denormalizado) con ``fecha_baja=hoy``. Todo en una transacción, con auditoría.
+    ``(tipo_contenido, id_objeto, cargo_ejecutivo)`` (entidad × cargo) que ya tiene uno
+    activo, el anterior se marca ``activo=False`` y se copia a
+    ``OrganRepresentativeHistory`` (snapshot denormalizado) con ``fecha_baja=hoy``.
+    Todo en una transacción, con auditoría. Entidades distintas con el mismo cargo no
+    se afectan entre sí.
     """
     motivo = datos.pop("motivo", "") or "Reemplazo de representante"
 
     anterior = (
         OrganRepresentative.objects.select_for_update()
         .filter(
-            organo_directorio=datos["organo_directorio"],
+            tipo_contenido=datos["tipo_contenido"],
+            id_objeto=datos["id_objeto"],
             cargo_ejecutivo=datos["cargo_ejecutivo"],
             activo=True,
         )
@@ -817,17 +820,21 @@ def sincronizar_carreras_facultad(*, facultad, carreras_ids, usuario) -> list[Un
 def _validar_coherencia_parte(*, organo_directorio, organo_representante, cargo_ejecutivo) -> None:
     """Coherencia órgano↔representante↔cargo de una parte firmante.
 
-    - El representante (si se envía) debe pertenecer al mismo órgano del directorio.
+    - El representante (si se envía) debe representar al mismo órgano del directorio.
+      Tras el modelo polimórfico, esto es: su `entidad` es ese OrganDirectory
+      (``tipo_contenido == organdirectory`` y ``id_objeto == organo_directorio.id``).
     - El cargo (si se envía y tiene órgano directivo) debe pertenecer al mismo órgano.
       Los cargos legacy sin ``organo_directivo`` no se validan.
     """
-    if (
-        organo_representante is not None
-        and organo_representante.organo_directorio_id != organo_directorio.id
-    ):
-        raise ValidationError(
-            {"organo_representante": "El representante no pertenece al órgano del directorio indicado."}
+    if organo_representante is not None:
+        representa_al_organo = (
+            organo_representante.tipo_contenido.model == "organdirectory"
+            and organo_representante.id_objeto == organo_directorio.id
         )
+        if not representa_al_organo:
+            raise ValidationError(
+                {"organo_representante": "El representante no pertenece al órgano del directorio indicado."}
+            )
     if (
         cargo_ejecutivo is not None
         and cargo_ejecutivo.organo_directivo_id

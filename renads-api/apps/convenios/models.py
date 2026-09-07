@@ -6,6 +6,7 @@ Nombres de clases en inglés; tablas, columnas y descripciones en español.
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
 
@@ -308,9 +309,10 @@ class OrganDirectory(models.Model):
     ``organo``/``tipo_organo``. Los órganos regionales pueden llevar ``gobierno_regional``.
     """
 
-    categoria = models.CharField(
-        "categoría", max_length=20, choices=ORGAN_DIRECTORY_CATEGORY,
-        db_column="categoria", help_text="Categoría del órgano (discriminador)",
+    organo = models.ForeignKey(
+        Organ, on_delete=models.PROTECT, db_column="organo_id",
+        related_name="organos_directorio_por_categoria",
+        help_text="Categoría del órgano (FK a la tabla canónica `organo`)",
     )
     gobierno_regional = models.ForeignKey(
         RegionalGovernment, on_delete=models.PROTECT, db_column="gobierno_regional_id",
@@ -325,6 +327,22 @@ class OrganDirectory(models.Model):
         db_table = "organo_directorio"
         verbose_name = "órgano del directorio"
         verbose_name_plural = "órganos del directorio"
+        constraints = [
+            # RN: único por (organo, gobierno_regional, nombre). Un GORE puede tener
+            # varios órganos con nombre distinto; el nombre no se repite dentro del
+            # mismo órgano+GORE. Dos constraints parciales por el caso GORE nulo
+            # (NULL != NULL en un UNIQUE estándar → no se enforcaría el nombre).
+            models.UniqueConstraint(
+                fields=["organo", "gobierno_regional", "nombre"],
+                condition=models.Q(gobierno_regional__isnull=False),
+                name="uniq_organo_dir_organo_gore_nombre",
+            ),
+            models.UniqueConstraint(
+                fields=["organo", "nombre"],
+                condition=models.Q(gobierno_regional__isnull=True),
+                name="uniq_organo_dir_organo_nombre_sin_gore",
+            ),
+        ]
 
     def __str__(self):
         return self.nombre
@@ -335,8 +353,8 @@ class ExecutingUnit(models.Model):
     nombre = models.CharField("nombre", max_length=255, help_text="Nombre")
     tipo_organo = models.ForeignKey(
         OrganDirectory, on_delete=models.PROTECT, db_column="tipo_organo_id", related_name="+",
-        limit_choices_to={"categoria": "UNIDAD_EJECUTORA"},
-        help_text="Tipo de unidad ejecutora del directorio (categoría UNIDAD_EJECUTORA)",
+        limit_choices_to={"organo__nombre": "Unidad Ejecutora"},
+        help_text="Tipo de unidad ejecutora del directorio (organo=Unidad Ejecutora)",
     )
     gobierno_regional = models.ForeignKey(
         RegionalGovernment, on_delete=models.PROTECT, db_column="gobierno_regional_id",
@@ -367,7 +385,10 @@ class Ipress(models.Model):
         related_name="ipress", help_text="Unidad ejecutora a la que pertenece",
     )
     nombre = models.CharField("nombre", max_length=255, help_text="Nombre del establecimiento")
-    codigo_renipress = models.CharField("código RENIPRESS", max_length=20, blank=True, help_text="Código RENIPRESS")
+    codigo_renipress = models.CharField(
+        "código RENIPRESS", max_length=20, unique=True,
+        help_text="Código único RENIPRESS del establecimiento",
+    )
     direccion = models.CharField("dirección", max_length=500, blank=True, help_text="Dirección")
     ubigeo = models.ForeignKey(
         Ubigeo, on_delete=models.PROTECT, db_column="ubigeo_id", null=True, blank=True,
@@ -420,6 +441,24 @@ class Ipress(models.Model):
         verbose_name = "IPRESS"
         verbose_name_plural = "IPRESS"
 
+    def clean(self):
+        """Valida la coherencia geográfica microred ↔ ámbito (denormalización deliberada).
+
+        Si la IPRESS cuelga de una microred, el ámbito geográfico sanitario de esa
+        microred (vía `microred.red.ambito_geografico_sanitario`) debe coincidir con
+        el ámbito directo de la IPRESS. El ámbito directo es la fuente autoritativa;
+        aquí solo se valida coherencia, nunca se sobrescribe. Si `microred` es nula,
+        no se valida (muchas IPRESS RENIPRESS no cuelgan de microred).
+        """
+        super().clean()
+        if self.microred_id and self.ambito_geografico_sanitario_id:
+            ambito_microred_id = self.microred.red.ambito_geografico_sanitario_id
+            if ambito_microred_id != self.ambito_geografico_sanitario_id:
+                raise ValidationError({
+                    "microred": "La microred seleccionada pertenece a un ámbito "
+                                "geográfico sanitario distinto al de la IPRESS.",
+                })
+
     def __str__(self):
         return self.nombre
 
@@ -447,12 +486,23 @@ SEX = [("M", "Masculino"), ("F", "Femenino")]
 
 
 class OrganRepresentative(models.Model):
-    """Representante/autoridad de un órgano del directorio (FK directo, sin relación polimórfica)."""
+    """Representante/autoridad de una entidad del proceso docencia-servicio.
 
-    organo_directorio = models.ForeignKey(
-        OrganDirectory, on_delete=models.PROTECT, db_column="organo_directorio_id",
-        related_name="representantes", help_text="Órgano del directorio representado",
+    Relación **polimórfica** (`entidad`): un representante pertenece a cualquiera de las
+    entidades participantes — órganos del directorio (MINSA/GORE/DIRIS), universidades,
+    unidades ejecutoras, CONAPRES o IPRESS —, referenciada por `tipo_contenido` +
+    `id_objeto`. Antes tenía una FK directa a `OrganDirectory` (migrada a los campos
+    genéricos en la migración 0038).
+    """
+
+    tipo_contenido = models.ForeignKey(
+        ContentType, on_delete=models.PROTECT, db_column="tipo_contenido_id",
+        related_name="+", help_text="Tipo de entidad representada (ContentType)",
     )
+    id_objeto = models.PositiveIntegerField(
+        "id del objeto", db_column="id_objeto", help_text="Id de la entidad representada",
+    )
+    entidad = GenericForeignKey("tipo_contenido", "id_objeto")
     nombre = models.CharField("nombre", max_length=255, help_text="Nombre del representante")
     tipo_documento_identidad = models.ForeignKey(
         "internados.IdentityDocumentType", on_delete=models.PROTECT,
@@ -487,9 +537,15 @@ class OrganRepresentative(models.Model):
 
     class Meta:
         db_table = "organo_representante"
-        verbose_name = "representante de órgano"
-        verbose_name_plural = "representantes de órgano"
+        verbose_name = "representante de entidad"
+        verbose_name_plural = "representantes de entidad"
         ordering = ["id"]
+        indexes = [
+            models.Index(
+                fields=["tipo_contenido", "id_objeto"],
+                name="idx_org_repr_entidad",
+            ),
+        ]
 
     def __str__(self):
         return self.nombre
@@ -502,10 +558,14 @@ class OrganRepresentativeHistory(models.Model):
         OrganRepresentative, on_delete=models.PROTECT, db_column="representante_id",
         related_name="historial", help_text="Representante dado de baja",
     )
-    organo_directorio = models.ForeignKey(
-        OrganDirectory, on_delete=models.PROTECT, db_column="organo_directorio_id",
-        related_name="+", help_text="Órgano del directorio representado",
+    tipo_contenido = models.ForeignKey(
+        ContentType, on_delete=models.PROTECT, db_column="tipo_contenido_id",
+        related_name="+", help_text="Tipo de entidad representada (ContentType)",
     )
+    id_objeto = models.PositiveIntegerField(
+        "id del objeto", db_column="id_objeto", help_text="Id de la entidad representada",
+    )
+    entidad = GenericForeignKey("tipo_contenido", "id_objeto")
     nombre = models.CharField("nombre", max_length=255, help_text="Nombre del representante")
     tipo_documento_identidad = models.ForeignKey(
         "internados.IdentityDocumentType", on_delete=models.PROTECT,
@@ -565,8 +625,8 @@ class University(models.Model):
     )
     tipo_entidad = models.ForeignKey(
         OrganDirectory, on_delete=models.PROTECT, db_column="tipo_entidad_id",
-        limit_choices_to={"categoria": "UNIVERSIDAD"},
-        help_text="Tipo de entidad del directorio (categoría UNIVERSIDAD)",
+        limit_choices_to={"organo__nombre": "Universidad"},
+        help_text="Tipo de entidad del directorio (organo=Universidad)",
     )
     tipo_autorizacion = models.ForeignKey(
         AuthorizationType, on_delete=models.PROTECT, db_column="tipo_autorizacion_id",
