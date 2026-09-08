@@ -527,6 +527,7 @@ def _entity_viewset(
     logo=False,
     annex_actor=None,
     detalles=None,
+    ordering=None,
 ):
     """ModelViewSet (CRUD) para una entidad. Escritura solo Administrador RENADS; con auditoría.
 
@@ -549,7 +550,7 @@ def _entity_viewset(
         "permission_classes": permission_classes or [IsAuthenticated, IsAdminRoleOrReadOnly],
         "filterset_fields": filterset_fields or [],
         "search_fields": search_fields or [],
-        "ordering": ["id"],
+        "ordering": ordering if ordering is not None else ["id"],
     }
     if annex_actor:
         atributos["annex_actor"] = annex_actor
@@ -616,6 +617,9 @@ class IpressViewSet(
         "ubigeo",
     ).all()
     serializer_class = _IpressSerializer
+    # La PK de Ipress es `codigo_renipress` (ya no existe `id`); el orden por defecto de
+    # `_entity_viewset` es `["id"]`, que ya no aplica.
+    ordering = ["codigo_renipress"]
 
     @action(detail=True, methods=["post"], url_path="autorizar-sede-docente")
     def autorizar_sede_docente(self, request, pk=None):
@@ -822,7 +826,10 @@ ENTITY_VIEWSETS = {
     # Catálogos maestros con CRUD (escritura solo Administrador RENADS; con auditoría).
     "organs": _entity_viewset(m.Organ, filterset_fields=["estado"], search_fields=["nombre"]),
     "health-geographic-scopes": _entity_viewset(
-        m.HealthGeographicScope, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
+        m.HealthGeographicScope,
+        filterset_fields=["activo"],
+        search_fields=["codigo", "nombre"],
+        detalles={"gobierno_regional": _detalle_nombre},
     ),
     "executive-positions": ExecutivePositionViewSet,
     "authorization-types": _entity_viewset(
@@ -855,14 +862,10 @@ ENTITY_VIEWSETS = {
     "organ-directories": OrganDirectoryViewSet,
     "executing-units": _entity_viewset(
         m.ExecutingUnit,
-        filterset_fields=["tipo_organo", "gobierno_regional", "activo"],
+        filterset_fields=["ambito_geografico_sanitario", "activo"],
         search_fields=["nombre", "codigo"],
-        logo=True,
-        detalles={
-            "tipo_organo": _detalle_nombre,
-            "gobierno_regional": _detalle_nombre,
-            "ubigeo": _detalle_ubigeo,
-        },
+        detalles={"ambito_geografico_sanitario": _detalle_nombre},
+        ordering=["codigo"],
     ),
     "ipress": IpressViewSet,
     "conapres": _entity_viewset(m.Conapres, filterset_fields=["activo"], search_fields=["nombre"]),

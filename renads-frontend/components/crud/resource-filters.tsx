@@ -98,7 +98,15 @@ export function ResourceFilters({
                 endpoint={filter.optionsEndpoint!}
                 params={filter.optionsParams}
                 toLabel={filter.optionsToLabel}
-                value={values[filter.name] ? Number(values[filter.name]) : null}
+                valueKey={filter.optionsValueKey}
+                // PK textual (optionsValueKey) → el valor va como string; numérica → Number().
+                value={
+                  values[filter.name]
+                    ? filter.optionsValueKey
+                      ? values[filter.name]
+                      : Number(values[filter.name])
+                    : null
+                }
                 onChange={(val) => onChange(filter.name, val != null ? String(val) : "")}
                 placeholder="Todos"
               />

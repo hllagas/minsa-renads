@@ -117,9 +117,10 @@ export interface AssignableEntityType {
   app_label: string;
 }
 
-/** Payload de asignación (`POST /users/{id}/profiles/`): rol + tipo + ids de las entidades. */
+/** Payload de asignación (`POST /users/{id}/profiles/`): rol + tipo + ids de las entidades.
+ * `ids` acepta PK numérica o textual (ipress `codigo_renipress`, executing-units `codigo`). */
 export interface AssignProfilesPayload {
   rol: number;
   tipo_entidad: string;
-  ids: number[];
+  ids: (string | number)[];
 }

@@ -373,6 +373,16 @@ function SelectFieldRow({
                 ))}
               </SelectContent>
             </Select>
+          ) : field.optionsValueKey && field.optionsSearchable ? (
+            // FK de PK textual con búsqueda server-side (catálogos grandes: UE, ipress).
+            <EntityCombobox
+              endpoint={field.optionsEndpoint!}
+              params={dynamicParams}
+              valueKey={field.optionsValueKey}
+              toLabel={field.optionsToLabel}
+              value={(f.value as string | null) ?? null}
+              onChange={(val) => f.onChange(val)}
+            />
           ) : field.optionsValueKey ? (
             <CodeSelect
               endpoint={field.optionsEndpoint!}

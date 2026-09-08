@@ -57,8 +57,8 @@ class TeachingActivityViewSet(viewsets.ModelViewSet):
         ct_uni = ContentType.objects.get_for_model(University).id
         ct_ip = ContentType.objects.get_for_model(Ipress).id
         if not (
-            usuario_pertenece_a_entidad(user, ct_uni, estudiante.universidad_id)
-            or usuario_pertenece_a_entidad(user, ct_ip, ipress.id)
+            usuario_pertenece_a_entidad(user, ct_uni, str(estudiante.universidad_id))
+            or usuario_pertenece_a_entidad(user, ct_ip, str(ipress.pk))
         ):
             raise PermissionDenied("La actividad está fuera de tu ámbito institucional.")
 

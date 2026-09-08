@@ -69,7 +69,7 @@ def _domicilio_entidad(convenio, rol: str) -> str:
         gore = convenio.gobierno_regional
         return getattr(gore, "direccion", "") or "" if gore else ""
     if rol == "UNIDAD_EJECUTORA":
-        return getattr(convenio.unidad_ejecutora, "direccion", "") or ""
+        return ""
     if rol == "UNIVERSIDAD":
         return getattr(convenio.universidad, "direccion_legal", "") or ""
     if rol == "FACULTAD":

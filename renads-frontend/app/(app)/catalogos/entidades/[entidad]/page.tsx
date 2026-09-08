@@ -44,20 +44,16 @@ export default function EntidadCatalogoPage() {
   const user = useAuthStore((s) => s.user);
   const entidad = params.entidad;
 
-  // `universities.tipo_entidad` y `executing-units.tipo_organo` filtran `organ-directories`
-  // por el `organo` correspondiente. Los ids de `organs` dependen de la BD → se resuelven en
-  // runtime (nunca hardcodeados). Ver `lib/catalogos/organs.ts`.
-  const needsOrgan = entidad === "universities" || entidad === "executing-units";
+  // `universities.tipo_entidad` filtra `organ-directories` por el `organo` "Universidad".
+  // El id de `organs` depende de la BD → se resuelve en runtime (nunca hardcodeado).
+  // (executing-units ya NO usa esto: perdió `tipo_organo` en el refactor 0043-0045.)
+  const needsOrgan = entidad === "universities";
   const organsQuery = useOrgans();
   const config = useMemo<ResourceConfig | undefined>(() => {
     if (!baseConfig || !needsOrgan || !organsQuery.data) return baseConfig;
-    if (entidad === "universities") {
-      const id = organIdByNombre(organsQuery.data, ORGAN_NOMBRE.UNIVERSIDAD);
-      return id ? injectOrganoParam(baseConfig, "tipo_entidad", id) : baseConfig;
-    }
-    const id = organIdByNombre(organsQuery.data, ORGAN_NOMBRE.UE);
-    return id ? injectOrganoParam(baseConfig, "tipo_organo", id) : baseConfig;
-  }, [baseConfig, needsOrgan, entidad, organsQuery.data]);
+    const id = organIdByNombre(organsQuery.data, ORGAN_NOMBRE.UNIVERSIDAD);
+    return id ? injectOrganoParam(baseConfig, "tipo_entidad", id) : baseConfig;
+  }, [baseConfig, needsOrgan, organsQuery.data]);
 
   // Niveles académicos — solo se usa para calcular el filtro inicial de "Pregrado".
   const isProfessionalCareers = entidad === "professional-careers";

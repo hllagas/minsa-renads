@@ -47,7 +47,7 @@ class UserEntityProfileSerializer(serializers.Serializer):
     """Perfil institucional del usuario (entidad polimórfica + rol)."""
 
     tipo_entidad = serializers.CharField(source="tipo_contenido.model")
-    id_objeto = serializers.IntegerField()
+    id_objeto = serializers.CharField()
     entidad = serializers.SerializerMethodField()
     rol = serializers.CharField(source="grupo.name")
 
@@ -409,10 +409,13 @@ class UserEntityProfileWriteSerializer(serializers.Serializer):
         help_text="Nombre del modelo de la entidad en minúscula (p. ej. 'university').",
     )
     ids = serializers.ListField(
-        child=serializers.IntegerField(),
+        child=serializers.CharField(),
         allow_empty=False,
         required=True,
-        help_text="Lista de identificadores (PK) de las entidades a otorgar.",
+        help_text=(
+            "Lista de identificadores (PK) de las entidades a otorgar. Acepta códigos "
+            "texto (p. ej. el código RENIPRESS de IPRESS) y pks numéricos como texto."
+        ),
     )
 
     def validate_tipo_entidad(self, value: str) -> str:
@@ -443,10 +446,14 @@ class UserEntityProfileWriteSerializer(serializers.Serializer):
         if content_type is None or not ids:
             return attrs
         modelo = content_type.model_class()
-        existentes = set(
-            modelo.objects.filter(pk__in=ids).values_list("pk", flat=True)
-        )
-        faltantes = [pk for pk in ids if pk not in existentes]
+        # `ids` llega como texto; el filtro `pk__in` coacciona el texto numérico para
+        # modelos de PK entera y compara contra `codigo_renipress` para Ipress. La
+        # comparación de faltantes se hace por `str(pk)` para cubrir ambos casos.
+        existentes = {
+            str(pk)
+            for pk in modelo.objects.filter(pk__in=ids).values_list("pk", flat=True)
+        }
+        faltantes = [pk for pk in ids if str(pk) not in existentes]
         if faltantes:
             listado = ", ".join(str(pk) for pk in faltantes)
             raise serializers.ValidationError(

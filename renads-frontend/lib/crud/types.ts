@@ -60,6 +60,12 @@ export interface FieldConfig {
    * Renderiza un dropdown (no búsqueda) con la etiqueta de `optionsToLabel`/`nombre`.
    */
   optionsValueKey?: string;
+  /**
+   * Solo con `optionsValueKey`: renderiza un `EntityCombobox` con búsqueda server-side (en vez del
+   * `CodeSelect` de 1ª página) usando `optionsValueKey` como `valueKey`. Para FKs de **PK textual**
+   * que pueden ser catálogos grandes (`executing-units.codigo`, `ipress.codigo_renipress`).
+   */
+  optionsSearchable?: boolean;
   /** Valor por defecto al crear. */
   defaultValue?: string | number | boolean | null;
   /**
@@ -138,12 +144,22 @@ export interface FilterConfig {
   choices?: { value: string; label: string }[];
   /** Placeholder para filtros de texto. */
   placeholder?: string;
+  /** Clave del registro usada como valor del filtro (para FK de PK textual, p. ej. `"codigo"`). */
+  optionsValueKey?: string;
+  /** Con `optionsValueKey`: usa `EntityCombobox`+`valueKey` (búsqueda) en vez del select simple. */
+  optionsSearchable?: boolean;
 }
 
 /** Configuración declarativa de un recurso CRUD (entidad maestra del backend). */
 export interface ResourceConfig<TRead extends WithId = WithId> {
   /** Endpoint DRF, p. ej. `universities`. */
   endpoint: string;
+  /**
+   * Nombre del campo que es la **clave primaria** del recurso (default `"id"`). Para recursos con
+   * PK textual usar `"codigo"` (executing-units) o `"codigo_renipress"` (ipress). Afecta al valor
+   * usado para editar/eliminar/keyear filas y al ordering por defecto.
+   */
+  pkField?: string;
   /** Título plural, p. ej. "Universidades". */
   title: string;
   /** Singular para diálogos, p. ej. "universidad". */

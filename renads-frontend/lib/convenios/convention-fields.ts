@@ -73,6 +73,9 @@ export const CONVENTION_FIELDS: FieldConfig[] = [
     label: "Unidad ejecutora (solo Específico)",
     type: "select",
     optionsEndpoint: "executing-units",
+    optionsValueKey: "codigo",
+    optionsSearchable: true,
+    optionsToLabel: (row: WithId) => String(row.nombre ?? row.codigo ?? row.id),
   },
   {
     name: "facultad",

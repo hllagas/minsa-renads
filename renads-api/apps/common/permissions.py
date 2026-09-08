@@ -10,7 +10,7 @@ from rest_framework.permissions import SAFE_METHODS, BasePermission
 from apps.common.selectors import usuario_pertenece_a_entidad
 
 
-def exigir_ambito(usuario, tipo_contenido_id: int, id_objeto: int) -> None:
+def exigir_ambito(usuario, tipo_contenido_id: int, id_objeto: str) -> None:
     """Exige que la entidad indicada esté en el ámbito institucional del usuario.
 
     Exentos: superusuario y rol `Administrador RENADS`. Lanza `PermissionDenied`.
@@ -103,8 +103,9 @@ class IsModuleEnabled(BasePermission):
 class HasEntityScope(BasePermission):
     """Permiso a nivel de objeto: restringe al ámbito de la entidad del usuario.
 
-    La vista debe implementar ``get_entity_reference(obj) -> tuple[int, int] | None``
-    devolviendo ``(tipo_contenido_id, id_objeto)`` de la entidad dueña del objeto.
+    La vista debe implementar ``get_entity_reference(obj) -> tuple[int, str] | None``
+    devolviendo ``(tipo_contenido_id, id_objeto)`` de la entidad dueña del objeto
+    (``id_objeto`` como texto: código RENIPRESS para IPRESS, pk casteado para el resto).
     Si devuelve ``None`` no se aplica restricción. Los superusuarios pasan siempre.
     """
 

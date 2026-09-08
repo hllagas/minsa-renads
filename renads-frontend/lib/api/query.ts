@@ -22,7 +22,9 @@ export function buildListParams(params: ListParams): Record<string, string> {
   return out;
 }
 
-/** Registro con id numérico (mínimo que requiere el cliente CRUD). */
+/** Registro con id numérico (mínimo del cliente CRUD). Recursos con PK textual (p. ej.
+ * `executing-units.codigo`, `ipress.codigo_renipress`) exponen su PK como otra clave; el CRUD
+ * la resuelve vía `ResourceConfig.pkField` (index signature de `WithId`), sin depender de `id`. */
 export interface HasId {
   id: number;
 }
@@ -48,7 +50,7 @@ export function createResourceApi<TRead extends HasId, TWrite = Partial<TRead>>(
       });
       return data;
     },
-    async retrieve(id: number): Promise<TRead> {
+    async retrieve(id: string | number): Promise<TRead> {
       const { data } = await api.get<TRead>(`${base}${id}/`);
       return data;
     },
@@ -56,11 +58,11 @@ export function createResourceApi<TRead extends HasId, TWrite = Partial<TRead>>(
       const { data } = await api.post<TRead>(base, payload);
       return data;
     },
-    async update(id: number, payload: Partial<TWrite>): Promise<TRead> {
+    async update(id: string | number, payload: Partial<TWrite>): Promise<TRead> {
       const { data } = await api.patch<TRead>(`${base}${id}/`, payload);
       return data;
     },
-    async remove(id: number): Promise<void> {
+    async remove(id: string | number): Promise<void> {
       await api.delete(`${base}${id}/`);
     },
   };
@@ -75,5 +77,5 @@ export const resourceKeys = {
   all: (endpoint: string) => [endpoint] as const,
   list: (endpoint: string, params: ListParams) =>
     [endpoint, "list", buildListParams(params)] as const,
-  detail: (endpoint: string, id: number) => [endpoint, "detail", id] as const,
+  detail: (endpoint: string, id: string | number) => [endpoint, "detail", id] as const,
 };

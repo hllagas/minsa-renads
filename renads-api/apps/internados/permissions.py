@@ -60,7 +60,7 @@ class InternshipScope(BasePermission):
         ct_ip = ContentType.objects.get_for_model(Ipress).id
         ct_student = ContentType.objects.get_for_model(Student).id
         return (
-            (ct_uni, internado.estudiante.universidad_id) in refs
-            or (ct_ip, internado.ipress_id) in refs
-            or (ct_student, internado.estudiante_id) in refs
+            (ct_uni, str(internado.estudiante.universidad_id)) in refs
+            or (ct_ip, str(internado.ipress_id)) in refs
+            or (ct_student, str(internado.estudiante_id)) in refs
         )

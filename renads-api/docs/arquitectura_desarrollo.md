@@ -145,6 +145,7 @@ DEBUG = config("DEBUG", default=False, cast=bool)
 - **Autenticación:** JWT con `simplejwt`. Endpoints `/api/v1/auth/token/` (obtener) y `/api/v1/auth/token/refresh/`.
 - **Roles:** `auth.Group` (Administrador RENADS, DIGEP, CONAPRES, OGAJ, Secretaría General, Universidad, Sede docente, Auditor…). Permisos de modelo vía `auth.Permission`.
 - **Alcance institucional:** `perfil_usuario_entidad` vincula usuario ↔ entidad (polimórfica) ↔ rol. Las consultas se filtran por la entidad del usuario.
+  - **`id_objeto` como texto:** el `id_objeto` del `GenericForeignKey` de `perfil_usuario_entidad` (y de `bitacora_auditoria`) es `varchar(64)`, no entero. Para `Ipress` almacena el código RENIPRESS (PK textual de 8 chars); para las demás entidades, el pk entero casteado a `str`. **Todas las comparaciones de alcance se normalizan a `str`** en la fuente única `apps/common/selectors.py` (`entidades_del_usuario` devuelve `list[tuple[int, str]]`; `usuario_pertenece_a_entidad(..., id_objeto: str)` filtra por `str(id_objeto)`), en los permisos de objeto (`apps/internados/permissions.py`, `apps/actividades/permissions.py` envuelven cada lado de la tupla en `str(...)`), en las views (`apps/actividades/views.py` usa `str(ipress.pk)`) y en los serializers (`UserEntityProfileSerializer.id_objeto` y `UserEntityProfileWriteSerializer.ids` son `CharField`). En los selectores que filtran contra columnas enteras (universidad/estudiante) se castea de vuelta a `int`; contra `ipress_id` (texto) se mantiene `str`.
 
 ```python
 # apps/common/permissions.py (ejemplo)

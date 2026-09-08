@@ -31,7 +31,7 @@ Tablas paramétricas (RNF-MAN-01). Patrón común: `id` (PK), `codigo` (varchar,
 |-------|-------------|----------------------|
 | `ubigeo` | Ubicación geográfica del Perú a nivel distrito (INEI). Columnas propias: `codigo` (6 dígitos, único), `departamento`, `provincia`, `distrito`, `activo`. Carga vía comando `load_ubigeo` | — |
 | `region` | Regiones políticas del Perú (seed: 25 regiones, códigos INEI) | — |
-| `ambito_geografico_sanitario` | Ámbito geográfico sanitario (seed: 29 — autoridades sanitarias regionales DIRESA/GERESA + 4 DIRIS de Lima Metropolitana) | — |
+| `ambito_geografico_sanitario` | Ámbito geográfico sanitario (seed: 29 — autoridades sanitarias regionales DIRESA/GERESA + 4 DIRIS de Lima Metropolitana). Ver sub-sección más abajo | `gobierno_regional_id` (FK nullable → `gobierno_regional`, PROTECT) |
 | `tipo_convenio` | Tipo de convenio | `anios_vigencia` (int) — Marco=4, Específico=3 |
 | `estado_convenio` | Estados del flujo (26) | `aplica_a` (`TODOS` \| `ESPECIFICO`), `orden` (int) |
 | `tipo_gestion_universidad` | Tipo de gestión | valores: `PUBLICA`, `PRIVADA` |
@@ -76,6 +76,20 @@ Tablas paramétricas (RNF-MAN-01). Patrón común: `id` (PK), `codigo` (varchar,
 
 `unique_together = (red, codigo)`.
 
+#### `ambito_geografico_sanitario`
+
+Hereda de `Catalog` (`codigo` único global, `nombre`, `activo`). Seed: 29 ámbitos — 25 regionales (DISA/GERESA/DIRESA, uno por GORE) + 4 DIRIS de Lima Metropolitana.
+
+| Columna | Tipo | Null | Descripción |
+|---------|------|------|-------------|
+| `id` | PK | No | |
+| `codigo` | varchar(50) | No | Código único del ámbito (equivalente al código DISA en RENIPRESS) |
+| `nombre` | varchar(255) | No | Nombre del ámbito |
+| `activo` | bool | No | |
+| `gobierno_regional_id` | FK → `gobierno_regional` (PROTECT) | Sí | Gobierno regional al que corresponde el ámbito sanitario (nulo para los 4 DIRIS de Lima Metropolitana) |
+
+Endpoint: `/api/v1/health-geographic-scopes/` (CRUD, escritura solo `Administrador RENADS`; filtros `activo`; búsqueda `codigo`, `nombre`; lectura expone `gobierno_regional_detalle` `{id, nombre}`).
+
 ### `organo` — categorías de órgano (tabla normalizada)
 
 Reemplaza el campo discriminador `VARCHAR` que tenía el antiguo `tipo_organo.organo`. Contiene las cinco categorías canónicas. Endpoint: `/api/v1/organs/` (CRUD, escritura solo `Administrador RENADS`).
@@ -91,7 +105,7 @@ Seed: 5 registros — `Órgano del MINSA`, `Universidad`, `Gobierno Regional`, `
 ### `tipo_organo` — **RETIRADA**
 
 La tabla `tipo_organo` (modelo `OrganType`) y su endpoint `/api/v1/organ-types/` fueron **retirados** (404). Sus filas se migraron a `organo_directorio` como filas con la `categoria` correspondiente (una fila de directorio por cada tipo de órgano). Las FKs que la referenciaban se reapuntaron a `organo_directorio`:
-- `unidad_ejecutora.tipo_organo_id` → `organo_directorio` (categoría `UNIDAD_EJECUTORA`).
+- `unidad_ejecutora.tipo_organo_id` → `organo_directorio` (categoría `UNIDAD_EJECUTORA`) — **posteriormente eliminada en migración 0045** (refactor de `unidad_ejecutora`).
 - `universidad.tipo_entidad_id` → `organo_directorio` (categoría `UNIVERSIDAD`).
 
 El backfill de la `categoria` de las filas regionales derivó del antiguo `tipo_organo.codigo`: `GERESA`/`DIRESA` → `GOBIERNO_REGIONAL`, `DIRIS` → `MINSA_DIRIS`.
@@ -157,32 +171,28 @@ Cargos ejecutivos de un **órgano directivo** concreto (`organo_directorio`). Re
 
 ### `unidad_ejecutora`
 
-Unidad ejecutora asociada a un **gobierno regional**.
+Unidad ejecutora vinculada directamente a un **ámbito geográfico sanitario** (tras refactor Migración 0045).
+
+> **Columnas eliminadas respecto a la versión anterior:** `id` (AutoField), `tipo_organo_id`, `gobierno_regional_id`, `direccion`, `ubigeo_id`, `referencia_logo`.
 
 | Columna | Tipo | Null | Descripción |
 |---------|------|------|-------------|
-| `id` | PK | No | |
-| `codigo` | varchar(50) | Sí | Código presupuestal |
-| `nombre` | varchar(255) | No | Nombre |
-| `tipo_organo_id` | FK → `organo_directorio` (PROTECT) | No | Tipo de unidad ejecutora del directorio (categoría `UNIDAD_EJECUTORA`) |
-| `gobierno_regional_id` | FK → `gobierno_regional` (PROTECT) | No | Gobierno regional al que pertenece |
-| `direccion` | varchar(500) | Sí | Dirección |
-| `ubigeo_id` | FK → `ubigeo` | Sí | Ubicación geográfica (UBIGEO) |
-| `referencia_logo` | varchar(500) | Sí | Logo institucional (`ImageField`; guarda el path del objeto en el repositorio de medios). Nullable. |
+| `codigo` | varchar(4) **PK** | No | Código presupuestal de 4 dígitos (PK textual) |
+| `nombre` | varchar(255) | No | Nombre de la unidad ejecutora |
+| `ambito_geografico_sanitario_id` | FK → `ambito_geografico_sanitario` (PROTECT) | No | Ámbito geográfico sanitario al que pertenece |
 | `activo` | bool | No | |
 
-`tipo_organo` filtra a la categoría `UNIDAD_EJECUTORA` de `organo_directorio` (`limit_choices_to`).
+> **Nota sobre `ipress.unidad_ejecutora_id` y `convenio.unidad_ejecutora_id`:** estas columnas mantienen el nombre de columna `unidad_ejecutora_id` en la BD, pero desde la migración 0045 almacenan un **varchar(4)** (el código presupuestal) en lugar del int AutoField anterior.
 
-Endpoint: `/api/v1/executing-units/` (CRUD con logo, escritura solo `Administrador RENADS`; filtros `tipo_organo`, `gobierno_regional`, `activo`; búsqueda `nombre`, `codigo`; lectura expone `tipo_organo_detalle`, `gobierno_regional_detalle` y `ubigeo_detalle`).
+Endpoint: `/api/v1/executing-units/` (CRUD, escritura solo `Administrador RENADS`; filtros `ambito_geografico_sanitario`, `activo`; búsqueda `nombre`, `codigo`; lectura expone `ambito_geografico_sanitario_detalle` `{id, nombre}`). La PK en la URL es el código de 4 chars (p. ej. `/api/v1/executing-units/0032/`). Los filtros antiguos `tipo_organo` y `gobierno_regional` **no existen** en este endpoint (400 si se envían). El endpoint **no ofrece** `upload-logo` ni `logo-url`.
 
 ### `ipress` (Institución Prestadora de Servicios de Salud)
 
 | Columna | Tipo | Null | Descripción |
 |---------|------|------|-------------|
-| `id` | PK | No | |
-| `unidad_ejecutora_id` | FK → `unidad_ejecutora` | No | Unidad ejecutora a la que pertenece |
+| `codigo_renipress` | **PK** varchar(8) | No | Código RENIPRESS de 8 caracteres — **clave primaria** de la tabla (no hay columna `id`; el valor lo provee el cliente al crear) |
+| `unidad_ejecutora_id` | FK → `unidad_ejecutora` (PROTECT) — varchar(4) | No | Unidad ejecutora a la que pertenece (el valor almacenado es el código presupuestal de 4 chars, no un int) |
 | `nombre` | varchar(255) | No | Nombre del establecimiento |
-| `codigo_renipress` | varchar(20) | No | Código único RENIPRESS del establecimiento (unique, requerido) |
 | `direccion` | varchar(500) | Sí | Dirección |
 | `ubigeo_id` | FK → `ubigeo` | Sí | Ubicación geográfica (UBIGEO) |
 | `ambito_geografico_sanitario_id` | FK → `ambito_geografico_sanitario` | No | Ámbito geográfico sanitario |
@@ -363,7 +373,7 @@ Los roles son `auth_group` y los permisos `auth_permission`. Como la entidad del
 | `id` | PK | No | |
 | `usuario_id` | FK → `auth_user` | No | Usuario |
 | `tipo_contenido_id` | FK → `django_content_type` | No | Tipo de entidad asociada |
-| `id_objeto` | int | No | Identificador de la entidad asociada |
+| `id_objeto` | varchar(64) | No | Identificador de la entidad asociada. Texto: para IPRESS es el código RENIPRESS (PK textual); para el resto de entidades es el pk entero casteado a `str`. Las comparaciones de alcance se normalizan a `str` |
 | `grupo_id` | FK → `auth_group` | No | Rol institucional |
 | `activo` | bool | No | |
 | **Único** | (`usuario_id`, `tipo_contenido_id`, `id_objeto`, `grupo_id`) | | |
@@ -439,7 +449,7 @@ evitando redundancia. En el formulario son selectores en cascada que filtran la 
 | `organo_directorio_id` | FK → `organo_directorio` | No | Órgano del directorio (GERESA/DIRESA/DIRIS) parte del convenio. Su tipo se deriva de la entidad |
 | `gobierno_regional_id` | FK → `gobierno_regional` (PROTECT) | Sí | Gobierno Regional del convenio (solo Convenio Marco regional; `related_name='convenios'`) |
 | `universidad_id` | FK → `universidad` | No | Universidad parte del convenio. Su tipo de entidad se deriva de la entidad |
-| `unidad_ejecutora_id` | FK → `unidad_ejecutora` (PROTECT) | Sí | Unidad ejecutora parte del Convenio Específico (nula en Marco; `related_name='convenios'`) |
+| `unidad_ejecutora_id` | FK → `unidad_ejecutora` (PROTECT) — varchar(4) | Sí | Unidad ejecutora parte del Convenio Específico (nula en Marco; `related_name='convenios'`; valor almacenado es el código presupuestal de 4 chars) |
 | `facultad_id` | FK → `facultad` (PROTECT) | Sí | Facultad (de la universidad del Marco) parte del Convenio Específico (nula en Marco; `related_name='convenios'`) |
 | `estado_actual_id` | FK → `estado_convenio` | No | Estado actual |
 | `fecha_solicitud` | date | No | Fecha de solicitud |
@@ -558,7 +568,7 @@ Reemplaza a la antigua tabla `campo_clinico`. `unique_together = (convenio, ipre
 |---------|------|------|-------------|
 | `id` | PK | No | |
 | `convenio_id` | FK → `convenio` (CASCADE) | No | Convenio Específico |
-| `ipress_id` | FK → `ipress` (PROTECT) | No | Sede docente (establecimiento) autorizada por CONAPRES (`es_sede_docente = true`) |
+| `ipress_id` | FK → `ipress` (PROTECT) — varchar(8) | No | Sede docente (establecimiento) autorizada por CONAPRES (`es_sede_docente = true`); el valor almacenado es el código RENIPRESS de 8 chars (PK textual de `ipress`) |
 | `carrera_profesional_id` | FK → `carrera_profesional` (PROTECT) | No | Carrera / programa académico |
 | `especialidad_id` | FK → `especialidad` (SET_NULL) | Sí | Especialidad |
 | `campos_clinicos_registrados` | int positivo | No | Total de campos clínicos registrados por CONAPRES para la sede y carrera (renombra `cantidad_maxima`) |
@@ -579,7 +589,7 @@ Tabla nueva. `unique_together = (campo_clinico_ipress, universidad, convenio)`. 
 | `id` | PK | No | |
 | `campo_clinico_ipress_id` | FK → `campo_clinico_ipress` (PROTECT) | No | Registro de campos clínicos (sede + carrera) del que descuenta la asignación |
 | `convenio_id` | FK → `convenio` (PROTECT) | No | Convenio Específico vigente que respalda la asignación |
-| `ipress_id` | FK → `ipress` (PROTECT) | No | Sede docente (coherente con el registro padre) |
+| `ipress_id` | FK → `ipress` (PROTECT) — varchar(8) | No | Sede docente (coherente con el registro padre); el valor almacenado es el código RENIPRESS de 8 chars (PK textual de `ipress`) |
 | `carrera_profesional_id` | FK → `carrera_profesional` (PROTECT) | No | Carrera / programa académico (coherente con el registro padre) |
 | `especialidad_id` | FK → `especialidad` (SET_NULL) | Sí | Especialidad |
 | `universidad_id` | FK → `universidad` (PROTECT) | No | Universidad a la que se asignan los cupos |
@@ -672,7 +682,7 @@ Se adjunta a: `convenio`, `evaluacion_tecnica`, `opinion_conapres`, `campo_clini
 | `usuario_id` | FK → `auth_user` | Sí | Usuario que ejecutó la acción |
 | `accion` | varchar(30) | No | `CREAR` / `ACTUALIZAR` / `ELIMINAR` / `CAMBIO_ESTADO` / … |
 | `tipo_contenido_id` | FK → `django_content_type` | No | Entidad afectada |
-| `id_objeto` | int | No | Registro afectado |
+| `id_objeto` | varchar(64) | No | Registro afectado. Texto: para IPRESS es el código RENIPRESS (PK textual); para el resto es el pk casteado a `str`. Las consultas por `(tipo_contenido, id_objeto)` usan `str` |
 | `nombre_campo` | varchar(100) | Sí | Campo modificado |
 | `valor_anterior` | text | Sí | Valor anterior |
 | `valor_nuevo` | text | Sí | Valor nuevo |
@@ -684,12 +694,13 @@ Se adjunta a: `convenio`, `evaluacion_tecnica`, `opinion_conapres`, `campo_clini
 ## 12. Mapa de relaciones
 
 ```
-ubigeo (distrito INEI) >──< unidad_ejecutora / ipress / universidad / facultad / gobierno_regional / local_universidad   (también estudiante / tutor del módulo 2)
+ubigeo (distrito INEI) >──< ipress / universidad / facultad / gobierno_regional / local_universidad   (también estudiante / tutor del módulo 2)
 gobierno_regional ──< organo_directorio
-gobierno_regional ──< unidad_ejecutora ──< ipress
 gobierno_regional >── region / ubigeo
+gobierno_regional ──< ambito_geografico_sanitario (gobierno_regional_id, nullable — los 4 DIRIS tienen NULL)
 organo_directorio (categoria: ORGANO_MINSA / UNIVERSIDAD / GOBIERNO_REGIONAL / MINSA_DIRIS / UNIDAD_EJECUTORA) >── gobierno_regional (opcional, solo regionales)
-unidad_ejecutora >── gobierno_regional / tipo_organo (→ organo_directorio, categoría UNIDAD_EJECUTORA) / ubigeo
+ambito_geografico_sanitario ──< unidad_ejecutora (PK textual varchar 4)
+unidad_ejecutora ──< ipress
 ipress >── ambito_geografico_sanitario
 ambito_geografico_sanitario ──< red ──< microred ──< ipress
 ipress >── categoria / tipo_clasificacion / microred

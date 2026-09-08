@@ -15,8 +15,11 @@ export async function searchResource(
   return data.results;
 }
 
-/** Detalle de un recurso por id (para resolver la etiqueta del valor seleccionado). */
-export async function getResourceItem(endpoint: string, id: number): Promise<WithId> {
+/** Detalle de un recurso por PK (numérica o textual) para resolver la etiqueta seleccionada. */
+export async function getResourceItem(
+  endpoint: string,
+  id: string | number,
+): Promise<WithId> {
   const { data } = await api.get<WithId>(`/${endpoint}/${id}/`);
   return data;
 }

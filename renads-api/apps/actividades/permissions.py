@@ -21,4 +21,7 @@ class ActivityScope(BasePermission):
             return False
         ct_uni = ContentType.objects.get_for_model(University).id
         ct_ip = ContentType.objects.get_for_model(Ipress).id
-        return (ct_uni, obj.estudiante.universidad_id) in refs or (ct_ip, obj.ipress_id) in refs
+        return (
+            (ct_uni, str(obj.estudiante.universidad_id)) in refs
+            or (ct_ip, str(obj.ipress_id)) in refs
+        )

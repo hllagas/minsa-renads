@@ -107,8 +107,8 @@ export function ConvenioCreateForm({
         payload.convenio_marco = Number(values.convenio_marco);
       if (values.max_campos_clinicos !== "" && values.max_campos_clinicos != null)
         payload.max_campos_clinicos = Number(values.max_campos_clinicos);
-      if (values.unidad_ejecutora != null)
-        payload.unidad_ejecutora = Number(values.unidad_ejecutora);
+      if (values.unidad_ejecutora != null && values.unidad_ejecutora !== "")
+        payload.unidad_ejecutora = values.unidad_ejecutora; // PK textual (codigo), sin Number()
       if (values.facultad != null)
         payload.facultad = Number(values.facultad);
     }
@@ -275,7 +275,9 @@ export function ConvenioCreateForm({
           <Row label="Unidad ejecutora (solo Específico)">
             <EntityCombobox
               endpoint="executing-units"
-              value={field.value as number | null}
+              valueKey="codigo"
+              toLabel={(r) => String(r.nombre ?? r.codigo ?? "")}
+              value={field.value as string | null}
               onChange={(v) => field.onChange(v)}
               disabled={!isEspecifico}
               placeholder={isEspecifico ? "Buscar unidad ejecutora…" : "Solo para Específico"}

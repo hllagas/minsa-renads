@@ -31,10 +31,10 @@ export function createResourceHooks<TRead extends HasId, TWrite = Partial<TRead>
     });
   }
 
-  function useDetail(id: number | null) {
+  function useDetail(id: string | number | null) {
     return useQuery({
       queryKey: resourceKeys.detail(endpoint, id ?? -1),
-      queryFn: () => apiRes.retrieve(id as number),
+      queryFn: () => apiRes.retrieve(id as string | number),
       enabled: id != null,
     });
   }
@@ -50,7 +50,7 @@ export function createResourceHooks<TRead extends HasId, TWrite = Partial<TRead>
   function useUpdate() {
     const qc = useQueryClient();
     return useMutation({
-      mutationFn: ({ id, payload }: { id: number; payload: Partial<TWrite> }) =>
+      mutationFn: ({ id, payload }: { id: string | number; payload: Partial<TWrite> }) =>
         apiRes.update(id, payload),
       onSuccess: () => qc.invalidateQueries({ queryKey: resourceKeys.all(endpoint) }),
     });
@@ -59,7 +59,7 @@ export function createResourceHooks<TRead extends HasId, TWrite = Partial<TRead>
   function useRemove() {
     const qc = useQueryClient();
     return useMutation({
-      mutationFn: (id: number) => apiRes.remove(id),
+      mutationFn: (id: string | number) => apiRes.remove(id),
       onSuccess: () => qc.invalidateQueries({ queryKey: resourceKeys.all(endpoint) }),
     });
   }

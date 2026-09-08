@@ -60,6 +60,8 @@ def internados_visibles(usuario) -> QuerySet[Internship]:
     ct_uni = ContentType.objects.get_for_model(University).id
     ct_ip = ContentType.objects.get_for_model(Ipress).id
     ct_student = ContentType.objects.get_for_model(Student).id
+    # `universidades`/`propios` comparan contra columnas enteras → castear a int; `sedes`
+    # compara contra `ipress_id` (texto tras el refactor de la PK de Ipress) → permanece str.
     universidades = [oid for (tc, oid) in refs if tc == ct_uni]
     sedes = [oid for (tc, oid) in refs if tc == ct_ip]
     propios = [oid for (tc, oid) in refs if tc == ct_student]
@@ -67,11 +69,11 @@ def internados_visibles(usuario) -> QuerySet[Internship]:
         return qs.none()
     condicion = Q()
     if universidades:
-        condicion |= Q(estudiante__universidad_id__in=universidades)
+        condicion |= Q(estudiante__universidad_id__in=[int(x) for x in universidades])
     if sedes:
         condicion |= Q(ipress_id__in=sedes)
     if propios:
-        condicion |= Q(estudiante_id__in=propios)
+        condicion |= Q(estudiante_id__in=[int(x) for x in propios])
     return qs.filter(condicion)
 
 

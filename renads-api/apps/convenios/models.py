@@ -39,6 +39,19 @@ class Region(Catalog):
 
 
 class HealthGeographicScope(Catalog):
+    gobierno_regional = models.ForeignKey(
+        "RegionalGovernment",
+        on_delete=models.PROTECT,
+        db_column="gobierno_regional_id",
+        null=True,
+        blank=True,
+        related_name="ambitos",
+        help_text=(
+            "Gobierno regional al que corresponde el ámbito sanitario "
+            "(nulo para los 4 DIRIS de Lima Metropolitana)"
+        ),
+    )
+
     class Meta:
         db_table = "ambito_geografico_sanitario"
         verbose_name = "ámbito geográfico sanitario"
@@ -345,27 +358,20 @@ class OrganDirectory(models.Model):
 
 
 class ExecutingUnit(models.Model):
-    codigo = models.CharField("código", max_length=50, blank=True, help_text="Código presupuestal")
-    nombre = models.CharField("nombre", max_length=255, help_text="Nombre")
-    tipo_organo = models.ForeignKey(
-        OrganDirectory, on_delete=models.PROTECT, db_column="tipo_organo_id", related_name="+",
-        limit_choices_to={"organo__nombre": "Unidad Ejecutora"},
-        help_text="Tipo de unidad ejecutora del directorio (organo=Unidad Ejecutora)",
+    codigo = models.CharField(
+        max_length=4, primary_key=True,
+        db_column="codigo",
+        help_text="Código presupuestal de 4 dígitos (PK)",
     )
-    gobierno_regional = models.ForeignKey(
-        RegionalGovernment, on_delete=models.PROTECT, db_column="gobierno_regional_id",
-        related_name="unidades_ejecutoras", help_text="Gobierno regional al que pertenece",
+    nombre = models.CharField("nombre", max_length=255, help_text="Nombre de la unidad ejecutora")
+    ambito_geografico_sanitario = models.ForeignKey(
+        HealthGeographicScope,
+        on_delete=models.PROTECT,
+        db_column="ambito_geografico_sanitario_id",
+        related_name="unidades_ejecutoras",
+        help_text="Ámbito geográfico sanitario al que pertenece",
     )
-    direccion = models.CharField("dirección", max_length=500, blank=True, help_text="Dirección")
-    ubigeo = models.ForeignKey(
-        Ubigeo, on_delete=models.PROTECT, db_column="ubigeo_id", null=True, blank=True,
-        related_name="+", help_text="Ubicación geográfica (UBIGEO)",
-    )
-    referencia_logo = models.ImageField(
-        "logo", upload_to="unidad_ejecutora/", max_length=500, null=True, blank=True,
-        help_text="Logo institucional (imagen almacenada en el repositorio de medios)",
-    )
-    activo = models.BooleanField("activo", default=True)
+    activo = models.BooleanField("activo", default=True, help_text="Indica si está activa")
 
     class Meta:
         db_table = "unidad_ejecutora"
@@ -378,12 +384,13 @@ class ExecutingUnit(models.Model):
 class Ipress(models.Model):
     unidad_ejecutora = models.ForeignKey(
         ExecutingUnit, on_delete=models.PROTECT, db_column="unidad_ejecutora_id",
+        to_field="codigo",
         related_name="ipress", help_text="Unidad ejecutora a la que pertenece",
     )
     nombre = models.CharField("nombre", max_length=255, help_text="Nombre del establecimiento")
     codigo_renipress = models.CharField(
-        "código RENIPRESS", max_length=20, unique=True,
-        help_text="Código único RENIPRESS del establecimiento",
+        "código RENIPRESS", max_length=8, primary_key=True,
+        help_text="Código RENIPRESS de 8 caracteres (clave primaria)",
     )
     direccion = models.CharField("dirección", max_length=500, blank=True, help_text="Dirección")
     ubigeo = models.ForeignKey(
@@ -761,7 +768,7 @@ class UserEntityProfile(models.Model):
         ContentType, on_delete=models.CASCADE, db_column="tipo_contenido_id",
         related_name="+", help_text="Tipo de entidad asociada",
     )
-    id_objeto = models.PositiveBigIntegerField("id objeto", help_text="Identificador de la entidad asociada")
+    id_objeto = models.CharField("id objeto", max_length=64, help_text="Identificador de la entidad asociada")
     entidad = GenericForeignKey("tipo_contenido", "id_objeto")
     grupo = models.ForeignKey(
         "auth.Group", on_delete=models.PROTECT, db_column="grupo_id",
@@ -852,6 +859,7 @@ class Convention(models.Model):
     )
     unidad_ejecutora = models.ForeignKey(
         ExecutingUnit, on_delete=models.PROTECT, db_column="unidad_ejecutora_id", null=True, blank=True,
+        to_field="codigo",
         related_name="convenios",
         help_text="Unidad ejecutora parte del Convenio Específico",
     )
@@ -1277,7 +1285,7 @@ class AuditLog(models.Model):
         ContentType, on_delete=models.PROTECT, db_column="tipo_contenido_id",
         related_name="+", help_text="Entidad afectada",
     )
-    id_objeto = models.PositiveBigIntegerField("id objeto", help_text="Registro afectado")
+    id_objeto = models.CharField("id objeto", max_length=64, help_text="Registro afectado")
     objeto = GenericForeignKey("tipo_contenido", "id_objeto")
     nombre_campo = models.CharField("nombre del campo", max_length=100, blank=True, help_text="Campo modificado")
     valor_anterior = models.TextField("valor anterior", blank=True, help_text="Valor anterior")

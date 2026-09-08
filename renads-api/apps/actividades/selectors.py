@@ -20,13 +20,15 @@ def actividades_visibles(usuario) -> QuerySet[TeachingActivity]:
         return qs.none()
     ct_uni = ContentType.objects.get_for_model(University).id
     ct_ip = ContentType.objects.get_for_model(Ipress).id
+    # `universidades` compara contra una columna entera → castear a int; `sedes` compara
+    # contra `ipress_id` (texto tras el refactor de la PK de Ipress) → permanece str.
     universidades = [oid for (tc, oid) in refs if tc == ct_uni]
     sedes = [oid for (tc, oid) in refs if tc == ct_ip]
     if not universidades and not sedes:
         return qs.none()
     condicion = Q()
     if universidades:
-        condicion |= Q(estudiante__universidad_id__in=universidades)
+        condicion |= Q(estudiante__universidad_id__in=[int(x) for x in universidades])
     if sedes:
         condicion |= Q(ipress_id__in=sedes)
     return qs.filter(condicion)

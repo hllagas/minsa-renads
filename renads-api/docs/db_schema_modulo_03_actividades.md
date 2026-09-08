@@ -61,7 +61,7 @@ Patrón común: `id` (PK), `codigo` (varchar, único), `nombre` (varchar), `acti
 | `id` | PK | No | |
 | `estudiante_id` | FK → `estudiante` | No | Estudiante |
 | `interno_id` | FK → `interno` | No | Interno (internado) activo |
-| `ipress_id` | FK → `ipress` | No | Sede docente |
+| `ipress_id` | FK → `ipress` (PROTECT) — varchar(8) | No | Sede docente (código RENIPRESS de 8 chars, PK textual de `ipress`) |
 | `rotacion_id` | FK → `rotacion` | Sí | Rotación autorizada asociada (si corresponde) |
 | `tutor_id` | FK → `tutor` | No | Tutor / docente responsable |
 | `servicio_area_id` | FK → `servicio_area` | No | Servicio, área o unidad |

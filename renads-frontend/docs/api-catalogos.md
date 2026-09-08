@@ -92,7 +92,7 @@ Añadidos a `regional-governments`: `sigla`, `ubigeo`, `numero_ruc`, `direccion`
 |----------|------------------------------|--------|----------|
 | `organs` | — | — | Solo lectura. **5** categorías canónicas (`ORGANO_MINSA`, `UNIVERSIDAD`, `GOBIERNO_REGIONAL`, `MINSA_DIRIS`, `UNIDAD_EJECUTORA`). |
 | `organ-directories` | `organo`, `activo` | `nombre`, `siglas` | `organo_detalle` |
-| `executing-units` | `tipo_organo`, `gobierno_regional`, `activo` | `nombre`, `codigo` | `tipo_organo_detalle`, `gobierno_regional_detalle`, `ubigeo_detalle` |
+| `executing-units` | `ambito_geografico_sanitario`, `activo` | `nombre`, `codigo` | `ambito_geografico_sanitario_detalle` |
 | `regional-governments` | `region`, `ubigeo`, `activo` | `nombre` | `ubigeo_detalle` (string) |
 | `ipress` | `unidad_ejecutora`, `ambito_geografico_sanitario`, `es_sede_docente`, `activo` | `nombre`, `codigo_renipress` | — |
 | `conapres` | `activo` | `nombre` | — |
@@ -134,11 +134,22 @@ nombre (req), sigla?, region (FK req), ubigeo (FK|null),
 numero_ruc?, direccion?, correo?, telefono?, activo?
 ```
 
-### `executing-units` — `tipo_organo` apunta a `organ-directories`
+### `executing-units` — PK textual `codigo` + `ambito_geografico_sanitario`
 
-El campo `tipo_organo` es FK a `organ-directories` con `limit_choices_to={"categoria": "UNIDAD_EJECUTORA"}`.
-Para el selector del front usar `?categoria=UNIDAD_EJECUTORA`. El `tipo_organo_detalle` es el `nombre`
-del órgano del directorio seleccionado.
+**Refactor 2026-09-08 (mig 0043-0045):** la PK dejó de ser `id` (int) y ahora es **`codigo`
+(varchar(4), string, PK)** — el cliente la provee en el alta; detalle/edición/borrado por
+`/executing-units/<codigo>/`. Se **eliminaron** `tipo_organo`, `gobierno_regional`, `direccion`,
+`ubigeo`, `referencia_logo` (y el logo). Se **añadió** FK `ambito_geografico_sanitario`
+(→ `health-geographic-scopes`) con `ambito_geografico_sanitario_detalle`. Filtros: `ambito_geografico_sanitario`,
+`activo`. El filtro `ipress?unidad_ejecutora=<codigo>` recibe el **codigo string** de la UE.
+
+Front: `ResourceConfig.pkField="codigo"`; los selects de `unidad_ejecutora` usan `EntityCombobox`
+con `valueKey="codigo"` (el valor emitido/enviado es el código string, sin `Number()`).
+
+### `health-geographic-scopes` — `gobierno_regional`
+
+**Refactor 2026-09-08 (mig 0043):** el ámbito gana FK `gobierno_regional` (→ `regional-governments`,
+nullable; nulo para los 4 DIRIS de Lima) + `gobierno_regional_detalle`.
 
 ### `ipress` — sede docente (CONAPRES)
 

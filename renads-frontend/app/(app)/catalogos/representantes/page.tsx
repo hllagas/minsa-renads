@@ -112,7 +112,9 @@ export default function RepresentantesPage() {
   const isAdmin = userHasRole(user, "Administrador RENADS");
 
   const [tipoKey, setTipoKey] = useState<string>("");
-  const [entidadId, setEntidadId] = useState<number | null>(null);
+  // PK de la entidad concreta: numérica (organ-directories/universities/conapres) o textual
+  // (executing-units `codigo`; ipress `codigo_renipress` en Fase B).
+  const [entidadId, setEntidadId] = useState<string | number | null>(null);
   const [search, setSearch] = useState("");
   const [editRow, setEditRow] = useState<Representative | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -271,6 +273,13 @@ export default function RepresentantesPage() {
         <EntityCombobox
           endpoint={tipoOpt?.endpoint ?? "organ-directories"}
           params={paso2Params}
+          valueKey={
+            tipoOpt?.endpoint === "executing-units"
+              ? "codigo"
+              : tipoOpt?.endpoint === "ipress"
+                ? "codigo_renipress"
+                : "id"
+          }
           value={entidadId}
           onChange={(id) => {
             setEntidadId(id);
@@ -502,7 +511,7 @@ function RepresentativeDialog({
   row: Representative | null;
   tipoOpt: RepresentanteEntityOption;
   tipoContenidoId: number;
-  idObjeto: number;
+  idObjeto: string | number;
   onClose: () => void;
   onSuccess: () => void;
 }) {

@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/combobox";
 
 export interface ComboboxItemData {
-  id: number;
+  id: string | number;
   label: string;
 }
 
@@ -26,8 +26,11 @@ export interface ComboboxItemData {
  *
  * Resuelve la etiqueta del valor seleccionado aunque no esté en los resultados actuales
  * (consulta el detalle por id), útil al editar.
+ *
+ * Soporta PK **numérica o textual**: `valueKey` (default `"id"`) indica qué clave del registro
+ * es el identificador — p. ej. `"codigo"` (executing-units) o `"codigo_renipress"` (ipress).
  */
-export function EntityCombobox({
+export function EntityCombobox<T extends string | number = number>({
   endpoint,
   value,
   onChange,
@@ -35,14 +38,16 @@ export function EntityCombobox({
   params,
   placeholder = "Buscar…",
   disabled,
+  valueKey = "id",
 }: {
   endpoint: string;
-  value: number | null | undefined;
-  onChange: (value: number | null) => void;
+  value: T | null | undefined;
+  onChange: (value: T | null) => void;
   toLabel?: (row: WithId) => string;
   params?: Record<string, string>;
   placeholder?: string;
   disabled?: boolean;
+  valueKey?: string;
 }) {
   const [search, setSearch] = useState("");
 
@@ -56,20 +61,23 @@ export function EntityCombobox({
   // Detalle del valor seleccionado (para la etiqueta al editar, si no está en la lista).
   const selectedQuery = useQuery({
     queryKey: [endpoint, "detail", value],
-    queryFn: () => getResourceItem(endpoint, value as number),
+    queryFn: () => getResourceItem(endpoint, value as string | number),
     enabled: value != null,
     staleTime: 5 * 60_000,
   });
 
+  const idOf = (row: WithId): string | number =>
+    (row[valueKey] as string | number | undefined) ?? row.id;
+
   const items = useMemo<ComboboxItemData[]>(() => {
     const rows = listQuery.data ?? [];
-    const list = rows.map((r) => ({ id: r.id, label: toLabel(r) }));
+    const list = rows.map((r) => ({ id: idOf(r), label: toLabel(r) }));
     if (value != null && selectedQuery.data && !list.some((i) => i.id === value)) {
-      list.unshift({ id: value, label: toLabel(selectedQuery.data) });
+      list.unshift({ id: idOf(selectedQuery.data), label: toLabel(selectedQuery.data) });
     }
     return list;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listQuery.data, selectedQuery.data, value]);
+  }, [listQuery.data, selectedQuery.data, value, valueKey]);
 
   const selectedItem = items.find((i) => i.id === value) ?? null;
 
@@ -77,7 +85,7 @@ export function EntityCombobox({
     <Combobox
       items={items}
       value={selectedItem}
-      onValueChange={(item: ComboboxItemData | null) => onChange(item ? item.id : null)}
+      onValueChange={(item: ComboboxItemData | null) => onChange(item ? (item.id as T) : null)}
       onInputValueChange={(text: string) => setSearch(text)}
       itemToStringLabel={(item: ComboboxItemData) => item.label}
       itemToStringValue={(item: ComboboxItemData) => String(item.id)}

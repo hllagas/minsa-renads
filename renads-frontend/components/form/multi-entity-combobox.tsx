@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/combobox";
 
 interface ComboboxItemData {
-  id: number;
+  id: string | number;
   label: string;
 }
 
@@ -26,12 +26,11 @@ const defaultToLabel = (row: WithId) =>
 
 /**
  * Selector **múltiple** de una FK (catálogo/entidad DRF) con **búsqueda server-side**. El valor es
- * `number[]` (ids). Escala a catálogos grandes (`permissions`) sin cargar todo: busca por
- * `/{endpoint}/?search=` y resuelve por id las etiquetas de los seleccionados que no estén en la
- * página actual (`getResourceItem`). Compone el `Combobox` base como control de "añadir"; los
- * elementos elegidos se muestran como badges removibles. No reinventa el combobox base.
+ * `(string|number)[]` (PKs). Escala a catálogos grandes (`permissions`) sin cargar todo: busca por
+ * `/{endpoint}/?search=` y resuelve por PK las etiquetas de los seleccionados que no estén en la
+ * página actual (`getResourceItem`). Soporta PK numérica o textual vía `valueKey` (default `"id"`).
  */
-export function MultiEntityCombobox({
+export function MultiEntityCombobox<T extends string | number = number>({
   endpoint,
   value,
   onChange,
@@ -39,16 +38,20 @@ export function MultiEntityCombobox({
   params,
   placeholder = "Buscar…",
   disabled,
+  valueKey = "id",
 }: {
   endpoint: string;
-  value: number[];
-  onChange: (value: number[]) => void;
+  value: T[];
+  onChange: (value: T[]) => void;
   toLabel?: (row: WithId) => string;
   params?: Record<string, string>;
   placeholder?: string;
   disabled?: boolean;
+  valueKey?: string;
 }) {
   const [search, setSearch] = useState("");
+  const idOf = (row: WithId): string | number =>
+    (row[valueKey] as string | number | undefined) ?? (row.id as string | number);
 
   const listQuery = useQuery({
     queryKey: [endpoint, "multi-combobox", params ?? null, search],
@@ -66,28 +69,28 @@ export function MultiEntityCombobox({
   });
 
   const labelById = useMemo(() => {
-    const map = new Map<number, string>();
-    for (const r of listQuery.data ?? []) map.set(r.id, toLabel(r));
-    for (const r of selectedQuery.data ?? []) map.set(r.id, toLabel(r));
+    const map = new Map<string | number, string>();
+    for (const r of listQuery.data ?? []) map.set(idOf(r), toLabel(r));
+    for (const r of selectedQuery.data ?? []) map.set(idOf(r), toLabel(r));
     return map;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listQuery.data, selectedQuery.data]);
+  }, [listQuery.data, selectedQuery.data, valueKey]);
 
   // Candidatos = resultados de búsqueda menos lo ya seleccionado (evita duplicados).
   const candidates = useMemo<ComboboxItemData[]>(
     () =>
       (listQuery.data ?? [])
-        .filter((r) => !value.includes(r.id))
-        .map((r) => ({ id: r.id, label: toLabel(r) })),
+        .filter((r) => !value.includes(idOf(r) as T))
+        .map((r) => ({ id: idOf(r), label: toLabel(r) })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [listQuery.data, value],
+    [listQuery.data, value, valueKey],
   );
 
-  function add(id: number) {
+  function add(id: T) {
     if (!value.includes(id)) onChange([...value, id]);
   }
 
-  function remove(id: number) {
+  function remove(id: T) {
     onChange(value.filter((v) => v !== id));
   }
 
@@ -97,7 +100,7 @@ export function MultiEntityCombobox({
         items={candidates}
         value={null}
         onValueChange={(item: ComboboxItemData | null) => {
-          if (item) add(item.id);
+          if (item) add(item.id as T);
         }}
         onInputValueChange={(text: string) => setSearch(text)}
         itemToStringLabel={(item: ComboboxItemData) => item.label}

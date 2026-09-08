@@ -18,8 +18,6 @@ export const ANNEX_ACCEPT = "application/pdf";
 export const LOGO_ENTITIES = [
   "universities",
   "regional-governments",
-  "organ-directories",
-  "executing-units",
   "ipress",
 ] as const;
 export type LogoEntity = (typeof LOGO_ENTITIES)[number];

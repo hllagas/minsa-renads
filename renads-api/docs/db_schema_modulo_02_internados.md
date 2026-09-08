@@ -169,7 +169,7 @@ Re-subir el mismo anexo a la misma entidad genera una nueva versión del
 | `direccion` | varchar(500) | Sí | Dirección |
 | `ubigeo_id` | FK → `ubigeo` (módulo 1) | Sí | Ubicación geográfica (UBIGEO) |
 | `especialidad_id` | FK → `especialidad` | Sí | Especialidad del tutor |
-| `ipress_id` | FK → `ipress` | Sí | Establecimiento al que pertenece |
+| `ipress_id` | FK → `ipress` (SET_NULL) — varchar(8) | Sí | Establecimiento al que pertenece (código RENIPRESS de 8 chars, PK textual de `ipress`) |
 | `activo` | bool | No | |
 
 > **RN-24:** un tutor pertenece **de 1 a 2 universidades** (tope de negocio, validado a nivel de aplicación). La relación N–N se materializa en la tabla puente `tutor_universidad`.
@@ -196,7 +196,7 @@ Re-subir el mismo anexo a la misma entidad genera una nueva versión del
 | `estudiante_id` | FK → `estudiante` | No | Estudiante |
 | `convenio_id` | FK → `convenio` | No | Convenio Específico vigente que lo respalda |
 | `campo_clinico_id` | FK → `campo_clinico_ipress_universidad` (PROTECT) | No | Asignación de campos clínicos por universidad (módulo 1). La columna conserva el nombre `campo_clinico_id`; el modelo `Internship.campo_clinico` apunta a `ClinicalFieldAllocation` |
-| `ipress_id` | FK → `ipress` | No | Sede docente principal |
+| `ipress_id` | FK → `ipress` (PROTECT) — varchar(8) | No | Sede docente principal (código RENIPRESS de 8 chars, PK textual de `ipress`) |
 | `tutor_id` | FK → `tutor` | No | Tutor responsable actual |
 | `ambito_geografico_sanitario_id` | FK → `ambito_geografico_sanitario` | No | Ámbito geográfico sanitario |
 | `estado_actual_id` | FK → `estado_internado` | No | Estado actual |
@@ -247,8 +247,8 @@ Re-subir el mismo anexo a la misma entidad genera una nueva versión del
 | `id` | PK | No | |
 | `interno_id` | FK → `interno` | No | Interno |
 | `numero_rotacion` | int | No | Número de rotación (1–4, RN-9) |
-| `ipress_origen_id` | FK → `ipress` | No | Sede de origen |
-| `ipress_destino_id` | FK → `ipress` | No | Sede de destino |
+| `ipress_origen_id` | FK → `ipress` (PROTECT) — varchar(8) | No | Sede de origen (código RENIPRESS de 8 chars, PK textual de `ipress`) |
+| `ipress_destino_id` | FK → `ipress` (PROTECT) — varchar(8) | No | Sede de destino (código RENIPRESS de 8 chars, PK textual de `ipress`) |
 | `servicio_area_id` | FK → `servicio_area` | No | Servicio, área o unidad |
 | `estado_actual_id` | FK → `estado_rotacion` | No | Estado actual |
 | `fecha_inicio` | date | No | Inicio de la rotación |

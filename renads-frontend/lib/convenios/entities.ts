@@ -227,6 +227,9 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         label: "Unidad ejecutora",
         type: "select",
         optionsEndpoint: "executing-units",
+        optionsValueKey: "codigo",
+        optionsSearchable: true,
+        optionsToLabel: (r) => String(r.nombre ?? r.codigo ?? ""),
       },
       {
         name: "ambito_geografico_sanitario",
@@ -273,7 +276,10 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         type: "select",
         required: true,
         optionsEndpoint: "executing-units",
-      },      
+        optionsValueKey: "codigo",
+        optionsSearchable: true,
+        optionsToLabel: (r) => String(r.nombre ?? r.codigo ?? ""),
+      },
       {
         name: "microred",
         label: "Microred",
@@ -347,83 +353,61 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     ],
   },
 
+  // Refactor 2026-09-08 (mig 0043-0045): PK = `codigo` (string4); fuera tipo_organo/
+  // gobierno_regional/direccion/ubigeo/logo; entra `ambito_geografico_sanitario`.
   "executing-units": {
     endpoint: "executing-units",
     title: "Unidades ejecutoras",
     singular: "unidad ejecutora",
     createPrefix: "Nueva",
+    pkField: "codigo",
+    defaultOrdering: "codigo",
     searchPlaceholder: "Buscar por nombre o código…",
     columns: [
-      logoColumn("executing-units"),
-      { key: "nombre", header: "Nombre" },
       { key: "codigo", header: "Código" },
+      { key: "nombre", header: "Nombre" },
       {
-        key: "gobierno_regional",
-        header: "Gobierno regional",
-        render: (r) => detalleNombre(r.gobierno_regional_detalle),
-      },
-      {
-        key: "tipo_organo",
-        header: "Tipo de órgano",
-        render: (r) => detalleNombre(r.tipo_organo_detalle),
+        key: "ambito_geografico_sanitario",
+        header: "Ámbito geográfico sanitario",
+        render: (r) => detalleNombre(r.ambito_geografico_sanitario_detalle),
       },
       { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
     ],
     filters: [
       {
-        name: "gobierno_regional",
-        label: "Gobierno regional",
+        name: "ambito_geografico_sanitario",
+        label: "Ámbito geográfico sanitario",
         type: "select",
-        optionsEndpoint: "regional-governments",
-      },
-      {
-        name: "tipo_organo",
-        label: "Tipo de unidad ejecutora",
-        type: "select",
-        // Filtro por `organo` (id de "Unidad Ejecutora") inyectado por la página (runtime).
-        optionsEndpoint: "organ-directories",
+        optionsEndpoint: "health-geographic-scopes",
       },
       activoFilter,
     ],
-    fields: [
-      // ── Identificación ────────────────────────────────────────────────────
-      { name: "_s1", label: "Identificación", type: "separator" },
+    // `codigo` es la PK que provee el cliente en el alta; no se cambia en edición.
+    createFields: [
+      { name: "codigo", label: "Código (4 dígitos)", type: "text", required: true, uppercase: false },
       { name: "nombre", label: "Nombre", type: "text", required: true, fullWidth: true, uppercase: false },
-      { name: "codigo", label: "Código presupuestal", type: "text" },
-
-      // ── Organización ──────────────────────────────────────────────────────
-      { name: "_s2", label: "Organización", type: "separator" },
       {
-        name: "gobierno_regional",
-        label: "Gobierno regional",
+        name: "ambito_geografico_sanitario",
+        label: "Ámbito geográfico sanitario",
         type: "select",
         required: true,
-        optionsEndpoint: "regional-governments",
+        optionsEndpoint: "health-geographic-scopes",
       },
-      {
-        name: "tipo_organo",
-        label: "Tipo de unidad ejecutora",
-        type: "select",
-        required: true,
-        // `optionsParams:{organo:<id de "Unidad Ejecutora">}` inyectado por la página (runtime).
-        optionsEndpoint: "organ-directories",
-      },
-
-      // ── Ubicación ─────────────────────────────────────────────────────────
-      { name: "_s3", label: "Ubicación", type: "separator" },
-      { name: "direccion", label: "Dirección", type: "text", fullWidth: true, uppercase: false },
-      {
-        name: "ubigeo",
-        label: "Ubigeo",
-        type: "select",
-        optionsEndpoint: "ubigeos",
-        optionsToLabel: ubigeoLabel,
-      },
-
-      // ── Estado ────────────────────────────────────────────────────────────
-      { name: "_s4", label: "Estado", type: "separator" },
       { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
     ],
+    editFields: [
+      { name: "codigo", label: "Código (4 dígitos)", type: "text", disabled: true, uppercase: false },
+      { name: "nombre", label: "Nombre", type: "text", required: true, fullWidth: true, uppercase: false },
+      {
+        name: "ambito_geografico_sanitario",
+        label: "Ámbito geográfico sanitario",
+        type: "select",
+        required: true,
+        optionsEndpoint: "health-geographic-scopes",
+      },
+      { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
+    ],
+    fields: [],
   },
 
   "organ-directories": {

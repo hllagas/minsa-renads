@@ -89,6 +89,10 @@ export function ResourceCrud<TRead extends WithId>({
   );
 
   const user = useAuthStore((s) => s.user);
+  // PK del recurso (numérica o textual). Recursos con PK textual (executing-units `codigo`,
+  // ipress `codigo_renipress`) declaran `pkField`; el resto usa `id`.
+  const pkField = config.pkField ?? "id";
+  const pkOf = (row: TRead): string | number => row[pkField] as string | number;
   // `readOnly` fuerza solo lectura para cualquier rol (catálogos ya poblados en backend).
   // `requireSuperuser` añade el gating estricto a superusuario (usuarios/roles/permisos).
   const canWrite =
@@ -139,7 +143,7 @@ export function ResourceCrud<TRead extends WithId>({
   const list = hooks.useList({
     page,
     search: debouncedSearch,
-    ordering: config.defaultOrdering ?? "id",
+    ordering: config.defaultOrdering ?? config.pkField ?? "id",
     filters: { ...filterValues, ...fixedAsStrings },
   });
   const createM = hooks.useCreate();
@@ -224,7 +228,7 @@ export function ResourceCrud<TRead extends WithId>({
 
   function confirmDelete() {
     if (!deleting) return;
-    removeM.mutate(deleting.id, {
+    removeM.mutate(pkOf(deleting), {
       onSuccess: () => {
         toast.success(
           config.deleteSuccessMessage ?? `${config.singular} eliminada.`,
@@ -245,7 +249,7 @@ export function ResourceCrud<TRead extends WithId>({
       },
       onError: (e: unknown) => toast.error(extractApiError(e)),
     };
-    if (editing) updateM.mutate({ id: editing.id, payload: finalPayload }, opts);
+    if (editing) updateM.mutate({ id: pkOf(editing), payload: finalPayload }, opts);
     else createM.mutate(finalPayload, opts);
   }
 
@@ -316,7 +320,7 @@ export function ResourceCrud<TRead extends WithId>({
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {data.map((row) => (
                 <div
-                  key={row.id}
+                  key={String(pkOf(row))}
                   className="flex flex-col rounded-lg border bg-card p-4 shadow-sm transition-colors hover:bg-muted/30"
                 >
                   <div className="flex-1">{renderCard(row)}</div>

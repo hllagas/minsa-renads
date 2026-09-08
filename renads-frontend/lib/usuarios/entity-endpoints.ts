@@ -8,13 +8,18 @@ import type { WithId } from "@/lib/api/query";
  */
 export const ENTITY_ENDPOINTS: Record<
   string,
-  { endpoint: string; toLabel: (r: WithId) => string }
+  { endpoint: string; toLabel: (r: WithId) => string; valueKey?: string }
 > = {
   university: {
     endpoint: "universities",
     toLabel: (r) => String(r.nombre ?? r.siglas ?? r.id),
   },
-  ipress: { endpoint: "ipress", toLabel: (r) => String(r.nombre ?? r.id) },
+  // PK textual (`codigo_renipress`) → el valor de la asignación es el código string.
+  ipress: {
+    endpoint: "ipress",
+    toLabel: (r) => String(r.nombre ?? r.codigo_renipress ?? r.id),
+    valueKey: "codigo_renipress",
+  },
   regionalgovernment: {
     endpoint: "regional-governments",
     toLabel: (r) => String(r.nombre ?? r.id),
@@ -23,9 +28,11 @@ export const ENTITY_ENDPOINTS: Record<
     endpoint: "organ-directories",
     toLabel: (r) => String(r.nombre ?? r.id),
   },
+  // PK textual (`codigo`) → el valor de la asignación es el código string.
   executingunit: {
     endpoint: "executing-units",
-    toLabel: (r) => String(r.nombre ?? r.id),
+    toLabel: (r) => String(r.nombre ?? r.codigo ?? r.id),
+    valueKey: "codigo",
   },
   conapres: { endpoint: "conapres", toLabel: (r) => String(r.nombre ?? r.id) },
   student: {

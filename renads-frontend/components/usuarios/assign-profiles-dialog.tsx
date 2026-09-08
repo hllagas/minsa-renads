@@ -81,7 +81,8 @@ function AssignProfilesBody({ user }: { user: User }) {
     roles.length === 1 ? roles[0].id : null,
   );
   const [tipoEntidad, setTipoEntidad] = useState<string | null>(null);
-  const [ids, setIds] = useState<number[]>([]);
+  // PK de la entidad asignada: numérica o textual (ipress `codigo_renipress`, executing-units `codigo`).
+  const [ids, setIds] = useState<(string | number)[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<number | null>(null);
   // Perfil que se está editando: precarga sus valores en el formulario (rol/tipo/entidad).
@@ -91,7 +92,7 @@ function AssignProfilesBody({ user }: { user: User }) {
   const [editingOrig, setEditingOrig] = useState<{
     rolId: number | null;
     tipo: string;
-    objId: number;
+    objId: string | number;
   } | null>(null);
 
   const mapping = tipoEntidad ? ENTITY_ENDPOINTS[tipoEntidad] : undefined;
@@ -310,6 +311,7 @@ function AssignProfilesBody({ user }: { user: User }) {
             <MultiEntityCombobox
               key={mapping.endpoint}
               endpoint={mapping.endpoint}
+              valueKey={mapping.valueKey}
               value={ids}
               onChange={setIds}
               toLabel={mapping.toLabel}

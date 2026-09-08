@@ -19,15 +19,21 @@ def perfiles_del_usuario(usuario: AbstractBaseUser) -> QuerySet[UserEntityProfil
     )
 
 
-def entidades_del_usuario(usuario: AbstractBaseUser) -> list[tuple[int, int]]:
-    """Pares (tipo_contenido_id, id_objeto) de las entidades a las que pertenece el usuario."""
-    return list(
-        perfiles_del_usuario(usuario).values_list("tipo_contenido_id", "id_objeto")
-    )
+def entidades_del_usuario(usuario: AbstractBaseUser) -> list[tuple[int, str]]:
+    """Pares (tipo_contenido_id, id_objeto) de las entidades a las que pertenece el usuario.
+
+    El ``id_objeto`` es ``CharField`` (texto): para IPRESS es el código RENIPRESS; para el
+    resto de entidades es el pk entero casteado a ``str``. El cast explícito blinda la
+    comparación por ``str`` en permisos y selectores.
+    """
+    return [
+        (tc, str(oid))
+        for tc, oid in perfiles_del_usuario(usuario).values_list("tipo_contenido_id", "id_objeto")
+    ]
 
 
-def usuario_pertenece_a_entidad(usuario: AbstractBaseUser, tipo_contenido_id: int, id_objeto: int) -> bool:
-    """Indica si el usuario tiene un perfil activo en la entidad indicada."""
+def usuario_pertenece_a_entidad(usuario: AbstractBaseUser, tipo_contenido_id: int, id_objeto: str) -> bool:
+    """Indica si el usuario tiene un perfil activo en la entidad indicada (comparación por str)."""
     return perfiles_del_usuario(usuario).filter(
-        tipo_contenido_id=tipo_contenido_id, id_objeto=id_objeto
+        tipo_contenido_id=tipo_contenido_id, id_objeto=str(id_objeto)
     ).exists()

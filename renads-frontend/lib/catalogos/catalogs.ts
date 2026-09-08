@@ -95,11 +95,37 @@ const ubigeosConfig: ResourceConfig = {
 export const CATALOG_CONFIGS: Record<string, ResourceConfig> = {
   regions: readOnlyCatalog("regions", "Regiones", "región"),
   // CRUD (backend lo promovió a ENTITY_VIEWSETS: escritura `Administrador RENADS` + auditoría).
-  "health-geographic-scopes": writableCatalog(
-    "health-geographic-scopes",
-    "Ámbitos geográficos sanitarios",
-    "ámbito geográfico sanitario",
-  ),
+  // CRUD custom (no el helper) para exponer/editar `gobierno_regional` (FK, nullable;
+  // nulo para los 4 DIRIS de Lima Metropolitana) — refactor 2026-09-08 (mig 0043).
+  "health-geographic-scopes": {
+    endpoint: "health-geographic-scopes",
+    title: "Ámbitos geográficos sanitarios",
+    singular: "ámbito geográfico sanitario",
+    writeRoles: ["Administrador RENADS"],
+    searchPlaceholder: "Buscar por código o nombre…",
+    columns: [
+      { key: "codigo", header: "Código" },
+      { key: "nombre", header: "Nombre" },
+      {
+        key: "gobierno_regional",
+        header: "Gobierno regional",
+        render: (r: WithId) => detalleNombre(r.gobierno_regional_detalle),
+      },
+      { key: "activo", header: "Activo", render: (r: WithId) => siNo(r.activo) },
+    ],
+    filters: [activoFilter],
+    fields: [
+      { name: "codigo", label: "Código", type: "text", required: true },
+      { name: "nombre", label: "Nombre", type: "text", required: true, uppercase: false },
+      {
+        name: "gobierno_regional",
+        label: "Gobierno regional (nulo para DIRIS de Lima)",
+        type: "select",
+        optionsEndpoint: "regional-governments",
+      },
+      { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
+    ],
+  },
   "convention-types": readOnlyCatalog(
     "convention-types",
     "Tipos de convenio",
