@@ -138,6 +138,10 @@ export default function ConvenioDetallePage() {
                   }
                 />
                 <Dato
+                  label="Gobierno regional"
+                  value={detalleNombre((c as Record<string, unknown>).gobierno_regional_detalle)}
+                />
+                <Dato
                   label="Universidad"
                   value={
                     c.universidad_nombre

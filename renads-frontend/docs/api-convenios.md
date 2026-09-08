@@ -55,6 +55,7 @@ id, tipo_convenio, convenio_marco, convenio_origen, es_adenda,
 plantilla, nomenclatura, titulo,
 solicitante_tipo_contenido, solicitante_id_objeto, solicitante,
 organo_directorio, organo_directorio_nombre, tipo_organo_directorio,
+gobierno_regional, gobierno_regional_detalle,
 universidad, universidad_nombre, tipo_entidad_universidad,
 unidad_ejecutora, unidad_ejecutora_detalle, facultad, facultad_detalle,
 estado_actual, estado_codigo, fecha_solicitud, fecha_inicio, fecha_fin,
@@ -64,6 +65,9 @@ max_campos_clinicos, creado_por, creado_en, actualizado_en
 
 `unidad_ejecutora_detalle` → `{id, nombre, codigo}`.
 `facultad_detalle` → `{id, nombre}`.
+`gobierno_regional_detalle` → `{id, nombre, sigla}` (o `null`). **Refactor 2026-09-07 (mig 0041):**
+el GORE se trasladó de `organo_directorio` → `convenio`; solo aplica a Convenio Marco regional
+(la adenda lo hereda del origen).
 `adendas` → lista `[{id, titulo, estado_codigo, fecha_inicio, fecha_fin}]`.
 `vigencia_efectiva` → `{fecha_inicio, fecha_fin}` (de la última adenda activa, o del convenio).
 `partes_firmantes` → lista de `ConventionParty` (ver §parties).
@@ -72,11 +76,13 @@ max_campos_clinicos, creado_por, creado_en, actualizado_en
 ```
 tipo_convenio, convenio_marco, plantilla, titulo,
 solicitante_tipo_contenido, solicitante_id_objeto,
-organo_directorio, universidad, unidad_ejecutora?, facultad?,
+organo_directorio, gobierno_regional?, universidad, unidad_ejecutora?, facultad?,
 fecha_solicitud, fecha_inicio?, fecha_fin?, max_campos_clinicos?
 ```
 > `unidad_ejecutora` y `facultad` solo aplican a Específico. `facultad` debe pertenecer a la
-> universidad del Marco. `nomenclatura` no se envía (la asigna DIGEP).
+> universidad del Marco. `nomenclatura` no se envía (la asigna DIGEP). `gobierno_regional` solo
+> aplica a **Convenio Marco regional** (el backend lo exige por tipo/órgano); Marco Lima /
+> Específico lo dejan nulo.
 
 ### Payloads de acciones de flujo
 

@@ -54,6 +54,13 @@ export const CONVENTION_FIELDS: FieldConfig[] = [
     optionsEndpoint: "organ-directories",
   },
   {
+    name: "gobierno_regional",
+    label: "Gobierno regional (solo Marco regional)",
+    type: "select",
+    optionsEndpoint: "regional-governments",
+    optionsToLabel: (row: WithId) => String(row.nombre ?? row.sigla ?? row.id),
+  },
+  {
     name: "universidad",
     label: "Universidad",
     type: "select",

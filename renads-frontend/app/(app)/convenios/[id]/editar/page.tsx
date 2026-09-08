@@ -31,6 +31,7 @@ export default function EditarConvenioPage() {
     solicitante_tipo_contenido: c.solicitante_tipo_contenido,
     solicitante_id_objeto: c.solicitante_id_objeto,
     organo_directorio: c.organo_directorio,
+    gobierno_regional: c.gobierno_regional ?? null,
     universidad: c.universidad,
     unidad_ejecutora: c.unidad_ejecutora ?? null,
     facultad: c.facultad ?? null,

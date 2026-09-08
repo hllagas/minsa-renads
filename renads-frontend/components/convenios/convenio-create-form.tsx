@@ -47,6 +47,7 @@ export function ConvenioCreateForm({
       solicitante_tipo_contenido: null,
       solicitante_id_objeto: null,
       organo_directorio: null,
+      gobierno_regional: null,
       universidad: null,
       unidad_ejecutora: null,
       facultad: null,
@@ -99,6 +100,8 @@ export function ConvenioCreateForm({
       fecha_solicitud: values.fecha_solicitud,
     };
     if (values.plantilla != null) payload.plantilla = Number(values.plantilla);
+    if (values.gobierno_regional != null)
+      payload.gobierno_regional = Number(values.gobierno_regional);
     if (isEspecifico) {
       if (values.convenio_marco != null)
         payload.convenio_marco = Number(values.convenio_marco);
@@ -224,6 +227,23 @@ export function ConvenioCreateForm({
               value={field.value as number | null}
               onChange={(v) => field.onChange(v)}
               placeholder="Buscar órgano del directorio…"
+            />
+          </Row>
+        )}
+      />
+
+      {/* Gobierno regional — solo Convenio Marco regional (el backend valida por tipo/órgano) */}
+      <Controller
+        control={control}
+        name="gobierno_regional"
+        render={({ field }) => (
+          <Row label="Gobierno regional (solo Marco regional)">
+            <EntityCombobox
+              endpoint="regional-governments"
+              toLabel={(row: WithId) => String(row.nombre ?? row.sigla ?? row.id)}
+              value={field.value as number | null}
+              onChange={(v) => field.onChange(v)}
+              placeholder="Buscar gobierno regional…"
             />
           </Row>
         )}

@@ -191,6 +191,14 @@ class ExecutivePosition(models.Model):
     ``nombre_masculino`` es único por ``organo_directivo``, no global.
     """
 
+    organo = models.ForeignKey(
+        "Organ", on_delete=models.PROTECT, db_column="organo_id",
+        related_name="cargos_ejecutivos", null=False, verbose_name="órgano",
+        help_text=(
+            "Categoría de órgano (FK a la tabla canónica `organo`) a la que pertenece "
+            "el cargo; debe coincidir con organo_directivo.organo cuando este está seteado"
+        ),
+    )
     organo_directivo = models.ForeignKey(
         "OrganDirectory", on_delete=models.PROTECT, db_column="organo_directivo_id",
         related_name="cargos", null=True, blank=True, verbose_name="órgano directivo",
@@ -306,18 +314,13 @@ class OrganDirectory(models.Model):
 
     Cataloga órganos del MINSA, universidades, gobiernos regionales, DIRIS y unidades
     ejecutoras en una única tabla. La ``categoria`` (choices) reemplaza al antiguo FK
-    ``organo``/``tipo_organo``. Los órganos regionales pueden llevar ``gobierno_regional``.
+    ``organo``/``tipo_organo``.
     """
 
     organo = models.ForeignKey(
         Organ, on_delete=models.PROTECT, db_column="organo_id",
         related_name="organos_directorio_por_categoria",
         help_text="Categoría del órgano (FK a la tabla canónica `organo`)",
-    )
-    gobierno_regional = models.ForeignKey(
-        RegionalGovernment, on_delete=models.PROTECT, db_column="gobierno_regional_id",
-        null=True, blank=True, related_name="organos_directorio",
-        help_text="GORE (solo órganos regionales)",
     )
     nombre = models.CharField("nombre", max_length=255, help_text="Nombre del órgano")
     siglas = models.CharField("siglas", max_length=50, blank=True, help_text="Siglas")
@@ -328,19 +331,12 @@ class OrganDirectory(models.Model):
         verbose_name = "órgano del directorio"
         verbose_name_plural = "órganos del directorio"
         constraints = [
-            # RN: único por (organo, gobierno_regional, nombre). Un GORE puede tener
-            # varios órganos con nombre distinto; el nombre no se repite dentro del
-            # mismo órgano+GORE. Dos constraints parciales por el caso GORE nulo
-            # (NULL != NULL en un UNIQUE estándar → no se enforcaría el nombre).
-            models.UniqueConstraint(
-                fields=["organo", "gobierno_regional", "nombre"],
-                condition=models.Q(gobierno_regional__isnull=False),
-                name="uniq_organo_dir_organo_gore_nombre",
-            ),
+            # RN-GORE-3: único por (organo, nombre). El GORE dejó de vivir en el
+            # órgano del directorio (se trasladó a `convenio.gobierno_regional`), por
+            # lo que la unicidad colapsa a un único constraint por (organo, nombre).
             models.UniqueConstraint(
                 fields=["organo", "nombre"],
-                condition=models.Q(gobierno_regional__isnull=True),
-                name="uniq_organo_dir_organo_nombre_sin_gore",
+                name="uniq_organo_dir_organo_nombre",
             ),
         ]
 
@@ -843,6 +839,11 @@ class Convention(models.Model):
         OrganDirectory, on_delete=models.PROTECT, db_column="organo_directorio_id",
         related_name="convenios",
         help_text="Órgano del directorio (GERESA/DIRESA/DIRIS) parte del convenio.",
+    )
+    gobierno_regional = models.ForeignKey(
+        RegionalGovernment, on_delete=models.PROTECT, db_column="gobierno_regional_id",
+        null=True, blank=True, related_name="convenios",
+        help_text="Gobierno Regional del convenio (solo Convenio Marco regional).",
     )
     universidad = models.ForeignKey(
         University, on_delete=models.PROTECT, db_column="universidad_id",

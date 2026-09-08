@@ -21,8 +21,9 @@ erDiagram
     ambito_geografico_sanitario ||--o{ ipress : ""
 
     %% ===== M1: Jerarquía GORE =====
-    %% organo_directorio se discrimina por `categoria` (choices), sin FK a `organo`.
-    gobierno_regional ||--o{ organo_directorio : "solo regionales"
+    %% organo_directorio referencia su categoría vía FK `organo` (organo_id, migración 0039).
+    %% El GORE del convenio vive en `convenio.gobierno_regional` (solo Marco regional).
+    organo ||--o{ organo_directorio : "organo (organo_id)"
     organo_directorio ||--o{ unidad_ejecutora : "tipo_organo (UNIDAD_EJECUTORA)"
     organo_directorio ||--o{ universidad : "tipo_entidad (UNIVERSIDAD)"
     unidad_ejecutora ||--o{ ipress : ""
@@ -38,7 +39,7 @@ erDiagram
     organo_directorio ||--o{ organo_representante : ""
     cargo_ejecutivo ||--o{ organo_representante : ""
     organo_representante ||--o{ historial_organo_representante : "baja"
-    organo ||--o{ cargo_ejecutivo : ""
+    organo ||--o{ cargo_ejecutivo : "organo (organo_id)"
 
     %% ===== M1: Universidad =====
     universidad ||--o{ facultad : ""
@@ -50,6 +51,7 @@ erDiagram
 
     %% ===== M1: Convenio =====
     tipo_convenio ||--o{ convenio : ""
+    gobierno_regional ||--o{ convenio : "opcional, solo Marco regional"
     convenio ||--o{ convenio : "marco→especifico"
     plantilla_convenio ||--o{ convenio : ""
     estado_convenio ||--o{ convenio : ""

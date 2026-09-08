@@ -2438,10 +2438,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD del directorio unificado de órganos (RN: único por organo+GORE+nombre). */
+        /** @description CRUD del directorio unificado de órganos (RN: único por organo+nombre). */
         get: operations["organ_directories_list"];
         put?: never;
-        /** @description CRUD del directorio unificado de órganos (RN: único por organo+GORE+nombre). */
+        /** @description CRUD del directorio unificado de órganos (RN: único por organo+nombre). */
         post: operations["organ_directories_create"];
         delete?: never;
         options?: never;
@@ -2456,16 +2456,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD del directorio unificado de órganos (RN: único por organo+GORE+nombre). */
+        /** @description CRUD del directorio unificado de órganos (RN: único por organo+nombre). */
         get: operations["organ_directories_retrieve"];
-        /** @description CRUD del directorio unificado de órganos (RN: único por organo+GORE+nombre). */
+        /** @description CRUD del directorio unificado de órganos (RN: único por organo+nombre). */
         put: operations["organ_directories_update"];
         post?: never;
-        /** @description CRUD del directorio unificado de órganos (RN: único por organo+GORE+nombre). */
+        /** @description CRUD del directorio unificado de órganos (RN: único por organo+nombre). */
         delete: operations["organ_directories_destroy"];
         options?: never;
         head?: never;
-        /** @description CRUD del directorio unificado de órganos (RN: único por organo+GORE+nombre). */
+        /** @description CRUD del directorio unificado de órganos (RN: único por organo+nombre). */
         patch: operations["organ_directories_partial_update"];
         trace?: never;
     };
@@ -4541,6 +4541,9 @@ export interface components {
             /** @description Facultad (de la universidad del Marco) parte del Convenio Específico */
             facultad?: number | null;
             readonly facultad_detalle: string;
+            /** @description Gobierno Regional del convenio (solo Convenio Marco regional). */
+            gobierno_regional?: number | null;
+            readonly gobierno_regional_detalle: string;
             readonly estado_actual: string;
             readonly estado_codigo: string;
             /**
@@ -4659,6 +4662,8 @@ export interface components {
             solicitante_id_objeto: number;
             /** @description Órgano del directorio (GERESA/DIRESA/DIRIS) parte del convenio. */
             organo_directorio: number;
+            /** @description Gobierno Regional del convenio (solo Convenio Marco regional). */
+            gobierno_regional?: number | null;
             /** @description Universidad parte del convenio. Su tipo de entidad se deriva de esta relación. */
             universidad: number;
             /** @description Unidad ejecutora parte del Convenio Específico */
@@ -6388,6 +6393,8 @@ export interface components {
             solicitante_id_objeto?: number;
             /** @description Órgano del directorio (GERESA/DIRESA/DIRIS) parte del convenio. */
             organo_directorio?: number;
+            /** @description Gobierno Regional del convenio (solo Convenio Marco regional). */
+            gobierno_regional?: number | null;
             /** @description Universidad parte del convenio. Su tipo de entidad se deriva de esta relación. */
             universidad?: number;
             /** @description Unidad ejecutora parte del Convenio Específico */
@@ -7012,17 +7019,14 @@ export interface components {
             microred?: number | null;
         };
         /**
-         * @description Serializer de órganos del directorio con RN de unicidad `(organo, gobierno_regional, nombre)`.
+         * @description Serializer de órganos del directorio con RN de unicidad `(organo, nombre)`.
          *
-         *     RN: un GORE puede tener varios órganos del directorio, pero el nombre no se repite
-         *     dentro del mismo `(organo, gobierno_regional)`. Para los órganos sin GORE
-         *     (MINSA/UNIVERSIDAD/DIRIS/tipos) la unicidad aplica sobre `(organo, nombre)`. El
-         *     auto-serializer no aplica esta regla, así que se valida aquí y se devuelve un 400
-         *     legible en vez del IntegrityError 500 de las ``UniqueConstraint`` parciales de la BD.
+         *     RN-GORE-3: el nombre no se repite dentro del mismo `organo`. El auto-serializer no
+         *     aplica esta regla, así que se valida aquí y se devuelve un 400 legible en vez del
+         *     IntegrityError 500 de la ``UniqueConstraint`` de la BD.
          */
         Patched_OrganDirectory: {
             readonly id?: number;
-            readonly gobierno_regional_detalle?: string;
             readonly organo_detalle?: string;
             /** @description Nombre del órgano */
             nombre?: string;
@@ -7031,8 +7035,6 @@ export interface components {
             activo?: boolean;
             /** @description Categoría del órgano (FK a la tabla canónica `organo`) */
             organo?: number;
-            /** @description GORE (solo órganos regionales) */
-            gobierno_regional?: number | null;
         };
         /** @description Catálogo de permisos (solo lectura) con el `content_type` desglosado. */
         Permission: {
@@ -7831,17 +7833,14 @@ export interface components {
             microred?: number | null;
         };
         /**
-         * @description Serializer de órganos del directorio con RN de unicidad `(organo, gobierno_regional, nombre)`.
+         * @description Serializer de órganos del directorio con RN de unicidad `(organo, nombre)`.
          *
-         *     RN: un GORE puede tener varios órganos del directorio, pero el nombre no se repite
-         *     dentro del mismo `(organo, gobierno_regional)`. Para los órganos sin GORE
-         *     (MINSA/UNIVERSIDAD/DIRIS/tipos) la unicidad aplica sobre `(organo, nombre)`. El
-         *     auto-serializer no aplica esta regla, así que se valida aquí y se devuelve un 400
-         *     legible en vez del IntegrityError 500 de las ``UniqueConstraint`` parciales de la BD.
+         *     RN-GORE-3: el nombre no se repite dentro del mismo `organo`. El auto-serializer no
+         *     aplica esta regla, así que se valida aquí y se devuelve un 400 legible en vez del
+         *     IntegrityError 500 de la ``UniqueConstraint`` de la BD.
          */
         _OrganDirectory: {
             readonly id: number;
-            readonly gobierno_regional_detalle: string;
             readonly organo_detalle: string;
             /** @description Nombre del órgano */
             nombre: string;
@@ -7850,8 +7849,6 @@ export interface components {
             activo?: boolean;
             /** @description Categoría del órgano (FK a la tabla canónica `organo`) */
             organo: number;
-            /** @description GORE (solo órganos regionales) */
-            gobierno_regional?: number | null;
         };
     };
     responses: never;
@@ -12667,7 +12664,6 @@ export interface operations {
         parameters: {
             query?: {
                 activo?: boolean;
-                gobierno_regional?: number;
                 /** @description Qué campo usar para ordenar los resultados. */
                 ordering?: string;
                 organo?: number;

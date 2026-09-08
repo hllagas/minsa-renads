@@ -152,6 +152,11 @@ export const CATALOG_CONFIGS: Record<string, ResourceConfig> = {
     searchPlaceholder: "Buscar por nombre del cargo…",
     columns: [
       {
+        key: "organo_detalle",
+        header: "Órgano",
+        render: (r: WithId) => detalleNombre(r.organo_detalle),
+      },
+      {
         key: "organo_directivo_detalle",
         header: "Órgano del directorio",
         render: (r: WithId) => detalleNombre(r.organo_directivo_detalle),
@@ -162,6 +167,13 @@ export const CATALOG_CONFIGS: Record<string, ResourceConfig> = {
     ],
     filters: [
       {
+        name: "organo",
+        label: "Órgano",
+        type: "select",
+        optionsEndpoint: "organs",
+        optionsToLabel: (o) => String(o.nombre ?? o.id),
+      },
+      {
         name: "organo_directivo",
         label: "Órgano del directorio",
         type: "select",
@@ -170,12 +182,26 @@ export const CATALOG_CONFIGS: Record<string, ResourceConfig> = {
       activoFilter,
     ],
     fields: [
+      // Paso 1: elegir el órgano (FK obligatoria a `organs`); filtra el órgano del directorio.
+      {
+        name: "organo",
+        label: "Órgano",
+        type: "select",
+        required: true,
+        optionsEndpoint: "organs",
+        optionsToLabel: (o) => String(o.nombre ?? o.id),
+      },
+      // Paso 2: el órgano del directorio, filtrado por el órgano elegido (`?organo=<id>`).
+      // El backend valida la coherencia `organo == organo_directivo.organo`.
       {
         name: "organo_directivo",
         label: "Órgano del directorio",
         type: "select",
         required: true,
         optionsEndpoint: "organ-directories",
+        optionsParamsFrom: (values): Record<string, string> =>
+          values.organo ? { organo: String(values.organo) } : {},
+        resetsOn: ["organo"],
       },
       { name: "nombre_masculino", label: "Nombre (masculino)", type: "text", required: true, uppercase: false },
       { name: "nombre_femenino", label: "Nombre (femenino)", type: "text", uppercase: false },

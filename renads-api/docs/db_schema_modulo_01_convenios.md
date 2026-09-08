@@ -39,7 +39,7 @@ Tablas paramétricas (RNF-MAN-01). Patrón común: `id` (PK), `codigo` (varchar,
 | `nivel_academico` | Nivel académico de la carrera | valores: `PREGRADO`, `SEGUNDA_ESPECIALIDAD`, `MAESTRIA`, `DOCTORADO` |
 | `especialidad` | Especialidades de salud (seed: 46 especialidades médicas, nomenclatura oficial CONAREME) | — |
 | `tipo_autoridad_firmante` | Tipo de autoridad firmante | — |
-| `cargo_ejecutivo` | Cargos ejecutivos de representantes. **No** hereda de `Catalog`: FK `organo_directivo_id` → `organo_directorio` (1:N, nullable), unicidad `(organo_directivo_id, nombre_masculino)` | `organo_directivo_id` (FK → `organo_directorio`, null), `nombre_masculino`, `nombre_femenino`, `activo` |
+| `cargo_ejecutivo` | Cargos ejecutivos de representantes. **No** hereda de `Catalog`: FK obligatorio `organo_id` → `organo` (categoría canónica) + FK `organo_directivo_id` → `organo_directorio` (1:N, nullable); coherencia `organo == organo_directivo.organo` cuando este está seteado; unicidad `(organo_directivo_id, nombre_masculino)` | `organo_id` (FK → `organo`, no null), `organo_directivo_id` (FK → `organo_directorio`, null), `nombre_masculino`, `nombre_femenino`, `activo` |
 | `motivo_observacion` | Motivos de observación | — |
 | `motivo_rechazo` | Motivos de rechazo | — |
 | `motivo_cierre` | Motivos de cierre o anulación | — |
@@ -126,18 +126,19 @@ Endpoint: `/api/v1/regional-governments/` (CRUD con logo; filtros `region`, `ubi
 
 ### `organo_directorio` (directorio unificado de órganos/tipos institucionales)
 
-Tabla **standalone** que cataloga órganos del MINSA, universidades, gobiernos regionales, DIRIS y unidades ejecutoras, discriminada por `categoria` (choices). Reemplaza al antiguo par `organo_id`/`tipo_organo_id` (retirados). Los órganos regionales pueden llevar `gobierno_regional_id`.
+Tabla **standalone** que cataloga órganos del MINSA, universidades, gobiernos regionales, DIRIS y unidades ejecutoras, discriminada por `categoria` (choices). Reemplaza al antiguo par `organo_id`/`tipo_organo_id` (retirados). El GORE ya no vive aquí: se trasladó a `convenio.gobierno_regional_id`.
 
 | Columna | Tipo | Null | Descripción |
 |---------|------|------|-------------|
 | `id` | PK | No | |
 | `categoria` | varchar(20) (choices) | No | Categoría del órgano (discriminador): `ORGANO_MINSA` / `UNIVERSIDAD` / `GOBIERNO_REGIONAL` / `MINSA_DIRIS` / `UNIDAD_EJECUTORA` |
-| `gobierno_regional_id` | FK → `gobierno_regional` (PROTECT) | Sí | GORE (solo órganos regionales) |
 | `nombre` | varchar(255) | No | Nombre del órgano |
 | `siglas` | varchar(50) | Sí | Siglas |
 | `activo` | bool | No | |
 
-Endpoint: `/api/v1/organ-directories/` (CRUD, escritura solo `Administrador RENADS`; filtros `categoria`, `gobierno_regional`, `activo`; búsqueda `nombre`, `siglas`; **sin logo**; lectura expone `gobierno_regional_detalle`). Cada `organo_directorio` es un **órgano directivo** que agrupa 1..N `cargo_ejecutivo` (relación 1:N vía `cargo_ejecutivo.organo_directivo_id`).
+Unicidad: única por `(organo, nombre)` (constraint `uniq_organo_dir_organo_nombre`).
+
+Endpoint: `/api/v1/organ-directories/` (CRUD, escritura solo `Administrador RENADS`; filtros `categoria`, `activo`; búsqueda `nombre`, `siglas`; **sin logo**). Cada `organo_directorio` es un **órgano directivo** que agrupa 1..N `cargo_ejecutivo` (relación 1:N vía `cargo_ejecutivo.organo_directivo_id`).
 
 ### `cargo_ejecutivo` (cargos de un órgano directivo)
 
@@ -146,12 +147,13 @@ Cargos ejecutivos de un **órgano directivo** concreto (`organo_directorio`). Re
 | Columna | Tipo | Null | Descripción |
 |---------|------|------|-------------|
 | `id` | PK | No | |
+| `organo_id` | FK → `organo` (PROTECT, `related_name='cargos_ejecutivos'`) | No | Categoría de órgano a la que pertenece el cargo; debe coincidir con `organo_directivo.organo` cuando este está seteado |
 | `organo_directivo_id` | FK → `organo_directorio` (PROTECT, `related_name='cargos'`) | Sí | Órgano directivo al que pertenece el cargo (nullable en BD y API; filas seed legacy quedan sin asignar) |
 | `nombre_masculino` | varchar(255) | No | Nombre del cargo en masculino |
 | `nombre_femenino` | varchar(255) | Sí | Nombre del cargo en femenino |
 | `activo` | bool | No | |
 
-`unique_together = (organo_directivo, nombre_masculino)`. Endpoint: `/api/v1/executive-positions/` (CRUD, escritura solo `Administrador RENADS`; filtros `organo_directivo`, `activo`; búsqueda `nombre_masculino`, `nombre_femenino`; lectura expone `organo_directivo_detalle` con id/nombre/categoría).
+`unique_together = (organo_directivo, nombre_masculino)` (el `organo` no se incluye por derivarse del `organo_directivo`). **Coherencia (RN-CE-02):** cuando `organo_directivo` está seteado, `organo` debe coincidir con `organo_directivo.organo` — validado en el serializer del viewset (`_ExecutivePositionSerializer.validate`, soporta PATCH parcial); si `organo_directivo` es nulo (cargo global), la coherencia no aplica y solo se exige el `organo` obligatorio. Endpoint: `/api/v1/executive-positions/` (CRUD, escritura solo `Administrador RENADS`; filtros `organo`, `organo_directivo` (con `isnull`), `activo`; búsqueda `nombre_masculino`, `nombre_femenino`; lectura expone `organo_detalle` (id/codigo/nombre) y `organo_directivo_detalle` con id/nombre/organo).
 
 ### `unidad_ejecutora`
 
@@ -201,7 +203,7 @@ Endpoint: `/api/v1/executing-units/` (CRUD con logo, escritura solo `Administrad
 >
 > **Autorización de sede docente (CONAPRES):** una `ipress` solo actúa como sede docente si **CONAPRES** la autoriza y registra tras verificar los criterios de evaluación: establecimiento **asistencial**, perteneciente al **MINSA** o a la **sanidad de las Fuerzas Armadas/Policiales**, y de gestión **pública**.
 
-> Los órganos del MINSA (DIGEP / OGAJ / SG / VICEPAS) también viven en `organo_directorio` (con `gobierno_regional_id` nulo y `categoria = ORGANO_MINSA`).
+> Los órganos del MINSA (DIGEP / OGAJ / SG / VICEPAS) también viven en `organo_directorio` (categoría `ORGANO_MINSA`).
 
 ---
 
@@ -435,6 +437,7 @@ evitando redundancia. En el formulario son selectores en cascada que filtran la 
 | `solicitante_tipo_contenido_id` | FK → `django_content_type` | No | Tipo de entidad solicitante |
 | `solicitante_id_objeto` | int | No | Identificador de la entidad solicitante |
 | `organo_directorio_id` | FK → `organo_directorio` | No | Órgano del directorio (GERESA/DIRESA/DIRIS) parte del convenio. Su tipo se deriva de la entidad |
+| `gobierno_regional_id` | FK → `gobierno_regional` (PROTECT) | Sí | Gobierno Regional del convenio (solo Convenio Marco regional; `related_name='convenios'`) |
 | `universidad_id` | FK → `universidad` | No | Universidad parte del convenio. Su tipo de entidad se deriva de la entidad |
 | `unidad_ejecutora_id` | FK → `unidad_ejecutora` (PROTECT) | Sí | Unidad ejecutora parte del Convenio Específico (nula en Marco; `related_name='convenios'`) |
 | `facultad_id` | FK → `facultad` (PROTECT) | Sí | Facultad (de la universidad del Marco) parte del Convenio Específico (nula en Marco; `related_name='convenios'`) |

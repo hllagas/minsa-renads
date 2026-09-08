@@ -49,6 +49,7 @@ class ConventionReadSerializer(serializers.ModelSerializer):
     )
     unidad_ejecutora_detalle = serializers.SerializerMethodField()
     facultad_detalle = serializers.SerializerMethodField()
+    gobierno_regional_detalle = serializers.SerializerMethodField()
     adendas = serializers.SerializerMethodField()
     vigencia_efectiva = serializers.SerializerMethodField()
     partes_firmantes = serializers.SerializerMethodField()
@@ -62,6 +63,7 @@ class ConventionReadSerializer(serializers.ModelSerializer):
             "organo_directorio", "organo_directorio_nombre", "tipo_organo_directorio",
             "universidad", "universidad_nombre", "tipo_entidad_universidad",
             "unidad_ejecutora", "unidad_ejecutora_detalle", "facultad", "facultad_detalle",
+            "gobierno_regional", "gobierno_regional_detalle",
             "estado_actual", "estado_codigo", "fecha_solicitud", "fecha_inicio", "fecha_fin",
             "vigencia_efectiva", "adendas", "partes_firmantes",
             "max_campos_clinicos", "creado_por", "creado_en", "actualizado_en",
@@ -75,6 +77,9 @@ class ConventionReadSerializer(serializers.ModelSerializer):
 
     def get_facultad_detalle(self, obj):
         return _detalle_fk(obj.facultad, "nombre")
+
+    def get_gobierno_regional_detalle(self, obj):
+        return _detalle_fk(obj.gobierno_regional, "nombre", "sigla")
 
     def get_adendas(self, obj) -> list:
         # Un nivel de adendas directas; el frontend recorre recursivamente si
@@ -106,7 +111,8 @@ class ConventionWriteSerializer(serializers.ModelSerializer):
         fields = [
             "tipo_convenio", "convenio_marco", "plantilla", "titulo",
             "solicitante_tipo_contenido", "solicitante_id_objeto",
-            "organo_directorio", "universidad", "unidad_ejecutora", "facultad",
+            "organo_directorio", "gobierno_regional", "universidad",
+            "unidad_ejecutora", "facultad",
             "fecha_solicitud", "fecha_inicio", "fecha_fin", "max_campos_clinicos",
         ]
 

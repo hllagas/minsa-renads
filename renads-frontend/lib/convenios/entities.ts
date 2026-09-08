@@ -440,11 +440,6 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
       },
       { key: "nombre", header: "Nombre" },
       { key: "siglas", header: "Siglas" },
-      {
-        key: "gobierno_regional",
-        header: "Gobierno regional",
-        render: (r) => detalleNombre(r.gobierno_regional_detalle),
-      },
       { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
     ],
     filters: [
@@ -454,12 +449,6 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         type: "select",
         optionsEndpoint: "organs",
         optionsToLabel: (o) => String(o.nombre ?? o.id),
-      },
-      {
-        name: "gobierno_regional",
-        label: "Gobierno regional",
-        type: "select",
-        optionsEndpoint: "regional-governments",
       },
       activoFilter,
     ],
@@ -471,12 +460,6 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         required: true,
         optionsEndpoint: "organs",
         optionsToLabel: (o) => String(o.nombre ?? o.id),
-      },
-      {
-        name: "gobierno_regional",
-        label: "Gobierno regional",
-        type: "select",
-        optionsEndpoint: "regional-governments",
       },
       { name: "nombre", label: "Nombre", type: "text", required: true, uppercase: false },
       { name: "siglas", label: "Siglas", type: "text" },

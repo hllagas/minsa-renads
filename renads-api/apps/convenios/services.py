@@ -151,6 +151,34 @@ def _validar_partes_por_tipo(*, tipo_codigo, marco, universidad, unidad_ejecutor
             )
 
 
+def _validar_gobierno_regional_por_tipo(*, tipo_codigo, categoria_organo, gobierno_regional) -> None:
+    """Valida el `gobierno_regional` del convenio según su tipo/categoría (RN-GORE-1/2).
+
+    - MARCO + órgano GOBIERNO_REGIONAL (región): exige `gobierno_regional` no nulo.
+    - MARCO + órgano MINSA_DIRIS (Lima): `gobierno_regional` debe ser nulo.
+    - ESPECIFICO: `gobierno_regional` debe ser nulo (se deriva del Marco).
+
+    Reutilizado por `crear_convenio` y `actualizar_convenio`, coherente con
+    `_validar_partes_por_tipo`.
+    """
+    if tipo_codigo == "MARCO":
+        if categoria_organo == "GOBIERNO_REGIONAL":
+            if gobierno_regional is None:
+                raise ValidationError(
+                    {"gobierno_regional": "Requerido para un Convenio Marco regional."}
+                )
+        elif categoria_organo == "MINSA_DIRIS":
+            if gobierno_regional is not None:
+                raise ValidationError(
+                    {"gobierno_regional": "Un Convenio Marco de Lima (DIRIS) no lleva gobierno regional."}
+                )
+    elif tipo_codigo == "ESPECIFICO":
+        if gobierno_regional is not None:
+            raise ValidationError(
+                {"gobierno_regional": "Un Convenio Específico no lleva gobierno regional."}
+            )
+
+
 def _validar_composicion_partes(*, tipo_codigo, categoria_organo, roles_presentes) -> None:
     """Valida la composición de roles requerida por tipo/categoría del convenio.
 
@@ -250,6 +278,12 @@ def crear_convenio(*, datos: dict, usuario) -> Convention:
         unidad_ejecutora=datos.get("unidad_ejecutora"),
         facultad=datos.get("facultad"),
     )
+    # Validación del gobierno regional por tipo (RN-GORE-1/2).
+    _validar_gobierno_regional_por_tipo(
+        tipo_codigo=tipo.codigo,
+        categoria_organo=categoria,
+        gobierno_regional=datos.get("gobierno_regional"),
+    )
 
     fecha_inicio = datos.get("fecha_inicio")
     fecha_fin = datos.get("fecha_fin")
@@ -266,6 +300,7 @@ def crear_convenio(*, datos: dict, usuario) -> Convention:
         solicitante_tipo_contenido=datos["solicitante_tipo_contenido"],
         solicitante_id_objeto=datos["solicitante_id_objeto"],
         organo_directorio=datos["organo_directorio"],
+        gobierno_regional=datos.get("gobierno_regional"),
         universidad=datos["universidad"],
         unidad_ejecutora=datos.get("unidad_ejecutora"),
         facultad=datos.get("facultad"),
@@ -289,8 +324,8 @@ def crear_adenda(*, convenio_origen: Convention, datos: dict, usuario) -> Conven
 
     La adenda es una fila `convenio` encadenada por `convenio_origen`, con nuevo
     periodo de vigencia. Hereda del origen tipo, marco, universidad, órgano del
-    directorio, unidad ejecutora, facultad y solicitante polimórfico. No valida
-    profundidad de la cadena (adendas de adendas permitidas).
+    directorio, gobierno regional, unidad ejecutora, facultad y solicitante
+    polimórfico. No valida profundidad de la cadena (adendas de adendas permitidas).
 
     La adenda de un Marco hereda `unidad_ejecutora`/`facultad` como `None` (el Marco
     no las tiene); la de un Específico las hereda del origen.
@@ -320,6 +355,7 @@ def crear_adenda(*, convenio_origen: Convention, datos: dict, usuario) -> Conven
         solicitante_tipo_contenido_id=convenio_origen.solicitante_tipo_contenido_id,
         solicitante_id_objeto=convenio_origen.solicitante_id_objeto,
         organo_directorio=convenio_origen.organo_directorio,
+        gobierno_regional=convenio_origen.gobierno_regional,
         universidad=convenio_origen.universidad,
         unidad_ejecutora=convenio_origen.unidad_ejecutora,
         facultad=convenio_origen.facultad,
@@ -343,7 +379,7 @@ def actualizar_convenio(*, convenio: Convention, datos: dict, usuario) -> Conven
     # `nomenclatura` NO se edita por PATCH libre: se asigna vía el gate de la
     # validación técnica del Marco (`registrar_evaluacion_tecnica`).
     editables = [
-        "titulo", "plantilla", "organo_directorio", "universidad",
+        "titulo", "plantilla", "organo_directorio", "gobierno_regional", "universidad",
         "unidad_ejecutora", "facultad",
         "fecha_inicio", "fecha_fin", "max_campos_clinicos",
     ]
@@ -358,6 +394,12 @@ def actualizar_convenio(*, convenio: Convention, datos: dict, usuario) -> Conven
         universidad=convenio.universidad,
         unidad_ejecutora=convenio.unidad_ejecutora,
         facultad=convenio.facultad,
+    )
+    # Revalidar el gobierno regional por tipo contra el estado final (RN-GORE-1/2).
+    _validar_gobierno_regional_por_tipo(
+        tipo_codigo=convenio.tipo_convenio.codigo,
+        categoria_organo=convenio.organo_directorio.categoria,
+        gobierno_regional=convenio.gobierno_regional,
     )
     convenio.save()
     registrar_auditoria(usuario, "ACTUALIZAR", convenio)

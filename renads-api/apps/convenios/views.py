@@ -694,32 +694,23 @@ class UniversityCareerViewSet(
 class _OrganDirectorySerializer(
     _auto_serializer(
         m.OrganDirectory,
-        detalles={"gobierno_regional": _detalle_nombre, "organo": _detalle_nombre},
+        detalles={"organo": _detalle_nombre},
     )
 ):
-    """Serializer de órganos del directorio con RN de unicidad `(organo, gobierno_regional, nombre)`.
+    """Serializer de órganos del directorio con RN de unicidad `(organo, nombre)`.
 
-    RN: un GORE puede tener varios órganos del directorio, pero el nombre no se repite
-    dentro del mismo `(organo, gobierno_regional)`. Para los órganos sin GORE
-    (MINSA/UNIVERSIDAD/DIRIS/tipos) la unicidad aplica sobre `(organo, nombre)`. El
-    auto-serializer no aplica esta regla, así que se valida aquí y se devuelve un 400
-    legible en vez del IntegrityError 500 de las ``UniqueConstraint`` parciales de la BD.
+    RN-GORE-3: el nombre no se repite dentro del mismo `organo`. El auto-serializer no
+    aplica esta regla, así que se valida aquí y se devuelve un 400 legible en vez del
+    IntegrityError 500 de la ``UniqueConstraint`` de la BD.
     """
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
         # Estado final del objeto (soporta PATCH parcial partiendo de la instancia).
         organo = attrs.get("organo", getattr(self.instance, "organo", None))
-        gore = attrs.get(
-            "gobierno_regional", getattr(self.instance, "gobierno_regional", None)
-        )
         nombre = attrs.get("nombre", getattr(self.instance, "nombre", None))
         if organo is not None and nombre is not None:
             qs = m.OrganDirectory._default_manager.filter(organo=organo, nombre=nombre)
-            # Con GORE: unicidad por (organo, gore, nombre). Sin GORE: por (organo, nombre).
-            qs = qs.filter(gobierno_regional=gore) if gore is not None else qs.filter(
-                gobierno_regional__isnull=True
-            )
             if self.instance is not None:
                 qs = qs.exclude(pk=self.instance.pk)
             if qs.exists():
@@ -727,8 +718,7 @@ class _OrganDirectorySerializer(
                     {
                         "nombre": (
                             "Ya existe un órgano del directorio con este nombre para el "
-                            "mismo órgano"
-                            + (" y gobierno regional." if gore is not None else ".")
+                            "mismo órgano."
                         )
                     }
                 )
@@ -738,17 +728,80 @@ class _OrganDirectorySerializer(
 class OrganDirectoryViewSet(
     _entity_viewset(
         m.OrganDirectory,
-        filterset_fields=["organo", "gobierno_regional", "activo"],
+        filterset_fields=["organo", "activo"],
         search_fields=["nombre", "siglas"],
-        detalles={"gobierno_regional": _detalle_nombre, "organo": _detalle_nombre},
+        detalles={"organo": _detalle_nombre},
     ),
 ):
-    """CRUD del directorio unificado de órganos (RN: único por organo+GORE+nombre)."""
+    """CRUD del directorio unificado de órganos (RN: único por organo+nombre)."""
 
     queryset = m.OrganDirectory._default_manager.select_related(
-        "gobierno_regional", "organo"
+        "organo"
     ).all()
     serializer_class = _OrganDirectorySerializer
+
+
+class _ExecutivePositionSerializer(
+    _auto_serializer(
+        m.ExecutivePosition,
+        detalles={
+            "organo": _detalle_nombre,
+            "organo_directivo": _detalle_organo_directorio,
+        },
+    )
+):
+    """Serializer de cargos ejecutivos con RN de coherencia `organo == organo_directivo.organo`.
+
+    RN-CE-02: cuando `organo_directivo` está seteado, el `organo` del cargo debe coincidir
+    con el `organo` de ese órgano directivo. El auto-serializer (`ModelSerializer`) no ejecuta
+    `Model.clean()`, así que la coherencia se valida aquí y se devuelve un 400 legible.
+    Si `organo_directivo` es nulo (cargo global), la coherencia no aplica; el FK `organo`
+    obligatorio ya lo garantiza el propio `ModelSerializer` (campo requerido por `null=False`).
+    """
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        # Estado final del objeto (soporta PATCH parcial partiendo de la instancia).
+        organo = attrs.get("organo", getattr(self.instance, "organo", None))
+        organo_directivo = attrs.get(
+            "organo_directivo", getattr(self.instance, "organo_directivo", None)
+        )
+        if organo_directivo is not None and organo is not None:
+            if organo.id != organo_directivo.organo_id:
+                raise drf_serializers.ValidationError(
+                    {
+                        "organo": (
+                            "El órgano del cargo debe coincidir con el órgano del "
+                            "órgano directivo seleccionado."
+                        )
+                    }
+                )
+        return attrs
+
+
+class ExecutivePositionViewSet(
+    _entity_viewset(
+        m.ExecutivePosition,
+        # `organo_directivo__isnull=true` lista los cargos globales (sin órgano directivo),
+        # reutilizables por cualquier entidad (representantes multi-entidad).
+        filterset_fields={
+            "organo": ["exact"],
+            "organo_directivo": ["exact", "isnull"],
+            "activo": ["exact"],
+        },
+        search_fields=["nombre_masculino", "nombre_femenino"],
+        detalles={
+            "organo": _detalle_nombre,
+            "organo_directivo": _detalle_organo_directorio,
+        },
+    ),
+):
+    """CRUD de cargos ejecutivos (RN de coherencia organo ↔ organo_directivo.organo)."""
+
+    queryset = m.ExecutivePosition._default_manager.select_related(
+        "organo", "organo_directivo"
+    ).all()
+    serializer_class = _ExecutivePositionSerializer
 
 
 # Catálogos (solo lectura): basename -> ViewSet
@@ -771,14 +824,7 @@ ENTITY_VIEWSETS = {
     "health-geographic-scopes": _entity_viewset(
         m.HealthGeographicScope, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
     ),
-    "executive-positions": _entity_viewset(
-        m.ExecutivePosition,
-        # `organo_directivo__isnull=true` lista los cargos globales (sin órgano),
-        # reutilizables por cualquier entidad (representantes multi-entidad).
-        filterset_fields={"organo_directivo": ["exact", "isnull"], "activo": ["exact"]},
-        search_fields=["nombre_masculino", "nombre_femenino"],
-        detalles={"organo_directivo": _detalle_organo_directorio},
-    ),
+    "executive-positions": ExecutivePositionViewSet,
     "authorization-types": _entity_viewset(
         m.AuthorizationType, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
     ),

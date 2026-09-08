@@ -45,7 +45,7 @@ Campos del modelo base `Catalog`: `codigo` (único, obligatorio), `nombre` (obli
 |----------|-------|---------------|
 | `authorization-types` | Tipo de autorización | — |
 | `academic-levels` | Nivel académico de carrera | — |
-| `executive-positions` | Cargo ejecutivo. **Refactor 2026-09-01:** quitó FK `organo` → `Organ`; ahora FK `organo_directivo` → `OrganDirectory` (órgano concreto). `unique_together (organo_directivo, nombre_masculino)`. Campos: `organo_directivo`, `nombre_masculino` (req), `nombre_femenino` (opt), `activo`. Detalle: `organo_directivo_detalle: {id, nombre, categoria}`. | `organo_directivo`, `activo` |
+| `executive-positions` | Cargo ejecutivo. **Refactor 2026-09-07 (mig 0042):** vuelve a tener FK `organo` → `Organ` (**obligatoria**) ADEMÁS de `organo_directivo` → `OrganDirectory`. RN: si `organo_directivo` no es nulo, `organo == organo_directivo.organo` (coherencia validada en serializer → 400 legible). `unique_together (organo_directivo, nombre_masculino)`. Campos: `organo` (req), `organo_directivo` (req en UI), `nombre_masculino` (req), `nombre_femenino` (opt), `activo`. Detalle: `organo_detalle: {id, nombre}` + `organo_directivo_detalle: {id, nombre, organo}`. Front: el form elige primero `organo` y filtra `organ-directories?organo=<id>` en cascada. | `organo`, `organo_directivo`, `activo` |
 | `categories` | Categoría de convenio | — |
 | `classification-types` | Clasificación de convenio | — |
 | `health-geographic-scopes` | Ámbito geográfico sanitario (cúspide: ámbito→red→microrred) | — |
@@ -91,7 +91,7 @@ Añadidos a `regional-governments`: `sigla`, `ubigeo`, `numero_ruc`, `direccion`
 | Endpoint | Filtros (`filterset_fields`) | Search | Detalles |
 |----------|------------------------------|--------|----------|
 | `organs` | — | — | Solo lectura. **5** categorías canónicas (`ORGANO_MINSA`, `UNIVERSIDAD`, `GOBIERNO_REGIONAL`, `MINSA_DIRIS`, `UNIDAD_EJECUTORA`). |
-| `organ-directories` | `organo`, `gobierno_regional`, `activo` | `nombre`, `siglas` | `gobierno_regional_detalle`, `organo_detalle` |
+| `organ-directories` | `organo`, `activo` | `nombre`, `siglas` | `organo_detalle` |
 | `executing-units` | `tipo_organo`, `gobierno_regional`, `activo` | `nombre`, `codigo` | `tipo_organo_detalle`, `gobierno_regional_detalle`, `ubigeo_detalle` |
 | `regional-governments` | `region`, `ubigeo`, `activo` | `nombre` | `ubigeo_detalle` (string) |
 | `ipress` | `unidad_ejecutora`, `ambito_geografico_sanitario`, `es_sede_docente`, `activo` | `nombre`, `codigo_renipress` | — |
@@ -117,14 +117,14 @@ Nombres canónicos de `organs` (para resolver el id): `MINSA Administrativo`, `U
 `Gobierno Regional`, `Unidad Ejecutora`, `MINSA DIRIS`. `University.tipo_entidad` filtra por
 `?organo=<id de "Universidad">`; `ExecutingUnit.tipo_organo` por `?organo=<id de "Unidad Ejecutora">`.
 
-**RN de unicidad — `(organo, gobierno_regional, nombre)`** (reemplaza «uno por GORE»): un
-GORE puede tener varios órganos con **nombre distinto**. Dos constraints parciales:
-`uniq_organo_dir_organo_gore_nombre` (cuando hay GORE) y `uniq_organo_dir_organo_nombre_sin_gore`
-(cuando `gobierno_regional` es NULL — MINSA/DIRIS/tipos). Comparación de nombre **exacta**. El
+**RN de unicidad — `(organo, nombre)`** (constraint `uniq_organo_dir_organo_nombre`). El
 serializer valida antes de la BD → **HTTP 400** en `nombre` («Ya existe un órgano del directorio
-con este nombre para el mismo órgano [y gobierno regional]…»). El front lo muestra vía `extractApiError`.
+con este nombre para el mismo órgano.»). El front lo muestra vía `extractApiError`.
 
-`gobierno_regional` (FK opcional) aplica solo a órganos regionales.
+> **Refactor 2026-09-07 (mig 0041):** `OrganDirectory` **ya NO tiene** `gobierno_regional`. El GORE
+> se trasladó a `Convention.gobierno_regional` (ver `docs/api-convenios.md`). Por eso la unicidad
+> colapsó de `(organo, gobierno_regional, nombre)` a `(organo, nombre)`, y el endpoint ya no filtra
+> ni expone `gobierno_regional`.
 
 ### `regional-governments` — campos de contacto e identificación
 
