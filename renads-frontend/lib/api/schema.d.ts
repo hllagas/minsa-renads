@@ -4790,18 +4790,6 @@ export interface components {
              */
             estado_declaraciones?: components["schemas"]["EstadoDeclaracionesEnum"];
             /**
-             * Contacto de emergencia - nombre
-             * @description Nombre del contacto de emergencia
-             */
-            contacto_emergencia_nombre?: string;
-            /**
-             * Contacto de emergencia - teléfono
-             * @description Teléfono del contacto de emergencia
-             */
-            contacto_emergencia_telefono?: string;
-            /** @description Parentesco del contacto de emergencia */
-            contacto_emergencia_parentesco?: number | null;
-            /**
              * Fecha de inicio
              * Format: date
              * @description Fecha de inicio
@@ -4868,18 +4856,6 @@ export interface components {
             fecha_fin: string;
             /** @description Observaciones */
             observaciones?: string;
-            /**
-             * Contacto de emergencia - nombre
-             * @description Nombre del contacto de emergencia
-             */
-            contacto_emergencia_nombre?: string;
-            /**
-             * Contacto de emergencia - teléfono
-             * @description Teléfono del contacto de emergencia
-             */
-            contacto_emergencia_telefono?: string;
-            /** @description Parentesco del contacto de emergencia */
-            contacto_emergencia_parentesco?: number | null;
         };
         /**
          * @description Subida del logo de una entidad (multipart): valida tipo y tamaño del binario.
@@ -6370,18 +6346,6 @@ export interface components {
             fecha_fin?: string;
             /** @description Observaciones */
             observaciones?: string;
-            /**
-             * Contacto de emergencia - nombre
-             * @description Nombre del contacto de emergencia
-             */
-            contacto_emergencia_nombre?: string;
-            /**
-             * Contacto de emergencia - teléfono
-             * @description Teléfono del contacto de emergencia
-             */
-            contacto_emergencia_telefono?: string;
-            /** @description Parentesco del contacto de emergencia */
-            contacto_emergencia_parentesco?: number | null;
         };
         PatchedMicroredAuto: {
             readonly id?: number;
@@ -6573,6 +6537,16 @@ export interface components {
              * @description Nota promedio ponderado (escala 0–20)
              */
             nota_promedio_ponderado?: string | null;
+            /**
+             * Contacto de emergencia - nombre
+             * @description Nombre del contacto de emergencia
+             */
+            contacto_emergencia_nombre?: string;
+            /**
+             * Contacto de emergencia - teléfono
+             * @description Teléfono del contacto de emergencia
+             */
+            contacto_emergencia_telefono?: string;
             activo?: boolean;
             /** Format: date-time */
             readonly creado_en?: string;
@@ -6591,6 +6565,8 @@ export interface components {
             periodo_academico?: number | null;
             /** @description Especialidad (obligatoria para niveles distintos de Pregrado — RN-19) */
             especialidad?: number | null;
+            /** @description Parentesco del contacto de emergencia */
+            contacto_emergencia_parentesco?: number | null;
             readonly creado_por?: number;
         };
         PatchedTeachingActivityUpdate: {
@@ -6652,6 +6628,8 @@ export interface components {
             ubigeo?: string | null;
             /** @description Especialidad del tutor */
             especialidad?: number | null;
+            /** @description Profesión del tutor (carrera profesional) */
+            profesion?: number | null;
             /**
              * Código RENIPRESS
              * @description Establecimiento al que pertenece
@@ -7220,6 +7198,16 @@ export interface components {
              * @description Nota promedio ponderado (escala 0–20)
              */
             nota_promedio_ponderado?: string | null;
+            /**
+             * Contacto de emergencia - nombre
+             * @description Nombre del contacto de emergencia
+             */
+            contacto_emergencia_nombre?: string;
+            /**
+             * Contacto de emergencia - teléfono
+             * @description Teléfono del contacto de emergencia
+             */
+            contacto_emergencia_telefono?: string;
             activo?: boolean;
             /** Format: date-time */
             readonly creado_en: string;
@@ -7238,6 +7226,8 @@ export interface components {
             periodo_academico?: number | null;
             /** @description Especialidad (obligatoria para niveles distintos de Pregrado — RN-19) */
             especialidad?: number | null;
+            /** @description Parentesco del contacto de emergencia */
+            contacto_emergencia_parentesco?: number | null;
             readonly creado_por: number;
         };
         /** @description Entrada de la carga masiva de estudiantes (RN-16): archivo Excel `.xlsx`. */
@@ -7391,6 +7381,8 @@ export interface components {
             ubigeo?: string | null;
             /** @description Especialidad del tutor */
             especialidad?: number | null;
+            /** @description Profesión del tutor (carrera profesional) */
+            profesion?: number | null;
             /**
              * Código RENIPRESS
              * @description Establecimiento al que pertenece

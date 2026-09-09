@@ -27,7 +27,7 @@ Reutiliza modelos del módulo 1 (`Convention`, `ClinicalField`, `Ipress`, `Unive
 | GET | `/interns/` | autenticado (alcance) | filtros abajo |
 | GET | `/interns/{id}/` | autenticado (alcance) | |
 | POST | `/interns/` | `Universidad` | estado inicial `REGISTRADO` |
-| PUT/PATCH | `/interns/{id}/` | alcance | solo `ipress, observaciones, fecha_inicio, fecha_fin, contacto_emergencia_nombre, contacto_emergencia_telefono, contacto_emergencia_parentesco` |
+| PUT/PATCH | `/interns/{id}/` | alcance | solo `ipress, observaciones, fecha_inicio, fecha_fin` |
 | POST | `/interns/{id}/cambiar-estado/` | `Administrador RENADS` | `{ estado_codigo, observacion? }` |
 | POST | `/interns/{id}/cambiar-tutor/` | `Universidad` | `{ tutor, fecha_cambio, motivo }` |
 | GET | `/interns/{id}/historial/` | autenticado | historial de estados |
@@ -41,18 +41,16 @@ del estudiante. **Ordering:** `fecha_inicio`, `fecha_fin`, `id`.
 ```
 id, estudiante, convenio, campo_clinico, ipress, tutor, ambito_geografico_sanitario,
 estado_actual, estado_codigo, estado_declaraciones,
-contacto_emergencia_nombre, contacto_emergencia_telefono, contacto_emergencia_parentesco,
 fecha_inicio, fecha_fin, observaciones, creado_por, creado_en, actualizado_en
 ```
 ### Intern (internado) — escritura (POST)
 ```
 estudiante, convenio, campo_clinico, ipress, tutor,
-ambito_geografico_sanitario, fecha_inicio, fecha_fin, observaciones,
-contacto_emergencia_nombre, contacto_emergencia_telefono, contacto_emergencia_parentesco
+ambito_geografico_sanitario, fecha_inicio, fecha_fin, observaciones
 ```
-> El **contacto de emergencia** pertenece al internado (migración
-> `0015_move_emergency_contact_to_internship`), no al estudiante. Los tres campos son opcionales.
-> `contacto_emergencia_parentesco` es FK al catálogo `relationship-types`.
+> **Refactor 2026-09-09 (mig 0025):** el **contacto de emergencia** se movió del internado al
+> **estudiante** (revierte 0015). El internado ya NO expone/acepta `contacto_emergencia_*`; ahora
+> viven en `students` (opcionales; `contacto_emergencia_parentesco` FK a `relationship-types`).
 ### Crear rotación (POST `/rotaciones/`)
 ```
 ipress_origen, ipress_destino, servicio_area, fecha_inicio, fecha_fin, observaciones
@@ -84,12 +82,15 @@ Estados de rotación: `SOLICITADA`, `AUTORIZADA`, `OBSERVADA`, `RECHAZADA`, `EN_
   (`{id, nombre, nivel_academico}`) y **`especialidad_detalle`** (`{id, nombre}`). Incluye
   `periodo_academico` y `especialidad` (FK opcionales, validadas por nivel académico — RN-19) y
   `nota_promedio_ponderado` (decimal 0–20, usado por el backend para la prelación RN-18 — sin
-  endpoint propio). **El contacto de emergencia ya no vive aquí**: se registra en el internado
-  (ver «Intern — escritura»). **UI (2026-09-09):** la vista exige elegir universidad (acotada al
-  alcance) antes de listar; el form fija la universidad (oculta) y usa un nivel **virtual** que
-  alterna carrera↔especialidad; el filtro de nivel arranca en «Pregrado». Ver `spec/estudiantes.md`.
+  endpoint propio). **Contacto de emergencia (mig 0025, 2026-09-09):** `contacto_emergencia_nombre`,
+  `contacto_emergencia_telefono`, `contacto_emergencia_parentesco` (FK `relationship-types`) viven
+  ahora en el **estudiante** (se movieron del internado). **UI (2026-09-09):** la vista exige elegir
+  universidad (acotada al alcance) antes de listar; el form fija la universidad (oculta) y usa un
+  nivel **virtual** que alterna carrera↔especialidad; el filtro de nivel arranca en «Pregrado». Ver
+  `spec/estudiantes.md`.
 - `tutors` — filtros `universidades`, `activo`; search documento/nombres. `universidades` es M2M
-  de 1 a 2 (RN-24); conserva `especialidad`, `ipress`, `numero_colegiatura`.
+  de 1 a 2 (RN-24); conserva `especialidad`, `ipress`, `numero_colegiatura`. **Gana `profesion`**
+  (FK `professional-careers`, opcional — mig 0025, 2026-09-09).
 
 ### Carga masiva de estudiantes — RN-16
 

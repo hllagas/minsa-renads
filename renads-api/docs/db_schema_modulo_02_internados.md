@@ -140,12 +140,13 @@ Re-subir el mismo anexo a la misma entidad genera una nueva versión del
 | `especialidad_id` | FK → `especialidad` | Sí | Especialidad (obligatoria para niveles distintos de `PREGRADO` — RN-19; SET_NULL) |
 | `codigo_universitario` | varchar(50) | Sí | Código universitario / matrícula |
 | `nota_promedio_ponderado` | decimal(4,2) | Sí | Nota promedio ponderado (escala 0–20) |
+| `contacto_emergencia_nombre` | varchar(255) | Sí | Nombre del contacto de emergencia |
+| `contacto_emergencia_telefono` | varchar(30) | Sí | Teléfono del contacto de emergencia |
+| `contacto_emergencia_parentesco_id` | FK → `parentesco` (PROTECT) | Sí | Parentesco del contacto de emergencia |
 | `activo` | bool | No | |
 | `creado_por` | FK → `auth_user` | No | |
 | `creado_en` | datetime | No | |
 | **Único** | (`tipo_documento_identidad_id`, `numero_documento`) | | |
-
-> **Contacto de emergencia:** el contacto de emergencia (`contacto_emergencia_nombre`, `contacto_emergencia_telefono`, `contacto_emergencia_parentesco_id`) se registra en la tabla **`interno`** (aplica al internado concreto), no en `estudiante`.
 
 > **RN-19 (periodo académico vs. especialidad):** según el nivel académico de la carrera (`carrera_profesional.nivel_academico.codigo`), el estudiante lleva **uno u otro**: nivel `PREGRADO` ⇒ `periodo_academico_id` obligatorio y `especialidad_id` nulo; cualquier otro nivel (`SEGUNDA_ESPECIALIDAD`/`MAESTRIA`/`DOCTORADO`/…) ⇒ `especialidad_id` obligatorio y `periodo_academico_id` nulo. Ambas columnas son nullable en BD; la obligatoriedad condicional se valida a nivel de aplicación (`services.validar_regla_periodo_especialidad`).
 
@@ -169,6 +170,7 @@ Re-subir el mismo anexo a la misma entidad genera una nueva versión del
 | `direccion` | varchar(500) | Sí | Dirección |
 | `ubigeo_id` | FK → `ubigeo` (módulo 1, PROTECT) — varchar(6) | Sí | Ubicación geográfica (UBIGEO) |
 | `especialidad_id` | FK → `especialidad` | Sí | Especialidad del tutor |
+| `profesion_id` | FK → `carrera_profesional` (PROTECT) | Sí | Profesión del tutor (carrera profesional) |
 | `ipress_id` | FK → `ipress` (SET_NULL) — varchar(8) | Sí | Establecimiento al que pertenece (código RENIPRESS de 8 chars, PK textual de `ipress`) |
 | `activo` | bool | No | |
 
@@ -201,9 +203,6 @@ Re-subir el mismo anexo a la misma entidad genera una nueva versión del
 | `ambito_geografico_sanitario_id` | FK → `ambito_geografico_sanitario` | No | Ámbito geográfico sanitario |
 | `estado_actual_id` | FK → `estado_internado` | No | Estado actual |
 | `estado_declaraciones` | varchar(20) | No | Estado de las declaraciones juradas del interno (RN-23). Valores: `PENDIENTE` (default), `COMPLETAS`, `OBSERVADAS`, `VALIDADAS` |
-| `contacto_emergencia_nombre` | varchar(255) | Sí | Nombre del contacto de emergencia |
-| `contacto_emergencia_telefono` | varchar(30) | Sí | Teléfono del contacto de emergencia |
-| `contacto_emergencia_parentesco_id` | FK → `parentesco` | Sí | Parentesco del contacto de emergencia (PROTECT) |
 | `fecha_inicio` | date | No | Fecha de inicio |
 | `fecha_fin` | date | No | Fecha de fin (máx. 1 año) |
 | `observaciones` | text | Sí | Observaciones |

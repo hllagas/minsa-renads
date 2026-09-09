@@ -212,9 +212,6 @@ def crear_internado(*, datos: dict, usuario) -> Internship:
         ambito_geografico_sanitario=datos["ambito_geografico_sanitario"],
         estado_actual=estado_inicial,
         estado_declaraciones="PENDIENTE",
-        contacto_emergencia_nombre=datos.get("contacto_emergencia_nombre", ""),
-        contacto_emergencia_telefono=datos.get("contacto_emergencia_telefono", ""),
-        contacto_emergencia_parentesco=datos.get("contacto_emergencia_parentesco"),
         fecha_inicio=fecha_inicio,
         fecha_fin=fecha_fin,
         observaciones=datos.get("observaciones", ""),
@@ -459,13 +456,6 @@ def actualizar_internado(*, internado: Internship, datos: dict, usuario) -> Inte
         internado.ipress = nueva_ipress
     if "observaciones" in datos:
         internado.observaciones = datos["observaciones"]
-    for campo in (
-        "contacto_emergencia_nombre",
-        "contacto_emergencia_telefono",
-        "contacto_emergencia_parentesco",
-    ):
-        if campo in datos:
-            setattr(internado, campo, datos[campo])
     internado.save()
     registrar_auditoria(usuario, "ACTUALIZAR", internado)
     return internado

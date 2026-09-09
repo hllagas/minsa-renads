@@ -139,6 +139,18 @@ class Student(models.Model):
         "nota promedio ponderado", max_digits=4, decimal_places=2, null=True, blank=True,
         help_text="Nota promedio ponderado (escala 0–20)",
     )
+    contacto_emergencia_nombre = models.CharField(
+        "contacto de emergencia - nombre", max_length=255, blank=True,
+        help_text="Nombre del contacto de emergencia",
+    )
+    contacto_emergencia_telefono = models.CharField(
+        "contacto de emergencia - teléfono", max_length=30, blank=True,
+        help_text="Teléfono del contacto de emergencia",
+    )
+    contacto_emergencia_parentesco = models.ForeignKey(
+        RelationshipType, on_delete=models.PROTECT, db_column="contacto_emergencia_parentesco_id",
+        null=True, blank=True, related_name="+", help_text="Parentesco del contacto de emergencia",
+    )
     activo = models.BooleanField("activo", default=True)
     creado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, db_column="creado_por", related_name="+",
@@ -174,6 +186,10 @@ class Tutor(models.Model):
     especialidad = models.ForeignKey(
         Specialty, on_delete=models.SET_NULL, db_column="especialidad_id", null=True, blank=True,
         related_name="+", help_text="Especialidad del tutor",
+    )
+    profesion = models.ForeignKey(
+        ProfessionalCareer, on_delete=models.PROTECT, db_column="profesion_id", null=True, blank=True,
+        related_name="+", help_text="Profesión del tutor (carrera profesional)",
     )
     ipress = models.ForeignKey(
         Ipress, on_delete=models.SET_NULL, db_column="ipress_id", null=True, blank=True,
@@ -253,16 +269,6 @@ class Internship(models.Model):
     estado_declaraciones = models.CharField(
         "estado de declaraciones juradas", max_length=20, choices=ANNEX_STATUS, default="PENDIENTE",
         help_text="Estado de las declaraciones juradas del interno (RN-23)",
-    )
-    contacto_emergencia_nombre = models.CharField(
-        "contacto de emergencia - nombre", max_length=255, blank=True, help_text="Nombre del contacto de emergencia",
-    )
-    contacto_emergencia_telefono = models.CharField(
-        "contacto de emergencia - teléfono", max_length=30, blank=True, help_text="Teléfono del contacto de emergencia",
-    )
-    contacto_emergencia_parentesco = models.ForeignKey(
-        RelationshipType, on_delete=models.PROTECT, db_column="contacto_emergencia_parentesco_id",
-        null=True, blank=True, related_name="+", help_text="Parentesco del contacto de emergencia",
     )
     fecha_inicio = models.DateField("fecha de inicio", help_text="Fecha de inicio")
     fecha_fin = models.DateField("fecha de fin", help_text="Fecha de fin (máx. 1 año)")

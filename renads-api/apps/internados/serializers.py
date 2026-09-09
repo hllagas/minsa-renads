@@ -124,8 +124,6 @@ class InternshipReadSerializer(serializers.ModelSerializer):
             "id", "estudiante", "convenio", "campo_clinico", "ipress", "tutor",
             "ambito_geografico_sanitario", "estado_actual", "estado_codigo",
             "estado_declaraciones",
-            "contacto_emergencia_nombre", "contacto_emergencia_telefono",
-            "contacto_emergencia_parentesco",
             "fecha_inicio", "fecha_fin", "observaciones",
             "creado_por", "creado_en", "actualizado_en",
         ]
@@ -137,14 +135,7 @@ class InternshipWriteSerializer(serializers.ModelSerializer):
         fields = [
             "estudiante", "convenio", "campo_clinico", "ipress", "tutor",
             "ambito_geografico_sanitario", "fecha_inicio", "fecha_fin", "observaciones",
-            "contacto_emergencia_nombre", "contacto_emergencia_telefono",
-            "contacto_emergencia_parentesco",
         ]
-        extra_kwargs = {
-            "contacto_emergencia_nombre": {"required": False},
-            "contacto_emergencia_telefono": {"required": False},
-            "contacto_emergencia_parentesco": {"required": False},
-        }
 
 
 class InternshipUpdateSerializer(serializers.ModelSerializer):
@@ -154,17 +145,12 @@ class InternshipUpdateSerializer(serializers.ModelSerializer):
         model = Internship
         fields = [
             "ipress", "observaciones", "fecha_inicio", "fecha_fin",
-            "contacto_emergencia_nombre", "contacto_emergencia_telefono",
-            "contacto_emergencia_parentesco",
         ]
         extra_kwargs = {
             "ipress": {"required": False},
             "observaciones": {"required": False},
             "fecha_inicio": {"required": False},
             "fecha_fin": {"required": False},
-            "contacto_emergencia_nombre": {"required": False},
-            "contacto_emergencia_telefono": {"required": False},
-            "contacto_emergencia_parentesco": {"required": False},
         }
 
 

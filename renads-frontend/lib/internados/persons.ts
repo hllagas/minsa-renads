@@ -136,7 +136,18 @@ export function buildStudentsConfig(pregradoId: number | null): ResourceConfig {
           .filter(Boolean)
           .join(" — "),
     },
-    // El contacto de emergencia se registra en el internado, no en el estudiante.
+
+    // Contacto de emergencia — vive en el estudiante desde la mig 0025 (2026-09-09; antes en el internado).
+    { name: "_s4", label: "Contacto de emergencia", type: "separator" },
+    { name: "contacto_emergencia_nombre", label: "Nombre", type: "text", uppercase: false },
+    { name: "contacto_emergencia_telefono", label: "Teléfono", type: "text", uppercase: false },
+    {
+      name: "contacto_emergencia_parentesco",
+      label: "Parentesco",
+      type: "select",
+      optionsEndpoint: "relationship-types",
+    },
+
     { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
   ];
 
@@ -196,6 +207,13 @@ export const PERSON_CONFIGS: Record<string, ResourceConfig> = {
         type: "multiselect",
         required: true,
         optionsEndpoint: "universities",
+      },
+      {
+        // Profesión del tutor (carrera profesional) — mig 0025 (2026-09-09).
+        name: "profesion",
+        label: "Profesión",
+        type: "select",
+        optionsEndpoint: "professional-careers",
       },
       {
         name: "especialidad",
