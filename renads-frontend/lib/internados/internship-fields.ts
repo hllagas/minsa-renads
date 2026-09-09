@@ -42,7 +42,7 @@ export const INTERNSHIP_FIELDS: FieldConfig[] = [
     optionsToLabel: convenioLabel,
   },
   { name: "campo_clinico", label: "Campo clínico (id)", type: "number", required: true },
-  { name: "ipress", label: "Sede docente (IPRESS)", type: "select", required: true, optionsEndpoint: "ipress" },
+  { name: "ipress", label: "Sede docente (IPRESS)", type: "select", required: true, optionsEndpoint: "ipress", optionsValueKey: "codigo_renipress", optionsSearchable: true },
   {
     name: "tutor",
     label: "Tutor",
@@ -67,7 +67,7 @@ export const INTERNSHIP_FIELDS: FieldConfig[] = [
 
 /** Campos editables (InternshipUpdate). El tutor se cambia con la acción `cambiar-tutor`. */
 export const INTERNSHIP_EDIT_FIELDS: FieldConfig[] = [
-  { name: "ipress", label: "Sede docente (IPRESS)", type: "select", optionsEndpoint: "ipress" },
+  { name: "ipress", label: "Sede docente (IPRESS)", type: "select", optionsEndpoint: "ipress", optionsValueKey: "codigo_renipress", optionsSearchable: true },
   { name: "fecha_inicio", label: "Fecha de inicio", type: "date" },
   { name: "fecha_fin", label: "Fecha de fin", type: "date" },
   { name: "observaciones", label: "Observaciones", type: "text", uppercase: false },

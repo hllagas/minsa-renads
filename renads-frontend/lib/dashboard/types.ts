@@ -19,8 +19,8 @@ export interface DashboardFilters {
   modulo: DashboardModule;
   /** Tipo (id de catálogo): `tipo_convenio` o `tipo_actividad` según el módulo. */
   tipo: number | null;
-  /** Entidad (id): IPRESS para internados/actividades. */
-  entidad: number | null;
+  /** Entidad: IPRESS (`codigo_renipress`, PK textual) para internados/actividades. */
+  entidad: string | null;
   /** Ámbito geográfico sanitario (id). Solo aplica a internados. */
   ambito: number | null;
   granularidad: Granularity;

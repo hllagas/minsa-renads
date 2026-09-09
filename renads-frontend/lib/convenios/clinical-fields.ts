@@ -75,7 +75,7 @@ export const clinicalFieldRegistrationsConfig: ResourceConfig = {
   ],
   filters: [
     { name: "convenio", label: "Convenio", type: "select", optionsEndpoint: "conventions", optionsToLabel: convenioLabel },
-    { name: "ipress", label: "Sede docente", type: "select", optionsEndpoint: "ipress", optionsToLabel: ipressLabel },
+    { name: "ipress", label: "Sede docente", type: "select", optionsEndpoint: "ipress", optionsToLabel: ipressLabel, optionsValueKey: "codigo_renipress", optionsSearchable: true },
     {
       name: "carrera_profesional",
       label: "Carrera",
@@ -102,6 +102,8 @@ export const clinicalFieldRegistrationsConfig: ResourceConfig = {
       optionsEndpoint: "ipress",
       optionsParams: { es_sede_docente: "true" },
       optionsToLabel: ipressLabel,
+      optionsValueKey: "codigo_renipress", // PK textual (mig 0046-0047)
+      optionsSearchable: true,
     },
     {
       name: "carrera_profesional",
@@ -165,7 +167,7 @@ export const clinicalFieldAllocationsConfig: ResourceConfig = {
       optionsToLabel: registroLabel,
     },
     { name: "convenio", label: "Convenio", type: "select", optionsEndpoint: "conventions", optionsToLabel: convenioLabel },
-    { name: "ipress", label: "Sede docente", type: "select", optionsEndpoint: "ipress", optionsToLabel: ipressLabel },
+    { name: "ipress", label: "Sede docente", type: "select", optionsEndpoint: "ipress", optionsToLabel: ipressLabel, optionsValueKey: "codigo_renipress", optionsSearchable: true },
     {
       name: "carrera_profesional",
       label: "Carrera",

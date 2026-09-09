@@ -5,7 +5,7 @@
 > Flujo SDD: `spec` → **(APROBACIÓN HUMANA ✅)** → `implement` → `validator`.
 > **Fase A** (executing-units) está desbloqueada: el backend ya aplicó `convenios/0043-0045` y el
 > contrato está vivo.
-> **Fase B** (ipress) está **BLOQUEADA por el backend**: el `promote` de `convenios/0046` +
+> **Fase B** (ipress) DESBLOQUEADA e IMPLEMENTADA el 2026-09-08 (backend arregló las migraciones y aplicó todo). [Nota histórica del bloqueo] Fase B estaba BLOQUEADA por el backend: el `promote` de `convenios/0046` +
 > `internados/0047` + `actividades` falló en dev (`foreign key mismatch - interno referencing ipress`;
 > BD a medio migrar). **NO implementar la Fase B hasta que el equipo de backend aplique limpio
 > `0046`→`0051` y `makemigrations --check` quede limpio.** Sus tareas quedan listadas para ejecutarse
@@ -325,7 +325,7 @@ campos eliminados.
 > **solo** cuando el equipo de backend confirme que `0046`→`0051` aplican limpio y
 > `python manage.py makemigrations --check` queda limpio. Depende de Fase 0.
 
-- [ ] **B-1 — Reescribir la config CRUD `ipress` en `lib/convenios/entities.ts` (PK string).**
+- [x] **B-1 — Reescribir la config CRUD `ipress` en `lib/convenios/entities.ts` (PK string).**
   - Añadir `pkField:"codigo_renipress"` y `defaultOrdering:"codigo_renipress"` (o el ordering válido).
   - `codigo_renipress` — `type:"text"`, `required:true` (PK provista por el cliente); `disabled` en
     `editFields` (la PK no cambia). Ya está en `fields` (L245) como requerido; ajustar a la semántica
@@ -334,7 +334,7 @@ campos eliminados.
   - **Criterio:** alta de IPRESS con `codigo_renipress` requerido crea el recurso (POST
     `/ipress/`); editar/eliminar operan sobre `/ipress/<codigo_renipress>/`.
 
-- [ ] **B-2 — Migrar las 7 FK a ipress a valor string `codigo_renipress` en sus selects.**
+- [x] **B-2 — Migrar las 7 FK a ipress a valor string `codigo_renipress` en sus selects.**
   - Para cada select/combobox con endpoint `ipress`, pasar `valueKey="codigo_renipress"` (custom) o
     `optionsValueKey:"codigo_renipress"` (declarativo) y `optionsToLabel:(r)=>String(r.nombre ?? r.codigo_renipress)`:
     1. `clinical-field-registrations.ipress` (`lib/campos-clinicos/*`).
@@ -348,19 +348,19 @@ campos eliminados.
   - **Criterio:** cada payload de escritura envía la FK ipress como `codigo_renipress` string; cada
     filtro `?ipress=`/`?ipress_origen=`/`?ipress_destino=`/`?campo_clinico_ipress=` envía el string.
 
-- [ ] **B-3 — user-entity-profiles: ipress como entidad asignable con PK string.**
+- [x] **B-3 — user-entity-profiles: ipress como entidad asignable con PK string.**
   - `lib/usuarios/entity-endpoints.ts` `ipress` (L17): sin cambio de endpoint; en la pantalla de
     perfiles pasar `valueKey="codigo_renipress"` cuando `tipo_entidad === "ipress"` (los `ids` van
     string). En representantes (A-6), el ramo ipress del paso 2 usa `valueKey="codigo_renipress"`.
   - **Criterio:** POST de perfil con `tipo_entidad:"ipress"` envía `ids:["<codigo_renipress>", ...]`;
     lectura de `id_objeto` como string.
 
-- [ ] **B-4 — Verificar filtros/keys de ipress en internados/actividades/campos-clínicos.**
+- [x] **B-4 — Verificar filtros/keys de ipress en internados/actividades/campos-clínicos.**
   - Revisar tablas y filtros que keyean o filtran por `ipress` (p. ej. `?ipress_origen=`) para que
     usen el string. Verificar que ninguna vista dependa de `ipress.id` numérico.
   - **Criterio:** los listados de rotaciones/actividades/campos filtran por ipress string sin error.
 
-- [ ] **B-5 — `npm run gen:api`: regenerar `lib/api/schema.d.ts` (con B ya desbloqueado).**
+- [x] **B-5 — `npm run gen:api`: regenerar `lib/api/schema.d.ts` (con B ya desbloqueado).**
   - Ejecutar tras el desbloqueo del backend. Verificar `Ipress` con `codigo_renipress` string PK, sin
     `id`, y las 7 FK como string.
   - **Criterio:** `schema.d.ts` refleja el contrato ipress final; el build compila.
@@ -435,3 +435,17 @@ ipress con PK string; las 7 FK y user-entity-profiles ipress emiten/filtran por 
 > **Recordatorio:** este spec **requiere aprobación humana** antes de pasar a `implement`. La **Fase B
 > está bloqueada por el backend** y no debe implementarse hasta el desbloqueo confirmado de
 > `convenios/0046`→`0051`.
+
+
+---
+
+## Adenda 2026-09-08 — Fase C (ubigeo) + desbloqueo de B
+
+- **Fase B (ipress) DESBLOQUEADA e IMPLEMENTADA:** el backend arregló las migraciones y aplicó
+  `0046-0047` (+ internados/actividades). Config `ipress` con `pkField="codigo_renipress"`; las 7 FK
+  selects (`clinical-fields`, `activity-fields`, `internship-fields`, `flow-actions`, `persons`,
+  `determinacion-view`) + `user-entity-profiles` + dashboard `entidad` migrados a
+  `valueKey="codigo_renipress"`.
+- **Fase C — ubigeo PK `codigo` (str6, mig 0048-0049):** mismo patrón, reusa la infra Fase 0. Todos
+  los selects `ubigeo` (catalogos/convenios/persons) con `optionsValueKey/valueKey="codigo"` +
+  `optionsSearchable`. `gen:api` regenerado; `tsc`/`lint` limpios.

@@ -100,6 +100,8 @@ export const PERSON_CONFIGS: Record<string, ResourceConfig> = {
         label: "Ubigeo",
         type: "select",
         optionsEndpoint: "ubigeos",
+        optionsValueKey: "codigo", // PK textual (mig 0048-0049)
+        optionsSearchable: true,
         optionsToLabel: (r) =>
           [r.codigo, [r.distrito, r.provincia, r.departamento].filter(Boolean).join(", ")]
             .filter(Boolean)
@@ -154,7 +156,7 @@ export const PERSON_CONFIGS: Record<string, ResourceConfig> = {
         type: "select",
         optionsEndpoint: "specialties",
       },
-      { name: "ipress", label: "IPRESS", type: "select", optionsEndpoint: "ipress" },
+      { name: "ipress", label: "IPRESS", type: "select", optionsEndpoint: "ipress", optionsValueKey: "codigo_renipress", optionsSearchable: true },
       { name: "numero_colegiatura", label: "Número de colegiatura", type: "text", uppercase: false },
       { name: "correo", label: "Correo", type: "email" },
       { name: "telefono", label: "Teléfono", type: "text", uppercase: false },

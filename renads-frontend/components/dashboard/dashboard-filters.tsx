@@ -144,6 +144,7 @@ function ModuleEntityFilters({
           <div className="w-56">
             <EntityCombobox
               endpoint="ipress"
+              valueKey="codigo_renipress"
               value={filters.entidad}
               onChange={(v) => setFilters({ entidad: v })}
               placeholder="Todas las IPRESS"

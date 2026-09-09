@@ -36,7 +36,7 @@ export function useDashboardFilters() {
           ? (modulo as DashboardModule)
           : "convenios",
       tipo: readNumber(searchParams.get("tipo")),
-      entidad: readNumber(searchParams.get("entidad")),
+      entidad: searchParams.get("entidad"), // IPRESS `codigo_renipress` (PK textual)
       ambito: readNumber(searchParams.get("ambito")),
       granularidad:
         granularidad && GRANULARITIES.includes(granularidad as Granularity)

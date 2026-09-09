@@ -1,10 +1,15 @@
-"""Refactor de la PK de ``Ipress`` — parte final (internados): FKs reales + drop enteras.
+"""Refactor de la PK de ``Ipress`` — parte final (internados): FKs reales + rename.
 
-Repunta las 4 FK de ``Ipress`` en internados al PK textual, elimina las FK enteras y
-renombra las columnas transitorias a su nombre canónico. Depende de ``convenios/0047``
-(donde ``Ipress`` ya tiene PK textual y sin ``id``).
+Repunta las 4 columnas transitorias varchar de ``Ipress`` en internados al PK textual,
+renombrándolas a sus nombres canónicos y ajustando ``db_column``/``on_delete``.
 
-Orden: B (FK reales sobre transitorias) → C (drop enteras + rename) → D (db_column canónico).
+Nota: las antiguas columnas FK enteras (``ipress_id``, ``ipress_origen_id``,
+``ipress_destino_id``) ya fueron eliminadas por el migration anterior
+``0021b_remove_int_fk_ipress``; este migration NO las repite.
+
+Depende de ``convenios/0047`` (``Ipress`` ya tiene PK textual sin ``id``).
+
+Orden: B (FK reales sobre transitorias) → C (rename) → D (db_column canónico).
 """
 
 from django.db import migrations, models
@@ -14,12 +19,14 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("internados", "0021_ipress_codigo_transitorio"),
+        ("internados", "0021b_remove_int_fk_ipress"),
         ("convenios", "0047_ipress_pk_renipress_promote"),
     ]
 
     operations = [
-        # PASO B — convertir las transitorias en FK reales al PK textual.
+        # ======================================================================
+        # PASO B — convertir las transitorias en FK reales al PK textual
+        # ======================================================================
         migrations.AlterField(
             model_name="internship",
             name="ipress_codigo",
@@ -73,23 +80,10 @@ class Migration(migrations.Migration):
             ),
         ),
 
-        # PASO C — eliminar las FK enteras y renombrar las transitorias.
-        migrations.RemoveField(
-            model_name="internship",
-            name="ipress",
-        ),
-        migrations.RemoveField(
-            model_name="rotation",
-            name="ipress_origen",
-        ),
-        migrations.RemoveField(
-            model_name="rotation",
-            name="ipress_destino",
-        ),
-        migrations.RemoveField(
-            model_name="tutor",
-            name="ipress",
-        ),
+        # ======================================================================
+        # PASO C — renombrar las transitorias al nombre canónico
+        # (RemoveField de las FK enteras ya ejecutado en 0021b)
+        # ======================================================================
         migrations.RenameField(
             model_name="internship",
             old_name="ipress_codigo",
@@ -111,7 +105,9 @@ class Migration(migrations.Migration):
             new_name="ipress",
         ),
 
-        # PASO D — ajuste final al db_column canónico + related_name/on_delete originales.
+        # ======================================================================
+        # PASO D — ajuste final al db_column canónico + related_name/on_delete originales
+        # ======================================================================
         migrations.AlterField(
             model_name="internship",
             name="ipress",

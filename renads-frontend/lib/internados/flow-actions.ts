@@ -55,8 +55,8 @@ export const INTERNSHIP_ACTIONS: FlowAction[] = [
     label: "Agregar rotación",
     roles: ["Universidad"],
     fields: [
-      { name: "ipress_origen", label: "Sede de origen", type: "select", required: true, optionsEndpoint: "ipress" },
-      { name: "ipress_destino", label: "Sede de destino", type: "select", required: true, optionsEndpoint: "ipress" },
+      { name: "ipress_origen", label: "Sede de origen", type: "select", required: true, optionsEndpoint: "ipress", optionsValueKey: "codigo_renipress", optionsSearchable: true },
+      { name: "ipress_destino", label: "Sede de destino", type: "select", required: true, optionsEndpoint: "ipress", optionsValueKey: "codigo_renipress", optionsSearchable: true },
       {
         name: "servicio_area",
         label: "Servicio / área",

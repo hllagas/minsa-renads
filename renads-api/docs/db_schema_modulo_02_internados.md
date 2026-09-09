@@ -133,7 +133,7 @@ Re-subir el mismo anexo a la misma entidad genera una nueva versión del
 | `correo` | varchar(255) | Sí | Correo electrónico |
 | `telefono` | varchar(30) | Sí | Teléfono |
 | `direccion` | varchar(500) | Sí | Dirección |
-| `ubigeo_id` | FK → `ubigeo` (módulo 1) | Sí | Ubicación geográfica (UBIGEO) |
+| `ubigeo_id` | FK → `ubigeo` (módulo 1, PROTECT) — varchar(6) | Sí | Ubicación geográfica (UBIGEO) |
 | `universidad_id` | FK → `universidad` | No | Universidad de procedencia |
 | `carrera_profesional_id` | FK → `carrera_profesional` | No | Carrera / programa |
 | `periodo_academico_id` | FK → `periodo_academico` | Sí | Periodo académico (obligatorio para nivel `PREGRADO` — RN-19; PROTECT) |
@@ -167,7 +167,7 @@ Re-subir el mismo anexo a la misma entidad genera una nueva versión del
 | `telefono` | varchar(30) | Sí | Teléfono |
 | `numero_colegiatura` | varchar(50) | Sí | Número de colegiatura |
 | `direccion` | varchar(500) | Sí | Dirección |
-| `ubigeo_id` | FK → `ubigeo` (módulo 1) | Sí | Ubicación geográfica (UBIGEO) |
+| `ubigeo_id` | FK → `ubigeo` (módulo 1, PROTECT) — varchar(6) | Sí | Ubicación geográfica (UBIGEO) |
 | `especialidad_id` | FK → `especialidad` | Sí | Especialidad del tutor |
 | `ipress_id` | FK → `ipress` (SET_NULL) — varchar(8) | Sí | Establecimiento al que pertenece (código RENIPRESS de 8 chars, PK textual de `ipress`) |
 | `activo` | bool | No | |

@@ -29,7 +29,7 @@ Tablas paramétricas (RNF-MAN-01). Patrón común: `id` (PK), `codigo` (varchar,
 
 | Tabla | Descripción | Columnas adicionales |
 |-------|-------------|----------------------|
-| `ubigeo` | Ubicación geográfica del Perú a nivel distrito (INEI). Columnas propias: `codigo` (6 dígitos, único), `departamento`, `provincia`, `distrito`, `activo`. Carga vía comando `load_ubigeo` | — |
+| `ubigeo` | Ubicación geográfica del Perú a nivel distrito (INEI). **PK textual: `codigo` varchar(6), sin columna `id`**. Columnas: `codigo` (6 dígitos, PK), `departamento`, `provincia`, `distrito`, `activo`. Carga vía comando `load_ubigeo`. FK desde otras tablas: columna `ubigeo_id` varchar(6) | — |
 | `region` | Regiones políticas del Perú (seed: 25 regiones, códigos INEI) | — |
 | `ambito_geografico_sanitario` | Ámbito geográfico sanitario (seed: 29 — autoridades sanitarias regionales DIRESA/GERESA + 4 DIRIS de Lima Metropolitana). Ver sub-sección más abajo | `gobierno_regional_id` (FK nullable → `gobierno_regional`, PROTECT) |
 | `tipo_convenio` | Tipo de convenio | `anios_vigencia` (int) — Marco=4, Específico=3 |
@@ -43,7 +43,7 @@ Tablas paramétricas (RNF-MAN-01). Patrón común: `id` (PK), `codigo` (varchar,
 | `motivo_observacion` | Motivos de observación | — |
 | `motivo_rechazo` | Motivos de rechazo | — |
 | `motivo_cierre` | Motivos de cierre o anulación | — |
-| `categoria` | Categoría del establecimiento de salud (clasificación de IPRESS). Hereda de `Catalog` (`codigo` único global) | — |
+| `tipo_categoria` | Categoría del establecimiento de salud (clasificación de IPRESS). Hereda de `Catalog` (`codigo` único global). Tabla renombrada de `categoria` → `tipo_categoria` | — |
 | `tipo_clasificacion` | Tipo de clasificación del establecimiento de salud (clasificación de IPRESS). Hereda de `Catalog` (`codigo` único global) | — |
 
 ### Jerarquía geográfica sanitaria: `red` y `microred`
@@ -132,7 +132,7 @@ Jerarquía: **GORE → Órgano Regional (GERESA/DIRESA/DIRIS) → Unidad Ejecuto
 | `nombre` | varchar(255) | No | Nombre del gobierno regional |
 | `region_id` | FK → `region` | No | Región |
 | `sigla` | varchar(50) | Sí | Sigla del gobierno regional |
-| `ubigeo_id` | FK → `ubigeo` (PROTECT) | Sí | Ubicación geográfica (UBIGEO) |
+| `ubigeo_id` | FK → `ubigeo` (PROTECT) — varchar(6) | Sí | Ubicación geográfica (UBIGEO) |
 | `referencia_logo` | varchar(500) | Sí | Logo institucional (`ImageField`; guarda el path del objeto en el repositorio de medios). Nullable. |
 | `activo` | bool | No | |
 
@@ -194,9 +194,9 @@ Endpoint: `/api/v1/executing-units/` (CRUD, escritura solo `Administrador RENADS
 | `unidad_ejecutora_id` | FK → `unidad_ejecutora` (PROTECT) — varchar(4) | No | Unidad ejecutora a la que pertenece (el valor almacenado es el código presupuestal de 4 chars, no un int) |
 | `nombre` | varchar(255) | No | Nombre del establecimiento |
 | `direccion` | varchar(500) | Sí | Dirección |
-| `ubigeo_id` | FK → `ubigeo` | Sí | Ubicación geográfica (UBIGEO) |
+| `ubigeo_id` | FK → `ubigeo` (PROTECT) — varchar(6) | Sí | Ubicación geográfica (UBIGEO) |
 | `ambito_geografico_sanitario_id` | FK → `ambito_geografico_sanitario` | No | Ámbito geográfico sanitario |
-| `categoria_id` | FK → `categoria` (PROTECT) | Sí | Categoría del establecimiento |
+| `categoria_id` | FK → `tipo_categoria` (PROTECT) | Sí | Categoría del establecimiento |
 | `tipo_clasificacion_id` | FK → `tipo_clasificacion` (PROTECT) | Sí | Tipo de clasificación del establecimiento |
 | `microred_id` | FK → `microred` (PROTECT) | Sí | Microred a la que pertenece el establecimiento |
 | `latitud` | decimal(9,6) | Sí | Latitud (coordenada geográfica) |
@@ -254,7 +254,7 @@ Los representantes de CONAPRES y de los demás órganos se registran en `organo_
 | `direccion_legal` | varchar(500) | Sí | Dirección legal |
 | `telefono` | varchar(30) | Sí | Teléfono |
 | `correo_institucional` | varchar(255) | Sí | Correo institucional |
-| `ubigeo_id` | FK → `ubigeo` | Sí | Ubicación geográfica (UBIGEO) |
+| `ubigeo_id` | FK → `ubigeo` (PROTECT) — varchar(6) | Sí | Ubicación geográfica (UBIGEO) |
 | `referencia_logo` | varchar(500) | Sí | Logo institucional (`ImageField`; guarda el path del objeto en el repositorio de medios). Nullable. |
 | `activo` | bool | No | |
 
@@ -268,7 +268,7 @@ Los representantes de CONAPRES y de los demás órganos se registran en `organo_
 | `universidad_id` | FK → `universidad` | No | Universidad |
 | `nombre` | varchar(255) | No | Nombre de la facultad |
 | `direccion` | varchar(255) | No | Dirección de la facultad (`blank`, cadena vacía por defecto) |
-| `ubigeo_id` | FK → `ubigeo` (PROTECT) | Sí | Ubicación geográfica (UBIGEO) |
+| `ubigeo_id` | FK → `ubigeo` (PROTECT) — varchar(6) | Sí | Ubicación geográfica (UBIGEO) |
 | `referencia_logo` | varchar(500) | Sí | Logo institucional (`ImageField`; guarda el path del objeto en el repositorio de medios). Nullable. |
 | `activo` | bool | No | |
 
@@ -310,7 +310,7 @@ Endpoint en lote: `POST /api/v1/faculties/{id}/careers` (body `{carreras: [ids]}
 | `nombre` | varchar(255) | No | Nombre del local |
 | `direccion` | varchar(500) | Sí | Dirección |
 | `region_id` | FK → `region` | Sí | Región |
-| `ubigeo_id` | FK → `ubigeo` | Sí | Ubicación geográfica (UBIGEO) |
+| `ubigeo_id` | FK → `ubigeo` (PROTECT) — varchar(6) | Sí | Ubicación geográfica (UBIGEO) |
 | `activo` | bool | No | |
 
 ---

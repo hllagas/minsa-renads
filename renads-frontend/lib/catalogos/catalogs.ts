@@ -104,7 +104,7 @@ export const CATALOG_CONFIGS: Record<string, ResourceConfig> = {
     writeRoles: ["Administrador RENADS"],
     searchPlaceholder: "Buscar por código o nombre…",
     columns: [
-      { key: "codigo", header: "Código" },
+      { key: "codigo", header: "Código DISA" },
       { key: "nombre", header: "Nombre" },
       {
         key: "gobierno_regional",
@@ -115,12 +115,13 @@ export const CATALOG_CONFIGS: Record<string, ResourceConfig> = {
     ],
     filters: [activoFilter],
     fields: [
-      { name: "codigo", label: "Código", type: "text", required: true },
+      { name: "codigo", label: "Código DISA", type: "text", required: true },
       { name: "nombre", label: "Nombre", type: "text", required: true, uppercase: false },
       {
         name: "gobierno_regional",
-        label: "Gobierno regional (nulo para DIRIS de Lima)",
+        label: "Gobierno regional",
         type: "select",
+        required: true,
         optionsEndpoint: "regional-governments",
       },
       { name: "activo", label: "Activo", type: "boolean", defaultValue: true },

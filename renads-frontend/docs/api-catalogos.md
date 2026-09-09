@@ -31,6 +31,10 @@ ordering `id`/`codigo`/`nombre` (default `id`). Se usan para poblar selects.
 
 `ubigeos` — catálogo INEI (solo lectura). Filtros: `departamento`, `provincia`, `distrito`, `activo`;
 search `codigo`/`distrito`/`provincia`/`departamento`.
+**Refactor 2026-09-08 (mig 0048-0049):** la PK de `ubigeo` es **`codigo`** (varchar(6), string) — ya no
+hay `id`; detalle/URL por `/ubigeos/<codigo>/`. Las 7 FK `ubigeo` (regional-governments, ipress,
+universities, faculties, university-campuses, students, tutors) reciben el **código string**. Front:
+los selects de `ubigeo` usan `EntityCombobox` con `valueKey="codigo"`.
 
 `organs` — tabla de categorías canónicas (solo lectura): MINSA, Universidad, Órgano Regional, UE.
 Campos: `id`, `nombre`. Sin CRUD admin.
@@ -94,7 +98,8 @@ Añadidos a `regional-governments`: `sigla`, `ubigeo`, `numero_ruc`, `direccion`
 | `organ-directories` | `organo`, `activo` | `nombre`, `siglas` | `organo_detalle` |
 | `executing-units` | `ambito_geografico_sanitario`, `activo` | `nombre`, `codigo` | `ambito_geografico_sanitario_detalle` |
 | `regional-governments` | `region`, `ubigeo`, `activo` | `nombre` | `ubigeo_detalle` (string) |
-| `ipress` | `unidad_ejecutora`, `ambito_geografico_sanitario`, `es_sede_docente`, `activo` | `nombre`, `codigo_renipress` | — |
+| `ipress` | `unidad_ejecutora` (str), `ambito_geografico_sanitario`, `es_sede_docente`, `activo` | `nombre`, `codigo_renipress` | — |
+> **`ipress` PK textual (mig 0046-0047):** la PK es **`codigo_renipress`** (varchar(8), string) — ya no hay `id`; alta requiere `codigo_renipress`; detalle/URL por `/ipress/<codigo_renipress>/`. Las 7 FK a ipress (`clinical-field-registrations.ipress`, `clinical-field-allocations.ipress`, `interns.ipress`, `rotations.ipress_origen/_destino`, `tutors.ipress`, `teaching-activities.ipress`) reciben el código string; `user-entity-profiles` (ipress) usa `id_objeto`/`ids` string. Front: `ResourceConfig.pkField="codigo_renipress"`; los selects usan `valueKey="codigo_renipress"`.
 | `conapres` | `activo` | `nombre` | — |
 | `universities` | `tipo_gestion`, `tipo_entidad`, `tipo_autorizacion`, `activo` | `nombre`, `siglas` | `tipo_gestion_detalle`, `tipo_entidad_detalle`, `tipo_autorizacion_detalle` |
 | `faculties` | `universidad`, `ubigeo`, `activo` | `nombre`, `direccion` | `ubigeo_detalle` (objeto ubigeo); `referencia_logo` (logo) |

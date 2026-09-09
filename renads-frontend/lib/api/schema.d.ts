@@ -1501,36 +1501,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
-         *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
-         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
-         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
-         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
-         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
-         *
-         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
-         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
-         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
-         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
-         */
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         get: operations["executing_units_list"];
         put?: never;
-        /**
-         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
-         *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
-         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
-         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
-         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
-         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
-         *
-         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
-         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
-         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
-         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
-         */
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         post: operations["executing_units_create"];
         delete?: never;
         options?: never;
@@ -1538,123 +1512,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/executing-units/{id}/": {
+    "/api/v1/executing-units/{codigo}/": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /**
-         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
-         *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
-         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
-         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
-         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
-         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
-         *
-         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
-         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
-         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
-         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
-         */
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         get: operations["executing_units_retrieve"];
-        /**
-         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
-         *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
-         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
-         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
-         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
-         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
-         *
-         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
-         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
-         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
-         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
-         */
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         put: operations["executing_units_update"];
         post?: never;
-        /**
-         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
-         *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
-         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
-         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
-         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
-         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
-         *
-         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
-         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
-         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
-         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
-         */
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         delete: operations["executing_units_destroy"];
         options?: never;
         head?: never;
-        /**
-         * @description Sube/consulta el logo de una entidad con `ImageField` `referencia_logo`.
-         *
-         *     La entidad destino es `self.get_object()` (debe exponer `referencia_logo`
-         *     como `models.ImageField`). El logo se persiste vía `settings.STORAGES["default"]`
-         *     (django-storages sobre GCS en producción, `FileSystemStorage` en dev), usando
-         *     el `upload_to` de cada entidad. Al reemplazar el logo se borra el binario
-         *     anterior (Django no lo hace automáticamente). No versiona ni usa `Document`.
-         *
-         *     Nota (Etapa 4): a diferencia del `AnnexAttachmentMixin`, este mixin **no** usa
-         *     `get_document_storage()` para logos; el binario lo escribe el propio `ImageField`
-         *     a través del backend de Django Storage. La `.url` del campo entrega un signed URL
-         *     V4 efímero (con django-storages y `GS_QUERYSTRING_AUTH=True`).
-         */
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
         patch: operations["executing_units_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/executing-units/{id}/logo-url/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Obtener la URL del logo de la entidad
-         * @description Devuelve la URL (signed URL efímero) del logo, o 404 si no hay logo cargado.
-         */
-        get: operations["executing_units_logo_url_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/executing-units/{id}/upload-logo/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Subir/reemplazar el logo de la entidad
-         * @description Sube (o reemplaza) el logo de la entidad y devuelve su URL.
-         *
-         *     Asigna el archivo al `ImageField` y guarda; Django escribe el binario en
-         *     `STORAGES["default"]` usando el `upload_to` de la entidad. Si ya existía un
-         *     logo distinto, se borra el binario anterior **después** de guardar el nuevo
-         *     (no dejar la entidad sin logo si la subida falla). Persiste el path en
-         *     `referencia_logo` y registra auditoría. Responde `{referencia_logo, url}`
-         *     (`url` = signed URL efímero del campo).
-         */
-        post: operations["executing_units_upload_logo_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
         trace?: never;
     };
     "/api/v1/executive-positions/": {
@@ -1664,10 +1539,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /** @description CRUD de cargos ejecutivos (RN de coherencia organo ↔ organo_directivo.organo). */
         get: operations["executive_positions_list"];
         put?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /** @description CRUD de cargos ejecutivos (RN de coherencia organo ↔ organo_directivo.organo). */
         post: operations["executive_positions_create"];
         delete?: never;
         options?: never;
@@ -1682,16 +1557,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /** @description CRUD de cargos ejecutivos (RN de coherencia organo ↔ organo_directivo.organo). */
         get: operations["executive_positions_retrieve"];
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /** @description CRUD de cargos ejecutivos (RN de coherencia organo ↔ organo_directivo.organo). */
         put: operations["executive_positions_update"];
         post?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /** @description CRUD de cargos ejecutivos (RN de coherencia organo ↔ organo_directivo.organo). */
         delete: operations["executive_positions_destroy"];
         options?: never;
         head?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        /** @description CRUD de cargos ejecutivos (RN de coherencia organo ↔ organo_directivo.organo). */
         patch: operations["executive_positions_partial_update"];
         trace?: never;
     };
@@ -2239,7 +2114,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/ipress/{id}/": {
+    "/api/v1/ipress/{codigo_renipress}/": {
         parameters: {
             query?: never;
             header?: never;
@@ -2259,7 +2134,7 @@ export interface paths {
         patch: operations["ipress_partial_update"];
         trace?: never;
     };
-    "/api/v1/ipress/{id}/autorizar-sede-docente/": {
+    "/api/v1/ipress/{codigo_renipress}/autorizar-sede-docente/": {
         parameters: {
             query?: never;
             header?: never;
@@ -2276,7 +2151,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/ipress/{id}/logo-url/": {
+    "/api/v1/ipress/{codigo_renipress}/logo-url/": {
         parameters: {
             query?: never;
             header?: never;
@@ -2296,7 +2171,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/ipress/{id}/upload-logo/": {
+    "/api/v1/ipress/{codigo_renipress}/upload-logo/": {
         parameters: {
             query?: never;
             header?: never;
@@ -4156,7 +4031,7 @@ export interface components {
             readonly tipo_contenido: number;
             readonly tipo_contenido_label: string;
             /** @description Registro afectado */
-            readonly id_objeto: number;
+            readonly id_objeto: string;
             /**
              * Nombre del campo
              * @description Campo modificado
@@ -4323,8 +4198,11 @@ export interface components {
             campo_clinico_ipress: number;
             /** @description Convenio Específico vigente que respalda la asignación */
             convenio: number;
-            /** @description Sede docente (establecimiento) */
-            readonly ipress: number;
+            /**
+             * Código RENIPRESS
+             * @description Sede docente (establecimiento)
+             */
+            readonly ipress: string;
             /** @description Carrera / programa académico */
             readonly carrera_profesional: number;
             /** @description Especialidad */
@@ -4374,8 +4252,11 @@ export interface components {
             readonly id: number;
             /** @description Convenio (solo Específico) */
             convenio: number;
-            /** @description Sede docente (establecimiento) */
-            ipress: number;
+            /**
+             * Código RENIPRESS
+             * @description Sede docente (establecimiento)
+             */
+            ipress: string;
             /** @description Carrera / programa académico */
             carrera_profesional: number;
             /** @description Especialidad */
@@ -4536,7 +4417,7 @@ export interface components {
             readonly universidad_nombre: string;
             readonly tipo_entidad_universidad: string;
             /** @description Unidad ejecutora parte del Convenio Específico */
-            unidad_ejecutora?: number | null;
+            unidad_ejecutora?: string | null;
             readonly unidad_ejecutora_detalle: string;
             /** @description Facultad (de la universidad del Marco) parte del Convenio Específico */
             facultad?: number | null;
@@ -4667,7 +4548,7 @@ export interface components {
             /** @description Universidad parte del convenio. Su tipo de entidad se deriva de esta relación. */
             universidad: number;
             /** @description Unidad ejecutora parte del Convenio Específico */
-            unidad_ejecutora?: number | null;
+            unidad_ejecutora?: string | null;
             /** @description Facultad (de la universidad del Marco) parte del Convenio Específico */
             facultad?: number | null;
             /**
@@ -4803,51 +4684,15 @@ export interface components {
          */
         EstadoEnum: "ACTIVO" | "REEMPLAZADO" | "ANULADO" | "OBSERVADO" | "VALIDADO";
         ExecutingUnitAuto: {
-            readonly id: number;
-            readonly referencia_logo: string;
-            readonly tipo_organo_detalle: string;
-            readonly gobierno_regional_detalle: string;
-            readonly ubigeo_detalle: string;
-            /**
-             * Código
-             * @description Código presupuestal
-             */
-            codigo?: string;
-            /** @description Nombre */
+            /** @description Código presupuestal de 4 dígitos (PK) */
+            codigo: string;
+            readonly ambito_geografico_sanitario_detalle: string;
+            /** @description Nombre de la unidad ejecutora */
             nombre: string;
-            /**
-             * Dirección
-             * @description Dirección
-             */
-            direccion?: string;
+            /** @description Indica si está activa */
             activo?: boolean;
-            /** @description Tipo de unidad ejecutora del directorio (organo=Unidad Ejecutora) */
-            tipo_organo: number;
-            /** @description Gobierno regional al que pertenece */
-            gobierno_regional: number;
-            /** @description Ubicación geográfica (UBIGEO) */
-            ubigeo?: number | null;
-        };
-        ExecutivePositionAuto: {
-            readonly id: number;
-            readonly organo_directivo_detalle: string;
-            /**
-             * Nombre (masculino)
-             * @description Nombre del cargo en masculino
-             */
-            nombre_masculino: string;
-            /**
-             * Nombre (femenino)
-             * @description Nombre del cargo en femenino
-             */
-            nombre_femenino?: string;
-            /** @description Indica si está activo */
-            activo?: boolean;
-            /**
-             * Órgano directivo
-             * @description Órgano directivo (del directorio) al que pertenece el cargo
-             */
-            organo_directivo?: number | null;
+            /** @description Ámbito geográfico sanitario al que pertenece */
+            ambito_geografico_sanitario: number;
         };
         FacultyAuto: {
             readonly id: number;
@@ -4894,6 +4739,7 @@ export interface components {
         };
         HealthGeographicScopeAuto: {
             readonly id: number;
+            readonly gobierno_regional_detalle: string;
             /**
              * Código
              * @description Código único
@@ -4903,6 +4749,8 @@ export interface components {
             nombre: string;
             /** @description Indica si está activo */
             activo?: boolean;
+            /** @description Gobierno regional al que corresponde el ámbito sanitario (nulo para los 4 DIRIS de Lima Metropolitana) */
+            gobierno_regional?: number | null;
         };
         IdentityDocumentTypeAuto: {
             readonly id: number;
@@ -4994,8 +4842,11 @@ export interface components {
             convenio: number;
             /** @description Asignación de campos clínicos por universidad */
             campo_clinico: number;
-            /** @description Sede docente principal */
-            ipress: number;
+            /**
+             * Código RENIPRESS
+             * @description Sede docente principal
+             */
+            ipress: string;
             /** @description Tutor responsable actual */
             tutor: number;
             /** @description Ámbito geográfico sanitario */
@@ -5555,21 +5406,6 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["ExecutingUnitAuto"][];
         };
-        PaginatedExecutivePositionAutoList: {
-            /** @example 123 */
-            count: number;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=4
-             */
-            next?: string | null;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=2
-             */
-            previous?: string | null;
-            results: components["schemas"]["ExecutivePositionAuto"][];
-        };
         PaginatedFacultyAutoList: {
             /** @example 123 */
             count: number;
@@ -6080,6 +5916,21 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["UserRead"][];
         };
+        Paginated_ExecutivePositionList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["_ExecutivePosition"][];
+        };
         Paginated_IpressList: {
             /** @example 123 */
             count: number;
@@ -6249,8 +6100,11 @@ export interface components {
             campo_clinico_ipress?: number;
             /** @description Convenio Específico vigente que respalda la asignación */
             convenio?: number;
-            /** @description Sede docente (establecimiento) */
-            readonly ipress?: number;
+            /**
+             * Código RENIPRESS
+             * @description Sede docente (establecimiento)
+             */
+            readonly ipress?: string;
             /** @description Carrera / programa académico */
             readonly carrera_profesional?: number;
             /** @description Especialidad */
@@ -6300,8 +6154,11 @@ export interface components {
             readonly id?: number;
             /** @description Convenio (solo Específico) */
             convenio?: number;
-            /** @description Sede docente (establecimiento) */
-            ipress?: number;
+            /**
+             * Código RENIPRESS
+             * @description Sede docente (establecimiento)
+             */
+            ipress?: string;
             /** @description Carrera / programa académico */
             carrera_profesional?: number;
             /** @description Especialidad */
@@ -6398,7 +6255,7 @@ export interface components {
             /** @description Universidad parte del convenio. Su tipo de entidad se deriva de esta relación. */
             universidad?: number;
             /** @description Unidad ejecutora parte del Convenio Específico */
-            unidad_ejecutora?: number | null;
+            unidad_ejecutora?: string | null;
             /** @description Facultad (de la universidad del Marco) parte del Convenio Específico */
             facultad?: number | null;
             /**
@@ -6427,51 +6284,15 @@ export interface components {
             max_campos_clinicos?: number | null;
         };
         PatchedExecutingUnitAuto: {
-            readonly id?: number;
-            readonly referencia_logo?: string;
-            readonly tipo_organo_detalle?: string;
-            readonly gobierno_regional_detalle?: string;
-            readonly ubigeo_detalle?: string;
-            /**
-             * Código
-             * @description Código presupuestal
-             */
+            /** @description Código presupuestal de 4 dígitos (PK) */
             codigo?: string;
-            /** @description Nombre */
+            readonly ambito_geografico_sanitario_detalle?: string;
+            /** @description Nombre de la unidad ejecutora */
             nombre?: string;
-            /**
-             * Dirección
-             * @description Dirección
-             */
-            direccion?: string;
+            /** @description Indica si está activa */
             activo?: boolean;
-            /** @description Tipo de unidad ejecutora del directorio (organo=Unidad Ejecutora) */
-            tipo_organo?: number;
-            /** @description Gobierno regional al que pertenece */
-            gobierno_regional?: number;
-            /** @description Ubicación geográfica (UBIGEO) */
-            ubigeo?: number | null;
-        };
-        PatchedExecutivePositionAuto: {
-            readonly id?: number;
-            readonly organo_directivo_detalle?: string;
-            /**
-             * Nombre (masculino)
-             * @description Nombre del cargo en masculino
-             */
-            nombre_masculino?: string;
-            /**
-             * Nombre (femenino)
-             * @description Nombre del cargo en femenino
-             */
-            nombre_femenino?: string;
-            /** @description Indica si está activo */
-            activo?: boolean;
-            /**
-             * Órgano directivo
-             * @description Órgano directivo (del directorio) al que pertenece el cargo
-             */
-            organo_directivo?: number | null;
+            /** @description Ámbito geográfico sanitario al que pertenece */
+            ambito_geografico_sanitario?: number;
         };
         PatchedFacultyAuto: {
             readonly id?: number;
@@ -6500,6 +6321,7 @@ export interface components {
         };
         PatchedHealthGeographicScopeAuto: {
             readonly id?: number;
+            readonly gobierno_regional_detalle?: string;
             /**
              * Código
              * @description Código único
@@ -6509,6 +6331,8 @@ export interface components {
             nombre?: string;
             /** @description Indica si está activo */
             activo?: boolean;
+            /** @description Gobierno regional al que corresponde el ámbito sanitario (nulo para los 4 DIRIS de Lima Metropolitana) */
+            gobierno_regional?: number | null;
         };
         PatchedInternshipWrite: {
             /** @description Estudiante */
@@ -6517,8 +6341,11 @@ export interface components {
             convenio?: number;
             /** @description Asignación de campos clínicos por universidad */
             campo_clinico?: number;
-            /** @description Sede docente principal */
-            ipress?: number;
+            /**
+             * Código RENIPRESS
+             * @description Sede docente principal
+             */
+            ipress?: string;
             /** @description Tutor responsable actual */
             tutor?: number;
             /** @description Ámbito geográfico sanitario */
@@ -6808,8 +6635,11 @@ export interface components {
             ubigeo?: number | null;
             /** @description Especialidad del tutor */
             especialidad?: number | null;
-            /** @description Establecimiento al que pertenece */
-            ipress?: number | null;
+            /**
+             * Código RENIPRESS
+             * @description Establecimiento al que pertenece
+             */
+            ipress?: string | null;
         };
         PatchedUniversityAuto: {
             readonly id?: number;
@@ -6909,11 +6739,8 @@ export interface components {
         };
         PatchedUserEntityProfileAuto: {
             readonly id?: number;
-            /**
-             * Format: int64
-             * @description Identificador de la entidad asociada
-             */
-            id_objeto?: number;
+            /** @description Identificador de la entidad asociada */
+            id_objeto?: string;
             activo?: boolean;
             /** @description Usuario */
             usuario?: number;
@@ -6954,6 +6781,42 @@ export interface components {
             groups?: number[];
         };
         /**
+         * @description Serializer de cargos ejecutivos con RN de coherencia `organo == organo_directivo.organo`.
+         *
+         *     RN-CE-02: cuando `organo_directivo` está seteado, el `organo` del cargo debe coincidir
+         *     con el `organo` de ese órgano directivo. El auto-serializer (`ModelSerializer`) no ejecuta
+         *     `Model.clean()`, así que la coherencia se valida aquí y se devuelve un 400 legible.
+         *     Si `organo_directivo` es nulo (cargo global), la coherencia no aplica; el FK `organo`
+         *     obligatorio ya lo garantiza el propio `ModelSerializer` (campo requerido por `null=False`).
+         */
+        Patched_ExecutivePosition: {
+            readonly id?: number;
+            readonly organo_detalle?: string;
+            readonly organo_directivo_detalle?: string;
+            /**
+             * Nombre (masculino)
+             * @description Nombre del cargo en masculino
+             */
+            nombre_masculino?: string;
+            /**
+             * Nombre (femenino)
+             * @description Nombre del cargo en femenino
+             */
+            nombre_femenino?: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+            /**
+             * Órgano
+             * @description Categoría de órgano (FK a la tabla canónica `organo`) a la que pertenece el cargo; debe coincidir con organo_directivo.organo cuando este está seteado
+             */
+            organo?: number;
+            /**
+             * Órgano directivo
+             * @description Órgano directivo (del directorio) al que pertenece el cargo
+             */
+            organo_directivo?: number | null;
+        };
+        /**
          * @description Serializer de IPRESS con validación de coherencia geográfica microred ↔ ámbito.
          *
          *     Mantiene `fields="__all__"`, los `*_detalle` y el logo como URL de solo lectura del
@@ -6962,7 +6825,11 @@ export interface components {
          *     estado final del objeto (create y PATCH parcial) contra `Ipress.clean()`.
          */
         Patched_Ipress: {
-            readonly id?: number;
+            /**
+             * Código RENIPRESS
+             * @description Código RENIPRESS de 8 caracteres (clave primaria)
+             */
+            codigo_renipress?: string;
             readonly referencia_logo?: string;
             readonly categoria_detalle?: string;
             readonly tipo_clasificacion_detalle?: string;
@@ -6971,11 +6838,6 @@ export interface components {
             readonly ubigeo_detalle?: string;
             /** @description Nombre del establecimiento */
             nombre?: string;
-            /**
-             * Código RENIPRESS
-             * @description Código único RENIPRESS del establecimiento
-             */
-            codigo_renipress?: string;
             /**
              * Dirección
              * @description Dirección
@@ -7006,7 +6868,7 @@ export interface components {
             es_sede_docente?: boolean;
             activo?: boolean;
             /** @description Unidad ejecutora a la que pertenece */
-            unidad_ejecutora?: number;
+            unidad_ejecutora?: string;
             /** @description Ubicación geográfica (UBIGEO) */
             ubigeo?: number | null;
             /** @description Ámbito geográfico sanitario */
@@ -7170,10 +7032,16 @@ export interface components {
              * @description Número de rotación (1–4, RN-9)
              */
             numero_rotacion: number;
-            /** @description Sede de origen */
-            ipress_origen: number;
-            /** @description Sede de destino */
-            ipress_destino: number;
+            /**
+             * Código RENIPRESS
+             * @description Sede de origen
+             */
+            ipress_origen: string;
+            /**
+             * Código RENIPRESS
+             * @description Sede de destino
+             */
+            ipress_destino: string;
             /** @description Servicio, área o unidad */
             servicio_area: number;
             readonly estado_actual: string;
@@ -7403,8 +7271,11 @@ export interface components {
             estudiante: number;
             /** @description Interno activo */
             interno: number;
-            /** @description Sede docente */
-            ipress: number;
+            /**
+             * Código RENIPRESS
+             * @description Sede docente
+             */
+            ipress: string;
             /** @description Rotación autorizada asociada (si corresponde) */
             rotacion?: number | null;
             /** @description Tutor / docente responsable */
@@ -7483,8 +7354,11 @@ export interface components {
             ubigeo?: number | null;
             /** @description Especialidad del tutor */
             especialidad?: number | null;
-            /** @description Establecimiento al que pertenece */
-            ipress?: number | null;
+            /**
+             * Código RENIPRESS
+             * @description Establecimiento al que pertenece
+             */
+            ipress?: string | null;
         };
         UbigeoAuto: {
             readonly id: number;
@@ -7643,11 +7517,8 @@ export interface components {
         };
         UserEntityProfileAuto: {
             readonly id: number;
-            /**
-             * Format: int64
-             * @description Identificador de la entidad asociada
-             */
-            id_objeto: number;
+            /** @description Identificador de la entidad asociada */
+            id_objeto: string;
             activo?: boolean;
             /** @description Usuario */
             usuario: number;
@@ -7669,8 +7540,8 @@ export interface components {
             rol: number;
             /** @description Nombre del modelo de la entidad en minúscula (p. ej. 'university'). */
             tipo_entidad: string;
-            /** @description Lista de identificadores (PK) de las entidades a otorgar. */
-            ids: number[];
+            /** @description Lista de identificadores (PK) de las entidades a otorgar. Acepta códigos texto (p. ej. el código RENIPRESS de IPRESS) y pks numéricos como texto. */
+            ids: string[];
         };
         /**
          * @description Salida de la gestión de perfiles: forma de lectura más `id` y `activo`.
@@ -7681,7 +7552,7 @@ export interface components {
          */
         UserEntityProfileWriteRead: {
             tipo_entidad: string;
-            id_objeto: number;
+            id_objeto: string;
             readonly entidad: string;
             rol: string;
             readonly id: number;
@@ -7768,6 +7639,42 @@ export interface components {
             groups?: number[];
         };
         /**
+         * @description Serializer de cargos ejecutivos con RN de coherencia `organo == organo_directivo.organo`.
+         *
+         *     RN-CE-02: cuando `organo_directivo` está seteado, el `organo` del cargo debe coincidir
+         *     con el `organo` de ese órgano directivo. El auto-serializer (`ModelSerializer`) no ejecuta
+         *     `Model.clean()`, así que la coherencia se valida aquí y se devuelve un 400 legible.
+         *     Si `organo_directivo` es nulo (cargo global), la coherencia no aplica; el FK `organo`
+         *     obligatorio ya lo garantiza el propio `ModelSerializer` (campo requerido por `null=False`).
+         */
+        _ExecutivePosition: {
+            readonly id: number;
+            readonly organo_detalle: string;
+            readonly organo_directivo_detalle: string;
+            /**
+             * Nombre (masculino)
+             * @description Nombre del cargo en masculino
+             */
+            nombre_masculino: string;
+            /**
+             * Nombre (femenino)
+             * @description Nombre del cargo en femenino
+             */
+            nombre_femenino?: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+            /**
+             * Órgano
+             * @description Categoría de órgano (FK a la tabla canónica `organo`) a la que pertenece el cargo; debe coincidir con organo_directivo.organo cuando este está seteado
+             */
+            organo: number;
+            /**
+             * Órgano directivo
+             * @description Órgano directivo (del directorio) al que pertenece el cargo
+             */
+            organo_directivo?: number | null;
+        };
+        /**
          * @description Serializer de IPRESS con validación de coherencia geográfica microred ↔ ámbito.
          *
          *     Mantiene `fields="__all__"`, los `*_detalle` y el logo como URL de solo lectura del
@@ -7776,7 +7683,11 @@ export interface components {
          *     estado final del objeto (create y PATCH parcial) contra `Ipress.clean()`.
          */
         _Ipress: {
-            readonly id: number;
+            /**
+             * Código RENIPRESS
+             * @description Código RENIPRESS de 8 caracteres (clave primaria)
+             */
+            codigo_renipress: string;
             readonly referencia_logo: string;
             readonly categoria_detalle: string;
             readonly tipo_clasificacion_detalle: string;
@@ -7785,11 +7696,6 @@ export interface components {
             readonly ubigeo_detalle: string;
             /** @description Nombre del establecimiento */
             nombre: string;
-            /**
-             * Código RENIPRESS
-             * @description Código único RENIPRESS del establecimiento
-             */
-            codigo_renipress: string;
             /**
              * Dirección
              * @description Dirección
@@ -7820,7 +7726,7 @@ export interface components {
             es_sede_docente?: boolean;
             activo?: boolean;
             /** @description Unidad ejecutora a la que pertenece */
-            unidad_ejecutora: number;
+            unidad_ejecutora: string;
             /** @description Ubicación geográfica (UBIGEO) */
             ubigeo?: number | null;
             /** @description Ámbito geográfico sanitario */
@@ -8428,7 +8334,7 @@ export interface operations {
                 accion_contiene?: string;
                 creado_en_desde?: string;
                 creado_en_hasta?: string;
-                id_objeto?: number;
+                id_objeto?: string;
                 /** @description Qué campo usar para ordenar los resultados. */
                 ordering?: string;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
@@ -9186,7 +9092,8 @@ export interface operations {
                 campo_clinico_ipress?: number;
                 carrera_profesional?: number;
                 convenio?: number;
-                ipress?: number;
+                /** @description Código RENIPRESS de 8 caracteres (clave primaria) */
+                ipress?: string;
                 /** @description Qué campo usar para ordenar los resultados. */
                 ordering?: string;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
@@ -9341,7 +9248,8 @@ export interface operations {
                 carrera_profesional?: number;
                 convenio?: number;
                 especialidad?: number;
-                ipress?: number;
+                /** @description Código RENIPRESS de 8 caracteres (clave primaria) */
+                ipress?: string;
                 /** @description Qué campo usar para ordenar los resultados. */
                 ordering?: string;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
@@ -10749,14 +10657,13 @@ export interface operations {
         parameters: {
             query?: {
                 activo?: boolean;
-                gobierno_regional?: number;
+                ambito_geografico_sanitario?: number;
                 /** @description Qué campo usar para ordenar los resultados. */
                 ordering?: string;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
                 page?: number;
                 /** @description Un término de búsqueda. */
                 search?: string;
-                tipo_organo?: number;
             };
             header?: never;
             path?: never;
@@ -10804,8 +10711,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este unidad ejecutora. */
-                id: number;
+                codigo: string;
             };
             cookie?: never;
         };
@@ -10826,8 +10732,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este unidad ejecutora. */
-                id: number;
+                codigo: string;
             };
             cookie?: never;
         };
@@ -10854,8 +10759,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este unidad ejecutora. */
-                id: number;
+                codigo: string;
             };
             cookie?: never;
         };
@@ -10875,8 +10779,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este unidad ejecutora. */
-                id: number;
+                codigo: string;
             };
             cookie?: never;
         };
@@ -10898,61 +10801,13 @@ export interface operations {
             };
         };
     };
-    executing_units_logo_url_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este unidad ejecutora. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LogoUrlResponse"];
-                };
-            };
-        };
-    };
-    executing_units_upload_logo_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este unidad ejecutora. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["LogoUpload"];
-                "application/x-www-form-urlencoded": components["schemas"]["LogoUpload"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LogoUploadResponse"];
-                };
-            };
-        };
-    };
     executive_positions_list: {
         parameters: {
             query?: {
                 activo?: boolean;
                 /** @description Qué campo usar para ordenar los resultados. */
                 ordering?: string;
+                organo?: number;
                 organo_directivo?: number;
                 organo_directivo__isnull?: boolean;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
@@ -10971,7 +10826,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PaginatedExecutivePositionAutoList"];
+                    "application/json": components["schemas"]["Paginated_ExecutivePositionList"];
                 };
             };
         };
@@ -10985,9 +10840,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ExecutivePositionAuto"];
-                "application/x-www-form-urlencoded": components["schemas"]["ExecutivePositionAuto"];
-                "multipart/form-data": components["schemas"]["ExecutivePositionAuto"];
+                "application/json": components["schemas"]["_ExecutivePosition"];
+                "application/x-www-form-urlencoded": components["schemas"]["_ExecutivePosition"];
+                "multipart/form-data": components["schemas"]["_ExecutivePosition"];
             };
         };
         responses: {
@@ -10996,7 +10851,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ExecutivePositionAuto"];
+                    "application/json": components["schemas"]["_ExecutivePosition"];
                 };
             };
         };
@@ -11018,7 +10873,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ExecutivePositionAuto"];
+                    "application/json": components["schemas"]["_ExecutivePosition"];
                 };
             };
         };
@@ -11035,9 +10890,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ExecutivePositionAuto"];
-                "application/x-www-form-urlencoded": components["schemas"]["ExecutivePositionAuto"];
-                "multipart/form-data": components["schemas"]["ExecutivePositionAuto"];
+                "application/json": components["schemas"]["_ExecutivePosition"];
+                "application/x-www-form-urlencoded": components["schemas"]["_ExecutivePosition"];
+                "multipart/form-data": components["schemas"]["_ExecutivePosition"];
             };
         };
         responses: {
@@ -11046,7 +10901,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ExecutivePositionAuto"];
+                    "application/json": components["schemas"]["_ExecutivePosition"];
                 };
             };
         };
@@ -11084,9 +10939,9 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["PatchedExecutivePositionAuto"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedExecutivePositionAuto"];
-                "multipart/form-data": components["schemas"]["PatchedExecutivePositionAuto"];
+                "application/json": components["schemas"]["Patched_ExecutivePosition"];
+                "application/x-www-form-urlencoded": components["schemas"]["Patched_ExecutivePosition"];
+                "multipart/form-data": components["schemas"]["Patched_ExecutivePosition"];
             };
         };
         responses: {
@@ -11095,7 +10950,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ExecutivePositionAuto"];
+                    "application/json": components["schemas"]["_ExecutivePosition"];
                 };
             };
         };
@@ -12088,7 +11943,8 @@ export interface operations {
                 /** @description Un término de búsqueda. */
                 search?: string;
                 tipo_clasificacion?: number;
-                unidad_ejecutora?: number;
+                /** @description Código presupuestal de 4 dígitos (PK) */
+                unidad_ejecutora?: string;
             };
             header?: never;
             path?: never;
@@ -12136,8 +11992,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este IPRESS. */
-                id: number;
+                codigo_renipress: string;
             };
             cookie?: never;
         };
@@ -12158,8 +12013,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este IPRESS. */
-                id: number;
+                codigo_renipress: string;
             };
             cookie?: never;
         };
@@ -12186,8 +12040,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este IPRESS. */
-                id: number;
+                codigo_renipress: string;
             };
             cookie?: never;
         };
@@ -12207,8 +12060,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este IPRESS. */
-                id: number;
+                codigo_renipress: string;
             };
             cookie?: never;
         };
@@ -12235,8 +12087,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este IPRESS. */
-                id: number;
+                codigo_renipress: string;
             };
             cookie?: never;
         };
@@ -12263,8 +12114,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este IPRESS. */
-                id: number;
+                codigo_renipress: string;
             };
             cookie?: never;
         };
@@ -12285,8 +12135,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este IPRESS. */
-                id: number;
+                codigo_renipress: string;
             };
             cookie?: never;
         };
@@ -14595,7 +14444,8 @@ export interface operations {
             query?: {
                 activo?: boolean;
                 especialidad?: number;
-                ipress?: number;
+                /** @description Código RENIPRESS de 8 caracteres (clave primaria) */
+                ipress?: string;
                 numero_documento?: string;
                 /** @description Qué campo usar para ordenar los resultados. */
                 ordering?: string;

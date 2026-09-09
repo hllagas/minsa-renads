@@ -4,32 +4,35 @@ Esta migración convierte ``ipress.codigo_renipress`` en la PK textual (varchar 
 el ``id`` AutoField, y repunta las 2 FK propias de convenios
 (``ClinicalFieldRegistration.ipress``, ``ClinicalFieldAllocation.ipress``) al nuevo PK textual.
 
-Orden de operaciones (ver spec T-08, patrón A→B→C→D de 0045):
+CORRECCIÓN vs. versión original:
+─────────────────────────────────
+Django 6.0.6 llama ``check_constraints()`` SIEMPRE al salir del ``SchemaEditor`` (sin condición
+``if exc_type is None``). Esto causaba dos fallos encadenados:
 
-PASO A — promocionar codigo_renipress a PK y eliminar el AutoField id:
-A1. AlterField codigo_renipress → primary_key=True, serialize=False.
-A2. RemoveField Ipress.id (si Django lo requiere tras A1).
+1. ``FieldDoesNotExist: NewClinicalFieldRegistration has no field named 'ipress'``
+   El ``RemoveField ClinicalFieldRegistration.ipress`` disparaba ``_remake_table`` pero el
+   ``unique_together (convenio, ipress, carrera_profesional, especialidad)`` seguía
+   referenciando ``ipress``, que ya no existía en el nuevo modelo.
 
-PASO B — convertir las columnas transitorias en FK reales al nuevo PK textual:
-B1. AlterField ClinicalFieldRegistration.ipress_codigo → FK a convenios.Ipress (PROTECT).
-B2. AlterField ClinicalFieldAllocation.ipress_codigo → FK a convenios.Ipress (PROTECT).
+2. ``foreign key mismatch - "interno" referencing "ipress"``
+   Al final de 0047 (PK ya varchar), ``PRAGMA foreign_key_check`` detectaba que
+   ``interno.ipress_id`` (int) referenciaba ``ipress(id)`` — columna eliminada.
 
-PASO C — eliminar las FK enteras y renombrar las transitorias:
-C1. RemoveField ClinicalFieldRegistration.ipress (FK int).
-C2. RemoveField ClinicalFieldAllocation.ipress (FK int).
-C3. RenameField ClinicalFieldRegistration.ipress_codigo → ipress.
-C4. RenameField ClinicalFieldAllocation.ipress_codigo → ipress.
+ORDEN CORRECTO DE OPERACIONES:
+───────────────────────────────
+Paso 0  — limpiar ``unique_together`` (antes de tocar el campo ``ipress``).
+Paso pre-A — eliminar las FK enteras de convenios ANTES del cambio de PK, de modo que
+             ``campo_clinico_ipress.ipress_id`` y ``campo_clinico_ipress_universidad.ipress_id``
+             no referencien ``ipress(id)`` cuando esa columna desaparezca.
+Paso A  — promover ``codigo_renipress`` a PK y eliminar ``id``.
+Paso B  — convertir las columnas transitorias de convenios en FK reales al PK textual.
+Paso C  — renombrar las transitorias al nombre canónico ``ipress``.
+Paso D  — ajustar ``db_column`` canónico.
+Paso fin — restaurar ``unique_together`` con el campo ya renombrado.
 
-PASO D — ajuste final de las FK al db_column canónico ``ipress_id``:
-D1. AlterField ClinicalFieldRegistration.ipress → db_column="ipress_id".
-D2. AlterField ClinicalFieldAllocation.ipress → db_column="ipress_id".
-
-El unique_together de ClinicalFieldRegistration
-(``(convenio, ipress, carrera_profesional, especialidad)``) se preserva porque el campo
-``ipress`` conserva su nombre lógico.
-
-Nota SQLite: Django recrea la tabla ``ipress`` automáticamente en el AlterField
-primary_key=True / RemoveField id; imita el patrón de 0045.
+Las FK de internados y actividades se eliminan ANTES en los migrations:
+  ``internados/0021b_remove_int_fk_ipress`` y ``actividades/0006b_remove_int_fk_ipress``
+(dependencias declaradas abajo). Se reintegran en ``0022`` y ``0007`` tras este migration.
 """
 
 from django.db import migrations, models
@@ -38,25 +41,40 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
 
-    # Esta migración elimina el ``id`` AutoField de ``Ipress`` (PASO A). Los backfills
-    # transitorios de internados/actividades construyen el mapa ``id entero → codigo_renipress``
-    # leyendo la tabla ``ipress`` mientras esta aún conserva su columna ``id``. Por eso deben
-    # ejecutarse ANTES de este drop: se declaran como dependencias de 0047 para forzar el orden
-    # 0046 → (internados/0021 + actividades/0006) → 0047. En producción (con datos) el mapa sigue
-    # siendo construible; sin estas aristas Django ordenaría 0047 primero y el backfill fallaría
-    # con AttributeError al no existir ``ip.id``.
-    # No introduce ciclo: internados/0022 y actividades/0007 dependen de 0047 (son posteriores),
-    # mientras que aquí dependemos solo de los transitorios 0021/0006 (anteriores).
     dependencies = [
         ("convenios", "0046_ipress_pk_renipress_prep"),
-        ("internados", "0021_ipress_codigo_transitorio"),
-        ("actividades", "0006_ipress_codigo_transitorio"),
+        # Las FK enteras de internados/actividades deben estar eliminadas ANTES de que
+        # este migration elimine ipress.id (o check_constraints detectaría el mismatch).
+        ("internados", "0021b_remove_int_fk_ipress"),
+        ("actividades", "0006b_remove_int_fk_ipress"),
     ]
 
     operations = [
-        # ==================================================================
-        # PASO A — promocionar codigo_renipress a PK + eliminar id AutoField
-        # ==================================================================
+        # ======================================================================
+        # PASO 0 — limpiar unique_together antes de RemoveField ipress
+        # ======================================================================
+        migrations.AlterUniqueTogether(
+            name="clinicalfieldregistration",
+            unique_together=set(),
+        ),
+
+        # ======================================================================
+        # PASO pre-A — eliminar las FK enteras de convenios ANTES del cambio de PK
+        # (Evita que campo_clinico_ipress.ipress_id → ipress(id) quede huérfana
+        #  cuando Paso A elimine la columna id de ipress.)
+        # ======================================================================
+        migrations.RemoveField(
+            model_name="clinicalfieldregistration",
+            name="ipress",
+        ),
+        migrations.RemoveField(
+            model_name="clinicalfieldallocation",
+            name="ipress",
+        ),
+
+        # ======================================================================
+        # PASO A — promover codigo_renipress a PK + eliminar id AutoField
+        # ======================================================================
         migrations.AlterField(
             model_name="ipress",
             name="codigo_renipress",
@@ -73,9 +91,9 @@ class Migration(migrations.Migration):
             name="id",
         ),
 
-        # ==================================================================
+        # ======================================================================
         # PASO B — convertir las columnas transitorias en FK reales al PK textual
-        # ==================================================================
+        # ======================================================================
         migrations.AlterField(
             model_name="clinicalfieldregistration",
             name="ipress_codigo",
@@ -103,17 +121,9 @@ class Migration(migrations.Migration):
             ),
         ),
 
-        # ==================================================================
-        # PASO C — eliminar las FK enteras y renombrar las transitorias
-        # ==================================================================
-        migrations.RemoveField(
-            model_name="clinicalfieldregistration",
-            name="ipress",
-        ),
-        migrations.RemoveField(
-            model_name="clinicalfieldallocation",
-            name="ipress",
-        ),
+        # ======================================================================
+        # PASO C — renombrar las columnas transitorias al nombre canónico
+        # ======================================================================
         migrations.RenameField(
             model_name="clinicalfieldregistration",
             old_name="ipress_codigo",
@@ -125,9 +135,9 @@ class Migration(migrations.Migration):
             new_name="ipress",
         ),
 
-        # ==================================================================
-        # PASO D — ajuste final de las FK al db_column canónico ipress_id
-        # ==================================================================
+        # ======================================================================
+        # PASO D — ajuste final al db_column canónico ipress_id
+        # ======================================================================
         migrations.AlterField(
             model_name="clinicalfieldregistration",
             name="ipress",
@@ -147,5 +157,13 @@ class Migration(migrations.Migration):
                 to="convenios.ipress",
                 help_text="Sede docente (establecimiento)",
             ),
+        ),
+
+        # ======================================================================
+        # PASO fin — restaurar unique_together con el campo ya renombrado a ipress
+        # ======================================================================
+        migrations.AlterUniqueTogether(
+            name="clinicalfieldregistration",
+            unique_together={("convenio", "ipress", "carrera_profesional", "especialidad")},
         ),
     ]

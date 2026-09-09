@@ -456,7 +456,7 @@ def _detalle_organo_directorio(rel):
 def _detalle_ubigeo(rel):
     """Detalle legible de un UBIGEO (no tiene `nombre`)."""
     return {
-        "id": rel.id,
+        "id": rel.pk,
         "codigo": getattr(rel, "codigo", None),
         "distrito": rel.distrito,
         "provincia": rel.provincia,

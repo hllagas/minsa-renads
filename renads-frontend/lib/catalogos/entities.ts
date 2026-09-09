@@ -69,6 +69,8 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         type: "select",
         optionsEndpoint: "ubigeos",
         optionsToLabel: ubigeoLabel,
+        optionsValueKey: "codigo", // PK textual (mig 0048-0049)
+        optionsSearchable: true,
       },
       activoFilter,
     ],
@@ -88,6 +90,8 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         type: "select",
         optionsEndpoint: "ubigeos",
         optionsToLabel: ubigeoLabel,
+        optionsValueKey: "codigo", // PK textual (mig 0048-0049)
+        optionsSearchable: true,
       },
       { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
     ],
@@ -175,6 +179,8 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         type: "select",
         optionsEndpoint: "ubigeos",
         optionsToLabel: ubigeoLabel,
+        optionsValueKey: "codigo", // PK textual (mig 0048-0049)
+        optionsSearchable: true,
       },
       { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
     ],

@@ -239,7 +239,7 @@ export function DeterminacionView() {
   const canWrite = userHasRole(user, "CONAPRES", "Administrador RENADS");
 
   // ── server-side filters
-  const [filterIpress, setFilterIpress] = useState<number | null>(null);
+  const [filterIpress, setFilterIpress] = useState<string | null>(null); // codigo_renipress (PK textual)
   const [filterCarrera, setFilterCarrera] = useState<number | null>(null);
 
   // ── client-side filters
@@ -442,6 +442,7 @@ export function DeterminacionView() {
             <div className="w-64">
               <EntityCombobox
                 endpoint="ipress"
+                valueKey="codigo_renipress"
                 params={{ es_sede_docente: "true" }}
                 toLabel={ipressLabel}
                 value={filterIpress}

@@ -168,6 +168,8 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         type: "select",
         optionsEndpoint: "ubigeos",
         optionsToLabel: ubigeoLabel,
+        optionsValueKey: "codigo", // PK textual (mig 0048-0049)
+        optionsSearchable: true,
       },
 
       // ── Estado ────────────────────────────────────────────────────────────
@@ -181,6 +183,9 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     title: "Establecimientos de Salud",
     singular: "Establecimiento de Salud",
     description: "Sedes docentes autorizadas para la prestación de servicios de salud.",
+    // PK textual `codigo_renipress` (mig 0046-0047): editar/eliminar por `/ipress/<codigo>/`.
+    pkField: "codigo_renipress",
+    defaultOrdering: "codigo_renipress",
     searchPlaceholder: "Buscar por nombre o RENIPRESS…",
     columns: [
       logoColumn("ipress"),
@@ -294,6 +299,8 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         type: "select",
         optionsEndpoint: "ubigeos",
         optionsToLabel: ubigeoLabel,
+        optionsValueKey: "codigo", // PK textual (mig 0048-0049)
+        optionsSearchable: true,
       },
       { name: "latitud", label: "Latitud", type: "text", uppercase: false },
       { name: "longitud", label: "Longitud", type: "text", uppercase: false },
@@ -325,6 +332,8 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         type: "select",
         optionsEndpoint: "ubigeos",
         optionsToLabel: ubigeoLabel,
+        optionsValueKey: "codigo", // PK textual (mig 0048-0049)
+        optionsSearchable: true,
       },
       activoFilter,
     ],
@@ -344,6 +353,8 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         type: "select",
         optionsEndpoint: "ubigeos",
         optionsToLabel: ubigeoLabel,
+        optionsValueKey: "codigo", // PK textual (mig 0048-0049)
+        optionsSearchable: true,
       },
       { name: "numero_ruc", label: "RUC (11 dígitos)", type: "text", uppercase: false },
       { name: "direccion", label: "Dirección", type: "text", uppercase: false },

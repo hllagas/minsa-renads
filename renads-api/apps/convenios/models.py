@@ -257,7 +257,7 @@ class ClosureReason(Catalog):
 
 class Category(Catalog):
     class Meta:
-        db_table = "categoria"
+        db_table = "tipo_categoria"
         verbose_name = "categoría"
         verbose_name_plural = "categorías"
 
@@ -275,7 +275,7 @@ class ClassificationType(Catalog):
 class Ubigeo(models.Model):
     """Ubicación geográfica del Perú a nivel distrito (código UBIGEO del INEI)."""
 
-    codigo = models.CharField("código", max_length=6, unique=True, help_text="Código UBIGEO INEI (6 dígitos)")
+    codigo = models.CharField("código", max_length=6, primary_key=True, help_text="Código UBIGEO INEI (6 dígitos, clave primaria)")
     departamento = models.CharField("departamento", max_length=100, help_text="Departamento")
     provincia = models.CharField("provincia", max_length=100, help_text="Provincia")
     distrito = models.CharField("distrito", max_length=100, help_text="Distrito")

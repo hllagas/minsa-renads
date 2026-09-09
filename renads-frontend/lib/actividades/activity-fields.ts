@@ -25,7 +25,7 @@ export const ACTIVITY_FIELDS: FieldConfig[] = [
     optionsEndpoint: "interns",
     optionsToLabel: internadoLabel,
   },
-  { name: "ipress", label: "Sede docente (IPRESS)", type: "select", required: true, optionsEndpoint: "ipress" },
+  { name: "ipress", label: "Sede docente (IPRESS)", type: "select", required: true, optionsEndpoint: "ipress", optionsValueKey: "codigo_renipress", optionsSearchable: true },
   {
     name: "rotacion",
     label: "Rotación (opcional)",
