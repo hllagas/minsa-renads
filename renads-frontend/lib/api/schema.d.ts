@@ -6590,6 +6590,9 @@ export interface components {
             readonly id?: number;
             /** @description Universidades del tutor (de 1 a 2 — RN-24) */
             universidades?: number[];
+            readonly profesion_detalle?: string;
+            readonly ipress_detalle?: string;
+            readonly especialidad_detalle?: string;
             /**
              * Número de documento
              * @description Número de documento de identidad
@@ -7343,6 +7346,9 @@ export interface components {
             readonly id: number;
             /** @description Universidades del tutor (de 1 a 2 — RN-24) */
             universidades: number[];
+            readonly profesion_detalle: string;
+            readonly ipress_detalle: string;
+            readonly especialidad_detalle: string;
             /**
              * Número de documento
              * @description Número de documento de identidad

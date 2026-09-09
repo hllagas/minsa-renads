@@ -83,10 +83,26 @@ class TutorSerializer(serializers.ModelSerializer):
         queryset=University.objects.all(), many=True,
         help_text="Universidades del tutor (de 1 a 2 — RN-24)",
     )
+    # Detalles legibles para el listado (lectura; la escritura sigue por id).
+    profesion_detalle = serializers.SerializerMethodField(read_only=True)
+    ipress_detalle = serializers.SerializerMethodField(read_only=True)
+    especialidad_detalle = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Tutor
         fields = "__all__"
+
+    def get_profesion_detalle(self, obj):
+        p = obj.profesion
+        return {"id": p.id, "nombre": p.nombre} if p else None
+
+    def get_ipress_detalle(self, obj):
+        i = obj.ipress
+        return {"id": i.pk, "nombre": i.nombre} if i else None
+
+    def get_especialidad_detalle(self, obj):
+        e = obj.especialidad
+        return {"id": e.id, "nombre": e.nombre} if e else None
 
     def validate_universidades(self, value):
         # RN-24: fuente única de la regla (1..2 universidades, sin repetidos).

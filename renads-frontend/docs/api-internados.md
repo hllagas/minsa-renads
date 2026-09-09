@@ -37,6 +37,11 @@ Reutiliza modelos del módulo 1 (`Convention`, `ClinicalField`, `Ipress`, `Unive
 `ambito_geografico_sanitario`, `estudiante`, rangos de fecha. **Search:** documento/nombres
 del estudiante. **Ordering:** `fecha_inicio`, `fecha_fin`, `id`.
 
+> **UI (2026-09-09):** la lista de internos exige elegir **universidad** (acotada al alcance) y luego
+> un **convenio Específico vigente** de esa universidad (combo `conventions` filtrado por
+> `universidad` + `tipo_convenio`=Específico + `estado_actual`=Vigente); el listado se filtra por
+> `convenio`. El gate de universidad es `components/internados/university-gate.tsx` (`useUniversityGate`).
+
 ### Intern (internado) — lectura
 ```
 id, estudiante, convenio, campo_clinico, ipress, tutor, ambito_geografico_sanitario,
@@ -89,8 +94,11 @@ Estados de rotación: `SOLICITADA`, `AUTORIZADA`, `OBSERVADA`, `RECHAZADA`, `EN_
   nivel **virtual** que alterna carrera↔especialidad; el filtro de nivel arranca en «Pregrado». Ver
   `spec/estudiantes.md`.
 - `tutors` — filtros `universidades`, `activo`; search documento/nombres. `universidades` es M2M
-  de 1 a 2 (RN-24); conserva `especialidad`, `ipress`, `numero_colegiatura`. **Gana `profesion`**
-  (FK `professional-careers`, opcional — mig 0025, 2026-09-09).
+  de 1 a 2 (RN-24); conserva `especialidad`, `ipress`, `numero_colegiatura`, `ubigeo`. **Gana
+  `profesion`** (FK `professional-careers`, opcional — mig 0025, 2026-09-09). Lectura expone
+  `profesion_detalle`/`ipress_detalle`/`especialidad_detalle` (`{id, nombre}`). **UI (2026-09-09):**
+  la vista exige elegir universidad (acotada al alcance) antes de listar (filtro `universidades`);
+  columnas = N° colegiatura / apellidos+nombres / profesión / sede docente; el form incluye `ubigeo`.
 
 ### Carga masiva de estudiantes — RN-16
 

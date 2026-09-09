@@ -16,11 +16,13 @@ const apellidosNombres = (r: WithId): string =>
     .filter(Boolean)
     .join(" ");
 
-const personColumns = [
-  { key: "numero_documento", header: "Documento" },
-  { key: "nombres", header: "Nombres" },
-  { key: "apellido_paterno", header: "Apellido paterno" },
-  { key: "activo", header: "Activo", render: (r: Record<string, unknown>) => siNo(r.activo) },
+/** Columnas del listado de tutores (requerimiento: colegiatura, apellidos+nombres, profesión, sede). */
+const tutorColumns: ColumnConfig<WithId>[] = [
+  { key: "numero_colegiatura", header: "N° colegiatura", render: (r) => String(r.numero_colegiatura ?? "—") },
+  { key: "apellidos_nombres", header: "Apellidos y nombres", render: (r) => apellidosNombres(r) },
+  { key: "profesion", header: "Profesión", render: (r) => detalleNombre(r.profesion_detalle) },
+  { key: "ipress", header: "Sede docente", render: (r) => detalleNombre(r.ipress_detalle) },
+  { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
 ];
 
 /** Columnas del listado de estudiantes (requerimiento: carrera, documento, apellidos+nombres, nota). */
@@ -178,16 +180,10 @@ export const PERSON_CONFIGS: Record<string, ResourceConfig> = {
     description: "Docentes/tutores responsables.",
     searchPlaceholder: "Buscar por documento o nombres…",
     writeRoles: WRITE,
-    columns: personColumns,
-    filters: [
-      {
-        name: "universidades",
-        label: "Universidad",
-        type: "select",
-        optionsEndpoint: "universities",
-      },
-      { name: "activo", label: "Activo", type: "boolean" },
-    ],
+    columns: tutorColumns,
+    // La universidad se elige en el paso previo de la vista (gate por alcance) → filtro `universidades`
+    // inyectado como initialFilters; aquí solo queda `activo`.
+    filters: [{ name: "activo", label: "Activo", type: "boolean" }],
     fields: [
       {
         name: "tipo_documento_identidad",
@@ -221,11 +217,23 @@ export const PERSON_CONFIGS: Record<string, ResourceConfig> = {
         type: "select",
         optionsEndpoint: "specialties",
       },
-      { name: "ipress", label: "IPRESS", type: "select", optionsEndpoint: "ipress", optionsValueKey: "codigo_renipress", optionsSearchable: true },
+      { name: "ipress", label: "Sede docente (IPRESS)", type: "select", optionsEndpoint: "ipress", optionsValueKey: "codigo_renipress", optionsSearchable: true },
       { name: "numero_colegiatura", label: "Número de colegiatura", type: "text", uppercase: false },
       { name: "correo", label: "Correo", type: "email" },
       { name: "telefono", label: "Teléfono", type: "text", uppercase: false },
       { name: "direccion", label: "Dirección", type: "text", uppercase: false },
+      {
+        name: "ubigeo",
+        label: "Ubigeo",
+        type: "select",
+        optionsEndpoint: "ubigeos",
+        optionsValueKey: "codigo", // PK textual (mig 0048-0049)
+        optionsSearchable: true,
+        optionsToLabel: (r) =>
+          [r.codigo, [r.distrito, r.provincia, r.departamento].filter(Boolean).join(", ")]
+            .filter(Boolean)
+            .join(" — "),
+      },
       { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
     ],
   },
