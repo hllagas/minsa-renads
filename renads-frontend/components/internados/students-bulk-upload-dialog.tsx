@@ -35,7 +35,12 @@ import {
  * backend (`creados`/`omitidos`) más la tabla de errores por fila (las filas inválidas se omiten
  * sin abortar el lote). El gating de rol vive en la página; el backend es la autoridad final.
  */
-export function StudentsBulkUploadDialog() {
+export function StudentsBulkUploadDialog({
+  scoped,
+}: {
+  /** `true` si el usuario está acotado a universidades concretas (backend valida por fila). */
+  scoped?: boolean;
+} = {}) {
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [result, setResult] = useState<StudentBulkUploadResult | null>(null);
@@ -83,6 +88,14 @@ export function StudentsBulkUploadDialog() {
             Las filas con error se omiten sin abortar el resto del lote.
           </DialogDescription>
         </DialogHeader>
+
+        {scoped ? (
+          <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+            Tu acceso está acotado a tus universidades autorizadas. Las filas cuya
+            <code> universidad_id</code> esté fuera de tu alcance serán <strong>rechazadas</strong>
+            por el sistema (validación por fila).
+          </div>
+        ) : null}
 
         <div className="grid gap-2">
           <Label htmlFor="students-bulk-file">Archivo (.xlsx) *</Label>

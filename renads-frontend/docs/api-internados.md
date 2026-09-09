@@ -78,11 +78,16 @@ Estados de rotación: `SOLICITADA`, `AUTORIZADA`, `OBSERVADA`, `RECHAZADA`, `EN_
 ## Personas (CRUD) — escritura `Universidad` / `Administrador RENADS`
 
 - `students` (estudiantes) — filtros `universidad`, `carrera_profesional`, `numero_documento`,
-  `activo`; search documento/nombres. Alcance por universidad. Incluye `periodo_academico` y
-  `especialidad` (FK opcionales, validadas por nivel académico — RN-19) y
+  `activo`, y **`nivel_academico`** (refactor 2026-09-09: `StudentFilter` filtra por
+  `carrera_profesional__nivel_academico` — el estudiante NO persiste el nivel, deriva de la carrera).
+  Search documento/nombres. Alcance por universidad. Lectura expone **`carrera_profesional_detalle`**
+  (`{id, nombre, nivel_academico}`) y **`especialidad_detalle`** (`{id, nombre}`). Incluye
+  `periodo_academico` y `especialidad` (FK opcionales, validadas por nivel académico — RN-19) y
   `nota_promedio_ponderado` (decimal 0–20, usado por el backend para la prelación RN-18 — sin
   endpoint propio). **El contacto de emergencia ya no vive aquí**: se registra en el internado
-  (ver «Intern — escritura»).
+  (ver «Intern — escritura»). **UI (2026-09-09):** la vista exige elegir universidad (acotada al
+  alcance) antes de listar; el form fija la universidad (oculta) y usa un nivel **virtual** que
+  alterna carrera↔especialidad; el filtro de nivel arranca en «Pregrado». Ver `spec/estudiantes.md`.
 - `tutors` — filtros `universidades`, `activo`; search documento/nombres. `universidades` es M2M
   de 1 a 2 (RN-24); conserva `especialidad`, `ipress`, `numero_colegiatura`.
 

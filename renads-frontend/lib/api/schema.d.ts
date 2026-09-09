@@ -3430,7 +3430,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/ubigeos/{id}/": {
+    "/api/v1/ubigeos/{codigo}/": {
         parameters: {
             query?: never;
             header?: never;
@@ -4708,8 +4708,11 @@ export interface components {
             activo?: boolean;
             /** @description Universidad */
             universidad: number;
-            /** @description Ubicación geográfica (UBIGEO) */
-            ubigeo?: number | null;
+            /**
+             * Código
+             * @description Ubicación geográfica (UBIGEO)
+             */
+            ubigeo?: string | null;
         };
         /**
          * @description Entrada de la acción en lote `POST /faculties/{id}/careers`.
@@ -6308,8 +6311,11 @@ export interface components {
             activo?: boolean;
             /** @description Universidad */
             universidad?: number;
-            /** @description Ubicación geográfica (UBIGEO) */
-            ubigeo?: number | null;
+            /**
+             * Código
+             * @description Ubicación geográfica (UBIGEO)
+             */
+            ubigeo?: string | null;
         };
         /** @description CRUD de grupos (roles) con asignación de permisos por PK. */
         PatchedGroup: {
@@ -6511,11 +6517,16 @@ export interface components {
             activo?: boolean;
             /** @description Región */
             region?: number;
-            /** @description Ubicación geográfica (UBIGEO) */
-            ubigeo?: number | null;
+            /**
+             * Código
+             * @description Ubicación geográfica (UBIGEO)
+             */
+            ubigeo?: string | null;
         };
         PatchedStudent: {
             readonly id?: number;
+            readonly carrera_profesional_detalle?: string;
+            readonly especialidad_detalle?: string;
             /**
              * Número de documento
              * @description Número de documento de identidad
@@ -6567,8 +6578,11 @@ export interface components {
             readonly creado_en?: string;
             /** @description Tipo de documento */
             tipo_documento_identidad?: number;
-            /** @description Ubicación geográfica (UBIGEO) */
-            ubigeo?: number | null;
+            /**
+             * Código
+             * @description Ubicación geográfica (UBIGEO)
+             */
+            ubigeo?: string | null;
             /** @description Universidad de procedencia */
             universidad?: number;
             /** @description Carrera / programa */
@@ -6631,8 +6645,11 @@ export interface components {
             activo?: boolean;
             /** @description Tipo de documento */
             tipo_documento_identidad?: number;
-            /** @description Ubicación geográfica (UBIGEO) */
-            ubigeo?: number | null;
+            /**
+             * Código
+             * @description Ubicación geográfica (UBIGEO)
+             */
+            ubigeo?: string | null;
             /** @description Especialidad del tutor */
             especialidad?: number | null;
             /**
@@ -6697,8 +6714,11 @@ export interface components {
             tipo_entidad?: number;
             /** @description Licenciada / Denegada / Pendiente */
             tipo_autorizacion?: number;
-            /** @description Ubicación geográfica (UBIGEO) */
-            ubigeo?: number | null;
+            /**
+             * Código
+             * @description Ubicación geográfica (UBIGEO)
+             */
+            ubigeo?: string | null;
         };
         PatchedUniversityCampusAuto: {
             readonly id?: number;
@@ -6714,8 +6734,11 @@ export interface components {
             universidad?: number;
             /** @description Región */
             region?: number | null;
-            /** @description Ubicación geográfica (UBIGEO) */
-            ubigeo?: number | null;
+            /**
+             * Código
+             * @description Ubicación geográfica (UBIGEO)
+             */
+            ubigeo?: string | null;
         };
         /**
          * @description Carrera que dicta una universidad, asociada a la facultad que la imparte.
@@ -6869,8 +6892,11 @@ export interface components {
             activo?: boolean;
             /** @description Unidad ejecutora a la que pertenece */
             unidad_ejecutora?: string;
-            /** @description Ubicación geográfica (UBIGEO) */
-            ubigeo?: number | null;
+            /**
+             * Código
+             * @description Ubicación geográfica (UBIGEO)
+             */
+            ubigeo?: string | null;
             /** @description Ámbito geográfico sanitario */
             ambito_geografico_sanitario?: number;
             /** @description Categoría del establecimiento */
@@ -6974,8 +7000,11 @@ export interface components {
             activo?: boolean;
             /** @description Región */
             region: number;
-            /** @description Ubicación geográfica (UBIGEO) */
-            ubigeo?: number | null;
+            /**
+             * Código
+             * @description Ubicación geográfica (UBIGEO)
+             */
+            ubigeo?: string | null;
         };
         RejectionReasonAuto: {
             readonly id: number;
@@ -7143,6 +7172,8 @@ export interface components {
         };
         Student: {
             readonly id: number;
+            readonly carrera_profesional_detalle: string;
+            readonly especialidad_detalle: string;
             /**
              * Número de documento
              * @description Número de documento de identidad
@@ -7194,8 +7225,11 @@ export interface components {
             readonly creado_en: string;
             /** @description Tipo de documento */
             tipo_documento_identidad: number;
-            /** @description Ubicación geográfica (UBIGEO) */
-            ubigeo?: number | null;
+            /**
+             * Código
+             * @description Ubicación geográfica (UBIGEO)
+             */
+            ubigeo?: string | null;
             /** @description Universidad de procedencia */
             universidad: number;
             /** @description Carrera / programa */
@@ -7350,8 +7384,11 @@ export interface components {
             activo?: boolean;
             /** @description Tipo de documento */
             tipo_documento_identidad: number;
-            /** @description Ubicación geográfica (UBIGEO) */
-            ubigeo?: number | null;
+            /**
+             * Código
+             * @description Ubicación geográfica (UBIGEO)
+             */
+            ubigeo?: string | null;
             /** @description Especialidad del tutor */
             especialidad?: number | null;
             /**
@@ -7361,10 +7398,9 @@ export interface components {
             ipress?: string | null;
         };
         UbigeoAuto: {
-            readonly id: number;
             /**
              * Código
-             * @description Código UBIGEO INEI (6 dígitos)
+             * @description Código UBIGEO INEI (6 dígitos, clave primaria)
              */
             codigo: string;
             /** @description Departamento */
@@ -7431,8 +7467,11 @@ export interface components {
             tipo_entidad: number;
             /** @description Licenciada / Denegada / Pendiente */
             tipo_autorizacion: number;
-            /** @description Ubicación geográfica (UBIGEO) */
-            ubigeo?: number | null;
+            /**
+             * Código
+             * @description Ubicación geográfica (UBIGEO)
+             */
+            ubigeo?: string | null;
         };
         UniversityCampusAuto: {
             readonly id: number;
@@ -7448,8 +7487,11 @@ export interface components {
             universidad: number;
             /** @description Región */
             region?: number | null;
-            /** @description Ubicación geográfica (UBIGEO) */
-            ubigeo?: number | null;
+            /**
+             * Código
+             * @description Ubicación geográfica (UBIGEO)
+             */
+            ubigeo?: string | null;
         };
         /**
          * @description Carrera que dicta una universidad, asociada a la facultad que la imparte.
@@ -7727,8 +7769,11 @@ export interface components {
             activo?: boolean;
             /** @description Unidad ejecutora a la que pertenece */
             unidad_ejecutora: string;
-            /** @description Ubicación geográfica (UBIGEO) */
-            ubigeo?: number | null;
+            /**
+             * Código
+             * @description Ubicación geográfica (UBIGEO)
+             */
+            ubigeo?: string | null;
             /** @description Ámbito geográfico sanitario */
             ambito_geografico_sanitario: number;
             /** @description Categoría del establecimiento */
@@ -10965,7 +11010,8 @@ export interface operations {
                 page?: number;
                 /** @description Un término de búsqueda. */
                 search?: string;
-                ubigeo?: number;
+                /** @description Código UBIGEO INEI (6 dígitos, clave primaria) */
+                ubigeo?: string;
                 universidad?: number;
             };
             header?: never;
@@ -13300,7 +13346,8 @@ export interface operations {
                 region?: number;
                 /** @description Un término de búsqueda. */
                 search?: string;
-                ubigeo?: number;
+                /** @description Código UBIGEO INEI (6 dígitos, clave primaria) */
+                ubigeo?: string;
             };
             header?: never;
             path?: never;
@@ -14630,8 +14677,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este ubigeo. */
-                id: number;
+                codigo: string;
             };
             cookie?: never;
         };
