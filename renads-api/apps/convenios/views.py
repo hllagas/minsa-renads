@@ -441,13 +441,14 @@ def _detalle_nombre(rel):
     `Catalog`: categoría, clasificación, ámbito, microrred), para que el listado pueda
     mostrar el código o el nombre según convenga.
     """
-    return {"id": rel.id, "codigo": getattr(rel, "codigo", None), "nombre": rel.nombre}
+    # `pk` soporta PK numérica y textual (ipress `codigo_renipress`, executing-units `codigo`).
+    return {"id": rel.pk, "codigo": getattr(rel, "codigo", None), "nombre": rel.nombre}
 
 
 def _detalle_organo_directorio(rel):
     """Detalle legible de un órgano del directorio (`nombre` + su `organo` canónico)."""
     return {
-        "id": rel.id,
+        "id": rel.pk,
         "nombre": rel.nombre,
         "organo": getattr(rel.organo, "nombre", None),
     }

@@ -30,7 +30,26 @@ export const INTERNSHIP_FIELDS: FieldConfig[] = [
     optionsToLabel: convenioLabel,
   },
   { name: "campo_clinico", label: "Campo clínico (id)", type: "number", required: true },
-  { name: "ipress", label: "Sede docente (IPRESS)", type: "select", required: true, optionsEndpoint: "ipress", optionsValueKey: "codigo_renipress", optionsSearchable: true },
+  {
+    name: "ipress",
+    label: "Sede docente (IPRESS)",
+    type: "select",
+    required: true,
+    optionsEndpoint: "ipress",
+    optionsValueKey: "codigo_renipress",
+    optionsSearchable: true,
+    // Filtra las IPRESS por la **unidad ejecutora del convenio** elegido (p. ej. DIRIS Lima Este),
+    // y solo sedes docentes autorizadas. Se resuelve el detalle del convenio para obtener su UE.
+    optionsParamsFromEntity: {
+      field: "convenio",
+      endpoint: "conventions",
+      toParams: (c: WithId) =>
+        c.unidad_ejecutora
+          ? { unidad_ejecutora: String(c.unidad_ejecutora), es_sede_docente: "true" }
+          : undefined,
+    },
+    resetsOn: ["convenio"],
+  },
   {
     name: "tutor",
     label: "Tutor",

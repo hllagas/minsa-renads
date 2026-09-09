@@ -232,7 +232,8 @@ def _detalle_fk(rel, *campos: str):
     """
     if rel is None:
         return None
-    detalle = {"id": rel.id}
+    # `pk` soporta tanto PK numérica como textual (p. ej. ExecutingUnit.codigo, mig 0045).
+    detalle = {"id": rel.pk}
     for campo in campos:
         detalle[campo] = getattr(rel, campo, None)
     return detalle

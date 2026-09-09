@@ -79,6 +79,14 @@ export function ConvenioCreateForm({
     /espec/i.test(String(selected.nombre ?? selected.codigo ?? ""));
   const isMarco = tipoId != null && !isEspecifico;
 
+  // Tipo «Marco» (id resuelto por nombre) para acotar el combo de convenio marco a Marcos.
+  const marcoTypeId = (typesQuery.data ?? []).find((t) =>
+    /marco/i.test(String(t.nombre ?? t.codigo ?? "")),
+  )?.id;
+  // Estados con vigencia (RN-3, espejo de `ESTADOS_VIGENTES` del backend) — un Específico solo
+  // depende de un Marco en uno de estos estados.
+  const ESTADOS_MARCO_VIGENTE = new Set(["VIGENTE", "PUBLICADO", "SUSCRITO"]);
+
   const tipoItems = (typesQuery.data ?? []).map((t) => ({
     value: String(t.id),
     label: String(t.nombre ?? t.codigo ?? t.id),
@@ -238,11 +246,20 @@ export function ConvenioCreateForm({
           >
             <EntityCombobox
               endpoint="conventions"
-              toLabel={(row: WithId) => String(row.titulo ?? row.nomenclatura ?? row.id)}
+              params={
+                isEspecifico && marcoTypeId != null
+                  ? { tipo_convenio: String(marcoTypeId) }
+                  : undefined
+              }
+              // Solo Marcos con vigencia (suscrito/publicado/vigente); se muestra la nomenclatura.
+              filterRows={(row: WithId) =>
+                ESTADOS_MARCO_VIGENTE.has(String(row.estado_codigo ?? ""))
+              }
+              toLabel={(row: WithId) => String(row.nomenclatura || row.titulo || row.id)}
               value={field.value as number | null}
               onChange={(v) => field.onChange(v)}
               disabled={!isEspecifico}
-              placeholder={isEspecifico ? "Buscar…" : "Solo para Específico"}
+              placeholder={isEspecifico ? "Buscar convenio marco…" : "Solo para Específico"}
             />
           </Row>
         )}

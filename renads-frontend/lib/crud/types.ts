@@ -35,6 +35,21 @@ export interface FieldConfig {
    */
   optionsParamsFrom?: (values: Record<string, unknown>) => Record<string, string>;
   /**
+   * Para `type: "select"`: calcula los `optionsParams` a partir de **otra entidad relacionada** que
+   * hay que resolver por su id (fetch async), no de valores planos del form. P. ej. filtrar `ipress`
+   * por la unidad ejecutora del `convenio` elegido: se observa el campo `field` (id), se pide su
+   * detalle a `endpoint`, y `toParams` mapea ese detalle a los query params. Mientras no haya
+   * entidad resuelta, el select queda deshabilitado. Combinar con `resetsOn: [field]`.
+   */
+  optionsParamsFromEntity?: {
+    /** Campo del form a observar (contiene el id de la entidad relacionada). */
+    field: string;
+    /** Endpoint DRF de la entidad relacionada (se pide el detalle por id). */
+    endpoint: string;
+    /** Mapea el detalle de la entidad a los query params del select (o `undefined` si no aplica). */
+    toParams: (entity: WithId) => Record<string, string> | undefined;
+  };
+  /**
    * Nombres de los campos padre; al cambiar cualquiera, este campo se resetea a su valor vacío
    * (para no dejar seleccionada una opción que ya no es válida tras cambiar el filtro padre).
    */

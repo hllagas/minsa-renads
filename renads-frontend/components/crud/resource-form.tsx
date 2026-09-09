@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import type { FieldConfig } from "@/lib/crud/types";
 import type { WithId } from "@/lib/api/query";
-import { searchResource } from "@/lib/api/lookup";
+import { getResourceItem, searchResource } from "@/lib/api/lookup";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -328,10 +328,32 @@ function SelectFieldRow({
   // `optionsParamsFrom`/`resetsOn` no se observa nada y el comportamiento es idéntico al previo.
   const watchesValues = !!field.optionsParamsFrom;
   const watchedValues = useWatch({ control, disabled: !watchesValues }) as FormValues;
-  // Params dinámicos: prioridad de `optionsParamsFrom` sobre `optionsParams` estático.
+
+  // Cascada por **entidad relacionada** (async): observa el id del campo padre, pide su detalle y
+  // mapea a params. Deshabilita el select hasta resolver. Sin `optionsParamsFromEntity` no observa ni
+  // consulta nada (comportamiento idéntico al previo).
+  const entityDep = field.optionsParamsFromEntity;
+  const depId = useWatch({
+    control,
+    name: entityDep?.field ?? "__none__",
+    disabled: !entityDep,
+  }) as string | number | null | undefined;
+  const depQuery = useQuery({
+    queryKey: [entityDep?.endpoint, "params-src", depId],
+    queryFn: () => getResourceItem(entityDep!.endpoint, depId as string | number),
+    enabled: !!entityDep && depId != null && depId !== "",
+    staleTime: 60_000,
+  });
+  const entityParams = entityDep && depQuery.data ? entityDep.toParams(depQuery.data) : undefined;
+  // El select por entidad no puede filtrar hasta tener params → se deshabilita mientras tanto.
+  const entityGated = !!entityDep && !entityParams;
+
+  // Params dinámicos: prioridad `optionsParamsFrom` > `optionsParamsFromEntity` (async) > estático.
   const dynamicParams = field.optionsParamsFrom
     ? field.optionsParamsFrom(watchedValues ?? {})
-    : field.optionsParams;
+    : entityDep
+      ? entityParams
+      : field.optionsParams;
 
   return (
     <Controller
@@ -382,6 +404,8 @@ function SelectFieldRow({
               toLabel={field.optionsToLabel}
               value={(f.value as string | null) ?? null}
               onChange={(val) => f.onChange(val)}
+              disabled={field.disabled || entityGated}
+              placeholder={entityGated ? "Elige primero el campo relacionado…" : undefined}
             />
           ) : field.optionsValueKey ? (
             <CodeSelect
@@ -399,6 +423,8 @@ function SelectFieldRow({
               toLabel={field.optionsToLabel}
               value={f.value as number | null}
               onChange={(val) => f.onChange(val)}
+              disabled={field.disabled || entityGated}
+              placeholder={entityGated ? "Elige primero el campo relacionado…" : undefined}
             />
           )}
           {fieldState.error ? (

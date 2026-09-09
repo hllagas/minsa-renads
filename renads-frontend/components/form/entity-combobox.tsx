@@ -39,6 +39,7 @@ export function EntityCombobox<T extends string | number = number>({
   placeholder = "Buscar…",
   disabled,
   valueKey = "id",
+  filterRows,
 }: {
   endpoint: string;
   value: T | null | undefined;
@@ -48,6 +49,11 @@ export function EntityCombobox<T extends string | number = number>({
   placeholder?: string;
   disabled?: boolean;
   valueKey?: string;
+  /**
+   * Filtro cliente extra sobre los resultados (además de `params` server-side). Útil cuando el
+   * backend no ofrece el filtro exacto (p. ej. varios estados a la vez): `estado_codigo ∈ set`.
+   */
+  filterRows?: (row: WithId) => boolean;
 }) {
   const [search, setSearch] = useState("");
 
@@ -70,7 +76,7 @@ export function EntityCombobox<T extends string | number = number>({
     (row[valueKey] as string | number | undefined) ?? row.id;
 
   const items = useMemo<ComboboxItemData[]>(() => {
-    const rows = listQuery.data ?? [];
+    const rows = filterRows ? (listQuery.data ?? []).filter(filterRows) : listQuery.data ?? [];
     const list = rows.map((r) => ({ id: idOf(r), label: toLabel(r) }));
     if (value != null && selectedQuery.data && !list.some((i) => i.id === value)) {
       list.unshift({ id: idOf(selectedQuery.data), label: toLabel(selectedQuery.data) });
@@ -79,14 +85,26 @@ export function EntityCombobox<T extends string | number = number>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listQuery.data, selectedQuery.data, value, valueKey]);
 
-  const selectedItem = items.find((i) => i.id === value) ?? null;
+  // Referencia estable del item seleccionado: se recrea SOLO cuando cambian el id o la etiqueta.
+  // base-ui compara el `value` por referencia en un efecto; pasarle un objeto nuevo en cada render
+  // le hace re-emitir `onValueChange` para "corregir" el valor → setState → re-render → nuevo
+  // objeto → «Maximum update depth exceeded». Memoizar por [value, label] rompe ese bucle.
+  const selectedLabel = (items.find((i) => i.id === value) ?? null)?.label ?? null;
+  const selectedItem = useMemo<ComboboxItemData | null>(
+    () => (value != null && selectedLabel != null ? { id: value, label: selectedLabel } : null),
+    [value, selectedLabel],
+  );
 
   return (
     <Combobox
       items={items}
       value={selectedItem}
-      onValueChange={(item: ComboboxItemData | null) => onChange(item ? (item.id as T) : null)}
-      onInputValueChange={(text: string) => setSearch(text)}
+      onValueChange={(item: ComboboxItemData | null) => {
+        // Solo propagar cambios reales de id (evita eco de base-ui con el mismo valor → bucle).
+        const next = item ? (item.id as T) : null;
+        if (next !== (value ?? null)) onChange(next);
+      }}
+      onInputValueChange={(text: string) => setSearch((prev) => (prev === text ? prev : text))}
       itemToStringLabel={(item: ComboboxItemData) => item.label}
       itemToStringValue={(item: ComboboxItemData) => String(item.id)}
       isItemEqualToValue={(a: ComboboxItemData, b: ComboboxItemData) => a.id === b.id}

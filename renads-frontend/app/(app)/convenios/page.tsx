@@ -32,17 +32,44 @@ export default function ConveniosPage() {
   const columns = useMemo<ColumnDef<ConventionRead>[]>(
     () => [
       { accessorKey: "nomenclatura", header: "Nomenclatura", cell: ({ row }) => row.original.nomenclatura || "—" },
-      { accessorKey: "titulo", header: "Título" },
+      {
+        accessorKey: "titulo",
+        header: "Título",
+        // Título largo: se trunca con ellipsis (tope de ancho) + tooltip nativo con el texto completo,
+        // para evitar el scroll horizontal de la tabla.
+        cell: ({ row }) => (
+          <div
+            className="max-w-[26rem] truncate"
+            title={row.original.titulo || undefined}
+          >
+            {row.original.titulo || "—"}
+          </div>
+        ),
+      },
       { accessorKey: "tipo_convenio", header: "Tipo" },
       {
         accessorKey: "universidad_nombre",
         header: "Universidad",
-        cell: ({ row }) => row.original.universidad_nombre || "—",
+        cell: ({ row }) => (
+          <div
+            className="max-w-[16rem] truncate"
+            title={row.original.universidad_nombre || undefined}
+          >
+            {row.original.universidad_nombre || "—"}
+          </div>
+        ),
       },
       {
         accessorKey: "organo_directorio_nombre",
         header: "Órgano del directorio",
-        cell: ({ row }) => row.original.organo_directorio_nombre || "—",
+        cell: ({ row }) => (
+          <div
+            className="max-w-[12rem] truncate"
+            title={row.original.organo_directorio_nombre || undefined}
+          >
+            {row.original.organo_directorio_nombre || "—"}
+          </div>
+        ),
       },
       { accessorKey: "estado_actual", header: "Estado" },
       {
