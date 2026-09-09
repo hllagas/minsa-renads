@@ -17,7 +17,7 @@ from apps.convenios.permissions import exigir_roles
 from apps.convenios.views import AuditedModelViewSet, _catalog_viewset, _entity_viewset
 from apps.internados import models as im
 from apps.internados import selectors, services
-from apps.internados.filters import InternshipFilter, RotationFilter
+from apps.internados.filters import InternshipFilter, RotationFilter, StudentFilter
 from apps.internados.models import Rotation
 from apps.internados.permissions import InternshipScope, IsUniversityOrReadOnly
 from drf_spectacular.utils import extend_schema
@@ -235,10 +235,7 @@ class StudentViewSet(AuditedModelViewSet):
 
     serializer_class = StudentSerializer
     permission_classes = [IsAuthenticated, IsInstitutionalMember, IsUniversityOrReadOnly]
-    filterset_fields = [
-        "universidad", "carrera_profesional", "periodo_academico", "especialidad",
-        "numero_documento", "activo",
-    ]
+    filterset_class = StudentFilter
     search_fields = ["numero_documento", "nombres", "apellido_paterno"]
     ordering = ["id"]
 

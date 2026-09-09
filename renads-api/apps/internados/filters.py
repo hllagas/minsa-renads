@@ -2,7 +2,27 @@
 
 from django_filters import rest_framework as filters
 
-from apps.internados.models import Internship, Rotation
+from apps.internados.models import Internship, Rotation, Student
+
+
+class StudentFilter(filters.FilterSet):
+    """Filtros de estudiantes. `nivel_academico` filtra por el nivel de la carrera (RN-19):
+    el estudiante no persiste el nivel; deriva de `carrera_profesional.nivel_academico`."""
+
+    nivel_academico = filters.NumberFilter(
+        field_name="carrera_profesional__nivel_academico"
+    )
+
+    class Meta:
+        model = Student
+        fields = {
+            "universidad": ["exact"],
+            "carrera_profesional": ["exact"],
+            "periodo_academico": ["exact"],
+            "especialidad": ["exact"],
+            "numero_documento": ["exact"],
+            "activo": ["exact"],
+        }
 
 
 class InternshipFilter(filters.FilterSet):

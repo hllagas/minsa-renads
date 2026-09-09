@@ -18,10 +18,27 @@ from apps.internados.models import (
 
 
 class StudentSerializer(serializers.ModelSerializer):
+    # Detalles legibles para el listado (el estudiante no persiste `nivel_academico`; deriva de
+    # la carrera — RN-19). Solo lectura; la escritura sigue por id.
+    carrera_profesional_detalle = serializers.SerializerMethodField(read_only=True)
+    especialidad_detalle = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = Student
         fields = "__all__"
         read_only_fields = ["creado_por", "creado_en"]
+
+    def get_carrera_profesional_detalle(self, obj):
+        c = obj.carrera_profesional
+        if c is None:
+            return None
+        return {"id": c.id, "nombre": c.nombre, "nivel_academico": c.nivel_academico_id}
+
+    def get_especialidad_detalle(self, obj):
+        e = obj.especialidad
+        if e is None:
+            return None
+        return {"id": e.id, "nombre": e.nombre}
 
     def validate(self, attrs):
         """RN-19: valida periodo académico vs. especialidad según el nivel académico.
