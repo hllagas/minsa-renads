@@ -4,12 +4,15 @@ Ciclo de vida de Convenios Marco y Específicos: registro, evaluación técnica 
 CONAPRES, campos clínicos, opinión jurídica (OGAJ), firma, publicación, vigencia y cierre.
 Base: `/api/v1/`. Todos los endpoints requieren JWT.
 
-**Última revisión de contrato: 2026-09-02** (adendas, partes tipadas, resolución CONAPRES).
+**Última revisión de contrato: 2026-09-09** (RN-1 ampliada: Marco por GORE/MINSA/Universidad;
+`gobierno_regional` obligatorio solo en Marco+GORE, nulo en el resto; `organ-directories` por FK `organo`).
 
 ## Reglas de negocio clave (para validación/UX)
 
-- Un Convenio **Marco** solo lo solicita una **GERESA o DIRESA** (`organo_directorio` de ese tipo)
-  y no lleva `convenio_marco`, `unidad_ejecutora` ni `facultad`.
+- Un Convenio **Marco** lo puede solicitar un órgano de categoría **Gobierno Regional
+  (GERESA/DIRESA), MINSA o Universidad** (`organo_directorio` cuya `organo.categoria` ∈
+  {`GOBIERNO_REGIONAL`, `ORGANO_MINSA`, `UNIVERSIDAD`} — RN-1, ampliada); no lleva `convenio_marco`,
+  `unidad_ejecutora` ni `facultad`.
 - **RN-3:** un Convenio **Específico** requiere un **Convenio Marco vigente**
   (estado en `VIGENTE` / `PUBLICADO` / `SUSCRITO`) — **salvo si el órgano es DIRIS**, que puede
   crear Específico sin Marco (si lo envía, igual debe estar vigente).
@@ -81,8 +84,10 @@ fecha_solicitud, fecha_inicio?, fecha_fin?, max_campos_clinicos?
 ```
 > `unidad_ejecutora` y `facultad` solo aplican a Específico. `facultad` debe pertenecer a la
 > universidad del Marco. `nomenclatura` no se envía (la asigna DIGEP). `gobierno_regional` solo
-> aplica a **Convenio Marco regional** (el backend lo exige por tipo/órgano); Marco Lima /
-> Específico lo dejan nulo.
+> aplica a **Convenio Marco + órgano de categoría Gobierno Regional** (donde es **obligatorio**);
+> cualquier otra combinación (Marco MINSA/Universidad, Marco DIRIS o Específico) lo debe dejar
+> **nulo** (el backend rechaza el valor). El alta filtra el órgano del directorio por una
+> **categoría de órgano** (`organs`) y muestra `gobierno_regional` solo en ese caso.
 
 ### Payloads de acciones de flujo
 
@@ -166,8 +171,8 @@ Escritura: `campo_clinico_ipress` (req), `convenio` (req), `fecha_inicio` (req),
 
 ## Entidades organizacionales / académicas (CRUD, escritura solo `Administrador RENADS`)
 
-`regional-governments`, `organ-directories` (unifica tipos, discriminado por CharField `categoria`),
-`executing-units` (usa `gobierno_regional`+`tipo_organo`→`organ-directories?categoria=UNIDAD_EJECUTORA`),
+`regional-governments`, `organ-directories` (directorio unificado, discriminado por **FK `organo`**→`organs`;
+filtrar `?organo=<id>`; mig 0039), `executing-units` (FK `ambito_geografico_sanitario`; mig 0043-0045),
 `ipress`, `conapres`, `universities`, `faculties`, `professional-careers`, `university-campuses`,
 `university-careers`, `user-entity-profiles` (solo `Administrador RENADS`, sin lectura abierta).
 

@@ -155,7 +155,7 @@ def _validar_gobierno_regional_por_tipo(*, tipo_codigo, categoria_organo, gobier
     """Valida el `gobierno_regional` del convenio según su tipo/categoría (RN-GORE-1/2).
 
     - MARCO + órgano GOBIERNO_REGIONAL (región): exige `gobierno_regional` no nulo.
-    - MARCO + órgano MINSA_DIRIS (Lima): `gobierno_regional` debe ser nulo.
+    - MARCO + cualquier otro órgano: `gobierno_regional` debe ser nulo.
     - ESPECIFICO: `gobierno_regional` debe ser nulo (se deriva del Marco).
 
     Reutilizado por `crear_convenio` y `actualizar_convenio`, coherente con
@@ -167,11 +167,10 @@ def _validar_gobierno_regional_por_tipo(*, tipo_codigo, categoria_organo, gobier
                 raise ValidationError(
                     {"gobierno_regional": "Requerido para un Convenio Marco regional."}
                 )
-        elif categoria_organo == "MINSA_DIRIS":
-            if gobierno_regional is not None:
-                raise ValidationError(
-                    {"gobierno_regional": "Un Convenio Marco de Lima (DIRIS) no lleva gobierno regional."}
-                )
+        elif gobierno_regional is not None:
+            raise ValidationError(
+                {"gobierno_regional": "Solo un Convenio Marco regional lleva gobierno regional."}
+            )
     elif tipo_codigo == "ESPECIFICO":
         if gobierno_regional is not None:
             raise ValidationError(
@@ -182,20 +181,18 @@ def _validar_gobierno_regional_por_tipo(*, tipo_codigo, categoria_organo, gobier
 def _validar_composicion_partes(*, tipo_codigo, categoria_organo, roles_presentes) -> None:
     """Valida la composición de roles requerida por tipo/categoría del convenio.
 
-    - MARCO + órgano MINSA_DIRIS (Lima): requiere MINSA + UNIVERSIDAD.
     - MARCO + órgano GOBIERNO_REGIONAL (región): requiere MINSA + GOBIERNO_REGIONAL + UNIVERSIDAD.
+    - MARCO + cualquier otro órgano (ORGANO_MINSA, UNIVERSIDAD, MINSA_DIRIS): requiere MINSA + UNIVERSIDAD.
     - ESPECIFICO: requiere UNIDAD_EJECUTORA + FACULTAD (apoderado orden=2 opcional).
 
     `roles_presentes` es un conjunto/colección de códigos de rol (PARTY_ROLE).
     """
     roles = set(roles_presentes)
     if tipo_codigo == "MARCO":
-        if categoria_organo == "MINSA_DIRIS":
-            requeridos = {"MINSA", "UNIVERSIDAD"}
-        elif categoria_organo == "GOBIERNO_REGIONAL":
+        if categoria_organo == "GOBIERNO_REGIONAL":
             requeridos = {"MINSA", "GOBIERNO_REGIONAL", "UNIVERSIDAD"}
         else:
-            requeridos = set()
+            requeridos = {"MINSA", "UNIVERSIDAD"}
     elif tipo_codigo == "ESPECIFICO":
         requeridos = {"UNIDAD_EJECUTORA", "FACULTAD"}
     else:
@@ -250,10 +247,11 @@ def crear_convenio(*, datos: dict, usuario) -> Convention:
     categoria = organo.categoria  # ORGANO_MINSA / UNIVERSIDAD / GOBIERNO_REGIONAL / MINSA_DIRIS / UNIDAD_EJECUTORA
 
     if tipo.codigo == "MARCO":
-        # RN-1: solo un Gobierno Regional (GERESA/DIRESA) puede solicitar un Convenio Marco.
-        if categoria != "GOBIERNO_REGIONAL":
+        # RN-1: Gobierno Regional, Ministerio de Salud o Universidad pueden solicitar un Marco.
+        _CATEGORIAS_MARCO = {"GOBIERNO_REGIONAL", "ORGANO_MINSA", "UNIVERSIDAD"}
+        if categoria not in _CATEGORIAS_MARCO:
             raise ValidationError(
-                {"organo_directorio": "Solo una GERESA o DIRESA puede solicitar un Convenio Marco."}
+                {"organo_directorio": "Un Convenio Marco solo puede ser solicitado por un Gobierno Regional, el Ministerio de Salud o una Universidad."}
             )
         if marco is not None:
             raise ValidationError({"convenio_marco": "Un Convenio Marco no depende de otro convenio."})

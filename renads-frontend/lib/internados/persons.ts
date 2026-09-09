@@ -35,18 +35,20 @@ const studentColumns: ColumnConfig<WithId>[] = [
 ];
 
 /**
- * Config CRUD de estudiantes. `pregradoId` (id del nivel «Pregrado», resuelto en runtime desde
- * `academic-levels`) dirige el toggle del form: nivel «Pregrado» → carrera profesional; otro nivel
- * → especialidad (RN-19). El nivel es un campo **virtual** (`_nivel`, solo UI, no se envía; el
- * backend deriva el nivel de la carrera/especialidad). La universidad se fija por la vista principal
- * (`fixedValues` → oculta el campo). `undefined`/`null` en `pregradoId` degrada a mostrar ambos
- * selects (el catálogo aún no cargó).
+ * Config CRUD de estudiantes. El **nivel académico se fija desde la vista general** (selector
+ * superior) y llega como `nivelActivoId`: si es «Pregrado» (`pregradoId`) el form pide **carrera
+ * profesional**; en otro nivel pide **especialidad** (RN-19). El nivel ya NO se pregunta en el form
+ * (antes campo virtual `_nivel`, retirado — hereda el elegido en la vista). La universidad se fija
+ * por la vista principal (`fixedValues` → oculta el campo). `null` en `nivelActivoId` degrada a
+ * mostrar carrera (el catálogo aún no cargó).
  */
-export function buildStudentsConfig(pregradoId: number | null): ResourceConfig {
-  const esPregrado = (v: Record<string, unknown>) =>
-    pregradoId != null && v._nivel === pregradoId;
-  const esOtroNivel = (v: Record<string, unknown>) =>
-    v._nivel != null && v._nivel !== "" && v._nivel !== pregradoId;
+export function buildStudentsConfig(
+  nivelActivoId: number | null,
+  pregradoId: number | null,
+): ResourceConfig {
+  // Nivel fijado por la vista: Pregrado → carrera; otro → especialidad. Sin nivel resuelto → carrera.
+  const esPregrado = nivelActivoId != null && nivelActivoId === pregradoId;
+  const mostrarCarrera = nivelActivoId == null || esPregrado;
 
   const fields: FieldConfig[] = [
     { name: "_s1", label: "Datos personales", type: "separator" },
@@ -81,34 +83,28 @@ export function buildStudentsConfig(pregradoId: number | null): ResourceConfig {
       required: true,
       optionsEndpoint: "universities",
     },
-    // Nivel académico: campo VIRTUAL (no se envía) — solo alterna carrera/especialidad (RN-19).
-    {
-      name: "_nivel",
-      label: "Nivel académico",
-      type: "select",
-      required: true,
-      virtual: true,
-      optionsEndpoint: "academic-levels",
-    },
-    // Pregrado → carrera profesional (filtrada por nivel Pregrado). Otro nivel → oculto.
-    {
-      name: "carrera_profesional",
-      label: "Carrera profesional",
-      type: "select",
-      optionsEndpoint: "professional-careers",
-      optionsParams: pregradoId != null ? { nivel_academico: String(pregradoId) } : undefined,
-      showWhen: esPregrado,
-      resetsOn: ["_nivel"],
-    },
-    // Postgrado/Doctorado → especialidad. Pregrado → oculto.
-    {
-      name: "especialidad",
-      label: "Especialidad",
-      type: "select",
-      optionsEndpoint: "specialties",
-      showWhen: esOtroNivel,
-      resetsOn: ["_nivel"],
-    },
+    // Nivel académico: NO se pide aquí — lo fija el selector de la vista general y determina, abajo,
+    // si se muestra carrera (Pregrado) o especialidad (otro nivel).
+    // Pregrado → carrera profesional (filtrada por nivel Pregrado). Otro nivel → especialidad.
+    ...(mostrarCarrera
+      ? [
+          {
+            name: "carrera_profesional",
+            label: "Carrera profesional",
+            type: "select",
+            optionsEndpoint: "professional-careers",
+            optionsParams:
+              pregradoId != null ? { nivel_academico: String(pregradoId) } : undefined,
+          } as FieldConfig,
+        ]
+      : [
+          {
+            name: "especialidad",
+            label: "Especialidad",
+            type: "select",
+            optionsEndpoint: "specialties",
+          } as FieldConfig,
+        ]),
     {
       name: "periodo_academico",
       label: "Periodo académico",
@@ -162,8 +158,8 @@ export function buildStudentsConfig(pregradoId: number | null): ResourceConfig {
     writeRoles: WRITE,
     columns: studentColumns,
     filters: [
-      // Filtro por nivel (default «Pregrado» lo inyecta la página vía initialFilters).
-      { name: "nivel_academico", label: "Nivel académico", type: "select", optionsEndpoint: "academic-levels" },
+      // El nivel se elige en el selector de la vista general (no en la barra de filtros); aquí queda
+      // el filtro por carrera y estado.
       { name: "carrera_profesional", label: "Carrera profesional", type: "select", optionsEndpoint: "professional-careers" },
       { name: "activo", label: "Activo", type: "boolean" },
     ],

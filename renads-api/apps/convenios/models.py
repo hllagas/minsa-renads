@@ -323,12 +323,20 @@ class RegionalGovernment(models.Model):
 
 
 class OrganDirectory(models.Model):
-    """Directorio unificado de órganos/tipos institucionales, discriminado por ``categoria``.
+    """Directorio unificado de órganos/tipos institucionales.
 
     Cataloga órganos del MINSA, universidades, gobiernos regionales, DIRIS y unidades
-    ejecutoras en una única tabla. La ``categoria`` (choices) reemplaza al antiguo FK
-    ``organo``/``tipo_organo``.
+    ejecutoras en una única tabla. La categoría se deriva del FK ``organo`` (→ ``Organ``).
     """
+
+    # Mapeo Organ.nombre → código de categoría (mirror del definido en migración 0039).
+    _NOMBRE_A_CATEGORIA: dict[str, str] = {
+        "MINSA Administrativo": "ORGANO_MINSA",
+        "Universidad": "UNIVERSIDAD",
+        "Gobierno Regional": "GOBIERNO_REGIONAL",
+        "Unidad Ejecutora": "UNIDAD_EJECUTORA",
+        "MINSA DIRIS": "MINSA_DIRIS",
+    }
 
     organo = models.ForeignKey(
         Organ, on_delete=models.PROTECT, db_column="organo_id",
@@ -355,6 +363,16 @@ class OrganDirectory(models.Model):
 
     def __str__(self):
         return self.nombre
+
+    @property
+    def categoria(self) -> str | None:
+        """Código de categoría derivado del FK ``organo`` (compat. con call sites legacy)."""
+        return self._NOMBRE_A_CATEGORIA.get(self.organo.nombre)
+
+    def get_categoria_display(self) -> str | None:
+        """Label español de la categoría (para serializers con source=...get_categoria_display)."""
+        code = self.categoria
+        return dict(ORGAN_DIRECTORY_CATEGORY).get(code) if code else None
 
 
 class ExecutingUnit(models.Model):

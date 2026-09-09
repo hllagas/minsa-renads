@@ -221,9 +221,13 @@ def _seleccionar_plantilla(convenio) -> Path:
 
     mapa = {
         ("MARCO", "MINSA DIRIS"): "modelo_1_marco_lima.docx",
+        ("MARCO", "MINSA Administrativo"): "modelo_1_marco_lima.docx",
+        ("MARCO", "Universidad"): "modelo_1_marco_lima.docx",
         ("MARCO", "Gobierno Regional"): "modelo_2_marco_region.docx",
         ("ESPECIFICO", "MINSA DIRIS"): "modelo_3_especifico_lima.docx",
+        ("ESPECIFICO", "MINSA Administrativo"): "modelo_3_especifico_lima.docx",
         ("ESPECIFICO", "Gobierno Regional"): "modelo_4_especifico_region.docx",
+        ("ESPECIFICO", "Unidad Ejecutora"): "modelo_4_especifico_region.docx",
     }
     nombre = mapa.get((tipo, organo))
     if nombre is None:

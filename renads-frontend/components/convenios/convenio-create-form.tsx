@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { EntityCombobox } from "@/components/form/entity-combobox";
 import { DatePicker } from "@/components/form/date-picker";
 import { SolicitanteField } from "@/components/convenios/solicitante-field";
+import { useOrgans, organIdByNombre, ORGAN_NOMBRE } from "@/lib/catalogos/organs";
 import {
   Select,
   SelectContent,
@@ -26,6 +27,11 @@ import {
  * - `tipo_convenio` se bloquea una vez elegido.
  * - `convenio_marco`, `max_campos_clinicos`, `unidad_ejecutora` y `facultad`
  *   solo aplican a Específico.
+ * - **Órgano (categoría)** `_organo` (virtual, no se envía) filtra `organ-directories`
+ *   por `?organo=<id>`. Para un **Marco** solo se ofrecen las categorías que pueden
+ *   solicitarlo (RN-1: Gobierno Regional / MINSA / Universidad).
+ * - `gobierno_regional` es **obligatorio** solo en Marco + órgano Gobierno Regional; en
+ *   cualquier otro caso va nulo (el backend lo rechaza si se envía — RN-GORE).
  * - `facultad` se filtra por universidad.
  * - `nomenclatura` es asignada por DIGEP; no editable en el alta.
  */
@@ -46,6 +52,7 @@ export function ConvenioCreateForm({
       convenio_marco: null,
       solicitante_tipo_contenido: null,
       solicitante_id_objeto: null,
+      _organo: null,
       organo_directorio: null,
       gobierno_regional: null,
       universidad: null,
@@ -57,6 +64,7 @@ export function ConvenioCreateForm({
   });
 
   const tipoId = useWatch({ control, name: "tipo_convenio" }) as number | null;
+  const organoCat = useWatch({ control, name: "_organo" }) as number | null;
   const universidadId = watch("universidad") as number | null;
 
   // Catálogo de tipos para detectar si es Específico.
@@ -69,11 +77,29 @@ export function ConvenioCreateForm({
   const isEspecifico =
     !!selected &&
     /espec/i.test(String(selected.nombre ?? selected.codigo ?? ""));
+  const isMarco = tipoId != null && !isEspecifico;
 
   const tipoItems = (typesQuery.data ?? []).map((t) => ({
     value: String(t.id),
     label: String(t.nombre ?? t.codigo ?? t.id),
   }));
+
+  // Catálogo canónico `organs` (categoría del órgano del directorio, discriminador FK `organo`).
+  const organsQuery = useOrgans();
+  const goreId = organIdByNombre(organsQuery.data, ORGAN_NOMBRE.GORE);
+  // RN-1: un Marco solo lo solicita Gobierno Regional, MINSA o Universidad. En Específico se
+  // ofrecen todas las categorías (el backend valida la coherencia final).
+  const marcoNombres: string[] = [
+    ORGAN_NOMBRE.GORE,
+    ORGAN_NOMBRE.MINSA,
+    ORGAN_NOMBRE.UNIVERSIDAD,
+  ];
+  const orgItems = (organsQuery.data ?? [])
+    .filter((o) => !isMarco || marcoNombres.includes(o.nombre))
+    .map((o) => ({ value: String(o.id), label: o.nombre }));
+
+  // `gobierno_regional` solo aplica a Marco + órgano de categoría Gobierno Regional (RN-GORE).
+  const mostrarGORE = isMarco && goreId != null && organoCat === goreId;
 
   useEffect(() => {
     if (!isEspecifico) {
@@ -83,6 +109,16 @@ export function ConvenioCreateForm({
       setValue("facultad", null);
     }
   }, [isEspecifico, setValue]);
+
+  // Al cambiar la categoría del órgano: resetear el órgano del directorio (cascada) y, si ya no
+  // corresponde GORE, limpiarlo.
+  useEffect(() => {
+    setValue("organo_directorio", null);
+  }, [organoCat, setValue]);
+
+  useEffect(() => {
+    if (!mostrarGORE) setValue("gobierno_regional", null);
+  }, [mostrarGORE, setValue]);
 
   // Resetear facultad al cambiar universidad.
   useEffect(() => {
@@ -215,7 +251,37 @@ export function ConvenioCreateForm({
       {/* Entidad solicitante */}
       <SolicitanteField control={control} />
 
-      {/* Órgano del directorio */}
+      {/* Categoría del órgano (discriminador `organo`) — filtra el órgano del directorio.
+          Virtual: no se envía al backend. */}
+      <Controller
+        control={control}
+        name="_organo"
+        rules={{ validate: (v) => (v != null && v !== "") || "Campo obligatorio." }}
+        render={({ field, fieldState }) => (
+          <Row label="Categoría del órgano" required error={fieldState.error?.message}>
+            <Select
+              items={orgItems}
+              value={field.value != null ? String(field.value) : null}
+              onValueChange={(v: string | null) =>
+                field.onChange(v ? Number(v) : null)
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Seleccionar categoría…" />
+              </SelectTrigger>
+              <SelectContent>
+                {orgItems.map((i) => (
+                  <SelectItem key={i.value} value={i.value}>
+                    {i.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Row>
+        )}
+      />
+
+      {/* Órgano del directorio — filtrado por la categoría elegida (`?organo=<id>`) */}
       <Controller
         control={control}
         name="organo_directorio"
@@ -223,31 +289,41 @@ export function ConvenioCreateForm({
         render={({ field, fieldState }) => (
           <Row label="Órgano del directorio" required error={fieldState.error?.message}>
             <EntityCombobox
+              key={organoCat ?? 0}
               endpoint="organ-directories"
+              params={organoCat != null ? { organo: String(organoCat) } : undefined}
               value={field.value as number | null}
               onChange={(v) => field.onChange(v)}
-              placeholder="Buscar órgano del directorio…"
+              disabled={organoCat == null}
+              placeholder={
+                organoCat == null
+                  ? "Elige primero la categoría…"
+                  : "Buscar órgano del directorio…"
+              }
             />
           </Row>
         )}
       />
 
-      {/* Gobierno regional — solo Convenio Marco regional (el backend valida por tipo/órgano) */}
-      <Controller
-        control={control}
-        name="gobierno_regional"
-        render={({ field }) => (
-          <Row label="Gobierno regional (solo Marco regional)">
-            <EntityCombobox
-              endpoint="regional-governments"
-              toLabel={(row: WithId) => String(row.nombre ?? row.sigla ?? row.id)}
-              value={field.value as number | null}
-              onChange={(v) => field.onChange(v)}
-              placeholder="Buscar gobierno regional…"
-            />
-          </Row>
-        )}
-      />
+      {/* Gobierno regional — obligatorio solo en Marco + órgano Gobierno Regional (RN-GORE) */}
+      {mostrarGORE ? (
+        <Controller
+          control={control}
+          name="gobierno_regional"
+          rules={{ validate: (v) => (v != null && v !== "") || "Campo obligatorio." }}
+          render={({ field, fieldState }) => (
+            <Row label="Gobierno regional" required error={fieldState.error?.message}>
+              <EntityCombobox
+                endpoint="regional-governments"
+                toLabel={(row: WithId) => String(row.nombre ?? row.sigla ?? row.id)}
+                value={field.value as number | null}
+                onChange={(v) => field.onChange(v)}
+                placeholder="Buscar gobierno regional…"
+              />
+            </Row>
+          )}
+        />
+      ) : null}
 
       {/* Universidad */}
       <Controller
