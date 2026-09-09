@@ -104,7 +104,14 @@ export function EntityCombobox<T extends string | number = number>({
         const next = item ? (item.id as T) : null;
         if (next !== (value ?? null)) onChange(next);
       }}
-      onInputValueChange={(text: string) => setSearch((prev) => (prev === text ? prev : text))}
+      onInputValueChange={(text: string, details?: { reason?: string }) => {
+        // base-ui sincroniza el texto del input desde el valor/items seleccionados con `reason: "none"`
+        // (cambio programático). Si eso disparara `setSearch`, se relanza la query → nuevos `items` →
+        // base-ui vuelve a sincronizar el input → «Maximum update depth exceeded». Solo el tipeo real
+        // del usuario (`input-change`/`input-clear`/…) debe alimentar la búsqueda server-side.
+        if (details?.reason === "none") return;
+        setSearch((prev) => (prev === text ? prev : text));
+      }}
       itemToStringLabel={(item: ComboboxItemData) => item.label}
       itemToStringValue={(item: ComboboxItemData) => String(item.id)}
       isItemEqualToValue={(a: ComboboxItemData, b: ComboboxItemData) => a.id === b.id}

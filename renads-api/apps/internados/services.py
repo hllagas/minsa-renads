@@ -195,12 +195,16 @@ def crear_internado(*, datos: dict, usuario) -> Internship:
         raise ValidationError({"fecha_fin": "El internado no puede durar más de un año."})
     if fecha_fin < fecha_inicio:
         raise ValidationError({"fecha_fin": "La fecha de fin no puede ser anterior a la de inicio."})
-    # Coherencia de ámbito: se deriva de la IPRESS (sede docente) de la asignación,
-    # ya que la asignación de campos clínicos no almacena el ámbito directamente.
-    if datos["ambito_geografico_sanitario"].id != campo_clinico.ipress.ambito_geografico_sanitario_id:
+    # Ámbito geográfico sanitario: se DERIVA de la IPRESS (sede docente) del campo clínico —que
+    # pertenece a la unidad ejecutora del convenio— ya que no lo elige el usuario. Si el cliente lo
+    # envía, debe coincidir (retrocompatibilidad); si no, se toma el de la sede docente.
+    ambito_sede = campo_clinico.ipress.ambito_geografico_sanitario
+    ambito_enviado = datos.get("ambito_geografico_sanitario")
+    if ambito_enviado is not None and ambito_enviado.id != ambito_sede.id:
         raise ValidationError(
             {"ambito_geografico_sanitario": "Debe coincidir con el ámbito de la sede docente."}
         )
+    ambito = ambito_enviado or ambito_sede
 
     estado_inicial = _estado_internado("REGISTRADO")
     internado = Internship.objects.create(
@@ -209,7 +213,7 @@ def crear_internado(*, datos: dict, usuario) -> Internship:
         campo_clinico=campo_clinico,
         ipress=datos["ipress"],
         tutor=datos["tutor"],
-        ambito_geografico_sanitario=datos["ambito_geografico_sanitario"],
+        ambito_geografico_sanitario=ambito,
         estado_actual=estado_inicial,
         estado_declaraciones="PENDIENTE",
         fecha_inicio=fecha_inicio,

@@ -58,13 +58,8 @@ export const INTERNSHIP_FIELDS: FieldConfig[] = [
     optionsEndpoint: "tutors",
     optionsToLabel: personaLabel,
   },
-  {
-    name: "ambito_geografico_sanitario",
-    label: "Ámbito geográfico sanitario",
-    type: "select",
-    required: true,
-    optionsEndpoint: "health-geographic-scopes",
-  },
+  // El ámbito geográfico sanitario NO se pide: el backend lo deriva de la sede docente del campo
+  // clínico (la IPRESS pertenece a la unidad ejecutora del convenio). Ver `crear_internado`.
   { name: "fecha_inicio", label: "Fecha de inicio", type: "date", required: true },
   { name: "fecha_fin", label: "Fecha de fin (máx. 1 año)", type: "date", required: true },
   { name: "observaciones", label: "Observaciones", type: "text", uppercase: false },

@@ -152,6 +152,10 @@ class InternshipWriteSerializer(serializers.ModelSerializer):
             "estudiante", "convenio", "campo_clinico", "ipress", "tutor",
             "ambito_geografico_sanitario", "fecha_inicio", "fecha_fin", "observaciones",
         ]
+        # El ámbito se deriva de la sede docente del campo clínico (UE del convenio); no se pide.
+        extra_kwargs = {
+            "ambito_geografico_sanitario": {"required": False, "allow_null": True},
+        }
 
 
 class InternshipUpdateSerializer(serializers.ModelSerializer):
