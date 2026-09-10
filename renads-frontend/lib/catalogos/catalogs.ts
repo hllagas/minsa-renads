@@ -92,8 +92,22 @@ const ubigeosConfig: ResourceConfig = {
 };
 
 /** Registro de los 18 catálogos de solo lectura + `ubigeos`, por slug. */
-export const CATALOG_CONFIGS: Record<string, ResourceConfig> = {
+export const CATALOG_CONFIGS: Record<string, ResourceConfig> = {  
+  organs: {
+    endpoint: "organs",
+    title: "Tipos de órgano",
+    singular: "tipo de órgano",
+    readOnly: true,
+    searchPlaceholder: "Buscar por nombre…",
+    columns: [
+      { key: "nombre", header: "Nombre" },
+      { key: "estado", header: "Activo", render: (r: WithId) => siNo(r.estado) },
+    ],
+    filters: [{ name: "estado", label: "Activo", type: "boolean" }],
+    fields: [],
+  },
   regions: readOnlyCatalog("regions", "Regiones", "región"),
+  ubigeos: ubigeosConfig,
   // CRUD (backend lo promovió a ENTITY_VIEWSETS: escritura `Administrador RENADS` + auditoría).
   // CRUD custom (no el helper) para exponer/editar `gobierno_regional` (FK, nullable;
   // nulo para los 4 DIRIS de Lima Metropolitana) — refactor 2026-09-08 (mig 0043).
@@ -157,20 +171,7 @@ export const CATALOG_CONFIGS: Record<string, ResourceConfig> = {
     "signing-authority-types",
     "Tipos de autoridad firmante",
     "tipo de autoridad firmante",
-  ),
-  organs: {
-    endpoint: "organs",
-    title: "Categorías de órgano",
-    singular: "categoría de órgano",
-    readOnly: true,
-    searchPlaceholder: "Buscar por nombre…",
-    columns: [
-      { key: "nombre", header: "Nombre" },
-      { key: "estado", header: "Activo", render: (r: WithId) => siNo(r.estado) },
-    ],
-    filters: [{ name: "estado", label: "Activo", type: "boolean" }],
-    fields: [],
-  },
+  ),  
   "executive-positions": {
     endpoint: "executive-positions",
     title: "Cargos ejecutivos",
@@ -250,13 +251,13 @@ export const CATALOG_CONFIGS: Record<string, ResourceConfig> = {
     "Motivos de cierre",
     "motivo de cierre",
   ),
-  categories: writableCatalog("categories", "Categorías", "categoría"),
+  categories: writableCatalog("categories", "Categorías Niveles de Atención", "categoría nivel de atención"),
   "classification-types": writableCatalog(
     "classification-types",
-    "Tipos de clasificación",
-    "tipo de clasificación",
+    "Tipos de clasificación de IPRESS",
+    "tipo de clasificación de IPRESS",
   ),
-  ubigeos: ubigeosConfig,
+  
 };
 
 /** Orden y rótulos del índice de catálogos de solo lectura. */

@@ -163,7 +163,8 @@ class Student(models.Model):
         unique_together = [("tipo_documento_identidad", "numero_documento")]
 
     def __str__(self):
-        return f"{self.apellido_paterno} {self.nombres}"
+        #return f"{self.apellido_paterno} {self.nombres}"
+        return f"{self.apellido_paterno} {self.apellido_materno} {self.nombres}"
 
 
 class Tutor(models.Model):
@@ -202,7 +203,8 @@ class Tutor(models.Model):
         verbose_name = "tutor"
 
     def __str__(self):
-        return f"{self.apellido_paterno} {self.nombres}"
+        #return f"{self.apellido_paterno} {self.nombres}"
+        return f"{self.apellido_paterno} {self.apellido_materno} {self.nombres}"
 
 
 class TutorUniversity(models.Model):

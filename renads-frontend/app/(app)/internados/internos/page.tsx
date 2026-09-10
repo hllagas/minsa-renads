@@ -72,8 +72,25 @@ export default function InternosPage() {
 
   const columns = useMemo<ColumnDef<InternshipRead>[]>(
     () => [
-      { accessorKey: "estudiante", header: "Estudiante" },
-      { accessorKey: "convenio", header: "Convenio" },
+      {
+        accessorKey: "estudiante",
+        header: "Estudiante",
+        cell: ({ row }) => (
+          <span className="whitespace-nowrap font-medium">
+            {String(row.original.estudiante ?? "—")}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "convenio",
+        header: "Convenio",
+        cell: ({ row }) => (
+          /* whitespace-normal override el whitespace-nowrap heredado de TableCell */
+          <div className="max-w-[300px] whitespace-normal text-justify text-xs leading-relaxed text-foreground">
+            {String(row.original.convenio ?? "—")}
+          </div>
+        ),
+      },
       { accessorKey: "ipress", header: "Sede" },
       { accessorKey: "tutor", header: "Tutor" },
       { accessorKey: "estado_actual", header: "Estado" },
@@ -129,7 +146,7 @@ export default function InternosPage() {
             </span>
             Convenio Específico vigente
           </Label>
-          <div className="w-72">
+          <div className="w-56">
             <EntityCombobox
               key={universidad ?? 0}
               endpoint="conventions"

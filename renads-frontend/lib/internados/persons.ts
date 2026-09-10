@@ -16,12 +16,11 @@ const apellidosNombres = (r: WithId): string =>
     .filter(Boolean)
     .join(" ");
 
-/** Columnas del listado de tutores (requerimiento: colegiatura, apellidos+nombres, profesión, sede). */
+/** Columnas del listado de tutores (requerimiento: colegiatura, apellidos+nombres, profesión). */
 const tutorColumns: ColumnConfig<WithId>[] = [
   { key: "numero_colegiatura", header: "N° colegiatura", render: (r) => String(r.numero_colegiatura ?? "—") },
   { key: "apellidos_nombres", header: "Apellidos y nombres", render: (r) => apellidosNombres(r) },
   { key: "profesion", header: "Profesión", render: (r) => detalleNombre(r.profesion_detalle) },
-  { key: "ipress", header: "Sede docente", render: (r) => detalleNombre(r.ipress_detalle) },
   { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
 ];
 
@@ -216,7 +215,6 @@ export const PERSON_CONFIGS: Record<string, ResourceConfig> = {
         type: "select",
         optionsEndpoint: "specialties",
       },
-      { name: "ipress", label: "Sede docente (IPRESS)", type: "select", optionsEndpoint: "ipress", optionsValueKey: "codigo_renipress", optionsSearchable: true },
       { name: "numero_colegiatura", label: "Número de colegiatura", type: "text", uppercase: false },
       { name: "correo", label: "Correo", type: "email" },
       { name: "telefono", label: "Teléfono", type: "text", uppercase: false },

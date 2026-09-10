@@ -84,7 +84,7 @@ export default function CatalogosPage() {
         ]}
       />
 
-      <Section title="Catálogos" cards={catalogoCards} />
+      <Section title="Tipología" cards={catalogoCards} />
 
       <Section
         title="Documentos"
