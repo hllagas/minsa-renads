@@ -7,6 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from django.contrib.contenttypes.models import ContentType
+from django.shortcuts import get_object_or_404
 
 from apps.common.permissions import IsInstitutionalMember, IsModuleEnabled, exigir_ambito
 from apps.common.services import registrar_auditoria
@@ -22,7 +23,7 @@ from apps.internados.models import Rotation
 from apps.internados.permissions import InternshipScope, IsUniversityOrReadOnly
 from drf_spectacular.utils import extend_schema
 
-from apps.internados.serializers import StudentBulkUploadSerializer, StudentSerializer, TutorSerializer
+from apps.internados.serializers import StudentBulkUploadSerializer, StudentSerializer, TutorConvenioSerializer, TutorSerializer
 from apps.internados.serializers import (
     CambiarEstadoInternadoSerializer,
     CambiarEstadoRotacionSerializer,
@@ -274,14 +275,55 @@ class StudentViewSet(AuditedModelViewSet):
 
 
 class TutorViewSet(AuditedModelViewSet):
-    """CRUD de tutores/docentes. Escritura por rol Universidad/Administrador."""
+    """CRUD de tutores/docentes. Escritura por rol Universidad/Administrador.
 
-    queryset = im.Tutor.objects.select_related("especialidad", "ipress").prefetch_related("universidades")
+    Acciones anidadas `convenios` y `convenio_detail` permiten gestionar los vínculos
+    del tutor con Convenios Específicos e IPRESS (tabla `tutor_convenio`).
+    """
+
+    queryset = im.Tutor.objects.select_related("especialidad").prefetch_related("universidades")
     serializer_class = TutorSerializer
     permission_classes = [IsAuthenticated, IsInstitutionalMember, IsUniversityOrReadOnly]
-    filterset_fields = ["especialidad", "ipress", "universidades", "numero_documento", "activo"]
+    filterset_fields = ["especialidad", "universidades", "numero_documento", "activo"]
     search_fields = ["numero_documento", "nombres", "apellido_paterno"]
     ordering = ["id"]
+
+    @action(detail=True, methods=["get", "post"], url_path="convenios")
+    def convenios(self, request, pk=None):
+        """Lista o crea vínculos tutor ↔ Convenio Específico ↔ IPRESS.
+
+        - GET: retorna todos los `TutorConvenio` del tutor.
+        - POST: crea un nuevo vínculo; requiere rol `Universidad` o `Administrador RENADS`.
+        """
+        tutor = self.get_object()
+        if request.method == "POST":
+            exigir_roles(request, "Universidad", "Administrador RENADS")
+            ser = TutorConvenioSerializer(data=request.data)
+            ser.is_valid(raise_exception=True)
+            tc = services.crear_tutor_convenio(
+                tutor=tutor,
+                convenio=ser.validated_data["convenio"],
+                ipress=ser.validated_data["ipress"],
+                usuario=request.user,
+            )
+            return Response(TutorConvenioSerializer(tc).data, status=201)
+        qs = selectors.convenios_del_tutor(tutor)
+        return Response(TutorConvenioSerializer(qs, many=True).data)
+
+    @action(detail=True, methods=["get", "delete"], url_path=r"convenios/(?P<convenio_pk>[^/.]+)")
+    def convenio_detail(self, request, pk=None, convenio_pk=None):
+        """Obtiene o elimina un vínculo tutor ↔ Convenio Específico.
+
+        - GET: retorna el vínculo individual.
+        - DELETE: elimina el vínculo; requiere rol `Universidad` o `Administrador RENADS`.
+        """
+        tutor = self.get_object()
+        tc = get_object_or_404(im.TutorConvenio, tutor=tutor, convenio_id=convenio_pk)
+        if request.method == "DELETE":
+            exigir_roles(request, "Universidad", "Administrador RENADS")
+            services.eliminar_tutor_convenio(tutor_convenio=tc, usuario=request.user)
+            return Response(status=204)
+        return Response(TutorConvenioSerializer(tc).data)
 
 
 # Catálogos del módulo (solo lectura): basename -> ViewSet

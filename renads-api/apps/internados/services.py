@@ -41,6 +41,7 @@ from apps.internados.models import (
     RotationStatus,
     RotationStatusHistory,
     Student,
+    TutorConvenio,
     TutorHistory,
 )
 
@@ -81,6 +82,39 @@ def validar_universidades_tutor(universidades) -> None:
         )
     if len({u.pk for u in universidades}) != cantidad:
         raise ValidationError({"universidades": "Hay universidades repetidas en la lista."})
+
+
+@transaction.atomic
+def crear_tutor_convenio(*, tutor, convenio, ipress, usuario) -> TutorConvenio:
+    """Vincula un tutor a un Convenio Específico e IPRESS (RN-TC-01, RN-TC-02).
+
+    - RN-TC-01: solo se admiten Convenios Específicos.
+    - RN-TC-02: la combinación (tutor, convenio) debe ser única; se anticipa el
+      ``IntegrityError`` con un mensaje legible antes del hit a la BD.
+    Registra auditoría tras crear el vínculo.
+    """
+    # RN-TC-01: solo Convenios Específicos.
+    if convenio.tipo_convenio.codigo != "ESPECIFICO":
+        raise ValidationError("Solo se pueden asociar Convenios Específicos a un tutor.")
+    # RN-TC-02: unicidad anticipada (mensaje legible antes del IntegrityError).
+    if TutorConvenio.objects.filter(tutor=tutor, convenio=convenio).exists():
+        raise ValidationError("El tutor ya está asociado a este convenio.")
+
+    tutor_convenio = TutorConvenio.objects.create(
+        tutor=tutor,
+        convenio=convenio,
+        ipress=ipress,
+    )
+    registrar_auditoria(usuario, "CREAR", tutor_convenio)
+    return tutor_convenio
+
+
+@transaction.atomic
+def eliminar_tutor_convenio(*, tutor_convenio: TutorConvenio, usuario) -> None:
+    """Elimina el vínculo tutor ↔ convenio. Registra auditoría antes de borrar."""
+    registrar_auditoria(usuario, "ELIMINAR", tutor_convenio)
+    tutor_convenio.delete()
+
 
 # Columnas requeridas del Excel de carga masiva de estudiantes (RN-16, §6 bis schema M2).
 # Se expresan con la clave canónica interna (ver CARGA_ALIAS_COLUMNAS).

@@ -3,7 +3,7 @@
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
-from apps.convenios.models import University
+from apps.convenios.models import Convention, Ipress, University
 from apps.internados import services
 from apps.internados.models import (
     Student,
@@ -13,6 +13,7 @@ from apps.internados.models import (
     RotationAuthorization,
     RotationStatusHistory,
     Tutor,
+    TutorConvenio,
     TutorHistory,
 )
 
@@ -92,7 +93,6 @@ class TutorSerializer(serializers.ModelSerializer):
     )
     # Detalles legibles para el listado (lectura; la escritura sigue por id).
     profesion_detalle = serializers.SerializerMethodField(read_only=True)
-    ipress_detalle = serializers.SerializerMethodField(read_only=True)
     especialidad_detalle = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
@@ -102,10 +102,6 @@ class TutorSerializer(serializers.ModelSerializer):
     def get_profesion_detalle(self, obj):
         p = obj.profesion
         return {"id": p.id, "nombre": p.nombre} if p else None
-
-    def get_ipress_detalle(self, obj):
-        i = obj.ipress
-        return {"id": i.pk, "nombre": i.nombre} if i else None
 
     def get_especialidad_detalle(self, obj):
         e = obj.especialidad
@@ -128,6 +124,28 @@ class TutorSerializer(serializers.ModelSerializer):
         if universidades is not None:
             tutor.universidades.set(universidades)
         return tutor
+
+
+class TutorConvenioSerializer(serializers.ModelSerializer):
+    """Serializer del vínculo tutor ↔ Convenio Específico ↔ IPRESS."""
+
+    tutor = serializers.PrimaryKeyRelatedField(read_only=True)
+    convenio = serializers.PrimaryKeyRelatedField(queryset=Convention.objects.all())
+    ipress = serializers.PrimaryKeyRelatedField(queryset=Ipress.objects.all())
+    convenio_detalle = serializers.SerializerMethodField(read_only=True)
+    ipress_detalle = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = TutorConvenio
+        fields = ["id", "tutor", "convenio", "ipress", "convenio_detalle", "ipress_detalle"]
+
+    def get_convenio_detalle(self, obj):
+        c = obj.convenio
+        return {"id": c.id, "titulo": c.titulo, "tipo": c.tipo_convenio.codigo}
+
+    def get_ipress_detalle(self, obj):
+        i = obj.ipress
+        return {"id": i.pk, "nombre": i.nombre}
 
 
 # ---------------------------------------------------------------------------

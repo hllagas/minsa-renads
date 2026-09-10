@@ -43,7 +43,7 @@ El módulo **Registrar Internados** registra a los estudiantes (alumnos de últi
 ### Del módulo 1 (Gestionar Convenios)
 | Tabla | Uso en el módulo 2 |
 |-------|--------------------|
-| `convenio` | Convenio Específico vigente que respalda el internado |
+| `convenio` | Convenio Específico vigente que respalda el internado; también referenciado desde `tutor_convenio` |
 | `campo_clinico_ipress` | Registro CONAPRES del total de campos clínicos por sede/carrera (tope) |
 | `campo_clinico_ipress_universidad` | Asignación por universidad; el interno referencia esta asignación (`interno.campo_clinico_id`) y la disponibilidad se valida contra sus `campos_clinicos_autorizados` |
 | `ipress` | Sede docente principal y sedes de rotación |
@@ -171,10 +171,9 @@ Re-subir el mismo anexo a la misma entidad genera una nueva versión del
 | `ubigeo_id` | FK → `ubigeo` (módulo 1, PROTECT) — varchar(6) | Sí | Ubicación geográfica (UBIGEO) |
 | `especialidad_id` | FK → `especialidad` | Sí | Especialidad del tutor |
 | `profesion_id` | FK → `carrera_profesional` (PROTECT) | Sí | Profesión del tutor (carrera profesional) |
-| `ipress_id` | FK → `ipress` (SET_NULL) — varchar(8) | Sí | Establecimiento al que pertenece (código RENIPRESS de 8 chars, PK textual de `ipress`) |
 | `activo` | bool | No | |
 
-> **RN-24:** un tutor pertenece **de 1 a 2 universidades** (tope de negocio, validado a nivel de aplicación). La relación N–N se materializa en la tabla puente `tutor_universidad`.
+> **RN-24:** un tutor pertenece **de 1 a 2 universidades** (tope de negocio, validado a nivel de aplicación). La relación N–N se materializa en la tabla puente `tutor_universidad`. La asignación del tutor a una IPRESS se realiza **por convenio** mediante `tutor_convenio`.
 
 ### `tutor_universidad` (puente tutor ↔ universidad — RN-24)
 
@@ -185,6 +184,21 @@ Re-subir el mismo anexo a la misma entidad genera una nueva versión del
 | `universidad_id` | FK → `universidad` | No | Universidad (PROTECT) |
 
 Único por `(tutor_id, universidad_id)`. Cada tutor debe tener entre **1 y 2** filas (RN-24).
+
+### `tutor_convenio` (vínculo tutor ↔ convenio específico ↔ ipress)
+
+| Columna | Tipo | Null | Descripción |
+|---------|------|------|-------------|
+| `id` | PK | No | |
+| `tutor_id` | FK → `tutor` (CASCADE) | No | Tutor |
+| `convenio_id` | FK → `convenio` (PROTECT) | No | Convenio Específico |
+| `ipress_id` | FK → `ipress` (PROTECT) — varchar(8) | No | Establecimiento (código RENIPRESS de 8 chars, PK textual de `ipress`) |
+
+Único por `(tutor_id, convenio_id)`. Solo se admiten Convenios de tipo `ESPECIFICO`
+(validado en `services.crear_tutor_convenio`, RN-TC-01).
+
+Endpoints: `GET/POST /api/v1/tutors/{id}/convenios/`, `GET/DELETE /api/v1/tutors/{id}/convenios/{convenio_pk}/`.
+Escritura exige rol `Universidad` o `Administrador RENADS`.
 
 ---
 
@@ -334,8 +348,9 @@ La tabla `bitacora_auditoria` (módulo 1) registra cambios de tutor, sede, estad
 ```
 estudiante >── universidad / carrera_profesional / tipo_documento_identidad
 estudiante >── periodo_academico / especialidad   (uno u otro según nivel — RN-19)
-tutor   >── especialidad / ipress / tipo_documento_identidad
+tutor   >── especialidad / tipo_documento_identidad
 tutor   ──< tutor_universidad >── universidad   (1 a 2 universidades — RN-24)
+tutor   ──< tutor_convenio >── convenio / ipress   (por convenio específico — RN-TC-01)
 
 interno >── estudiante
 interno >── convenio (Convenio Específico, módulo 1)
@@ -376,6 +391,6 @@ bitacora_auditoria >── django_content_type  (genérico)
 - **RN-17 (asignación a campos clínicos por sede/carrera):** validación contra la asignación por universidad `campo_clinico_ipress_universidad` del Convenio Específico (disponibilidad = `campos_clinicos_autorizados` − internos ya usados en esa asignación).
 - **RN-18 (prelación por mérito):** ordenamiento por `estudiante.nota_promedio_ponderado` descendente al asignar cupos.
 - **RN-19 (periodo académico vs. especialidad según nivel):** deriva `nivel = estudiante.carrera_profesional.nivel_academico.codigo`; `PREGRADO` ⇒ `periodo_academico_id` requerido / `especialidad_id` nulo; otro nivel ⇒ `especialidad_id` requerido / `periodo_academico_id` nulo. Regla única en `services.validar_regla_periodo_especialidad`, invocada por `StudentSerializer.validate` (individual) y por `registrar_estudiantes_masivo` (carga masiva).
-- **RN-24 (universidades del tutor):** un tutor pertenece de **1 a 2** universidades vía `tutor_universidad`. Regla única en `services.validar_universidades_tutor`, invocada por `TutorSerializer` (create/update). El endpoint `tutors` acepta y filtra por `universidades`.
+- **RN-24 (universidades del tutor):** un tutor pertenece de **1 a 2** universidades vía `tutor_universidad`. Regla única en `services.validar_universidades_tutor`, invocada por `TutorSerializer` (create/update). El endpoint `tutors` acepta y filtra por `universidades`. La asignación del tutor a una IPRESS se registra **por convenio** en `tutor_convenio` (tabla nueva: `services.crear_tutor_convenio` aplica RN-TC-01/RN-TC-02; acciones `GET/POST /api/v1/tutors/{id}/convenios/` y `GET/DELETE /api/v1/tutors/{id}/convenios/{convenio_pk}/`).
 
 > **Nota — `documentos_anexos`:** catálogo maestro de documentos requeridos **por actor** (`tipo_actor`): `INTERNO` → declaraciones juradas del estudiante; `AUTORIDAD_UNIVERSIDAD` y `REPRESENTANTE` (incluye autoridades de CONAPRES) → resolución del cargo y documento de identidad. Filtrable por `tipo_actor` en el endpoint. Este spec cubre solo el catálogo maestro y su CRUD (`/api/v1/annex-documents/`). El flujo de adjunto real por entidad (tabla puente entidad↔anexo, carga del PDF, estados de presentación) queda fuera de alcance.

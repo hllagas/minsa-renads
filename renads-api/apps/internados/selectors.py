@@ -11,6 +11,8 @@ from apps.internados.models import (
     InternshipStatusHistory,
     Rotation,
     RotationStatusHistory,
+    Tutor,
+    TutorConvenio,
     TutorHistory,
 )
 
@@ -97,3 +99,14 @@ def historial_tutor(internado: Internship) -> QuerySet[TutorHistory]:
 
 def historial_rotacion(rotacion: Rotation) -> QuerySet[RotationStatusHistory]:
     return rotacion.historial_estados.select_related("estado", "cambiado_por").order_by("cambiado_en")
+
+
+def convenios_del_tutor(tutor: Tutor) -> QuerySet[TutorConvenio]:
+    """Retorna todos los vínculos TutorConvenio del tutor con select_related para evitar N+1.
+
+    Incluye convenio, tipo_convenio e ipress para que TutorConvenioSerializer acceda
+    a `convenio_detalle` e `ipress_detalle` sin consultas adicionales.
+    """
+    return TutorConvenio.objects.filter(tutor=tutor).select_related(
+        "convenio", "convenio__tipo_convenio", "ipress"
+    )

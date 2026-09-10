@@ -191,10 +191,6 @@ class Tutor(models.Model):
         ProfessionalCareer, on_delete=models.PROTECT, db_column="profesion_id", null=True, blank=True,
         related_name="+", help_text="Profesión del tutor (carrera profesional)",
     )
-    ipress = models.ForeignKey(
-        Ipress, on_delete=models.SET_NULL, db_column="ipress_id", null=True, blank=True,
-        related_name="tutores", help_text="Establecimiento al que pertenece",
-    )
     universidades = models.ManyToManyField(
         University, through="TutorUniversity", related_name="tutores",
         help_text="Universidades a las que pertenece el tutor (de 1 a 2 — RN-24)",
@@ -225,6 +221,33 @@ class TutorUniversity(models.Model):
         verbose_name = "universidad del tutor"
         verbose_name_plural = "universidades del tutor"
         unique_together = [("tutor", "universidad")]
+
+
+class TutorConvenio(models.Model):
+    """Vínculo tutor ↔ Convenio Específico ↔ IPRESS (un tutor por convenio y sede)."""
+
+    tutor = models.ForeignKey(
+        Tutor, on_delete=models.CASCADE, db_column="tutor_id",
+        related_name="convenios_tutor", help_text="Tutor",
+    )
+    convenio = models.ForeignKey(
+        Convention, on_delete=models.PROTECT, db_column="convenio_id",
+        related_name="tutores_convenio", help_text="Convenio Específico",
+    )
+    ipress = models.ForeignKey(
+        Ipress, on_delete=models.PROTECT, db_column="ipress_id",
+        related_name="tutores_convenio",
+        help_text="Establecimiento (código RENIPRESS de 8 chars, PK textual de ipress)",
+    )
+
+    class Meta:
+        db_table = "tutor_convenio"
+        verbose_name = "convenio del tutor"
+        verbose_name_plural = "convenios del tutor"
+        unique_together = [("tutor", "convenio")]
+
+    def __str__(self):
+        return f"Tutor {self.tutor_id} — Convenio {self.convenio_id}"
 
 
 # ---------------------------------------------------------------------------
