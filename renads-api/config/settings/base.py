@@ -253,7 +253,7 @@ GS_FILE_OVERWRITE = config("GS_FILE_OVERWRITE", default=False, cast=bool)
 # mantiene el `FileSystemStorage` por defecto (disco local — solo dev/sin nube).
 if R2_ENABLED and R2_BUCKET:
     STORAGES["default"] = {
-        "BACKEND": "storages.backends.s3.S3Boto3Storage",
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
         "OPTIONS": {
             "endpoint_url": R2_ENDPOINT_URL,
             "access_key": R2_ACCESS_KEY_ID,
