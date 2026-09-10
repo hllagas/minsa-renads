@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useQuery } from "@tanstack/react-query";
 
@@ -16,24 +17,43 @@ import { DataTable } from "@/components/ui/data-table";
 import { DataTablePagination } from "@/components/data/data-table-pagination";
 import { EntityCombobox } from "@/components/form/entity-combobox";
 import { AnnexChecklistAction } from "@/components/almacenamiento/annex-checklist-dialog";
+import { InternsBulkUploadDialog } from "@/components/internados/interns-bulk-upload-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
 /**
- * Listado de internos: primero se elige la **universidad** (acotada al alcance), luego un
- * **convenio Específico vigente** de esa universidad (con entidad prestadora); recién entonces se
- * listan/registran los internos de ese convenio.
+ * Listado de internos: universidad (acotada al alcance) → convenio Específico vigente → listado.
+ * La universidad y el convenio se persisten en URL params (?u=&c=) para que al navegar a
+ * «Nuevo interno» y volver (router.back) el estado se restaure correctamente.
  */
 export default function InternosPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Restaurar estado desde URL (?u=universidad_id&c=convenio_id)
+  const initUni = searchParams.get("u") ? Number(searchParams.get("u")) : null;
+  const initConv = searchParams.get("c") ? Number(searchParams.get("c")) : null;
+
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const [convenio, setConvenio] = useState<number | null>(null);
+  const [convenio, setConvenio] = useState<number | null>(initConv);
   const [estado, setEstado] = useState<number | null>(null);
   const user = useAuthStore((s) => s.user);
   const canManageAnnexes = userHasRole(user, "Universidad", "Administrador RENADS", "Interno");
+  const canCreate = userHasRole(user, "Universidad", "Administrador RENADS");
 
-  const { universidad, gateUI } = useUniversityGate();
+  const { universidad, gateUI } = useUniversityGate("Universidad", initUni);
+
+  // Sincroniza universidad + convenio a URL (replace, sin nueva entrada de historial).
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (universidad != null) params.set("u", String(universidad));
+    if (convenio != null) params.set("c", String(convenio));
+    const qs = params.toString();
+    router.replace(qs ? `/internados/internos?${qs}` : "/internados/internos", { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [universidad, convenio]);
 
   // Ids de «Específico» (tipo) y «Vigente» (estado) resueltos por nombre/código en runtime.
   const tiposQuery = useQuery({
@@ -76,19 +96,9 @@ export default function InternosPage() {
         accessorKey: "estudiante",
         header: "Estudiante",
         cell: ({ row }) => (
-          <span className="whitespace-nowrap font-medium">
+          <span className="max-w-[280px] whitespace-normal text-justify text-xs leading-relaxed text-foreground">
             {String(row.original.estudiante ?? "—")}
           </span>
-        ),
-      },
-      {
-        accessorKey: "convenio",
-        header: "Convenio",
-        cell: ({ row }) => (
-          /* whitespace-normal override el whitespace-nowrap heredado de TableCell */
-          <div className="max-w-[300px] whitespace-normal text-justify text-xs leading-relaxed text-foreground">
-            {String(row.original.convenio ?? "—")}
-          </div>
         ),
       },
       { accessorKey: "ipress", header: "Sede" },
@@ -129,11 +139,6 @@ export default function InternosPage() {
       <PageHeader
         title="Internos"
         description="Internados, rotaciones y autorizaciones."
-        actions={
-          convenio != null ? (
-            <Button render={<Link href="/internados/nuevo">Nuevo interno</Link>} />
-          ) : undefined
-        }
       />
 
       {/* Paso 1 — universidad · Paso 2 — convenio Específico vigente */}
@@ -170,26 +175,40 @@ export default function InternosPage() {
         <EmptyState label="Selecciona un convenio Específico vigente para ver y registrar sus internos." />
       ) : (
         <>
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            <Input
-              placeholder="Buscar por estudiante…"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              className="w-full sm:max-w-xs"
-            />
-            <div className="w-full sm:w-56">
-              <EntityCombobox
-                endpoint="internship-statuses"
-                value={estado}
-                onChange={(v) => {
-                  setPage(1);
-                  setEstado(v);
-                }}
-                placeholder="Todos los estados"
-              />
+          {/* Toolbar: LEFT búsqueda+filtros, RIGHT botones */}
+          <div className="mb-4 flex items-end gap-3">
+            <div className="flex flex-1 flex-wrap items-end gap-3">
+              <div className="grid gap-1.5">
+                <Input
+                  placeholder="Buscar por estudiante…"
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                  className="h-8 w-full sm:w-56"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label className="text-xs text-muted-foreground">Estado</Label>
+                <div className="w-48">
+                  <EntityCombobox
+                    endpoint="internship-statuses"
+                    value={estado}
+                    onChange={(v) => {
+                      setPage(1);
+                      setEstado(v);
+                    }}
+                    placeholder="Todos los estados"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <InternsBulkUploadDialog convenioId={convenio} />
+              {canCreate ? (
+                <Button render={<Link href="/internados/nuevo">Nuevo interno</Link>} />
+              ) : null}
             </div>
           </div>
 

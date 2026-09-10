@@ -105,10 +105,10 @@ export function buildStudentsConfig(
           } as FieldConfig,
         ]),
     {
-      name: "periodo_academico",
-      label: "Periodo académico",
+      name: "periodo_internado",
+      label: "Periodo de internado",
       type: "select",
-      optionsEndpoint: "academic-periods",
+      optionsEndpoint: "internship-periods",
     },
     { name: "codigo_universitario", label: "Código universitario", type: "text", uppercase: false },
     {
@@ -160,8 +160,7 @@ export function buildStudentsConfig(
     writeRoles: WRITE,
     columns: studentColumns,
     filters: [
-      // El nivel se elige en el selector de la vista general (no en la barra de filtros); aquí queda
-      // el filtro por carrera y estado.
+      // El nivel y el periodo se eligen en los selectores de la vista general (no en la barra de filtros).
       { name: "carrera_profesional", label: "Carrera profesional", type: "select", optionsEndpoint: "professional-careers" },
       { name: "activo", label: "Activo", type: "boolean" },
     ],

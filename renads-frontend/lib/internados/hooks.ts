@@ -49,3 +49,29 @@ export function useStudentsBulkUpload() {
     },
   });
 }
+
+/** Resultado de la carga masiva de internos. */
+export interface InternsBulkUploadResult {
+  creados: number;
+  omitidos: number;
+  errores: { fila: number; motivo: string }[];
+}
+
+/**
+ * Carga masiva de internos desde `.xlsx` (`POST /interns/bulk-upload/`, multipart, campos
+ * `archivo` + `convenio`). Al éxito invalida la lista de internos.
+ */
+export function useInternsBulkUpload() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ archivo, convenio }: { archivo: File; convenio: number }) => {
+      const form = new FormData();
+      form.append("archivo", archivo);
+      form.append("convenio", String(convenio));
+      return postMultipart<InternsBulkUploadResult>("interns/bulk-upload/", form);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: resourceKeys.all("interns") });
+    },
+  });
+}

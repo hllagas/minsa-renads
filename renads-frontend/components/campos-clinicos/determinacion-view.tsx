@@ -34,6 +34,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ResourceForm } from "@/components/crud/resource-form";
+import { ClinicalRegistrationsBulkUploadDialog } from "@/components/campos-clinicos/clinical-registrations-bulk-upload-dialog";
 import {
   Select,
   SelectContent,
@@ -404,14 +405,17 @@ export function DeterminacionView() {
         description="Campos de formación determinados por sede docente y carrera profesional (CONAPRES)."
         actions={
           canWrite ? (
-            <Button
-              onClick={() => {
-                setEditing(null);
-                setDialogOpen(true);
-              }}
-            >
-              Nuevo
-            </Button>
+            <div className="flex items-center gap-2">
+              <ClinicalRegistrationsBulkUploadDialog />
+              <Button
+                onClick={() => {
+                  setEditing(null);
+                  setDialogOpen(true);
+                }}
+              >
+                Nuevo
+              </Button>
+            </div>
           ) : undefined
         }
       />

@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { clinicalFieldAllocationsConfig } from "@/lib/convenios/clinical-fields";
 import { ResourceCrud } from "@/components/crud/resource-crud";
+import { ClinicalAllocationsBulkUploadDialog } from "@/components/campos-clinicos/clinical-allocations-bulk-upload-dialog";
 
 /** Asignación de campos clínicos por universidad (escritura Órgano Regional; backend `IsRegionalOrganOrReadOnly`). */
 export default function AsignacionesCamposClinicosPage() {
@@ -17,7 +18,10 @@ export default function AsignacionesCamposClinicosPage() {
           ← Campos de formación
         </Link>
       </div>
-      <ResourceCrud config={clinicalFieldAllocationsConfig} />
+      <ResourceCrud
+        config={clinicalFieldAllocationsConfig}
+        headerActions={<ClinicalAllocationsBulkUploadDialog />}
+      />
     </div>
   );
 }

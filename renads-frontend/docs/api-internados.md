@@ -85,7 +85,7 @@ Estados de rotación: `SOLICITADA`, `AUTORIZADA`, `OBSERVADA`, `RECHAZADA`, `EN_
   `carrera_profesional__nivel_academico` — el estudiante NO persiste el nivel, deriva de la carrera).
   Search documento/nombres. Alcance por universidad. Lectura expone **`carrera_profesional_detalle`**
   (`{id, nombre, nivel_academico}`) y **`especialidad_detalle`** (`{id, nombre}`). Incluye
-  `periodo_academico` y `especialidad` (FK opcionales, validadas por nivel académico — RN-19) y
+  `periodo_internado` (renombrado desde `periodo_academico`, mig 0028; endpoint `internship-periods`) y `especialidad` (FK opcionales, validadas por nivel académico — RN-19) y
   `nota_promedio_ponderado` (decimal 0–20, usado por el backend para la prelación RN-18 — sin
   endpoint propio). **Contacto de emergencia (mig 0025, 2026-09-09):** `contacto_emergencia_nombre`,
   `contacto_emergencia_telefono`, `contacto_emergencia_parentesco` (FK `relationship-types`) viven

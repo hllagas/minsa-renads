@@ -337,8 +337,8 @@ CATALOG_VIEWSETS = {
 
 # Catálogos maestros con CRUD (escritura solo Administrador RENADS): basename -> ViewSet
 ENTITY_VIEWSETS = {
-    "academic-periods": _entity_viewset(
-        im.AcademicPeriod, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
+    "internship-periods": _entity_viewset(
+        im.InternshipPeriod, filterset_fields=["activo"], search_fields=["codigo", "nombre"]
     ),
     "annex-documents": _entity_viewset(
         im.AnnexDocument,

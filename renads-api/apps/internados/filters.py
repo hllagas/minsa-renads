@@ -18,7 +18,7 @@ class StudentFilter(filters.FilterSet):
         fields = {
             "universidad": ["exact"],
             "carrera_profesional": ["exact"],
-            "periodo_academico": ["exact"],
+            "periodo_internado": ["exact"],
             "especialidad": ["exact"],
             "numero_documento": ["exact"],
             "activo": ["exact"],

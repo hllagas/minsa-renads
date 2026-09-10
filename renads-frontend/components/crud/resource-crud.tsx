@@ -48,6 +48,7 @@ export function ResourceCrud<TRead extends WithId>({
   renderForm,
   dialogClassName,
   initialFilters,
+  hideHeader,
 }: {
   config: ResourceConfig<TRead>;
   /** Acciones por fila inyectadas por la página (p. ej. abrir el diálogo de contraseña). */
@@ -82,6 +83,8 @@ export function ResourceCrud<TRead extends WithId>({
    * "Nivel académico = Pregrado" en carreras profesionales.
    */
   initialFilters?: Record<string, string>;
+  /** Oculta el PageHeader interno (título + descripción). Útil cuando la página lo renderiza antes. */
+  hideHeader?: boolean;
 }) {
   const hooks = useMemo(
     () => createResourceHooks<TRead, Record<string, unknown>>(config.endpoint),
@@ -257,42 +260,54 @@ export function ResourceCrud<TRead extends WithId>({
 
   return (
     <div className={config.containerClassName}>
-      <PageHeader
-        title={config.title}
-        description={config.description}
-        actions={
-          headerActions || canCreate ? (
-            <div className="flex items-center gap-2">
-              {headerActions}
-              {canCreate ? <Button onClick={onCreate}>Nuevo</Button> : null}
-            </div>
-          ) : null
-        }
-      />
-
-      <div className="mb-4 flex items-center gap-2">
-        <Input
-          placeholder={config.searchPlaceholder ?? "Buscar…"}
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
-          className="w-full sm:max-w-xs"
+      {!hideHeader && (
+        <PageHeader
+          title={config.title}
+          description={config.description}
+          actions={
+            headerActions || canCreate ? (
+              <div className="flex items-center gap-2">
+                {headerActions}
+                {canCreate ? <Button onClick={onCreate}>Nuevo</Button> : null}
+              </div>
+            ) : null
+          }
         />
-        {!canWrite ? (
-          <Badge variant="secondary">Solo lectura</Badge>
+      )}
+      <div className="mb-4 flex items-end gap-3">
+        {/* Izquierda: búsqueda → filtros → limpiar */}
+        <div className="flex flex-1 flex-wrap items-end gap-3">
+          <div className="grid gap-1.5">
+            <Input
+              placeholder={config.searchPlaceholder ?? "Buscar…"}
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              className="h-8 w-full sm:w-56"
+            />
+          </div>
+          {visibleFilters?.length ? (
+            <ResourceFilters
+              filters={visibleFilters}
+              values={filterValues}
+              onChange={onFilterChange}
+              onClear={onClearFilters}
+            />
+          ) : null}
+          {!canWrite ? (
+            <Badge variant="secondary">Solo lectura</Badge>
+          ) : null}
+        </div>
+        {/* Derecha: botones de acción (solo cuando hideHeader) */}
+        {hideHeader && (headerActions || canCreate) ? (
+          <div className="flex shrink-0 items-center gap-2">
+            {headerActions}
+            {canCreate ? <Button onClick={onCreate}>Nuevo</Button> : null}
+          </div>
         ) : null}
       </div>
-
-      {visibleFilters?.length ? (
-        <ResourceFilters
-          filters={visibleFilters}
-          values={filterValues}
-          onChange={onFilterChange}
-          onClear={onClearFilters}
-        />
-      ) : null}
 
       {list.isError ? (
         <div className="flex flex-col items-start gap-3 rounded-md border border-destructive/30 p-4">

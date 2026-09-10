@@ -23,12 +23,12 @@ export default function NuevoInternadoPage() {
             fields={INTERNSHIP_FIELDS}
             initial={null}
             submitting={createM.isPending}
-            onCancel={() => router.push("/internados/internos")}
+            onCancel={() => router.back()}
             onSubmit={(payload) =>
               createM.mutate(payload as InternshipWrite, {
-                onSuccess: (it) => {
+                onSuccess: () => {
                   toast.success("Interno creado.");
-                  router.push(`/internados/${it.id}`);
+                  router.back();
                 },
                 onError: (e) => toast.error(extractApiError(e)),
               })

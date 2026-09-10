@@ -13,6 +13,7 @@ import type { WithId } from "@/lib/api/query";
 import { ResourceCrud } from "@/components/crud/resource-crud";
 import { StudentsBulkUploadDialog } from "@/components/internados/students-bulk-upload-dialog";
 import { useUniversityGate } from "@/components/internados/university-gate";
+import { PageHeader } from "@/components/data/page-header";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -64,6 +65,7 @@ function EmptyPick({ label }: { label: string }) {
  * «Pregrado») → listar/gestionar. La universidad se fija (oculta) en el form y filtra el listado. El
  * **nivel elegido aquí** filtra el listado y se hereda en el form (que ya no pregunta el nivel:
  * muestra carrera si es Pregrado, especialidad en otro nivel).
+ * El filtro de periodo de internado (solo Pregrado) se precarga con el último periodo activo.
  */
 function StudentsView() {
   const user = useAuthStore((s) => s.user);
@@ -85,59 +87,116 @@ function StudentsView() {
     return p ? Number(p.id) : null;
   }, [niveles]);
 
-  // Nivel activo de la vista: el elegido por el usuario o, por defecto, «Pregrado» (derivado — sin
-  // efecto/setState) en cuanto se resuelve el catálogo.
+  // Nivel activo de la vista: el elegido por el usuario o, por defecto, «Pregrado».
   const [nivelPicked, setNivelPicked] = useState<number | null>(null);
   const nivel = nivelPicked ?? pregradoId;
+  const esPregrado = nivel != null && nivel === pregradoId;
+
+  // Último periodo de internado activo (default del filtro de periodo).
+  const periodosQuery = useQuery({
+    queryKey: ["internship-periods", "activos"],
+    queryFn: () =>
+      api
+        .get<Paginated<WithId>>("/internship-periods/", { params: { activo: "true", ordering: "-id", page_size: "1" } })
+        .then((r) => r.data.results),
+    staleTime: 10 * 60_000,
+  });
+  const lastActivoPeriodoId = useMemo<number | null>(() => {
+    const p = periodosQuery.data?.[0];
+    return p ? Number(p.id) : null;
+  }, [periodosQuery.data]);
+  const periodos = useMemo(() => periodosQuery.data ?? [], [periodosQuery.data]);
+
+  const [periodoPicked, setPeriodoPicked] = useState<number | null>(null);
+  const periodoId = periodoPicked !== null ? periodoPicked : lastActivoPeriodoId;
 
   const config = useMemo(() => buildStudentsConfig(nivel, pregradoId), [nivel, pregradoId]);
-  const initialFilters = useMemo<Record<string, string> | undefined>(
-    () => (nivel != null ? { nivel_academico: String(nivel) } : undefined),
-    [nivel],
-  );
+  const initialFilters = useMemo<Record<string, string>>(() => {
+    const f: Record<string, string> = {};
+    if (nivel != null) f.nivel_academico = String(nivel);
+    if (periodoId != null && esPregrado) f.periodo_internado = String(periodoId);
+    return f;
+  }, [nivel, periodoId, esPregrado]);
 
   return (
     <div>
       <BackLink />
+      <PageHeader title="Estudiantes" description="Estudiantes en proceso de internado." />
       <div className="mb-4 flex flex-wrap items-end gap-4">
         {gateUI}
         {universidad != null ? (
-          <div className="grid gap-1.5 max-w-xs">
-            <Label className="text-sm font-medium">Nivel académico</Label>
-            <Select
-              value={nivel != null ? String(nivel) : ""}
-              onValueChange={(v) => setNivelPicked(v ? Number(v) : null)}
-            >
-              <SelectTrigger className="w-full">
-                {/*
-                  Radix lazy-renders SelectContent (solo al abrir) → SelectValue nunca
-                  resuelve el label cuando el valor se fija por código. Lookup manual.
-                */}
-                <span className={nivel == null ? "text-muted-foreground text-sm" : "text-sm"}>
-                  {nivel != null && niveles.length > 0
-                    ? String(niveles.find((l) => Number(l.id) === nivel)?.nombre ?? nivel)
-                    : "Selecciona un nivel…"}
-                </span>
-              </SelectTrigger>
-              <SelectContent>
-                {niveles.map((l) => (
-                  <SelectItem key={String(l.id)} value={String(l.id)}>
-                    {String(l.nombre ?? l.id)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <>
+            <div className="grid gap-1.5 max-w-xs">
+              <Label className="text-sm font-medium">Nivel académico</Label>
+              <Select
+                value={nivel != null ? String(nivel) : ""}
+                onValueChange={(v) => {
+                  setNivelPicked(v ? Number(v) : null);
+                  setPeriodoPicked(null);
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  {/*
+                    Radix lazy-renders SelectContent (solo al abrir) → SelectValue nunca
+                    resuelve el label cuando el valor se fija por código. Lookup manual.
+                  */}
+                  <span className={nivel == null ? "text-muted-foreground text-sm" : "text-sm"}>
+                    {nivel != null && niveles.length > 0
+                      ? String(niveles.find((l) => Number(l.id) === nivel)?.nombre ?? nivel)
+                      : "Selecciona un nivel…"}
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  {niveles.map((l) => (
+                    <SelectItem key={String(l.id)} value={String(l.id)}>
+                      {String(l.nombre ?? l.id)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {(esPregrado || nivel == null) && (
+              <div className="grid gap-1.5 max-w-xs">
+                <Label className="text-sm font-medium">Periodo de internado</Label>
+                <Select
+                  value={periodoId != null ? String(periodoId) : ""}
+                  onValueChange={(v) => setPeriodoPicked(v ? Number(v) : null)}
+                >
+                  <SelectTrigger className="w-full min-w-[160px]">
+                    <span className={periodoId == null ? "text-muted-foreground text-sm" : "text-sm"}>
+                      {periodoId != null && periodos.length > 0
+                        ? String(
+                            periodos.find((p) => Number(p.id) === periodoId)?.nombre ??
+                              periodoId,
+                          )
+                        : lastActivoPeriodoId != null
+                          ? "Cargando…"
+                          : "Todos los periodos"}
+                    </span>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todos los periodos</SelectItem>
+                    {periodos.map((p) => (
+                      <SelectItem key={String(p.id)} value={String(p.id)}>
+                        {String(p.nombre ?? p.id)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </>
         ) : null}
       </div>
       {universidad == null ? (
         <EmptyPick label="Selecciona una universidad para ver sus estudiantes." />
       ) : (
         <ResourceCrud
-          key={`${universidad}-${nivel ?? "x"}`}
+          key={`${universidad}-${nivel ?? "x"}-${periodoId ?? "x"}`}
           config={config}
           fixedValues={{ universidad }}
           initialFilters={initialFilters}
+          hideHeader
           headerActions={
             canBulkUpload ? <StudentsBulkUploadDialog scoped={scoped} /> : undefined
           }
@@ -162,11 +221,12 @@ function TutorsView() {
   return (
     <div>
       <BackLink />
+      <PageHeader title={config.title} description={config.description} />
       <div className="mb-4">{gateUI}</div>
       {universidad == null ? (
         <EmptyPick label="Selecciona una universidad para ver sus tutores." />
       ) : (
-        <ResourceCrud key={universidad} config={config} initialFilters={initialFilters} />
+        <ResourceCrud key={universidad} config={config} initialFilters={initialFilters} hideHeader />
       )}
     </div>
   );

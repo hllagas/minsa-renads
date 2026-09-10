@@ -21,12 +21,15 @@ import {
  * Internos). Una universidad autorizada → auto-fija; varias → Select de esas; sin alcance (Admin) →
  * búsqueda sobre todas. El backend es la autoridad final del alcance.
  */
-export function useUniversityGate(stepLabel = "Universidad"): {
+export function useUniversityGate(
+  stepLabel = "Universidad",
+  initialValue?: number | null,
+): {
   universidad: number | null;
   gateUI: ReactNode;
 } {
   const { ids, singleId, scoped } = useUniversityScope();
-  const [picked, setPicked] = useState<number | null>(singleId);
+  const [picked, setPicked] = useState<number | null>(initialValue ?? null);
   const universidad = singleId ?? picked;
 
   const gateUI = (

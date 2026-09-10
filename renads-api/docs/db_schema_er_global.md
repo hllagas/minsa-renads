@@ -84,7 +84,7 @@ erDiagram
     tutor ||--o{ tutor_universidad : "1 a 2 (RN-24)"
     carrera_profesional ||--o{ estudiante : ""
     parentesco ||--o{ interno : "contacto emergencia"
-    periodo_academico ||--o{ estudiante : "Pregrado (RN-19)"
+    periodo_internado ||--o{ estudiante : "Pregrado (RN-19)"
     especialidad ||--o{ estudiante : "otro nivel (RN-19)"
     interno ||--o{ historial_estado_internado : ""
     interno ||--o{ historial_tutor : ""
@@ -150,7 +150,7 @@ campo_clinico_ipress_universidad ─> interno   (asignación por universidad)
 ipress ─────────────────────────> interno / rotacion ─────> actividad_docente_asistencial
 universidad ────────────────────> estudiante
 carrera_profesional ────────────> estudiante
-                                  estudiante >── periodo_academico / especialidad (RN-19)
+                                  estudiante >── periodo_internado / especialidad (RN-19)
 participante_convenio ──────────> autorizacion_rotacion
                                   estudiante ─────────────────> actividad_docente_asistencial
                                   interno ─────────────────────> actividad_docente_asistencial
@@ -167,6 +167,6 @@ actividad_calendario (M4) ─ M2M content_types ─> [cualquier modelo] (gobiern
 | App | Tablas (db_table) |
 |-----|-------------------|
 | **Gestionar Convenios** (`convenios`, M1) | `ubigeo`, `region`, `ambito_geografico_sanitario`, `tipo_convenio`, `estado_convenio`, `tipo_gestion_universidad`, `organo`, `tipo_autorizacion`, `nivel_academico`, `especialidad`, `tipo_autoridad_firmante`, `cargo_ejecutivo`, `motivo_observacion`, `motivo_rechazo`, `motivo_cierre`, `gobierno_regional`, `organo_directorio` (catálogo unificado de órganos/tipos, discriminado por `categoria`; absorbe la retirada `tipo_organo` y los antiguos `organo_regional`/`organo_minsa`), `unidad_ejecutora`, `ipress`, `conapres`, `organo_representante`, `historial_organo_representante`, `universidad`, `facultad`, `carrera_profesional`, `universidad_carrera`, `local_universidad`, `perfil_usuario_entidad`, `plantilla_convenio`, `convenio`, `participante_convenio`, `historial_estado_convenio`, `evaluacion_tecnica`, `opinion_conapres`, `campo_clinico_ipress`, `campo_clinico_ipress_universidad`, `opinion_juridica`, `firma`, `publicacion`, `documento_adjunto`, `bitacora_auditoria` |
-| **Registrar Internados** (`internados`, M2) | `estado_internado`, `estado_rotacion`, `servicio_area`, `tipo_documento_identidad`, `parentesco`, `periodo_academico`, `documento_anexo`, `estudiante`, `tutor`, `tutor_universidad`, `interno`, `historial_estado_internado`, `historial_tutor`, `rotacion`, `autorizacion_rotacion`, `historial_estado_rotacion` |
+| **Registrar Internados** (`internados`, M2) | `estado_internado`, `estado_rotacion`, `servicio_area`, `tipo_documento_identidad`, `parentesco`, `periodo_internado`, `documento_anexo`, `estudiante`, `tutor`, `tutor_universidad`, `interno`, `historial_estado_internado`, `historial_tutor`, `rotacion`, `autorizacion_rotacion`, `historial_estado_rotacion` |
 | **Registrar Actividades** (`actividades`, M3) | `tipo_actividad`, `estado_actividad`, `actividad_docente_asistencial`, `validacion_actividad`, `historial_estado_actividad` |
 | **Calendario administrativo** (`calendario`, M4) | `actividad_calendario`, `actividad_calendario_content_type` (puente M2M → `django_content_type`) |

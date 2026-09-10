@@ -70,7 +70,7 @@ class StudentSerializer(serializers.ModelSerializer):
         try:
             services.validar_regla_periodo_especialidad(
                 carrera=carrera,
-                periodo_academico=_valor("periodo_academico"),
+                periodo_internado=_valor("periodo_internado"),
                 especialidad=_valor("especialidad"),
             )
         except (serializers.ValidationError, DjangoValidationError) as exc:

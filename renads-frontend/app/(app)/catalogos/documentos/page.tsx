@@ -154,15 +154,17 @@ export default function DocumentosPage() {
         description="Gestión documental polimórfica con versionado. El alta de documentos se habilitará en una próxima versión."
       />
 
-      <ResourceFilters
-        filters={FILTERS}
-        values={filterValues}
-        onChange={onFilterChange}
-        onClear={() => {
-          setFilterValues({});
-          setPage(1);
-        }}
-      />
+      <div className="mb-4 flex flex-wrap items-end gap-3">
+        <ResourceFilters
+          filters={FILTERS}
+          values={filterValues}
+          onChange={onFilterChange}
+          onClear={() => {
+            setFilterValues({});
+            setPage(1);
+          }}
+        />
+      </div>
 
       {list.isError ? (
         <div className="flex flex-col items-start gap-3 rounded-md border border-destructive/30 p-4">

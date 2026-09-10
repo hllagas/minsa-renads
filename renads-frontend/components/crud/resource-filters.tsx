@@ -37,7 +37,7 @@ export function ResourceFilters({
   const hasActive = Object.values(values).some((v) => v !== "");
 
   return (
-    <div className="mb-4 flex flex-wrap items-end gap-3">
+    <>
       {filters.map((filter) => (
         <div key={filter.name} className="grid gap-1.5">
           <Label className="text-xs text-muted-foreground">{filter.label}</Label>
@@ -119,6 +119,6 @@ export function ResourceFilters({
           Limpiar filtros
         </Button>
       ) : null}
-    </div>
+    </>
   );
 }

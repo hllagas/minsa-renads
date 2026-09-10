@@ -34,25 +34,25 @@ export default function ConveniosPage() {
       { accessorKey: "nomenclatura", header: "Nomenclatura", cell: ({ row }) => row.original.nomenclatura || "—" },
       {
         accessorKey: "titulo",
-        header: "Título",
+        header: "Nombre del convenio",
         // Título largo: se trunca con ellipsis (tope de ancho) + tooltip nativo con el texto completo,
         // para evitar el scroll horizontal de la tabla.
         cell: ({ row }) => (
           <div
-            className="max-w-[26rem] truncate"
+            className="max-w-[300px] whitespace-normal text-justify text-xs leading-relaxed text-foreground"
             title={row.original.titulo || undefined}
           >
             {row.original.titulo || "—"}
           </div>
         ),
       },
-      { accessorKey: "tipo_convenio", header: "Tipo" },
+      { accessorKey: "tipo_convenio", header: "Marco / Especifico" },
       {
         accessorKey: "universidad_nombre",
         header: "Universidad",
         cell: ({ row }) => (
           <div
-            className="max-w-[16rem] truncate"
+            className="max-w-[300px] whitespace-normal text-justify text-xs leading-relaxed text-foreground"
             title={row.original.universidad_nombre || undefined}
           >
             {row.original.universidad_nombre || "—"}

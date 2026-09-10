@@ -58,12 +58,12 @@ class RelationshipType(Catalog):
         verbose_name = "tipo de parentesco"
 
 
-class AcademicPeriod(Catalog):
-    """Periodo académico (semestre) del estudiante — aplica al nivel Pregrado (RN-19)."""
+class InternshipPeriod(Catalog):
+    """Periodo de internado del estudiante — aplica al nivel Pregrado (RN-19)."""
 
     class Meta:
-        db_table = "periodo_academico"
-        verbose_name = "periodo académico"
+        db_table = "periodo_internado"
+        verbose_name = "periodo de internado"
 
 
 ANNEX_ACTOR = [
@@ -124,10 +124,10 @@ class Student(models.Model):
         ProfessionalCareer, on_delete=models.PROTECT, db_column="carrera_profesional_id",
         related_name="+", help_text="Carrera / programa",
     )
-    periodo_academico = models.ForeignKey(
-        AcademicPeriod, on_delete=models.PROTECT, db_column="periodo_academico_id",
+    periodo_internado = models.ForeignKey(
+        InternshipPeriod, on_delete=models.PROTECT, db_column="periodo_internado_id",
         null=True, blank=True, related_name="+",
-        help_text="Periodo académico (obligatorio para Pregrado — RN-19)",
+        help_text="Periodo de internado (obligatorio para Pregrado — RN-19)",
     )
     especialidad = models.ForeignKey(
         Specialty, on_delete=models.SET_NULL, db_column="especialidad_id",

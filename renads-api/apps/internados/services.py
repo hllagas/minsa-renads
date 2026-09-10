@@ -30,7 +30,7 @@ from apps.convenios.models import (
     UserEntityProfile,
 )
 from apps.internados.models import (
-    AcademicPeriod,
+    InternshipPeriod,
     AnnexDocument,
     IdentityDocumentType,
     Internship,
@@ -133,7 +133,7 @@ CARGA_ALIAS_COLUMNAS = {
     "ubigeo_id": "ubigeo",
     "universidad_id": "universidad",
     "carrera_profesional_id": "carrera_profesional",
-    "periodo_academico_id": "periodo_academico",
+    "periodo_internado_id": "periodo_internado",
     "especialidad_id": "especialidad",
 }
 
@@ -622,19 +622,19 @@ def estudiantes_por_prelacion(queryset):
 # ---------------------------------------------------------------------------
 # RN-19 — Periodo académico vs. especialidad según nivel académico
 # ---------------------------------------------------------------------------
-def validar_regla_periodo_especialidad(*, carrera, periodo_academico, especialidad):
+def validar_regla_periodo_especialidad(*, carrera, periodo_internado, especialidad):
     """RN-19: fuente única de verdad de la regla (compartida por serializer y bulk).
 
     Deriva ``nivel = carrera.nivel_academico.codigo``. Si es ``PREGRADO`` exige
-    ``periodo_academico`` y prohíbe ``especialidad``; para cualquier otro nivel
-    exige ``especialidad`` y prohíbe ``periodo_academico``. Lanza
+    ``periodo_internado`` y prohíbe ``especialidad``; para cualquier otro nivel
+    exige ``especialidad`` y prohíbe ``periodo_internado``. Lanza
     ``ValidationError`` con el campo faltante/sobrante y mensaje en español.
     """
     nivel = carrera.nivel_academico.codigo
     if nivel == "PREGRADO":
-        if periodo_academico is None:
+        if periodo_internado is None:
             raise ValidationError(
-                {"periodo_academico": "El periodo académico es obligatorio para estudiantes de Pregrado."}
+                {"periodo_internado": "El periodo de internado es obligatorio para estudiantes de Pregrado."}
             )
         if especialidad is not None:
             raise ValidationError(
@@ -645,9 +645,9 @@ def validar_regla_periodo_especialidad(*, carrera, periodo_academico, especialid
             raise ValidationError(
                 {"especialidad": "La especialidad es obligatoria para este nivel académico."}
             )
-        if periodo_academico is not None:
+        if periodo_internado is not None:
             raise ValidationError(
-                {"periodo_academico": "El periodo académico solo aplica al nivel Pregrado."}
+                {"periodo_internado": "El periodo de internado solo aplica al nivel Pregrado."}
             )
 
 
@@ -722,22 +722,22 @@ def _normalizar_codigo_periodo(texto: str) -> str:
     return f"{anio}-{romano}" if romano else texto
 
 
-def _resolver_periodo_academico(valor):
+def _resolver_periodo_internado(valor):
     if valor is None:
         return None
     texto = str(valor).strip()
-    # La columna `periodo_academico_id` de la trama admite id, el código canónico
+    # La columna `periodo_internado_id` de la trama admite id, el código canónico
     # (`2025-I`) o el formato numérico de semestre (`2025-01`).
     if texto.isdigit():
         try:
-            return AcademicPeriod.objects.get(id=int(texto))
-        except AcademicPeriod.DoesNotExist:
+            return InternshipPeriod.objects.get(id=int(texto))
+        except InternshipPeriod.DoesNotExist:
             pass
     codigo = _normalizar_codigo_periodo(texto)
     try:
-        return AcademicPeriod.objects.get(codigo=codigo)
-    except AcademicPeriod.DoesNotExist as exc:
-        raise ValidationError(f"Periodo académico no encontrado: {texto}.") from exc
+        return InternshipPeriod.objects.get(codigo=codigo)
+    except InternshipPeriod.DoesNotExist as exc:
+        raise ValidationError(f"Periodo de internado no encontrado: {texto}.") from exc
 
 
 def _resolver_especialidad(valor):
@@ -781,11 +781,11 @@ def _crear_estudiante_desde_fila(*, obtener, usuario, ct_uni, es_admin) -> Stude
             f"La universidad {universidad.codigo_inei or universidad.id} está fuera de tu ámbito."
         )
     carrera = _resolver_carrera(obtener("carrera_profesional"))
-    periodo_academico = _resolver_periodo_academico(obtener("periodo_academico"))
+    periodo_internado = _resolver_periodo_internado(obtener("periodo_internado"))
     especialidad = _resolver_especialidad(obtener("especialidad"))
-    # RN-19: coherencia entre nivel académico, periodo académico y especialidad.
+    # RN-19: coherencia entre nivel académico, periodo de internado y especialidad.
     validar_regla_periodo_especialidad(
-        carrera=carrera, periodo_academico=periodo_academico, especialidad=especialidad
+        carrera=carrera, periodo_internado=periodo_internado, especialidad=especialidad
     )
 
     ubigeo = None
@@ -823,7 +823,7 @@ def _crear_estudiante_desde_fila(*, obtener, usuario, ct_uni, es_admin) -> Stude
         ubigeo=ubigeo,
         universidad=universidad,
         carrera_profesional=carrera,
-        periodo_academico=periodo_academico,
+        periodo_internado=periodo_internado,
         especialidad=especialidad,
         codigo_universitario=(str(obtener("codigo_universitario")).strip() if obtener("codigo_universitario") else ""),
         nota_promedio_ponderado=nota,
