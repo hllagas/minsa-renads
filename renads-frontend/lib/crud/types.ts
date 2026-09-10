@@ -88,8 +88,20 @@ export interface FieldConfig {
    * Poner `false` para excluir (p. ej. `username`, que es sensible a may/min en el login).
    */
   uppercase?: boolean;
+  /** Para `type: "number"`: valor mínimo permitido (inclusive). */
+  min?: number;
+  /** Para `type: "number"`: valor máximo permitido (inclusive). */
+  max?: number;
+  /** Para `type: "number"`: máximo de decimales permitidos (p. ej. 3 → hasta 0.001). */
+  decimals?: number;
   /** Deshabilita el campo (solo lectura en el formulario). */
   disabled?: boolean;
+  /**
+   * Para un campo de **número de documento** (`type: "text"`): nombre del select del **tipo de
+   * documento** (`identity-document-types`). Valida la longitud según el tipo elegido: DNI → 8
+   * dígitos, otro → 9 (solo dígitos). Ver `lib/validation/doc-number.ts`.
+   */
+  docNumberFor?: string;
   /**
    * Fuerza el campo a ocupar todo el ancho en el formulario de 2 columnas (p. ej. nombres largos,
    * direcciones, descripciones). Los tipos `custom`/`multiselect` ya ocupan todo el ancho.

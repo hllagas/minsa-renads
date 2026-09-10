@@ -40,6 +40,13 @@ class StudentSerializer(serializers.ModelSerializer):
             return None
         return {"id": e.id, "nombre": e.nombre}
 
+    def validate_nota_promedio_ponderado(self, value):
+        if value is None:
+            return value
+        if value < 0 or value > 20:
+            raise serializers.ValidationError("La nota debe estar entre 0 y 20.")
+        return value
+
     def validate(self, attrs):
         """RN-19: valida periodo académico vs. especialidad según el nivel académico.
 

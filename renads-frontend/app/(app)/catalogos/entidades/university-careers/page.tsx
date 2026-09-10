@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -35,7 +35,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 
 // ---------- Types ----------
@@ -93,7 +92,7 @@ type CareerState =
 export default function UniversityCareersPage() {
   const [universidadId, setUniversidadId] = useState<number | null>(null);
   const [facultadId, setFacultadId] = useState<number | null>(null);
-  const [nivelId, setNivelId] = useState<number | null>(null);
+  const [nivelIdPicked, setNivelIdPicked] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   // Local selection state (derived from server + user changes)
   const [localSelected, setLocalSelected] = useState<Set<number>>(new Set());
@@ -114,14 +113,12 @@ export default function UniversityCareersPage() {
     staleTime: 10 * 60_000,
   });
 
-  // Default nivel to "Pregrado"
-  useEffect(() => {
-    if (!levelsQuery.data || nivelId !== null) return;
-    const pregrado = levelsQuery.data.find((l) =>
-      l.nombre.toLowerCase().includes("pregrado"),
-    );
-    if (pregrado) setNivelId(pregrado.id);
-  }, [levelsQuery.data, nivelId]);
+  // Default nivel to "Pregrado" (derived — no useEffect needed).
+  const pregradoId = useMemo(
+    () => (levelsQuery.data ?? []).find((l) => l.nombre.toLowerCase().includes("pregrado"))?.id ?? null,
+    [levelsQuery.data],
+  );
+  const nivelId = nivelIdPicked ?? pregradoId;
 
   // -- All university-careers for this university (to detect conflicts) --
   const linksQuery = useQuery({
@@ -178,17 +175,21 @@ export default function UniversityCareersPage() {
     [careerStateMap],
   );
 
-  // Sync localSelected when facultad changes or data loads
-  useEffect(() => {
+  // "Adjusting state on render" (React-approved alternative to useEffect for derived state reset):
+  // when serverAssignedIds reference changes (new facultad or refetch), reset local selection.
+  const [prevServerAssignedIds, setPrevServerAssignedIds] = useState<Set<number>>(new Set());
+  if (serverAssignedIds !== prevServerAssignedIds) {
+    setPrevServerAssignedIds(serverAssignedIds);
     setLocalSelected(new Set(serverAssignedIds));
     setIsDirty(false);
-  }, [serverAssignedIds]);
+  }
 
   const handleToggle = useCallback(
     (careerId: number, checked: boolean) => {
       setLocalSelected((prev) => {
         const next = new Set(prev);
-        checked ? next.add(careerId) : next.delete(careerId);
+        if (checked) next.add(careerId);
+        else next.delete(careerId);
         return next;
       });
       setIsDirty(true);
@@ -216,17 +217,17 @@ export default function UniversityCareersPage() {
   });
 
   // -- Filters --
-  const careers = careersQuery.data ?? [];
   const levels = levelsQuery.data ?? [];
 
   const filteredCareers = useMemo(() => {
+    const careers = careersQuery.data ?? [];
     let list = nivelId !== null
       ? careers.filter((c) => c.nivel_academico === nivelId)
       : careers;
     const q = search.trim().toLowerCase();
     if (q) list = list.filter((c) => String(c.nombre).toLowerCase().includes(q));
     return list;
-  }, [careers, nivelId, search]);
+  }, [careersQuery.data, nivelId, search]);
 
   const assignedCount = useMemo(
     () => filteredCareers.filter((c) => localSelected.has(c.id)).length,
@@ -376,7 +377,7 @@ export default function UniversityCareersPage() {
               {levels.length > 0 && (
                 <Select
                   value={nivelId !== null ? String(nivelId) : ""}
-                  onValueChange={(v) => setNivelId(v === "" ? null : Number(v))}
+                  onValueChange={(v) => setNivelIdPicked(v === "" ? null : Number(v))}
                 >
                   <SelectTrigger className="w-44 shrink-0">
                     <span className="truncate text-sm">

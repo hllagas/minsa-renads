@@ -19,6 +19,11 @@ import {
   type RepresentanteEntityOption,
 } from "@/lib/catalogos/representantes-entities";
 import { organIdByNombre, useOrgans } from "@/lib/catalogos/organs";
+import {
+  docCodigoById,
+  docLengthByCodigo,
+  validateDocNumber,
+} from "@/lib/validation/doc-number";
 import { EntityCombobox } from "@/components/form/entity-combobox";
 import { DatePicker } from "@/components/form/date-picker";
 import { AnnexChecklistAction } from "@/components/almacenamiento/annex-checklist-dialog";
@@ -523,6 +528,17 @@ function RepresentativeDialog({
 
   const sexo = useWatch({ control, name: "sexo" }) as "M" | "F" | "";
 
+  // Longitud del N° de documento según el tipo elegido (DNI → 8, otro → 9).
+  const tipoDocId = useWatch({ control, name: "tipo_documento_identidad" }) as number | null;
+  const docTypesQuery = useQuery({
+    queryKey: ["identity-document-types", "doc-length"],
+    queryFn: () =>
+      api.get<Paginated<WithId>>("/identity-document-types/").then((r) => r.data.results),
+    staleTime: 30 * 60_000,
+  });
+  const docCodigo = docCodigoById(docTypesQuery.data, tipoDocId);
+  const docMaxLen = docLengthByCodigo(docCodigo);
+
   // Cargos disponibles = globales ∪ (por órgano, si la entidad es OrganDirectory).
   const cargosQuery = useQuery({
     queryKey: ["executive-positions", "form", tipoOpt.key, idObjeto],
@@ -654,11 +670,23 @@ function RepresentativeDialog({
             <Controller
               control={control}
               name="numero_documento_identidad"
-              rules={{ required: "Campo obligatorio." }}
+              rules={{
+                required: "Campo obligatorio.",
+                validate: (v) => validateDocNumber(v, docCodigo),
+              }}
               render={({ field, fieldState }) => (
                 <div className="grid gap-1">
                   <Label>N° documento *</Label>
-                  <Input value={field.value} onChange={field.onChange} onBlur={field.onBlur} autoComplete="off" />
+                  <Input
+                    value={field.value}
+                    inputMode="numeric"
+                    maxLength={docMaxLen}
+                    onChange={(e) =>
+                      field.onChange(e.target.value.replace(/\D/g, "").slice(0, docMaxLen))
+                    }
+                    onBlur={field.onBlur}
+                    autoComplete="off"
+                  />
                   {fieldState.error && <p className="text-xs text-destructive">{fieldState.error.message}</p>}
                 </div>
               )}

@@ -7,6 +7,11 @@ import { useQuery } from "@tanstack/react-query";
 import type { FieldConfig } from "@/lib/crud/types";
 import type { WithId } from "@/lib/api/query";
 import { getResourceItem, searchResource } from "@/lib/api/lookup";
+import {
+  docCodigoById,
+  docLengthByCodigo,
+  validateDocNumber,
+} from "@/lib/validation/doc-number";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -204,11 +209,57 @@ function InputFieldRow({
             : "text";
   // Texto en MAYÚSCULAS por defecto; se excluye con `uppercase: false` (p. ej. `username`).
   const toUpper = field.type === "text" && field.uppercase !== false;
+
+  // Número de documento con longitud dependiente del tipo (DNI → 8, otro → 9). Se observa el select
+  // del tipo y se resuelve su `codigo` desde `identity-document-types`. Sin `docNumberFor` no observa
+  // ni consulta nada (comportamiento idéntico al previo).
+  const docGovId = useWatch({
+    control,
+    name: field.docNumberFor ?? "__none__",
+    disabled: !field.docNumberFor,
+  }) as number | string | null | undefined;
+  const docTypesQuery = useQuery({
+    queryKey: ["identity-document-types", "doc-length"],
+    queryFn: () => searchResource("identity-document-types"),
+    enabled: !!field.docNumberFor,
+    staleTime: 30 * 60_000,
+  });
+  const docCodigo = field.docNumberFor ? docCodigoById(docTypesQuery.data, docGovId) : null;
+  const docMaxLen = field.docNumberFor ? docLengthByCodigo(docCodigo) : undefined;
+
+  // Validación numérica (min / max / decimals). Solo activa para type:"number" con restricciones.
+  const hasNumConstraints =
+    field.type === "number" &&
+    (field.min != null || field.max != null || field.decimals != null);
+  const validateNum = hasNumConstraints
+    ? (v: unknown) => {
+        const s = String(v ?? "").trim().replace(",", ".");
+        if (s === "") return true;
+        const n = Number(s);
+        if (isNaN(n)) return "Debe ser un número válido.";
+        if (field.min != null && n < field.min) return `Mínimo ${field.min}.`;
+        if (field.max != null && n > field.max) return `Máximo ${field.max}.`;
+        if (field.decimals != null) {
+          const dec = s.split(".")[1] ?? "";
+          if (dec.length > field.decimals)
+            return `Máximo ${field.decimals} decimal${field.decimals !== 1 ? "es" : ""}.`;
+        }
+        return true;
+      }
+    : undefined;
+
   return (
     <Controller
       control={control}
       name={field.name}
-      rules={{ required: field.required ? "Campo obligatorio." : false }}
+      rules={{
+        required: field.required ? "Campo obligatorio." : false,
+        ...(field.docNumberFor
+          ? { validate: (v: unknown) => validateDocNumber(v, docCodigo) }
+          : validateNum
+            ? { validate: validateNum }
+            : {}),
+      }}
       render={({ field: f, fieldState }) => (
         <div className="grid gap-1.5">
           <Label htmlFor={`f-${field.name}`}>
@@ -229,16 +280,28 @@ function InputFieldRow({
               // Usar `type="text"` + `inputMode` evita la clasificación sin perder UX numérica.
               // Prefijo «f-» en el id: rompe el match de id="numero_orden" con heurísticas de pago.
               type={inputType === "number" ? "text" : inputType}
-              inputMode={inputType === "number" ? "decimal" : undefined}
+              inputMode={
+                field.docNumberFor
+                  ? "numeric"
+                  : inputType === "number"
+                    ? "decimal"
+                    : undefined
+              }
+              maxLength={docMaxLen}
               disabled={field.disabled}
               autoComplete={field.type === "password" ? "new-password" : "off"}
               // Excluye el campo del pipeline de detección de pago de Chrome/gestores de contraseñas.
               data-form-type="other"
               data-lpignore="true"
               value={(f.value as string | number | null) ?? ""}
-              onChange={(e) =>
-                f.onChange(toUpper ? e.target.value.toUpperCase() : e.target.value)
-              }
+              onChange={(e) => {
+                let val = e.target.value;
+                // Documento: solo dígitos, recortado a la longitud del tipo (DNI 8 / otro 9).
+                if (field.docNumberFor)
+                  val = val.replace(/\D/g, "").slice(0, docMaxLen);
+                else if (toUpper) val = val.toUpperCase();
+                f.onChange(val);
+              }}
               onBlur={f.onBlur}
               aria-invalid={!!fieldState.error}
               className={toUpper ? "uppercase" : undefined}

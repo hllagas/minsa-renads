@@ -136,8 +136,8 @@ class Student(models.Model):
     )
     codigo_universitario = models.CharField("código universitario", max_length=50, blank=True, help_text="Código universitario / matrícula")
     nota_promedio_ponderado = models.DecimalField(
-        "nota promedio ponderado", max_digits=4, decimal_places=2, null=True, blank=True,
-        help_text="Nota promedio ponderado (escala 0–20)",
+        "nota promedio ponderado", max_digits=5, decimal_places=3, null=True, blank=True,
+        help_text="Nota promedio ponderado (escala 0–20, máximo 3 decimales)",
     )
     contacto_emergencia_nombre = models.CharField(
         "contacto de emergencia - nombre", max_length=255, blank=True,

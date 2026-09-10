@@ -106,6 +106,7 @@ function StudentsView() {
           <div className="grid gap-1.5 max-w-xs">
             <Label className="text-sm font-medium">Nivel académico</Label>
             <Select
+              key={pregradoId ?? "loading"}
               value={nivel != null ? String(nivel) : ""}
               onValueChange={(v) => setNivelPicked(v ? Number(v) : null)}
             >
