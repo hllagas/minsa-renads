@@ -20,7 +20,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 
 /** CRUD de una persona (estudiante/tutor), resuelta por el slug de la ruta. */
@@ -106,12 +105,19 @@ function StudentsView() {
           <div className="grid gap-1.5 max-w-xs">
             <Label className="text-sm font-medium">Nivel académico</Label>
             <Select
-              key={pregradoId ?? "loading"}
               value={nivel != null ? String(nivel) : ""}
               onValueChange={(v) => setNivelPicked(v ? Number(v) : null)}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Selecciona un nivel…" />
+                {/*
+                  Radix lazy-renders SelectContent (solo al abrir) → SelectValue nunca
+                  resuelve el label cuando el valor se fija por código. Lookup manual.
+                */}
+                <span className={nivel == null ? "text-muted-foreground text-sm" : "text-sm"}>
+                  {nivel != null && niveles.length > 0
+                    ? String(niveles.find((l) => Number(l.id) === nivel)?.nombre ?? nivel)
+                    : "Selecciona un nivel…"}
+                </span>
               </SelectTrigger>
               <SelectContent>
                 {niveles.map((l) => (
