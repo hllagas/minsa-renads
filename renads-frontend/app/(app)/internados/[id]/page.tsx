@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
 
 import { internshipHooks } from "@/lib/internados/hooks";
 import { INTERNSHIP_ACTIONS } from "@/lib/internados/flow-actions";
 import { useResourceSubList } from "@/lib/api/flow";
+import { extractApiError } from "@/lib/api/errors";
 import { useAuthStore, userHasRole } from "@/lib/auth/store";
 import { PageHeader } from "@/components/data/page-header";
 import { FlowActionDialog } from "@/components/crud/flow-action-dialog";
@@ -15,6 +18,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 function Dato({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -26,12 +37,28 @@ function Dato({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 export default function InternadoDetallePage() {
+  const router = useRouter();
   const params = useParams<{ id: string }>();
   const id = Number(params.id);
   const user = useAuthStore((s) => s.user);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const { data: it, isLoading, isError } = internshipHooks.useDetail(id);
   const historial = useResourceSubList("interns", id, "historial");
+  const removeM = internshipHooks.useRemove();
+
+  const canDelete = userHasRole(user, "Universidad", "Administrador RENADS");
+
+  function confirmDelete() {
+    removeM.mutate(id, {
+      onSuccess: () => {
+        toast.success("Interno eliminado. El cupo queda disponible nuevamente.");
+        setDeleteOpen(false);
+        router.back();
+      },
+      onError: (e) => toast.error(extractApiError(e)),
+    });
+  }
 
   if (isLoading) {
     return <p className="text-sm text-muted-foreground">Cargando internado…</p>;
@@ -45,21 +72,28 @@ export default function InternadoDetallePage() {
   return (
     <div>
       <div className="mb-4">
-        <Link
-          href="/internados/internos"
+        <button
+          onClick={() => router.back()}
           className="text-sm text-muted-foreground hover:text-foreground"
         >
           ← Internos
-        </Link>
+        </button>
       </div>
       <PageHeader
         title={`Internado de ${it.estudiante}`}
         description={it.convenio}
         actions={
-          <Button
-            variant="outline"
-            render={<Link href={`/internados/${it.id}/editar`}>Editar</Link>}
-          />
+          <div className="flex items-center gap-2">
+            {canDelete ? (
+              <Button variant="destructive" onClick={() => setDeleteOpen(true)}>
+                Eliminar
+              </Button>
+            ) : null}
+            <Button
+              variant="outline"
+              render={<Link href={`/internados/${it.id}/editar`}>Editar</Link>}
+            />
+          </div>
         }
       />
 
@@ -144,6 +178,35 @@ export default function InternadoDetallePage() {
           />
         </TabsContent>
       </Tabs>
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Eliminar interno</DialogTitle>
+            <DialogDescription>
+              Esta acción elimina el registro de internado de{" "}
+              <strong>{it.estudiante}</strong> y restablece el cupo de asignación de campos de
+              formación a la sede docente y universidad. No se puede deshacer.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteOpen(false)}
+              disabled={removeM.isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={removeM.isPending}
+            >
+              {removeM.isPending ? "Eliminando…" : "Eliminar interno"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

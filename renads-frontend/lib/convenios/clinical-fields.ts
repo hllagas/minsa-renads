@@ -64,17 +64,11 @@ export const clinicalFieldRegistrationsConfig: ResourceConfig = {
       render: (r) =>
         r.especialidad_detalle ? detalle(r.especialidad_detalle, "nombre") : "—",
     },
-    {
-      key: "convenio",
-      header: "Convenio",
-      render: (r) => detalle(r.convenio_detalle, "titulo"),
-    },
     { key: "campos_clinicos_registrados", header: "Registrados" },
     { key: "campos_clinicos_asignados", header: "Asignados" },
     { key: "disponibilidad", header: "Disponibles" },
   ],
   filters: [
-    { name: "convenio", label: "Convenio", type: "select", optionsEndpoint: "conventions", optionsToLabel: convenioLabel },
     { name: "ipress", label: "Sede docente", type: "select", optionsEndpoint: "ipress", optionsToLabel: ipressLabel, optionsValueKey: "codigo_renipress", optionsSearchable: true },
     {
       name: "carrera_profesional",
@@ -85,15 +79,6 @@ export const clinicalFieldRegistrationsConfig: ResourceConfig = {
     { name: "especialidad", label: "Especialidad", type: "select", optionsEndpoint: "specialties" },
   ],
   fields: [
-    {
-      name: "convenio",
-      label: "Convenio (Específico)",
-      type: "select",
-      required: true,
-      optionsEndpoint: "conventions",
-      optionsToLabel: convenioLabel,
-      fullWidth: true,
-    },
     {
       name: "ipress",
       label: "Sede docente",

@@ -1077,10 +1077,6 @@ class ClinicalFieldRegistration(models.Model):
     por universidad se llevan en `ClinicalFieldAllocation`.
     """
 
-    convenio = models.ForeignKey(
-        Convention, on_delete=models.CASCADE, db_column="convenio_id",
-        related_name="campos_clinicos", help_text="Convenio (solo Específico)",
-    )
     ipress = models.ForeignKey(
         Ipress, on_delete=models.PROTECT, db_column="ipress_id", help_text="Sede docente (establecimiento)",
     )
@@ -1127,7 +1123,7 @@ class ClinicalFieldRegistration(models.Model):
         db_table = "campo_clinico_ipress"
         verbose_name = "registro de campos clínicos por sede"
         verbose_name_plural = "registros de campos clínicos por sede"
-        unique_together = (("convenio", "ipress", "carrera_profesional", "especialidad"),)
+        unique_together = (("ipress", "carrera_profesional", "especialidad"),)
 
 
 class ClinicalFieldAllocation(models.Model):

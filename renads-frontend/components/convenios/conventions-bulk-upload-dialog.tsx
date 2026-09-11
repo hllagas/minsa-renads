@@ -4,9 +4,9 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import {
-  useClinicalRegistrationsBulkUpload,
-  type ClinicalBulkUploadResult,
-} from "@/lib/campos-clinicos/hooks";
+  useConventionsBulkUpload,
+  type ConventionsBulkUploadResult,
+} from "@/lib/convenios/hooks";
 import { extractApiError } from "@/lib/api/errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,13 +30,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-/** Carga masiva de determinaciones de campos de formación (sede docente + carrera profesional). */
-export function ClinicalRegistrationsBulkUploadDialog() {
+export function ConventionsBulkUploadDialog() {
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
-  const [result, setResult] = useState<ClinicalBulkUploadResult | null>(null);
+  const [result, setResult] = useState<ConventionsBulkUploadResult | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const uploadM = useClinicalRegistrationsBulkUpload();
+  const uploadM = useConventionsBulkUpload();
 
   function reset() {
     setFile(null);
@@ -54,9 +53,7 @@ export function ClinicalRegistrationsBulkUploadDialog() {
     uploadM.mutate(file, {
       onSuccess: (data) => {
         setResult(data);
-        toast.success(
-          `Carga procesada: ${data.creados} creado(s), ${data.omitidos} omitido(s).`,
-        );
+        toast.success(`Carga procesada: ${data.creados} creado(s), ${data.omitidos} omitido(s).`);
       },
       onError: (e) => toast.error(extractApiError(e)),
     });
@@ -67,23 +64,19 @@ export function ClinicalRegistrationsBulkUploadDialog() {
       <DialogTrigger render={<Button variant="outline">Carga masiva</Button>} />
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Carga masiva — Determinación de campos de formación</DialogTitle>
+          <DialogTitle>Carga masiva de convenios</DialogTitle>
           <DialogDescription>
-            Sube un archivo <strong>.xlsx</strong> con las determinaciones por sede docente y
-            profesión. Columnas requeridas:{" "}
-            <code>ipress</code> (código RENIPRESS),{" "}
-            <code>carrera_profesional</code> (id o nombre exacto),{" "}
-            <code>campos_clinicos_registrados</code> (entero positivo).
-            Columnas opcionales: <code>especialidad</code> (id o código),{" "}
-            <code>numero_resolucion_conapres</code>, <code>fecha_resolucion_conapres</code>{" "}
-            (AAAA-MM-DD). Filas con error se omiten sin abortar el lote.
+            Sube un archivo <strong>.xlsx</strong> con la estructura de{" "}
+            <strong>TramaCargaMasivaConvenios.xlsx</strong>. Carga convenios Marco y Específicos ya
+            suscritos/publicados. Solo disponible para <strong>Administrador RENADS</strong>. Las
+            filas con error se omiten sin abortar el resto del lote.
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-2">
-          <Label htmlFor="registrations-bulk-file">Archivo (.xlsx) *</Label>
+          <Label htmlFor="conventions-bulk-file">Archivo (.xlsx) *</Label>
           <Input
-            id="registrations-bulk-file"
+            id="conventions-bulk-file"
             ref={inputRef}
             type="file"
             accept=".xlsx"
@@ -103,7 +96,7 @@ export function ClinicalRegistrationsBulkUploadDialog() {
             </div>
             {result.errores.length > 0 ? (
               <div className="grid gap-2">
-                <p className="text-sm text-muted-foreground">Filas omitidas:</p>
+                <p className="text-sm text-muted-foreground">Las siguientes filas se omitieron:</p>
                 <div className="max-h-64 overflow-y-auto rounded-md border">
                   <Table>
                     <TableHeader>

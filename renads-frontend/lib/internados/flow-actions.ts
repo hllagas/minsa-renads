@@ -1,55 +1,7 @@
 import type { FlowAction } from "@/lib/crud/flow-action";
-import type { WithId } from "@/lib/api/query";
-
-const tutorLabel = (row: WithId) =>
-  `${row.nombres ?? ""} ${row.apellido_paterno ?? ""} (${row.numero_documento ?? row.id})`.trim();
 
 /** Acciones de flujo del internado (`interns/{id}/{key}/`). */
 export const INTERNSHIP_ACTIONS: FlowAction[] = [
-  {
-    key: "cambiar-estado",
-    label: "Cambiar estado",
-    roles: ["Administrador RENADS"],
-    fields: [
-      { name: "estado_codigo", label: "Código de estado", type: "text", required: true },
-      { name: "observacion", label: "Observación", type: "text", uppercase: false },
-    ],
-  },
-  {
-    key: "revisar-declaraciones",
-    label: "Revisar declaraciones",
-    roles: ["Universidad", "Administrador RENADS"],
-    fields: [
-      {
-        name: "resultado",
-        label: "Resultado",
-        type: "select",
-        required: true,
-        choices: [
-          { value: "VALIDADAS", label: "Validadas" },
-          { value: "OBSERVADAS", label: "Observadas" },
-        ],
-      },
-      { name: "observacion", label: "Observación", type: "text" },
-    ],
-  },
-  {
-    key: "cambiar-tutor",
-    label: "Cambiar tutor",
-    roles: ["Universidad"],
-    fields: [
-      {
-        name: "tutor",
-        label: "Nuevo tutor",
-        type: "select",
-        required: true,
-        optionsEndpoint: "tutors",
-        optionsToLabel: tutorLabel,
-      },
-      { name: "fecha_cambio", label: "Fecha de cambio", type: "date", required: true },
-      { name: "motivo", label: "Motivo", type: "text", required: true, uppercase: false },
-    ],
-  },
   {
     key: "rotaciones",
     label: "Agregar rotación",

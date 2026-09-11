@@ -26,6 +26,7 @@ export default function EditarConvenioPage() {
 
   const initial = {
     titulo: c.titulo,
+    nomenclatura: c.nomenclatura ?? "",
     plantilla: c.plantilla ?? null,
     convenio_marco: c.convenio_marco ?? null,
     solicitante_tipo_contenido: c.solicitante_tipo_contenido,
@@ -36,7 +37,6 @@ export default function EditarConvenioPage() {
     unidad_ejecutora: c.unidad_ejecutora ?? null,
     facultad: c.facultad ?? null,
     fecha_solicitud: c.fecha_solicitud,
-    fecha_inicio: c.fecha_inicio ?? "",
     max_campos_clinicos: c.max_campos_clinicos ?? null,
   };
 

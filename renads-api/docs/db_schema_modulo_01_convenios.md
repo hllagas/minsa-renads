@@ -430,9 +430,9 @@ evitando redundancia. En el formulario son selectores en cascada que filtran la 
 > **Requisito de campos clínicos antes de suscripción:** un Convenio **Específico** no puede
 > avanzar a suscripción (transición a `ENVIADO_SG` o registro de firma) sin ≥1
 > `campo_clinico_ipress` con `numero_resolucion_conapres` no vacío sobre una sede docente
-> (`ipress.es_sede_docente = true`) de la **unidad ejecutora del convenio**
-> (`ipress.unidad_ejecutora_id == convenio.unidad_ejecutora_id`). Regla en
-> `services._exigir_campos_clinicos_conapres`.
+> (`ipress.es_sede_docente = true`) cuya `ipress.unidad_ejecutora_id` coincida con la
+> unidad ejecutora del convenio. La FK directa a `convenio` fue eliminada en migración 0051;
+> el vínculo se deriva por `ipress.unidad_ejecutora_id`. Regla en `services._exigir_campos_clinicos_conapres`.
 
 | Columna | Tipo | Null | Descripción |
 |---------|------|------|-------------|
@@ -552,22 +552,23 @@ competencias del proceso:
 
 #### `campo_clinico_ipress` (registro por sede + carrera — CONAPRES)
 
-Reemplaza a la antigua tabla `campo_clinico`. `unique_together = (convenio, ipress, carrera_profesional, especialidad)`.
+Reemplaza a la antigua tabla `campo_clinico`. `unique_together = (ipress, carrera_profesional, especialidad)`.
 
-> **Sede docente ↔ unidad ejecutora:** al registrar un campo clínico, si el convenio tiene
-> `unidad_ejecutora`, la `ipress` debe pertenecer a esa unidad ejecutora
-> (`ipress.unidad_ejecutora_id == convenio.unidad_ejecutora_id`). Regla en
-> `services.crear_registro_campo_clinico`.
+> **Registro global (sin convenio):** el registro es independiente de cualquier convenio; modela
+> la capacidad de la sede para la carrera. El vínculo con convenios se establece a través de las
+> asignaciones (`campo_clinico_ipress_universidad`) que sí llevan `convenio_id`.
 >
 > **Resolución CONAPRES (PDF):** el número/fecha viven en las columnas
 > `numero_resolucion_conapres`/`fecha_resolucion_conapres`; el PDF de la resolución se
 > adjunta al registro (anexo `RESOL_CONAPRES`, `tipo_actor='CAMPO_CLINICO'`) vía
 > `clinical-field-registrations/{id}/annex-upload`.
+>
+> **Carga masiva:** `POST /api/v1/clinical-field-registrations/bulk-upload/` — disponible para
+> los roles **CONAPRES** y **Administrador RENADS** (estructura: `TramaDeterminacionCamposFormacion.xlsx`).
 
 | Columna | Tipo | Null | Descripción |
 |---------|------|------|-------------|
 | `id` | PK | No | |
-| `convenio_id` | FK → `convenio` (CASCADE) | No | Convenio Específico |
 | `ipress_id` | FK → `ipress` (PROTECT) — varchar(8) | No | Sede docente (establecimiento) autorizada por CONAPRES (`es_sede_docente = true`); el valor almacenado es el código RENIPRESS de 8 chars (PK textual de `ipress`) |
 | `carrera_profesional_id` | FK → `carrera_profesional` (PROTECT) | No | Carrera / programa académico |
 | `especialidad_id` | FK → `especialidad` (SET_NULL) | Sí | Especialidad |
@@ -732,7 +733,7 @@ convenio ──< parte_convenio >── organo_directorio / organo_representante
 convenio ──< historial_estado_convenio >── estado_convenio
 convenio ──< evaluacion_tecnica >── organo_directorio
 convenio ──< opinion_conapres                    (solo Específico)
-convenio ──< campo_clinico_ipress >── ipress / carrera_profesional / especialidad   (registro CONAPRES, solo Específico)
+campo_clinico_ipress >── ipress / carrera_profesional / especialidad   (registro CONAPRES — global, sin FK a convenio)
 campo_clinico_ipress ──< campo_clinico_ipress_universidad >── ipress / carrera_profesional / especialidad / universidad   (asignación Órgano Regional)
 convenio ──< campo_clinico_ipress_universidad
 convenio ──< opinion_juridica

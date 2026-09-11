@@ -82,15 +82,19 @@ def vigencia_efectiva(convenio: Convention):
 def registros_campo_clinico() -> QuerySet[ClinicalFieldRegistration]:
     """Registros de campos clínicos por sede (a), con FKs precargadas."""
     return ClinicalFieldRegistration.objects.select_related(
-        "convenio", "ipress", "carrera_profesional", "especialidad"
+        "ipress", "ipress__unidad_ejecutora",
+        "ipress__ambito_geografico_sanitario",
+        "carrera_profesional", "especialidad",
     )
 
 
 def asignaciones_campo_clinico() -> QuerySet[ClinicalFieldAllocation]:
     """Asignaciones de campos clínicos por universidad (b), con FKs precargadas."""
     return ClinicalFieldAllocation.objects.select_related(
-        "campo_clinico_ipress", "convenio", "ipress", "carrera_profesional",
-        "especialidad", "universidad",
+        "campo_clinico_ipress", "convenio", "ipress",
+        "ipress__unidad_ejecutora",
+        "ipress__ambito_geografico_sanitario",
+        "carrera_profesional", "especialidad", "universidad",
     )
 
 
@@ -112,7 +116,7 @@ def campos_clinicos_del_especifico(convenio: Convention) -> QuerySet[ClinicalFie
             ipress__es_sede_docente=True,
             carrera_profesional_id__in=carreras_facultad,
         )
-        .select_related("convenio", "ipress", "carrera_profesional", "especialidad")
+        .select_related("ipress", "carrera_profesional", "especialidad")
     )
 
 

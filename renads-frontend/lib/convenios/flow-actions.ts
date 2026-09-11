@@ -102,6 +102,8 @@ export const FLOW_ACTIONS: FlowAction[] = [
     fields: [
       { name: "fecha_publicacion", label: "Fecha de publicación", type: "date", required: true },
       { name: "referencia_publicacion", label: "Referencia de publicación", type: "text", uppercase: false },
+      { name: "fecha_inicio", label: "Fecha de inicio del convenio", type: "date" },
+      { name: "fecha_fin", label: "Fecha de fin del convenio", type: "date" },
     ],
   },
   {

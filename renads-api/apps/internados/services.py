@@ -36,6 +36,7 @@ from apps.internados.models import (
     Internship,
     InternshipStatus,
     InternshipStatusHistory,
+    RelationshipType,
     Rotation,
     RotationAuthorization,
     RotationStatus,
@@ -135,6 +136,7 @@ CARGA_ALIAS_COLUMNAS = {
     "carrera_profesional_id": "carrera_profesional",
     "periodo_internado_id": "periodo_internado",
     "especialidad_id": "especialidad",
+    "contacto_emergencia_parentesco_id": "contacto_emergencia_parentesco",
 }
 
 
@@ -756,6 +758,21 @@ def _resolver_especialidad(valor):
         raise ValidationError(f"Especialidad no encontrada: {texto}.") from exc
 
 
+def _resolver_parentesco(valor):
+    if valor is None:
+        return None
+    texto = str(valor).strip().upper()
+    if texto.isdigit():
+        try:
+            return RelationshipType.objects.get(id=int(texto))
+        except RelationshipType.DoesNotExist:
+            pass
+    try:
+        return RelationshipType.objects.get(codigo=texto)
+    except RelationshipType.DoesNotExist as exc:
+        raise ValidationError(f"Parentesco no encontrado: {valor}. Valores válidos: PADRE, MADRE, HERMANO, CONYUGE, HIJO, ABUELO, TIO, OTRO.") from exc
+
+
 def _crear_estudiante_desde_fila(*, obtener, usuario, ct_uni, es_admin) -> Student:
     tipo_doc_codigo = obtener("tipo_documento")
     numero_documento = obtener("numero_documento")
@@ -809,6 +826,8 @@ def _crear_estudiante_desde_fila(*, obtener, usuario, ct_uni, es_admin) -> Stude
         except (decimal.InvalidOperation, ValueError) as exc:
             raise ValidationError("`nota_promedio_ponderado` inválida.") from exc
 
+    parentesco = _resolver_parentesco(obtener("contacto_emergencia_parentesco"))
+
     estudiante = Student.objects.create(
         tipo_documento_identidad=tipo_doc,
         numero_documento=numero_documento,
@@ -827,6 +846,9 @@ def _crear_estudiante_desde_fila(*, obtener, usuario, ct_uni, es_admin) -> Stude
         especialidad=especialidad,
         codigo_universitario=(str(obtener("codigo_universitario")).strip() if obtener("codigo_universitario") else ""),
         nota_promedio_ponderado=nota,
+        contacto_emergencia_nombre=(str(obtener("contacto_emergencia_nombre")).strip() if obtener("contacto_emergencia_nombre") else ""),
+        contacto_emergencia_telefono=(str(obtener("contacto_emergencia_telefono")).strip() if obtener("contacto_emergencia_telefono") else ""),
+        contacto_emergencia_parentesco=parentesco,
         creado_por=usuario,
     )
     registrar_auditoria(usuario, "CREAR", estudiante)

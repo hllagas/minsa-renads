@@ -5,8 +5,12 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 
-import { internshipHooks, type InternshipRead } from "@/lib/internados/hooks";
+import { internshipHooks, type InternshipRead, type InternshipWrite } from "@/lib/internados/hooks";
+import { INTERNSHIP_FIELDS } from "@/lib/internados/internship-fields";
+import { conventionHooks } from "@/lib/convenios/hooks";
+import { extractApiError } from "@/lib/api/errors";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import { useAuthStore, userHasRole } from "@/lib/auth/store";
 import { api, type Paginated } from "@/lib/api/client";
@@ -18,14 +22,30 @@ import { DataTablePagination } from "@/components/data/data-table-pagination";
 import { EntityCombobox } from "@/components/form/entity-combobox";
 import { AnnexChecklistAction } from "@/components/almacenamiento/annex-checklist-dialog";
 import { InternsBulkUploadDialog } from "@/components/internados/interns-bulk-upload-dialog";
+import { ResourceForm } from "@/components/crud/resource-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+/**
+ * Campos de alta de internado con `convenio` oculto (se inyecta como valor fijo en el payload).
+ * `showWhen: () => false` oculta la UI pero mantiene el valor en react-hook-form, de modo que
+ * `optionsParamsFromEntity` del campo `ipress` siga funcionando (depende de `convenio`).
+ */
+const INTERNSHIP_DIALOG_FIELDS = INTERNSHIP_FIELDS.map((f) =>
+  f.name === "convenio" ? { ...f, showWhen: () => false } : f,
+);
 
 /**
  * Listado de internos: universidad (acotada al alcance) → convenio Específico vigente → listado.
- * La universidad y el convenio se persisten en URL params (?u=&c=) para que al navegar a
- * «Nuevo interno» y volver (router.back) el estado se restaure correctamente.
+ * La universidad y el convenio se persisten en URL params (?u=&c=) para restaurar el estado al
+ * volver desde la vista de detalle de un interno.
  */
 export default function InternosPage() {
   const router = useRouter();
@@ -39,11 +59,15 @@ export default function InternosPage() {
   const [search, setSearch] = useState("");
   const [convenio, setConvenio] = useState<number | null>(initConv);
   const [estado, setEstado] = useState<number | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+
   const user = useAuthStore((s) => s.user);
   const canManageAnnexes = userHasRole(user, "Universidad", "Administrador RENADS", "Interno");
   const canCreate = userHasRole(user, "Universidad", "Administrador RENADS");
 
   const { universidad, gateUI } = useUniversityGate("Universidad", initUni);
+  const createM = internshipHooks.useCreate();
+  const { data: convenioData } = conventionHooks.useDetail(convenio);
 
   // Sincroniza universidad + convenio a URL (replace, sin nueva entrada de historial).
   useEffect(() => {
@@ -156,7 +180,7 @@ export default function InternosPage() {
               key={universidad ?? 0}
               endpoint="conventions"
               params={convenioParams}
-              toLabel={(r) => String(r.titulo ?? r.nomenclatura ?? r.id)}
+              toLabel={(r) => String(r.nomenclatura ?? r.titulo ?? r.id)}
               value={convenio}
               onChange={(v) => {
                 setPage(1);
@@ -167,6 +191,12 @@ export default function InternosPage() {
             />
           </div>
         </div>
+        {convenioData != null && (
+          <div className="max-w-sm self-end pb-1">
+            <p className="text-xs font-semibold text-primary">{convenioData.nomenclatura ?? "Sin nomenclatura"}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground leading-snug line-clamp-2">{String(convenioData.titulo ?? "")}</p>
+          </div>
+        )}
       </div>
 
       {universidad == null ? (
@@ -207,7 +237,7 @@ export default function InternosPage() {
             <div className="flex shrink-0 items-center gap-2">
               <InternsBulkUploadDialog convenioId={convenio} />
               {canCreate ? (
-                <Button render={<Link href="/internados/nuevo">Nuevo interno</Link>} />
+                <Button onClick={() => setCreateOpen(true)}>Nuevo interno</Button>
               ) : null}
             </div>
           </div>
@@ -241,6 +271,33 @@ export default function InternosPage() {
           )}
         </>
       )}
+
+      {/* Dialog de alta de interno — convenio fijo por el contexto (oculto en el form). */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Nuevo interno</DialogTitle>
+          </DialogHeader>
+          {convenio != null && (
+            <ResourceForm
+              key={convenio}
+              fields={INTERNSHIP_DIALOG_FIELDS}
+              initial={{ convenio }}
+              submitting={createM.isPending}
+              onCancel={() => setCreateOpen(false)}
+              onSubmit={(payload) =>
+                createM.mutate({ ...payload, convenio } as InternshipWrite, {
+                  onSuccess: () => {
+                    toast.success("Interno creado.");
+                    setCreateOpen(false);
+                  },
+                  onError: (e) => toast.error(extractApiError(e)),
+                })
+              }
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

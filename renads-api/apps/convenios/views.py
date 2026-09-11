@@ -39,9 +39,12 @@ from apps.convenios.serializers import (
     AuditLogSerializer,
     SolicitanteContentTypeSerializer,
     CambiarEstadoSerializer,
+    ClinicalFieldAllocationBulkUploadSerializer,
     ClinicalFieldAllocationSerializer,
+    ClinicalFieldRegistrationBulkUploadSerializer,
     ClinicalFieldRegistrationSerializer,
     ConapresOpinionSerializer,
+    ConventionBulkUploadSerializer,
     ConventionParticipantSerializer,
     ConventionPartySerializer,
     ConventionReadSerializer,
@@ -305,6 +308,26 @@ class ConventionViewSet(AnnexAttachmentMixin, viewsets.ModelViewSet):
         documento = self._adjuntar_pdf_generado(convenio, pdf_bytes, "EXPEDIENTE", request)
         return Response(DocumentSerializer(documento).data, status=201)
 
+    @action(
+        detail=False, methods=["post"], url_path="bulk-upload",
+        parser_classes=[MultiPartParser, FormParser],
+        serializer_class=ConventionBulkUploadSerializer,
+    )
+    def bulk_upload(self, request):
+        """Carga masiva de convenios (Marco y Específico) ya suscritos/publicados.
+
+        Solo disponible para el rol ``Administrador RENADS``. El archivo Excel
+        debe seguir la estructura de la trama `TramaCargaMasivaConvenios.xlsx`.
+        Devuelve un resumen: ``{creados, omitidos, errores}``.
+        """
+        exigir_roles(request, "Administrador RENADS")
+        ser = ConventionBulkUploadSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        resumen = services.registrar_convenios_masivo(
+            archivo=ser.validated_data["archivo"], usuario=request.user
+        )
+        return Response(resumen, status=200)
+
 
 class ProtectedDeleteConflict(APIException):
     """El registro no se puede borrar porque otras filas lo referencian con FK protegida (409)."""
@@ -385,6 +408,26 @@ class ClinicalFieldRegistrationViewSet(AnnexAttachmentMixin, AuditedModelViewSet
             usuario=self.request.user,
         )
 
+    @action(
+        detail=False, methods=["post"], url_path="bulk-upload",
+        parser_classes=[MultiPartParser, FormParser],
+        serializer_class=ClinicalFieldRegistrationBulkUploadSerializer,
+    )
+    def bulk_upload(self, request):
+        """Carga masiva de determinación de campos clínicos.
+
+        Disponible para los roles ``CONAPRES`` y ``Administrador RENADS``.
+        El archivo Excel debe seguir la estructura de ``TramaDeterminacionCampos.xlsx``.
+        Devuelve un resumen: ``{creados, omitidos, errores}``.
+        """
+        exigir_roles(request, "CONAPRES", "Administrador RENADS")
+        ser = ClinicalFieldRegistrationBulkUploadSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        resumen = services.registrar_determinacion_masiva(
+            archivo=ser.validated_data["archivo"], usuario=request.user
+        )
+        return Response(resumen, status=200)
+
 
 class ClinicalFieldAllocationViewSet(AuditedModelViewSet):
     """CRUD de la asignación (Órgano Regional) de campos clínicos por universidad.
@@ -429,6 +472,25 @@ class ClinicalFieldAllocationViewSet(AuditedModelViewSet):
                 + ", ".join(modelos)
                 + ". Elimina o reasigna esos registros primero."
             )
+
+    @action(
+        detail=False, methods=["post"], url_path="bulk-upload",
+        parser_classes=[MultiPartParser, FormParser],
+        serializer_class=ClinicalFieldAllocationBulkUploadSerializer,
+    )
+    def bulk_upload(self, request):
+        """Carga masiva de asignación de campos clínicos (solo Administrador RENADS).
+
+        El archivo Excel debe seguir la estructura de ``TramaAsignacionCampos.xlsx``.
+        Devuelve un resumen: ``{creados, omitidos, errores}``.
+        """
+        exigir_roles(request, "Administrador RENADS")
+        ser = ClinicalFieldAllocationBulkUploadSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        resumen = services.registrar_asignacion_masiva(
+            archivo=ser.validated_data["archivo"], usuario=request.user
+        )
+        return Response(resumen, status=200)
 
 
 # ---------------------------------------------------------------------------

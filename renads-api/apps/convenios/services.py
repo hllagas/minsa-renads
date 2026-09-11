@@ -7,6 +7,8 @@ Toda escritura corre en `transaction.atomic()`, registra auditoría en
 
 import datetime
 
+import openpyxl
+from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 from django.db.models import Sum
 from rest_framework.exceptions import ValidationError
@@ -21,15 +23,22 @@ from apps.convenios.models import (
     ConventionParty,
     ConventionStatus,
     ConventionStatusHistory,
+    ConventionType,
+    ExecutingUnit,
+    Faculty,
     Ipress,
     LegalOpinion,
+    OrganDirectory,
     OrganRepresentative,
     OrganRepresentativeHistory,
     ProfessionalCareer,
     Publication,
+    RegionalGovernment,
     Signature,
     TechnicalEvaluation,
     UniversityCareer,
+    University,
+    Specialty,
 )
 
 # Estados que consideran "vigente" un Convenio Marco para soportar un Específico (RN-3).
@@ -220,7 +229,7 @@ def _exigir_campos_clinicos_conapres(convenio: Convention) -> None:
     if convenio.tipo_convenio.codigo != "ESPECIFICO":
         return
     existe = (
-        convenio.campos_clinicos.filter(
+        ClinicalFieldRegistration.objects.filter(
             ipress__es_sede_docente=True,
             ipress__unidad_ejecutora_id=convenio.unidad_ejecutora_id,
         )
@@ -374,11 +383,10 @@ def crear_adenda(*, convenio_origen: Convention, datos: dict, usuario) -> Conven
 @transaction.atomic
 def actualizar_convenio(*, convenio: Convention, datos: dict, usuario) -> Convention:
     """Actualiza campos editables del convenio (no el estado: usar `cambiar_estado`)."""
-    # `nomenclatura` NO se edita por PATCH libre: se asigna vía el gate de la
-    # validación técnica del Marco (`registrar_evaluacion_tecnica`).
+    # `nomenclatura` habilitado temporalmente para edición directa (Específicos).
     editables = [
-        "titulo", "plantilla", "organo_directorio", "gobierno_regional", "universidad",
-        "unidad_ejecutora", "facultad",
+        "titulo", "nomenclatura", "plantilla", "organo_directorio", "gobierno_regional",
+        "universidad", "unidad_ejecutora", "facultad",
         "fecha_inicio", "fecha_fin", "max_campos_clinicos",
     ]
     for campo in editables:
@@ -482,31 +490,10 @@ def crear_registro_campo_clinico(*, datos: dict, usuario) -> ClinicalFieldRegist
         raise ValidationError(
             {"ipress": "La IPRESS debe estar autorizada como sede docente por CONAPRES."}
         )
-    convenio = datos["convenio"]
-    # RN — la sede docente debe pertenecer a la unidad ejecutora del Convenio Específico.
-    # Se valida solo cuando el convenio ya tiene unidad ejecutora (los convenios previos
-    # a esta mejora podrían no tenerla y quedan exentos del chequeo).
-    if (
-        convenio.unidad_ejecutora_id is not None
-        and ipress.unidad_ejecutora_id != convenio.unidad_ejecutora_id
-    ):
-        raise ValidationError(
-            {"ipress": "La sede docente debe pertenecer a la unidad ejecutora del Convenio Específico."}
-        )
-    if (
-        convenio.max_campos_clinicos is not None
-        and datos["campos_clinicos_registrados"] > convenio.max_campos_clinicos
-    ):
-        raise ValidationError(
-            {"campos_clinicos_registrados": "Excede el máximo de campos clínicos del convenio."}
-        )
     registro = ClinicalFieldRegistration.objects.create(
         campos_clinicos_asignados=0, creado_por=usuario, **datos
     )
     registrar_auditoria(usuario, "CREAR", registro)
-    # RN — flujo del convenio: registrar campos clínicos (CONAPRES) avanza el
-    # Convenio Específico a CAMPOS_CLINICOS_DEFINIDOS (forward-only, idempotente).
-    _avanzar_estado(convenio, "CAMPOS_CLINICOS_DEFINIDOS", usuario)
     return registro
 
 
@@ -520,7 +507,7 @@ def actualizar_registro_campo_clinico(
     total registrado no puede quedar por debajo de lo ya asignado a universidades.
     """
     editables = [
-        "convenio", "ipress", "carrera_profesional", "especialidad",
+        "ipress", "carrera_profesional", "especialidad",
         "campos_clinicos_registrados",
         "numero_resolucion_conapres", "fecha_resolucion_conapres",
     ]
@@ -679,6 +666,17 @@ def registrar_firma(*, convenio: Convention, datos: dict, usuario) -> Signature:
 
 @transaction.atomic
 def publicar_convenio(*, convenio: Convention, datos: dict, usuario) -> Publication:
+    fecha_inicio = datos.pop("fecha_inicio", None)
+    fecha_fin = datos.pop("fecha_fin", None)
+    update_fields = []
+    if fecha_inicio is not None:
+        convenio.fecha_inicio = fecha_inicio
+        update_fields.append("fecha_inicio")
+    if fecha_fin is not None:
+        convenio.fecha_fin = fecha_fin
+        update_fields.append("fecha_fin")
+    if update_fields:
+        convenio.save(update_fields=update_fields)
     publicacion = Publication.objects.create(convenio=convenio, creado_por=usuario, **datos)
     registrar_auditoria(usuario, "CREAR", publicacion)
     _set_estado(convenio, "PUBLICADO", usuario)
@@ -964,3 +962,545 @@ def sincronizar_partes(*, convenio: Convention, datos: list[dict], usuario) -> l
             registrar_auditoria(usuario, "ELIMINAR", parte)
 
     return list(convenio.partes_firmantes.order_by("orden", "id"))
+
+
+# ---------------------------------------------------------------------------
+# Carga masiva de convenios (solo Administrador RENADS)
+# ---------------------------------------------------------------------------
+# Columnas requeridas mínimas del Excel.
+BULK_CONV_COLUMNAS_REQUERIDAS = {
+    "tipo_convenio", "titulo", "organo_directorio", "universidad", "fecha_solicitud",
+}
+
+# Alias de encabezados con sufijo `_id` → clave canónica interna.
+BULK_CONV_ALIAS_COLUMNAS = {
+    "organo_directorio_id": "organo_directorio",
+    "convenio_marco_id": "convenio_marco",
+    "gobierno_regional_id": "gobierno_regional",
+    "universidad_id": "universidad",
+    "unidad_ejecutora_id": "unidad_ejecutora",
+    "facultad_id": "facultad",
+}
+
+# Estados destino permitidos en carga masiva.
+_ESTADOS_BULK_PERMITIDOS = {"VIGENTE", "PUBLICADO"}
+
+
+def _bc_celda(valor):
+    if valor is None:
+        return None
+    if isinstance(valor, str):
+        valor = valor.strip()
+        return valor or None
+    return valor
+
+
+def _bc_fecha(valor):
+    if valor is None:
+        return None
+    if isinstance(valor, datetime.datetime):
+        return valor.date()
+    if isinstance(valor, datetime.date):
+        return valor
+    try:
+        return datetime.date.fromisoformat(str(valor).strip()[:10])
+    except ValueError as exc:
+        raise ValidationError("Fecha inválida (use YYYY-MM-DD).") from exc
+
+
+def _bc_resolver_tipo(valor) -> ConventionType:
+    if not valor:
+        raise ValidationError("`tipo_convenio` es requerido.")
+    texto = str(valor).strip().upper()
+    try:
+        return ConventionType.objects.get(codigo=texto)
+    except ConventionType.DoesNotExist as exc:
+        raise ValidationError(f"Tipo de convenio no encontrado: {valor}. Valores: MARCO, ESPECIFICO.") from exc
+
+
+def _bc_resolver_organo(valor) -> OrganDirectory:
+    if valor is None:
+        raise ValidationError("`organo_directorio` es requerido.")
+    texto = str(valor).strip()
+    try:
+        return OrganDirectory.objects.get(id=int(texto)) if texto.isdigit() else OrganDirectory.objects.get(nombre__iexact=texto)
+    except OrganDirectory.DoesNotExist as exc:
+        raise ValidationError(f"Órgano directorio no encontrado: {valor}.") from exc
+    except OrganDirectory.MultipleObjectsReturned as exc:
+        raise ValidationError(f"Órgano directorio ambiguo (use el id): {valor}.") from exc
+
+
+def _bc_resolver_universidad(valor) -> University:
+    if valor is None:
+        raise ValidationError("`universidad` es requerida.")
+    texto = str(valor).strip()
+    try:
+        if texto.isdigit():
+            return University.objects.get(id=int(texto))
+        return University.objects.get(codigo_inei=texto)
+    except University.DoesNotExist as exc:
+        raise ValidationError(f"Universidad no encontrada: {valor}.") from exc
+
+
+def _bc_resolver_convenio_marco(valor):
+    if valor is None:
+        return None
+    texto = str(valor).strip()
+    if not texto.isdigit():
+        raise ValidationError("`convenio_marco` debe ser el ID numérico del Convenio Marco.")
+    try:
+        return Convention.objects.get(id=int(texto))
+    except Convention.DoesNotExist as exc:
+        raise ValidationError(f"Convenio Marco no encontrado: id={texto}.") from exc
+
+
+def _bc_resolver_gobierno_regional(valor):
+    if valor is None:
+        return None
+    texto = str(valor).strip()
+    try:
+        return RegionalGovernment.objects.get(id=int(texto)) if texto.isdigit() else RegionalGovernment.objects.get(nombre__iexact=texto)
+    except RegionalGovernment.DoesNotExist as exc:
+        raise ValidationError(f"Gobierno Regional no encontrado: {valor}.") from exc
+
+
+def _bc_resolver_unidad_ejecutora(valor):
+    if valor is None:
+        return None
+    texto = str(valor).strip()
+    try:
+        if texto.isdigit():
+            return ExecutingUnit.objects.get(id=int(texto))
+        return ExecutingUnit.objects.get(codigo=texto)
+    except ExecutingUnit.DoesNotExist as exc:
+        raise ValidationError(f"Unidad ejecutora no encontrada: {valor}.") from exc
+
+
+def _bc_resolver_facultad(valor):
+    if valor is None:
+        return None
+    texto = str(valor).strip()
+    if not texto.isdigit():
+        raise ValidationError("`facultad` debe ser el ID numérico de la facultad.")
+    try:
+        return Faculty.objects.get(id=int(texto))
+    except Faculty.DoesNotExist as exc:
+        raise ValidationError(f"Facultad no encontrada: id={texto}.") from exc
+
+
+def _bc_validar_fila(tipo, organo, marco, gobierno_regional, unidad_ejecutora, facultad, universidad):
+    categoria = organo.categoria
+    if tipo.codigo == "MARCO":
+        categorias_marco = {"GOBIERNO_REGIONAL", "ORGANO_MINSA", "UNIVERSIDAD"}
+        if categoria not in categorias_marco:
+            raise ValidationError(
+                "`organo_directorio`: Convenio Marco solo puede ser solicitado por Gobierno Regional, MINSA o Universidad."
+            )
+        if unidad_ejecutora is not None or facultad is not None:
+            raise ValidationError("Convenio Marco no debe llevar `unidad_ejecutora` ni `facultad`.")
+        if categoria == "GOBIERNO_REGIONAL" and gobierno_regional is None:
+            raise ValidationError("`gobierno_regional` es requerido para Convenio Marco regional.")
+        if categoria != "GOBIERNO_REGIONAL" and gobierno_regional is not None:
+            raise ValidationError("`gobierno_regional` solo aplica a Convenio Marco de Gobierno Regional.")
+    elif tipo.codigo == "ESPECIFICO":
+        if categoria != "MINSA_DIRIS" and marco is None:
+            raise ValidationError("`convenio_marco` es requerido para Convenio Específico (salvo DIRIS).")
+        if unidad_ejecutora is None:
+            raise ValidationError("`unidad_ejecutora` es requerida para Convenio Específico.")
+        if facultad is None:
+            raise ValidationError("`facultad` es requerida para Convenio Específico.")
+        if facultad.universidad_id != universidad.id:
+            raise ValidationError("`facultad` debe pertenecer a la universidad del convenio (RN-FC-02).")
+
+
+def _bc_solicitante(tipo_codigo: str, organo: OrganDirectory, unidad_ejecutora):
+    """Deriva el solicitante genérico: para Marco → organo_directorio; para Específico → unidad_ejecutora."""
+    if tipo_codigo == "MARCO":
+        ct = ContentType.objects.get_for_model(OrganDirectory)
+        return ct, organo.id
+    ct = ContentType.objects.get_for_model(ExecutingUnit)
+    return ct, unidad_ejecutora.id
+
+
+def _bc_mensaje_error(exc: ValidationError) -> str:
+    detalle = exc.detail
+    if isinstance(detalle, dict):
+        return "; ".join(
+            f"{k}: {' '.join(map(str, v)) if isinstance(v, list) else v}"
+            for k, v in detalle.items()
+        )
+    if isinstance(detalle, list):
+        return " ".join(map(str, detalle))
+    return str(detalle)
+
+
+@transaction.atomic
+def _bc_crear_convenio_fila(*, obtener, usuario) -> Convention:
+    tipo = _bc_resolver_tipo(obtener("tipo_convenio"))
+    titulo = obtener("titulo")
+    if not titulo:
+        raise ValidationError("`titulo` es requerido.")
+    titulo = str(titulo).strip()
+
+    organo = _bc_resolver_organo(obtener("organo_directorio"))
+    universidad = _bc_resolver_universidad(obtener("universidad"))
+    marco = _bc_resolver_convenio_marco(obtener("convenio_marco"))
+    gobierno_regional = _bc_resolver_gobierno_regional(obtener("gobierno_regional"))
+    unidad_ejecutora = _bc_resolver_unidad_ejecutora(obtener("unidad_ejecutora"))
+    facultad = _bc_resolver_facultad(obtener("facultad"))
+
+    _bc_validar_fila(tipo, organo, marco, gobierno_regional, unidad_ejecutora, facultad, universidad)
+
+    fecha_solicitud = _bc_fecha(obtener("fecha_solicitud"))
+    if not fecha_solicitud:
+        raise ValidationError("`fecha_solicitud` es requerida.")
+    fecha_inicio = _bc_fecha(obtener("fecha_inicio"))
+    fecha_fin = _bc_fecha(obtener("fecha_fin"))
+
+    estado_destino_codigo = obtener("estado_destino") or "PUBLICADO"
+    estado_destino_codigo = str(estado_destino_codigo).strip().upper()
+    if estado_destino_codigo not in _ESTADOS_BULK_PERMITIDOS:
+        raise ValidationError(f"`estado_destino` debe ser VIGENTE o PUBLICADO; recibido: {estado_destino_codigo}.")
+
+    nomenclatura = str(obtener("nomenclatura") or "").strip()
+    ct_sol, id_sol = _bc_solicitante(tipo.codigo, organo, unidad_ejecutora)
+
+    # Crear directamente en el estado destino (convenio ya suscrito/publicado).
+    estado = _obtener_estado(estado_destino_codigo)
+    convenio = Convention.objects.create(
+        tipo_convenio=tipo,
+        convenio_marco=marco,
+        nomenclatura=nomenclatura,
+        titulo=titulo,
+        solicitante_tipo_contenido=ct_sol,
+        solicitante_id_objeto=id_sol,
+        organo_directorio=organo,
+        gobierno_regional=gobierno_regional,
+        universidad=universidad,
+        unidad_ejecutora=unidad_ejecutora,
+        facultad=facultad,
+        estado_actual=estado,
+        fecha_solicitud=fecha_solicitud,
+        fecha_inicio=fecha_inicio,
+        fecha_fin=fecha_fin,
+        creado_por=usuario,
+    )
+    ConventionStatusHistory.objects.create(
+        convenio=convenio, estado=estado, cambiado_por=usuario,
+        observacion="Carga masiva — convenio ya suscrito/publicado.",
+    )
+    registrar_auditoria(usuario, "CREAR", convenio)
+    return convenio
+
+
+@transaction.atomic
+def registrar_convenios_masivo(*, archivo, usuario) -> dict:
+    """Carga masiva de convenios (Marco y Específico) ya suscritos/publicados.
+
+    Solo disponible para el rol ``Administrador RENADS``. Valida por fila; las
+    filas inválidas se reportan sin abortar el lote. Devuelve un resumen:
+    ``{creados, omitidos, errores:[{fila, motivo}]}``.
+    """
+    try:
+        wb = openpyxl.load_workbook(archivo, read_only=True, data_only=True)
+    except Exception as exc:
+        raise ValidationError("No se pudo leer el archivo Excel (.xlsx).") from exc
+
+    ws = wb.active
+    filas = ws.iter_rows(values_only=True)
+    try:
+        cabecera = next(filas)
+    except StopIteration as exc:
+        raise ValidationError("El archivo está vacío.") from exc
+
+    encabezados = [
+        BULK_CONV_ALIAS_COLUMNAS.get(h, h)
+        for h in (str(c).strip().lower() if c is not None else "" for c in cabecera)
+    ]
+    faltantes = BULK_CONV_COLUMNAS_REQUERIDAS - set(encabezados)
+    if faltantes:
+        raise ValidationError(f"Faltan columnas requeridas: {', '.join(sorted(faltantes))}.")
+    indice = {h: i for i, h in enumerate(encabezados)}
+
+    creados = 0
+    errores: list[dict] = []
+
+    for numero_fila, fila in enumerate(filas, start=2):
+        if fila is None or all(_bc_celda(v) is None for v in fila):
+            continue
+
+        def obtener(col, _fila=fila):
+            i = indice.get(col)
+            if i is None or i >= len(_fila):
+                return None
+            return _bc_celda(_fila[i])
+
+        try:
+            with transaction.atomic():
+                _bc_crear_convenio_fila(obtener=obtener, usuario=usuario)
+            creados += 1
+        except ValidationError as exc:
+            errores.append({"fila": numero_fila, "motivo": _bc_mensaje_error(exc)})
+        except Exception as exc:  # noqa: BLE001
+            errores.append({"fila": numero_fila, "motivo": str(exc)})
+
+    wb.close()
+    return {"creados": creados, "omitidos": len(errores), "errores": errores}
+
+
+# ---------------------------------------------------------------------------
+# Carga masiva de determinación de campos clínicos (solo Administrador RENADS)
+# ---------------------------------------------------------------------------
+BULK_DET_COLUMNAS_REQUERIDAS = {"ipress", "carrera_profesional", "campos_clinicos_registrados"}
+BULK_DET_ALIAS_COLUMNAS = {
+    "ipress_id": "ipress",
+    "carrera_profesional_id": "carrera_profesional",
+    "especialidad_id": "especialidad",
+}
+
+
+def _dm_resolver_convenio(valor) -> Convention:
+    if valor is None:
+        raise ValidationError("`convenio` es requerido.")
+    try:
+        return Convention.objects.get(pk=int(str(valor).strip()))
+    except (ValueError, Convention.DoesNotExist) as exc:
+        raise ValidationError(f"Convenio no encontrado: id={valor}.") from exc
+
+
+def _dm_resolver_ipress(valor) -> Ipress:
+    if valor is None:
+        raise ValidationError("`ipress` es requerido.")
+    codigo = str(valor).strip()
+    try:
+        return Ipress.objects.get(codigo_renipress=codigo)
+    except Ipress.DoesNotExist as exc:
+        raise ValidationError(f"IPRESS no encontrada: {codigo}.") from exc
+
+
+def _dm_resolver_carrera(valor) -> ProfessionalCareer:
+    if valor is None:
+        raise ValidationError("`carrera_profesional` es requerida.")
+    texto = str(valor).strip()
+    if texto.isdigit():
+        try:
+            return ProfessionalCareer.objects.get(pk=int(texto))
+        except ProfessionalCareer.DoesNotExist as exc:
+            raise ValidationError(f"Carrera profesional no encontrada: id={texto}.") from exc
+    try:
+        return ProfessionalCareer.objects.get(nombre__iexact=texto)
+    except ProfessionalCareer.DoesNotExist as exc:
+        raise ValidationError(f"Carrera profesional no encontrada: {texto}.") from exc
+    except ProfessionalCareer.MultipleObjectsReturned as exc:
+        raise ValidationError(f"Carrera profesional ambigua (use el id): {texto}.") from exc
+
+
+def _dm_resolver_especialidad(valor):
+    if valor is None or str(valor).strip() == "":
+        return None
+    texto = str(valor).strip()
+    if texto.isdigit():
+        try:
+            return Specialty.objects.get(pk=int(texto))
+        except Specialty.DoesNotExist as exc:
+            raise ValidationError(f"Especialidad no encontrada: id={texto}.") from exc
+    try:
+        return Specialty.objects.get(codigo__iexact=texto)
+    except Specialty.DoesNotExist as exc:
+        raise ValidationError(f"Especialidad no encontrada: {texto}.") from exc
+    except Specialty.MultipleObjectsReturned as exc:
+        raise ValidationError(f"Especialidad ambigua (use el id): {texto}.") from exc
+
+
+@transaction.atomic
+def _dm_crear_determinacion_fila(*, obtener, usuario) -> ClinicalFieldRegistration:
+    ipress = _dm_resolver_ipress(obtener("ipress"))
+    carrera = _dm_resolver_carrera(obtener("carrera_profesional"))
+    especialidad = _dm_resolver_especialidad(obtener("especialidad"))
+
+    campos_raw = obtener("campos_clinicos_registrados")
+    if campos_raw is None or str(campos_raw).strip() == "":
+        raise ValidationError("`campos_clinicos_registrados` es requerido.")
+    try:
+        campos = int(str(campos_raw).strip())
+    except ValueError as exc:
+        raise ValidationError("`campos_clinicos_registrados` debe ser un entero.") from exc
+    if campos <= 0:
+        raise ValidationError("`campos_clinicos_registrados` debe ser un entero positivo.")
+
+    nro_res = str(obtener("numero_resolucion_conapres") or "").strip()
+    fecha_res = _bc_fecha(obtener("fecha_resolucion_conapres"))
+
+    datos = {
+        "ipress": ipress,
+        "carrera_profesional": carrera,
+        "especialidad": especialidad,
+        "campos_clinicos_registrados": campos,
+        "numero_resolucion_conapres": nro_res,
+        "fecha_resolucion_conapres": fecha_res,
+    }
+    return crear_registro_campo_clinico(datos=datos, usuario=usuario)
+
+
+@transaction.atomic
+def registrar_determinacion_masiva(*, archivo, usuario) -> dict:
+    """Carga masiva de determinación de campos clínicos (solo Administrador RENADS).
+
+    Cada fila crea un `ClinicalFieldRegistration` vía el service estándar, que
+    valida disponibilidad y avanza el convenio al estado correspondiente.
+    Devuelve ``{creados, omitidos, errores}``.
+    """
+    try:
+        wb = openpyxl.load_workbook(archivo, read_only=True, data_only=True)
+    except Exception as exc:
+        raise ValidationError(f"No se pudo leer el archivo Excel: {exc}") from exc
+
+    ws = wb.active
+    filas = list(ws.iter_rows(values_only=True))
+    if not filas:
+        raise ValidationError("El archivo está vacío.")
+
+    cabecera = filas[0]
+    filas = filas[1:]
+    try:
+        encabezados = [
+            BULK_DET_ALIAS_COLUMNAS.get(h, h)
+            for h in (str(c).strip().lower() if c is not None else "" for c in cabecera)
+        ]
+    except Exception as exc:
+        raise ValidationError("El archivo está vacío.") from exc
+
+    faltantes = BULK_DET_COLUMNAS_REQUERIDAS - set(encabezados)
+    if faltantes:
+        raise ValidationError(f"Faltan columnas requeridas: {', '.join(sorted(faltantes))}.")
+    indice = {h: i for i, h in enumerate(encabezados)}
+
+    creados = 0
+    errores: list[dict] = []
+
+    for numero_fila, fila in enumerate(filas, start=2):
+        if fila is None or all(_bc_celda(v) is None for v in fila):
+            continue
+
+        def obtener(col, _fila=fila):
+            i = indice.get(col)
+            if i is None or i >= len(_fila):
+                return None
+            return _bc_celda(_fila[i])
+
+        try:
+            with transaction.atomic():
+                _dm_crear_determinacion_fila(obtener=obtener, usuario=usuario)
+            creados += 1
+        except ValidationError as exc:
+            errores.append({"fila": numero_fila, "motivo": _bc_mensaje_error(exc)})
+        except Exception as exc:  # noqa: BLE001
+            errores.append({"fila": numero_fila, "motivo": str(exc)})
+
+    wb.close()
+    return {"creados": creados, "omitidos": len(errores), "errores": errores}
+
+
+# ---------------------------------------------------------------------------
+# Carga masiva de asignación de campos clínicos (solo Administrador RENADS)
+# ---------------------------------------------------------------------------
+BULK_ASIG_COLUMNAS_REQUERIDAS = {"campo_clinico_ipress", "convenio", "campos_clinicos_autorizados"}
+BULK_ASIG_ALIAS_COLUMNAS = {
+    "campo_clinico_ipress_id": "campo_clinico_ipress",
+    "convenio_id": "convenio",
+}
+
+
+def _asig_resolver_registro(valor) -> ClinicalFieldRegistration:
+    if valor is None:
+        raise ValidationError("`campo_clinico_ipress` es requerido.")
+    try:
+        return ClinicalFieldRegistration.objects.get(pk=int(str(valor).strip()))
+    except (ValueError, ClinicalFieldRegistration.DoesNotExist) as exc:
+        raise ValidationError(f"Registro de campo clínico no encontrado: id={valor}.") from exc
+
+
+@transaction.atomic
+def _asig_crear_asignacion_fila(*, obtener, usuario) -> ClinicalFieldAllocation:
+    registro = _asig_resolver_registro(obtener("campo_clinico_ipress"))
+    convenio = _dm_resolver_convenio(obtener("convenio"))
+
+    campos_raw = obtener("campos_clinicos_autorizados")
+    if campos_raw is None or str(campos_raw).strip() == "":
+        raise ValidationError("`campos_clinicos_autorizados` es requerido.")
+    try:
+        campos = int(str(campos_raw).strip())
+    except ValueError as exc:
+        raise ValidationError("`campos_clinicos_autorizados` debe ser un entero.") from exc
+    if campos <= 0:
+        raise ValidationError("`campos_clinicos_autorizados` debe ser un entero positivo.")
+
+    fecha_inicio = _bc_fecha(obtener("fecha_inicio"))
+    fecha_fin = _bc_fecha(obtener("fecha_fin"))
+
+    datos = {
+        "campo_clinico_ipress": registro,
+        "convenio": convenio,
+        "campos_clinicos_autorizados": campos,
+        "fecha_inicio": fecha_inicio,
+        "fecha_fin": fecha_fin,
+    }
+    return crear_asignacion_campo_clinico(datos=datos, usuario=usuario)
+
+
+@transaction.atomic
+def registrar_asignacion_masiva(*, archivo, usuario) -> dict:
+    """Carga masiva de asignación de campos clínicos (solo Administrador RENADS).
+
+    Cada fila crea un `ClinicalFieldAllocation` vía el service estándar, que
+    valida disponibilidad y coherencia con el convenio. Devuelve ``{creados, omitidos, errores}``.
+    """
+    try:
+        wb = openpyxl.load_workbook(archivo, read_only=True, data_only=True)
+    except Exception as exc:
+        raise ValidationError(f"No se pudo leer el archivo Excel: {exc}") from exc
+
+    ws = wb.active
+    filas = list(ws.iter_rows(values_only=True))
+    if not filas:
+        raise ValidationError("El archivo está vacío.")
+
+    cabecera = filas[0]
+    filas = filas[1:]
+    try:
+        encabezados = [
+            BULK_ASIG_ALIAS_COLUMNAS.get(h, h)
+            for h in (str(c).strip().lower() if c is not None else "" for c in cabecera)
+        ]
+    except Exception as exc:
+        raise ValidationError("El archivo está vacío.") from exc
+
+    faltantes = BULK_ASIG_COLUMNAS_REQUERIDAS - set(encabezados)
+    if faltantes:
+        raise ValidationError(f"Faltan columnas requeridas: {', '.join(sorted(faltantes))}.")
+    indice = {h: i for i, h in enumerate(encabezados)}
+
+    creados = 0
+    errores: list[dict] = []
+
+    for numero_fila, fila in enumerate(filas, start=2):
+        if fila is None or all(_bc_celda(v) is None for v in fila):
+            continue
+
+        def obtener(col, _fila=fila):
+            i = indice.get(col)
+            if i is None or i >= len(_fila):
+                return None
+            return _bc_celda(_fila[i])
+
+        try:
+            with transaction.atomic():
+                _asig_crear_asignacion_fila(obtener=obtener, usuario=usuario)
+            creados += 1
+        except ValidationError as exc:
+            errores.append({"fila": numero_fila, "motivo": _bc_mensaje_error(exc)})
+        except Exception as exc:  # noqa: BLE001
+            errores.append({"fila": numero_fila, "motivo": str(exc)})
+
+    wb.close()
+    return {"creados": creados, "omitidos": len(errores), "errores": errores}

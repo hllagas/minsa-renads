@@ -35,9 +35,9 @@ class ClinicalFieldRegistrationFilter(filters.FilterSet):
     class Meta:
         model = ClinicalFieldRegistration
         fields = {
-            "convenio": ["exact"],
             "ipress": ["exact"],
             "carrera_profesional": ["exact"],
+            "carrera_profesional__nivel_academico": ["exact"],
             "especialidad": ["exact"],
         }
 
@@ -50,6 +50,7 @@ class ClinicalFieldAllocationFilter(filters.FilterSet):
             "convenio": ["exact"],
             "ipress": ["exact"],
             "carrera_profesional": ["exact"],
+            "carrera_profesional__nivel_academico": ["exact"],
             "universidad": ["exact"],
         }
 

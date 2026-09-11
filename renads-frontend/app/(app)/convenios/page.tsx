@@ -6,10 +6,12 @@ import type { ColumnDef } from "@tanstack/react-table";
 
 import { conventionHooks, type ConventionRead } from "@/lib/convenios/hooks";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
+import { useAuthStore, userHasRole } from "@/lib/auth/store";
 import { PageHeader } from "@/components/data/page-header";
 import { DataTable } from "@/components/ui/data-table";
 import { DataTablePagination } from "@/components/data/data-table-pagination";
 import { EntityCombobox } from "@/components/form/entity-combobox";
+import { ConventionsBulkUploadDialog } from "@/components/convenios/conventions-bulk-upload-dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -18,6 +20,8 @@ export default function ConveniosPage() {
   const [search, setSearch] = useState("");
   const [tipo, setTipo] = useState<number | null>(null);
   const [estado, setEstado] = useState<number | null>(null);
+  const user = useAuthStore((s) => s.user);
+  const canBulkUpload = userHasRole(user, "Administrador RENADS");
 
   // La búsqueda se aplica con retraso para no pedir al backend en cada tecla.
   const debouncedSearch = useDebouncedValue(search, 300);
@@ -100,7 +104,10 @@ export default function ConveniosPage() {
         title="Convenios"
         description="Convenios Marco y Específicos."
         actions={
-          <Button render={<Link href="/convenios/nuevo">Nuevo convenio</Link>} />
+          <div className="flex items-center gap-2">
+            {canBulkUpload ? <ConventionsBulkUploadDialog /> : null}
+            <Button render={<Link href="/convenios/nuevo">Nuevo convenio</Link>} />
+          </div>
         }
       />
 

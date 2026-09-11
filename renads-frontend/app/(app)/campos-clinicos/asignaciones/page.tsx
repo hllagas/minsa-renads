@@ -2,26 +2,24 @@
 
 import Link from "next/link";
 
-import { clinicalFieldAllocationsConfig } from "@/lib/convenios/clinical-fields";
-import { ResourceCrud } from "@/components/crud/resource-crud";
-import { ClinicalAllocationsBulkUploadDialog } from "@/components/campos-clinicos/clinical-allocations-bulk-upload-dialog";
+import { AsignacionView } from "@/components/campos-clinicos/asignacion-view";
 
 /** Asignación de campos clínicos por universidad (escritura Órgano Regional; backend `IsRegionalOrganOrReadOnly`). */
 export default function AsignacionesCamposClinicosPage() {
   return (
-    <div>
-      <div className="mb-4">
+    <div className="flex flex-col gap-4">
+      <div>
         <Link
           href="/campos-clinicos"
           className="text-sm text-muted-foreground hover:text-foreground"
         >
           ← Campos de formación
         </Link>
+        <h1 className="mt-1 text-xl font-semibold">
+          Asignación de campos de formación
+        </h1>
       </div>
-      <ResourceCrud
-        config={clinicalFieldAllocationsConfig}
-        headerActions={<ClinicalAllocationsBulkUploadDialog />}
-      />
+      <AsignacionView />
     </div>
   );
 }

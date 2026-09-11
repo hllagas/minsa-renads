@@ -257,7 +257,11 @@ export const CATALOG_CONFIGS: Record<string, ResourceConfig> = {
     "Tipos de clasificación de IPRESS",
     "tipo de clasificación de IPRESS",
   ),
-  
+  "internship-periods": writableCatalog(
+    "internship-periods",
+    "Periodos de internado",
+    "periodo de internado",
+  ),
 };
 
 /** Orden y rótulos del índice de catálogos de solo lectura. */

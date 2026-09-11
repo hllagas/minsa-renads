@@ -84,7 +84,7 @@ export function StudentsBulkUploadDialog({
             <code>numero_documento</code>, <code>nombres</code>, {" "}
             <code>apellido_paterno</code>, <code>universidad_id</code> (id o código INEI) y {" "}
             <code>carrera_profesional_id</code> (id o nombre). El resto es opcional
-            (<code>periodo_academico_id</code> admite <code>2025-I</code> o <code>2025-01</code>).
+            (<code>periodo_internado_id</code> admite <code>2025-I</code> o <code>2025-01</code>).
             Las filas con error se omiten sin abortar el resto del lote.
           </DialogDescription>
         </DialogHeader>

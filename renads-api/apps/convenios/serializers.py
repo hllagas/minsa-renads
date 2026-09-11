@@ -103,13 +103,36 @@ class ConventionReadSerializer(serializers.ModelSerializer):
         return ConventionPartySerializer(obj.partes_firmantes.all(), many=True).data
 
 
+class ConventionBulkUploadSerializer(serializers.Serializer):
+    """Entrada de la carga masiva de convenios (solo Administrador RENADS)."""
+
+    archivo = serializers.FileField(help_text="Archivo Excel (.xlsx) con los convenios a registrar")
+
+
+class ClinicalFieldRegistrationBulkUploadSerializer(serializers.Serializer):
+    """Entrada de la carga masiva de determinación de campos clínicos (solo Administrador RENADS)."""
+
+    archivo = serializers.FileField(
+        help_text="Archivo Excel (.xlsx) con la determinación de campos — estructura de TramaDeterminacionCampos.xlsx"
+    )
+
+
+class ClinicalFieldAllocationBulkUploadSerializer(serializers.Serializer):
+    """Entrada de la carga masiva de asignación de campos clínicos (solo Administrador RENADS)."""
+
+    archivo = serializers.FileField(
+        help_text="Archivo Excel (.xlsx) con la asignación de campos — estructura de TramaAsignacionCampos.xlsx"
+    )
+
+
+
 class ConventionWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Convention
-        # `nomenclatura` no es editable directamente: la asigna el service del gate
-        # de validación técnica del Marco (RN A3).
+        # `nomenclatura` habilitado temporalmente para alta/edición directa (Específicos).
+        # La asignación automática por validación técnica del Marco (RN A3) sigue vigente.
         fields = [
-            "tipo_convenio", "convenio_marco", "plantilla", "titulo",
+            "tipo_convenio", "convenio_marco", "plantilla", "titulo", "nomenclatura",
             "solicitante_tipo_contenido", "solicitante_id_objeto",
             "organo_directorio", "gobierno_regional", "universidad",
             "unidad_ejecutora", "facultad",
@@ -248,7 +271,6 @@ class ClinicalFieldRegistrationSerializer(serializers.ModelSerializer):
     """
 
     disponibilidad = serializers.SerializerMethodField()
-    convenio_detalle = serializers.SerializerMethodField()
     ipress_detalle = serializers.SerializerMethodField()
     carrera_profesional_detalle = serializers.SerializerMethodField()
     especialidad_detalle = serializers.SerializerMethodField()
@@ -256,11 +278,10 @@ class ClinicalFieldRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = ClinicalFieldRegistration
         fields = [
-            "id", "convenio", "ipress", "carrera_profesional", "especialidad",
+            "id", "ipress", "carrera_profesional", "especialidad",
             "campos_clinicos_registrados", "campos_clinicos_asignados", "disponibilidad",
             "numero_resolucion_conapres", "fecha_resolucion_conapres",
-            "convenio_detalle", "ipress_detalle", "carrera_profesional_detalle",
-            "especialidad_detalle",
+            "ipress_detalle", "carrera_profesional_detalle", "especialidad_detalle",
             "creado_en", "creado_por", "actualizado_en", "actualizado_por",
         ]
         read_only_fields = [
@@ -271,11 +292,19 @@ class ClinicalFieldRegistrationSerializer(serializers.ModelSerializer):
     def get_disponibilidad(self, obj) -> int:
         return obj.campos_clinicos_registrados - obj.campos_clinicos_asignados
 
-    def get_convenio_detalle(self, obj):
-        return _detalle_fk(obj.convenio, "titulo", "nomenclatura")
-
     def get_ipress_detalle(self, obj):
-        return _detalle_fk(obj.ipress, "nombre", "codigo_renipress")
+        ip = obj.ipress
+        if ip is None:
+            return None
+        ue = ip.unidad_ejecutora
+        ags = ip.ambito_geografico_sanitario
+        return {
+            "id": ip.pk,
+            "nombre": ip.nombre,
+            "codigo_renipress": ip.codigo_renipress,
+            "unidad_ejecutora": {"id": ue.pk, "nombre": ue.nombre} if ue else None,
+            "ambito_geografico_sanitario": {"id": ags.pk, "nombre": ags.nombre} if ags else None,
+        }
 
     def get_carrera_profesional_detalle(self, obj):
         return _detalle_fk(obj.carrera_profesional, "nombre")
@@ -324,7 +353,18 @@ class ClinicalFieldAllocationSerializer(serializers.ModelSerializer):
         return _detalle_fk(obj.convenio, "titulo", "nomenclatura")
 
     def get_ipress_detalle(self, obj):
-        return _detalle_fk(obj.ipress, "nombre", "codigo_renipress")
+        ip = obj.ipress
+        if ip is None:
+            return None
+        ue = ip.unidad_ejecutora
+        ags = ip.ambito_geografico_sanitario
+        return {
+            "id": ip.pk,
+            "nombre": ip.nombre,
+            "codigo_renipress": ip.codigo_renipress,
+            "unidad_ejecutora": {"id": ue.pk, "nombre": ue.nombre} if ue else None,
+            "ambito_geografico_sanitario": {"id": ags.pk, "nombre": ags.nombre} if ags else None,
+        }
 
     def get_carrera_profesional_detalle(self, obj):
         return _detalle_fk(obj.carrera_profesional, "nombre")
@@ -369,9 +409,12 @@ class SignatureSerializer(serializers.ModelSerializer):
 
 
 class PublicationSerializer(serializers.ModelSerializer):
+    fecha_inicio = serializers.DateField(required=False, allow_null=True, write_only=True)
+    fecha_fin = serializers.DateField(required=False, allow_null=True, write_only=True)
+
     class Meta:
         model = Publication
-        fields = ["fecha_publicacion", "referencia_publicacion"]
+        fields = ["fecha_publicacion", "referencia_publicacion", "fecha_inicio", "fecha_fin"]
 
 
 # Modelos que un representante puede representar (relación polimórfica `entidad`).

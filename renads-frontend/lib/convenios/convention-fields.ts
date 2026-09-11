@@ -21,6 +21,7 @@ export const CONVENTION_FIELDS: FieldConfig[] = [
     optionsEndpoint: "convention-types",
   },
   { name: "titulo", label: "Título", type: "text", required: true, uppercase: false },
+  { name: "nomenclatura", label: "Nomenclatura (solo Específico)", type: "text", uppercase: true },
   {
     name: "plantilla",
     label: "Plantilla",
@@ -84,7 +85,6 @@ export const CONVENTION_FIELDS: FieldConfig[] = [
     optionsEndpoint: "faculties",
   },
   { name: "fecha_solicitud", label: "Fecha de solicitud", type: "date", required: true },
-  { name: "fecha_inicio", label: "Fecha de inicio", type: "date" },
   {
     name: "max_campos_clinicos",
     label: "Máximo de campos clínicos (solo Específico)",
@@ -113,6 +113,7 @@ export const CONVENTION_CREATE_FIELDS: FieldConfig[] = [
     optionsEndpoint: "conventions",
     optionsToLabel: (row: WithId) => String(row.titulo ?? row.nomenclatura ?? row.id),
   },
+  { name: "nomenclatura", label: "Nomenclatura (solo Específico)", type: "text", uppercase: true },
   {
     name: "solicitante",
     label: "Entidad solicitante",
