@@ -134,7 +134,6 @@ class Student(models.Model):
         null=True, blank=True, related_name="+",
         help_text="Especialidad (obligatoria para niveles distintos de Pregrado — RN-19)",
     )
-    codigo_universitario = models.CharField("código universitario", max_length=50, blank=True, help_text="Código universitario / matrícula")
     nota_promedio_ponderado = models.DecimalField(
         "nota promedio ponderado", max_digits=5, decimal_places=3, null=True, blank=True,
         help_text="Nota promedio ponderado (escala 0–20, máximo 3 decimales)",

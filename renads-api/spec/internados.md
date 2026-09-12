@@ -325,7 +325,7 @@ Motivo: el contacto de emergencia y las declaraciones juradas del interno **apli
 Motivo: el campo `anio_academico` de la tabla `estudiante` (modelo `Student`) es **redundante** con `periodo_academico` (FK → `AcademicPeriod`, que ya identifica el año/periodo lectivo, p. ej. `2025-01`). Decisión del usuario: eliminarlo del modelo, la carga masiva y la documentación. No se sustituye por otro campo.
 
 ### T-F6.1 — Quitar el campo del modelo (`apps/internados/models.py`)
-- Eliminar la línea `anio_academico = models.PositiveSmallIntegerField("año académico", null=True, blank=True, help_text="Año académico")` del modelo `Student` (actualmente entre `codigo_universitario` y `nota_promedio_ponderado`, ~línea 139).
+- Eliminar la línea `anio_academico = models.PositiveSmallIntegerField("año académico", null=True, blank=True, help_text="Año académico")` del modelo `Student` (~línea inmediatamente antes de `nota_promedio_ponderado`).
 - No tocar ningún otro campo. `periodo_academico` (FK, PROTECT) queda como única fuente del periodo/año lectivo.
 - **Criterio:** `Student` ya no declara `anio_academico`; `python manage.py check` limpio.
 

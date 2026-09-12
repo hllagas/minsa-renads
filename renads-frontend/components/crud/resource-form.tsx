@@ -139,12 +139,14 @@ export function ResourceForm({
   submitting,
   onSubmit,
   onCancel,
+  formClassName,
 }: {
   fields: FieldConfig[];
   initial: FormValues | null;
   submitting?: boolean;
   onSubmit: (payload: FormValues) => void;
   onCancel: () => void;
+  formClassName?: string;
 }) {
   const { control, handleSubmit } = useForm<FormValues>({
     defaultValues: Object.fromEntries(
@@ -155,7 +157,7 @@ export function ResourceForm({
   return (
     <form
       onSubmit={handleSubmit((values) => onSubmit(buildPayload(fields, values)))}
-      className="grid max-h-[75vh] grid-cols-1 gap-x-5 gap-y-4 overflow-x-hidden overflow-y-auto px-2 py-2 sm:grid-cols-2"
+      className={formClassName ?? "grid max-h-[75vh] grid-cols-1 gap-x-5 gap-y-4 overflow-x-hidden overflow-y-auto px-2 py-2 sm:grid-cols-2"}
     >
       {fields.map((field) => (
         <ConditionalFieldWrapper key={field.name} field={field} control={control} />
@@ -248,6 +250,16 @@ function InputFieldRow({
       }
     : undefined;
 
+  // Validación de formato de correo electrónico (solo para type:"email").
+  const validateEmail =
+    field.type === "email"
+      ? (v: unknown) => {
+          const s = String(v ?? "").trim();
+          if (s === "") return true;
+          return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s) || "Formato de correo inválido.";
+        }
+      : undefined;
+
   return (
     <Controller
       control={control}
@@ -258,7 +270,9 @@ function InputFieldRow({
           ? { validate: (v: unknown) => validateDocNumber(v, docCodigo) }
           : validateNum
             ? { validate: validateNum }
-            : {}),
+            : validateEmail
+              ? { validate: validateEmail }
+              : {}),
       }}
       render={({ field: f, fieldState }) => (
         <div className="grid gap-1.5">
@@ -281,7 +295,7 @@ function InputFieldRow({
               // Prefijo «f-» en el id: rompe el match de id="numero_orden" con heurísticas de pago.
               type={inputType === "number" ? "text" : inputType}
               inputMode={
-                field.docNumberFor
+                field.numericOnly || field.docNumberFor
                   ? "numeric"
                   : inputType === "number"
                     ? "decimal"
@@ -299,6 +313,9 @@ function InputFieldRow({
                 // Documento: solo dígitos, recortado a la longitud del tipo (DNI 8 / otro 9).
                 if (field.docNumberFor)
                   val = val.replace(/\D/g, "").slice(0, docMaxLen);
+                // Numérico estricto: solo dígitos (teléfono, código numérico).
+                else if (field.numericOnly)
+                  val = val.replace(/\D/g, "");
                 else if (toUpper) val = val.toUpperCase();
                 f.onChange(val);
               }}

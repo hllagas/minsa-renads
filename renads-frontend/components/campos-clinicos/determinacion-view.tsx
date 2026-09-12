@@ -64,7 +64,7 @@ interface CeldaData {
   registrados: number;
   asignados: number;
   disponibles: number;
-  rowId: number;
+  rowIds: number[];
 }
 
 interface SedeRow {
@@ -167,7 +167,17 @@ function buildMatrix(rows: WithId[], esPregrado: boolean): MatrixData {
     const reg = Number(row.campos_clinicos_registrados) || 0;
     const asig = Number(row.campos_clinicos_asignados) || 0;
     const disp = Number(row.disponibilidad) || 0;
-    sede.celdas.set(colKey, { registrados: reg, asignados: asig, disponibles: disp, rowId: row.id });
+    const existing = sede.celdas.get(colKey);
+    if (existing) {
+      sede.celdas.set(colKey, {
+        registrados: existing.registrados + reg,
+        asignados: existing.asignados + asig,
+        disponibles: existing.disponibles + disp,
+        rowIds: [...existing.rowIds, row.id],
+      });
+    } else {
+      sede.celdas.set(colKey, { registrados: reg, asignados: asig, disponibles: disp, rowIds: [row.id] });
+    }
     sede.totReg += reg;
     sede.totAsig += asig;
     sede.totDisp += disp;
@@ -483,7 +493,7 @@ export function DeterminacionView() {
                 title="Editar determinaciones"
                 onClick={() => {
                   const sedeRows = Array.from(sede.celdas.values())
-                    .map((c) => list.data?.results?.find((r) => r.id === c.rowId))
+                    .flatMap((c) => c.rowIds.map((id) => list.data?.results?.find((r) => r.id === id)))
                     .filter((r): r is WithId => r !== undefined);
                   setEditingSede({ ipressNombre: sede.ipressNombre, rows: sedeRows });
                   setEditSedeOpen(true);
@@ -498,7 +508,7 @@ export function DeterminacionView() {
                 title="Eliminar todas"
                 onClick={() => {
                   const sedeRows = Array.from(sede.celdas.values())
-                    .map((c) => list.data?.results?.find((r) => r.id === c.rowId))
+                    .flatMap((c) => c.rowIds.map((id) => list.data?.results?.find((r) => r.id === id)))
                     .filter((r): r is WithId => r !== undefined);
                   setDeletingSede({ ipressNombre: sede.ipressNombre, rows: sedeRows });
                 }}

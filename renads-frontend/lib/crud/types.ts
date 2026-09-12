@@ -88,6 +88,11 @@ export interface FieldConfig {
    * Poner `false` para excluir (p. ej. `username`, que es sensible a may/min en el login).
    */
   uppercase?: boolean;
+  /**
+   * Para `type: "text"`: restringe la entrada a dígitos (0-9) únicamente. Útil para campos de
+   * teléfono o código numérico que no deben aceptar letras ni símbolos.
+   */
+  numericOnly?: boolean;
   /** Para `type: "number"`: valor mínimo permitido (inclusive). */
   min?: number;
   /** Para `type: "number"`: valor máximo permitido (inclusive). */
@@ -231,4 +236,10 @@ export interface ResourceConfig<TRead extends WithId = WithId> {
   deleteSuccessMessage?: string;
   /** Contenido de solo lectura mostrado encima del formulario al editar (no al crear). */
   renderEditInfo?: (row: TRead) => ReactNode;
+  /** Clase del `DialogContent` de alta/edición (valor por defecto en `ResourceCrud`: `sm:max-w-2xl`). */
+  dialogClassName?: string;
+  /** Clase CSS del `<form>` en modo edición (sobrescribe la clase por defecto de `ResourceForm`). */
+  editFormClassName?: string;
+  /** Clase CSS del `<form>` en modo alta (sobrescribe la clase por defecto de `ResourceForm`). */
+  createFormClassName?: string;
 }

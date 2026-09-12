@@ -370,7 +370,7 @@ export function ResourceCrud<TRead extends WithId>({
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className={dialogClassName ?? "sm:max-w-2xl"}>
+        <DialogContent className={dialogClassName ?? config.dialogClassName ?? "sm:max-w-2xl"}>
           <DialogHeader>
             <DialogTitle>
               {editing ? `Editar ${config.singular}` : `${config.createPrefix ?? "Nuevo"} ${config.singular}`}
@@ -399,6 +399,7 @@ export function ResourceCrud<TRead extends WithId>({
               submitting={createM.isPending || updateM.isPending}
               onSubmit={onSubmit}
               onCancel={() => setDialogOpen(false)}
+              formClassName={editing ? config.editFormClassName : config.createFormClassName}
             />
           )}
         </DialogContent>

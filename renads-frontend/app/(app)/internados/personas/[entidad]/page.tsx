@@ -194,7 +194,10 @@ function StudentsView() {
         <ResourceCrud
           key={`${universidad}-${nivel ?? "x"}-${periodoId ?? "x"}`}
           config={config}
-          fixedValues={{ universidad }}
+          fixedValues={{
+            universidad,
+            ...(esPregrado && periodoId != null ? { periodo_internado: periodoId } : {}),
+          }}
           initialFilters={initialFilters}
           hideHeader
           headerActions={

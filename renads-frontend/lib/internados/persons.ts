@@ -104,16 +104,11 @@ export function buildStudentsConfig(
             optionsEndpoint: "specialties",
           } as FieldConfig,
         ]),
-    {
-      name: "periodo_internado",
-      label: "Periodo de internado",
-      type: "select",
-      optionsEndpoint: "internship-periods",
-    },
-    { name: "codigo_universitario", label: "Código universitario", type: "text", uppercase: false },
+    // `periodo_internado` y `codigo_universitario` eliminados del form:
+    // el período se inyecta desde la vista principal vía `fixedValues`; el código universitario se quitó del modelo.
     {
       name: "nota_promedio_ponderado",
-      label: "Nota promedio ponderado (0–20)",
+      label: "Promedio ponderado promocional (##.999)",
       type: "number",
       min: 0,
       max: 20,
@@ -122,8 +117,8 @@ export function buildStudentsConfig(
 
     { name: "_s3", label: "Contacto", type: "separator" },
     { name: "correo", label: "Correo personal", type: "email" },
-    { name: "telefono", label: "Teléfono", type: "text", uppercase: false },
-    { name: "direccion", label: "Dirección", type: "text", uppercase: false },
+    { name: "telefono", label: "Teléfono", type: "text", uppercase: false, numericOnly: true },
+    { name: "direccion", label: "Dirección", type: "text", uppercase: true },
     {
       name: "ubigeo",
       label: "Ubigeo",
@@ -139,8 +134,8 @@ export function buildStudentsConfig(
 
     // Contacto de emergencia — vive en el estudiante desde la mig 0025 (2026-09-09; antes en el internado).
     { name: "_s4", label: "Contacto de emergencia", type: "separator" },
-    { name: "contacto_emergencia_nombre", label: "Nombre", type: "text", uppercase: false },
-    { name: "contacto_emergencia_telefono", label: "Teléfono", type: "text", uppercase: false },
+    { name: "contacto_emergencia_nombre", label: "Nombre", type: "text", uppercase: true },
+    { name: "contacto_emergencia_telefono", label: "Teléfono", type: "text", uppercase: false, numericOnly: true },
     {
       name: "contacto_emergencia_parentesco",
       label: "Parentesco",
@@ -150,6 +145,13 @@ export function buildStudentsConfig(
 
     { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
   ];
+
+  // En edición: `nombres`/`direccion` como media columna para aprovechar el layout 2-col.
+  const editFields: FieldConfig[] = fields.map((f) =>
+    f.name === "nombres" || f.name === "direccion"
+      ? { ...f, fullWidth: false }
+      : f,
+  );
 
   return {
     endpoint: "students",
@@ -165,6 +167,12 @@ export function buildStudentsConfig(
       { name: "activo", label: "Activo", type: "boolean" },
     ],
     fields,
+    editFields,
+    dialogClassName: "sm:max-w-3xl",
+    editFormClassName:
+      "grid max-h-[80vh] grid-cols-1 gap-x-5 gap-y-2 overflow-x-hidden overflow-y-auto px-2 py-1 sm:grid-cols-2",
+    createFormClassName:
+      "grid max-h-[80vh] grid-cols-1 gap-x-5 gap-y-2 overflow-x-hidden overflow-y-auto px-2 py-1 sm:grid-cols-2",
   };
 }
 

@@ -844,7 +844,6 @@ def _crear_estudiante_desde_fila(*, obtener, usuario, ct_uni, es_admin) -> Stude
         carrera_profesional=carrera,
         periodo_internado=periodo_internado,
         especialidad=especialidad,
-        codigo_universitario=(str(obtener("codigo_universitario")).strip() if obtener("codigo_universitario") else ""),
         nota_promedio_ponderado=nota,
         contacto_emergencia_nombre=(str(obtener("contacto_emergencia_nombre")).strip() if obtener("contacto_emergencia_nombre") else ""),
         contacto_emergencia_telefono=(str(obtener("contacto_emergencia_telefono")).strip() if obtener("contacto_emergencia_telefono") else ""),

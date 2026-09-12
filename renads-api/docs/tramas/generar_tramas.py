@@ -211,13 +211,6 @@ COLS_ESTUDIANTES = [
         22,
     ),
     (
-        "codigo_universitario",
-        False,
-        "Código universitario o número de matrícula.",
-        "2021-1234",
-        22,
-    ),
-    (
         "nota_promedio_ponderado",
         False,
         "Nota promedio ponderado. Escala 0–20. Máx. 3 decimales.\nUsado en prelación RN-18.",

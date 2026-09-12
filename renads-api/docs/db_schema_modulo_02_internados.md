@@ -138,7 +138,6 @@ Re-subir el mismo anexo a la misma entidad genera una nueva versión del
 | `carrera_profesional_id` | FK → `carrera_profesional` | No | Carrera / programa |
 | `periodo_internado_id` | FK → `periodo_internado` | Sí | Periodo de internado (obligatorio para nivel `PREGRADO` — RN-19; PROTECT) |
 | `especialidad_id` | FK → `especialidad` | Sí | Especialidad (obligatoria para niveles distintos de `PREGRADO` — RN-19; SET_NULL) |
-| `codigo_universitario` | varchar(50) | Sí | Código universitario / matrícula |
 | `nota_promedio_ponderado` | decimal(4,2) | Sí | Nota promedio ponderado (escala 0–20) |
 | `contacto_emergencia_nombre` | varchar(255) | Sí | Nombre del contacto de emergencia |
 | `contacto_emergencia_telefono` | varchar(30) | Sí | Teléfono del contacto de emergencia |
@@ -324,7 +323,6 @@ La estructura de referencia es la trama oficial **`TramaCargaEstudiante.xlsx`** 
 | `carrera_profesional_id` | `carrera_profesional` | R | `carrera_profesional` | id o nombre de la carrera |
 | `periodo_internado_id` | `periodo_internado` | O | `periodo_internado` | `codigo` (p. ej. `2025-01`) o id; requerido si el nivel es `PREGRADO` (RN-19) |
 | `especialidad_id` | `especialidad` | O | `especialidad` | `codigo` o id; requerido si el nivel no es `PREGRADO` (RN-19) |
-| `codigo_universitario` | — | O | `codigo_universitario` | texto |
 | `nota_promedio_ponderado` | — | O | `nota_promedio_ponderado` | decimal 0–20 (usado en la prelación, RN-18) |
 
 > El campo `anio_academico` fue **eliminado** de `estudiante` por redundante con `periodo_internado` (F6). Si la trama del Excel aún incluye la columna `anio_academico`, se **ignora silenciosamente**: no se lee ni se valida, y no rompe el lote.
