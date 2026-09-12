@@ -171,14 +171,14 @@ export function EditarSedeDialog({
           style={{ maxWidth: "min(90vw, 1050px)", width: "1050px", height: "min(88dvh, 660px)" }}
         >
           <DialogTitle className="sr-only">
-            Editar determinaciones — {ipressNombre}
+            Editar determinación — {ipressNombre}
           </DialogTitle>
 
           <div className="flex h-full">
             {/* ── Panel izquierdo ── */}
             <div className="w-60 shrink-0 border-r flex flex-col">
               <div className="px-4 py-4 border-b pr-10">
-                <p className="text-sm font-semibold leading-snug">Editar determinaciones</p>
+                <p className="text-sm font-semibold leading-snug">Editar determinación</p>
                 <p className="text-xs text-muted-foreground mt-0.5">Campos de formación</p>
               </div>
 

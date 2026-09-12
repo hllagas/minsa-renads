@@ -193,7 +193,7 @@ export function EditarAsignacionDialog({
           }}
         >
           <DialogTitle className="sr-only">
-            Editar asignaciones — {ipressNombre} / {univNombre}
+            Editar asignación — {ipressNombre} / {univNombre}
           </DialogTitle>
 
           <div className="flex h-full">
@@ -201,7 +201,7 @@ export function EditarAsignacionDialog({
             <div className="w-64 shrink-0 border-r flex flex-col">
               <div className="px-4 py-4 border-b pr-10">
                 <p className="text-sm font-semibold leading-snug">
-                  Editar asignaciones
+                  Editar asignación
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Campos de formación

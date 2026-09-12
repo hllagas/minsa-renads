@@ -489,8 +489,8 @@ export function DeterminacionView() {
               <Button
                 variant="outline"
                 size="icon-sm"
-                aria-label="Editar determinaciones de esta sede"
-                title="Editar determinaciones"
+                aria-label="Editar determinación de esta sede"
+                title="Editar determinación"
                 onClick={() => {
                   const sedeRows = Array.from(sede.celdas.values())
                     .flatMap((c) => c.rowIds.map((id) => list.data?.results?.find((r) => r.id === id)))

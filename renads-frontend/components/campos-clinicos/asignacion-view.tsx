@@ -641,8 +641,8 @@ export function AsignacionView() {
               <Button
                 variant="outline"
                 size="icon-sm"
-                aria-label="Editar asignaciones"
-                title="Editar asignaciones"
+                aria-label="Editar asignación"
+                title="Editar asignación"
                 onClick={() => {
                   setEditingLeaf({
                     ipressNombre: sede.ipressNombre,
