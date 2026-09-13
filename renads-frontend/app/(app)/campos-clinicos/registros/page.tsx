@@ -14,6 +14,9 @@ export default function RegistrosCamposClinicosPage() {
         >
           ← Campos de formación
         </Link>
+        <h1 className="mt-1 text-xl font-semibold">
+          Determinación de campos de formación
+        </h1>
       </div>
       <DeterminacionView />
     </div>

@@ -185,18 +185,18 @@ export function EditarAsignacionDialog({
         }}
       >
         <DialogContent
-          className="p-0 gap-0 overflow-hidden"
+          className="p-0 gap-0 overflow-hidden flex flex-col"
           style={{
             maxWidth: "min(90vw, 1050px)",
             width: "1050px",
-            height: "min(88dvh, 660px)",
+            maxHeight: "min(88dvh, 660px)",
           }}
         >
           <DialogTitle className="sr-only">
             Editar asignación — {ipressNombre} / {univNombre}
           </DialogTitle>
 
-          <div className="flex h-full">
+          <div className="flex flex-1 min-h-0">
             {/* ── Panel izquierdo ── */}
             <div className="w-64 shrink-0 border-r flex flex-col">
               <div className="px-4 py-4 border-b pr-10">

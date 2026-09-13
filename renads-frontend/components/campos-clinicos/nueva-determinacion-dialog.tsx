@@ -184,14 +184,14 @@ export function NuevaDeterminacionDialog({
       }}
     >
       <DialogContent
-        className="p-0 gap-0 overflow-hidden"
-        style={{ maxWidth: "min(90vw, 1100px)", width: "1100px", height: "min(88dvh, 680px)" }}
+        className="p-0 gap-0 overflow-hidden flex flex-col"
+        style={{ maxWidth: "min(90vw, 1100px)", width: "1100px", maxHeight: "min(88dvh, 680px)" }}
       >
         <DialogTitle className="sr-only">
           Nueva determinación de campos de formación
         </DialogTitle>
 
-        <div className="flex h-full">
+        <div className="flex flex-1 min-h-0">
           {/* ── Panel izquierdo: configuración + acciones ── */}
           <div className="w-60 shrink-0 border-r flex flex-col">
             {/* Cabecera */}

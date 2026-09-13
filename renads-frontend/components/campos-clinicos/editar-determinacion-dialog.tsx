@@ -76,12 +76,12 @@ export function EditarDeterminacionDialog({
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
       <DialogContent
-        className="p-0 gap-0 overflow-hidden"
-        style={{ maxWidth: "min(90vw, 860px)", width: "860px", height: "min(88dvh, 480px)" }}
+        className="p-0 gap-0 overflow-hidden flex flex-col"
+        style={{ maxWidth: "min(90vw, 860px)", width: "860px", maxHeight: "min(88dvh, 480px)" }}
       >
         <DialogTitle className="sr-only">Editar determinación</DialogTitle>
 
-        <div className="flex h-full">
+        <div className="flex flex-1 min-h-0">
           {/* ── Panel izquierdo: contexto de la determinación ── */}
           <div className="w-56 shrink-0 border-r flex flex-col">
             <div className="px-4 py-4 border-b pr-10">

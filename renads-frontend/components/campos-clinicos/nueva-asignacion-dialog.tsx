@@ -183,18 +183,18 @@ export function NuevaAsignacionDialog({
       }}
     >
       <DialogContent
-        className="p-0 gap-0 overflow-hidden"
+        className="p-0 gap-0 overflow-hidden flex flex-col"
         style={{
           maxWidth: "min(90vw, 1100px)",
           width: "1100px",
-          height: "min(88dvh, 700px)",
+          maxHeight: "min(88dvh, 700px)",
         }}
       >
         <DialogTitle className="sr-only">
           Nueva asignación de campos de formación
         </DialogTitle>
 
-        <div className="flex h-full">
+        <div className="flex flex-1 min-h-0">
           {/* ── Panel izquierdo ── */}
           <div className="w-72 shrink-0 border-r flex flex-col">
             <div className="px-4 py-4 border-b pr-10">
