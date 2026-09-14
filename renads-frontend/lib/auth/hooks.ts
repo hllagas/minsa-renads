@@ -7,9 +7,12 @@ import { useEffect, useSyncExternalStore } from "react";
 import {
   changePassword,
   fetchMe,
+  isTwoFactorPending,
   login,
+  verify2fa,
   type ChangePasswordPayload,
   type LoginCredentials,
+  type TwoFactorVerifyPayload,
 } from "@/lib/api/auth";
 import { useAuthStore } from "@/lib/auth/store";
 
@@ -37,13 +40,35 @@ export function useAuthHydrated(): boolean {
  */
 export function useLogin() {
   const setTokens = useAuthStore((s) => s.setTokens);
+  const setPendingTwoFactor = useAuthStore((s) => s.setPendingTwoFactor);
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   return useMutation({
     mutationFn: (credentials: LoginCredentials) => login(credentials),
+    onSuccess: async (response) => {
+      if (isTwoFactorPending(response)) {
+        setPendingTwoFactor({ sessionToken: response.session_token, method: response.method });
+        router.replace("/login/2fa");
+        return;
+      }
+      setTokens(response.access, response.refresh);
+      await queryClient.invalidateQueries({ queryKey: meQueryKey });
+      router.replace("/inicio");
+    },
+  });
+}
+
+export function useVerify2fa() {
+  const setTokens = useAuthStore((s) => s.setTokens);
+  const setPendingTwoFactor = useAuthStore((s) => s.setPendingTwoFactor);
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: TwoFactorVerifyPayload) => verify2fa(payload),
     onSuccess: async (tokens) => {
+      setPendingTwoFactor(null);
       setTokens(tokens.access, tokens.refresh);
-      // Con el token ya en el store, carga el usuario.
       await queryClient.invalidateQueries({ queryKey: meQueryKey });
     },
   });

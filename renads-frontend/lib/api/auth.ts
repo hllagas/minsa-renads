@@ -13,9 +13,32 @@ export interface TokenPair {
   debe_cambiar_password?: boolean;
 }
 
-/** Obtiene el par de tokens JWT. `POST /auth/token/` (ver docs/api-auth.md). */
-export async function login(credentials: LoginCredentials): Promise<TokenPair> {
-  const { data } = await api.post<TokenPair>("/auth/token/", credentials);
+export interface TwoFactorPending {
+  requires_2fa: true;
+  session_token: string;
+  method: "TOTP" | "EMAIL";
+}
+
+export type LoginResponse = TokenPair | TwoFactorPending;
+
+export function isTwoFactorPending(res: LoginResponse): res is TwoFactorPending {
+  return (res as TwoFactorPending).requires_2fa === true;
+}
+
+/** Obtiene el par de tokens JWT o la respuesta 2FA pendiente. `POST /auth/token/` */
+export async function login(credentials: LoginCredentials): Promise<LoginResponse> {
+  const { data } = await api.post<LoginResponse>("/auth/token/", credentials);
+  return data;
+}
+
+export interface TwoFactorVerifyPayload {
+  session_token: string;
+  otp_code: string;
+}
+
+/** Intercambia el session_token + OTP por el par JWT completo. `POST /auth/2fa/verify/` */
+export async function verify2fa(payload: TwoFactorVerifyPayload): Promise<TokenPair> {
+  const { data } = await api.post<TokenPair>("/auth/2fa/verify/", payload);
   return data;
 }
 

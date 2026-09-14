@@ -36,16 +36,25 @@ export interface AuthUser {
   modulos_bloqueados?: ModuleState[];
 }
 
+export interface PendingTwoFactor {
+  sessionToken: string;
+  method: "TOTP" | "EMAIL";
+}
+
 interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
   user: AuthUser | null;
+  /** Datos transitorios del flujo 2FA (no persistidos). */
+  pendingTwoFactor: PendingTwoFactor | null;
   /** Guarda el par de tokens tras login/refresh. */
   setTokens: (access: string, refresh: string) => void;
   /** Actualiza solo el access (tras refresh). */
   setAccessToken: (access: string) => void;
   /** Guarda los datos del usuario (`/auth/me/`). */
   setUser: (user: AuthUser | null) => void;
+  /** Guarda el estado transitorio de 2FA pendiente. */
+  setPendingTwoFactor: (p: PendingTwoFactor | null) => void;
   /** Limpia la sesión (logout / refresh fallido). */
   clear: () => void;
 }
@@ -61,14 +70,16 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
       refreshToken: null,
       user: null,
+      pendingTwoFactor: null,
       setTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
       setAccessToken: (accessToken) => set({ accessToken }),
       setUser: (user) => set({ user }),
-      clear: () => set({ accessToken: null, refreshToken: null, user: null }),
+      setPendingTwoFactor: (pendingTwoFactor) => set({ pendingTwoFactor }),
+      clear: () => set({ accessToken: null, refreshToken: null, user: null, pendingTwoFactor: null }),
     }),
     {
       name: "renads-auth",
-      // No persistir el usuario: se recarga desde /auth/me/ con Query al iniciar.
+      // No persistir el usuario ni el estado 2FA transitorio.
       partialize: (state) => ({
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,

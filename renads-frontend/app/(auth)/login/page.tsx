@@ -57,9 +57,7 @@ export default function LoginPage() {
 
   function onSubmit(values: LoginValues) {
     mutate(values, {
-      onSuccess: () => router.replace("/inicio"),
-      onError: () =>
-        toast.error("Credenciales inválidas. Verifica usuario y contraseña."),
+      onError: () => toast.error("Credenciales inválidas. Verifica usuario y contraseña."),
     });
   }
 
