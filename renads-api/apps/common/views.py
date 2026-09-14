@@ -1,18 +1,23 @@
-"""Vistas transversales: login JWT con claims, datos del usuario actual y
-administración de usuarios, grupos (roles) y permisos (solo superadministrador)."""
+"""Vistas transversales: login JWT con claims, datos del usuario actual,
+administración de usuarios, grupos (roles) y permisos (solo superadministrador)
+y autenticación de dos factores (2FA)."""
 
+import pyotp
 from django.contrib.auth.models import Group, Permission, User
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiResponse, extend_schema, inline_serializer
+from rest_framework import serializers as drf_serializers
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from apps.common.models import UserSecurity
+from apps.common.models import UserSecurity, debe_cambiar_password as _debe_cambiar_password
 from apps.common.permissions import IsSuperUser
 from apps.common.serializers import (
     ASSIGNABLE_PROFILE_MODELS,
@@ -24,19 +29,74 @@ from apps.common.serializers import (
     MeSerializer,
     PermissionSerializer,
     SetPasswordSerializer,
+    TotpSetupConfirmSerializer,
+    TwoFactorDisableSerializer,
+    TwoFactorResendSerializer,
+    TwoFactorSetupEmailSerializer,
+    TwoFactorVerifySerializer,
     UserCreateSerializer,
     UserEntityProfileWriteReadSerializer,
     UserEntityProfileWriteSerializer,
     UserReadSerializer,
     UserUpdateSerializer,
 )
-from apps.common.services import registrar_auditoria
+from apps.common.services import (
+    activar_2fa_email,
+    activar_2fa_totp,
+    desactivar_2fa,
+    generar_otp_email,
+    generar_session_token,
+    puede_reenviar_otp,
+    registrar_auditoria,
+    validar_otp_email,
+    validar_session_token,
+)
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
-    """Obtiene el par de tokens JWT incluyendo roles y nombre en los claims."""
+    """Obtiene el par de tokens JWT incluyendo roles y nombre en los claims.
+
+    Si el usuario tiene 2FA activo, en lugar de devolver el JWT completo devuelve
+    un ``session_token`` de corta duración (5 min, scope ``2fa_pending``) para
+    que el cliente lo intercambie por el JWT real en ``POST /api/v1/auth/2fa/verify/``
+    tras ingresar el código OTP.
+    """
 
     serializer_class = CustomTokenObtainPairSerializer
+
+    def post(self, request, *args, **kwargs):
+        # 1. Validar credenciales usando el flujo normal de SimpleJWT.
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # 2. Identificar el usuario autenticado (SimpleJWT lo guarda en el serializer
+        #    tras llamar a validate()).
+        user = serializer.user
+
+        # 3. Obtener o crear el registro de seguridad del usuario.
+        user_security, _ = UserSecurity.objects.get_or_create(usuario=user)
+
+        # 4. Sin 2FA activo → flujo habitual (devolver JWT completo sin modificar).
+        if not user_security.two_factor_enabled:
+            return Response(serializer.validated_data, status=status.HTTP_200_OK)
+
+        # 5. Con 2FA activo → generar session_token diferido.
+        if user_security.two_factor_method == "EMAIL":
+            # Enviar OTP por correo; best-effort (no bloquear si el SMTP falla).
+            try:
+                generar_otp_email(user_security)
+            except Exception:
+                pass
+
+        session_token = generar_session_token(user)
+        return Response(
+            {
+                "requires_2fa": True,
+                "session_token": session_token,
+                "method": user_security.two_factor_method,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class MeView(APIView):
@@ -322,3 +382,262 @@ class AssignableEntityTypeView(APIView):
         ]
         data.sort(key=lambda item: item["label"])
         return Response(AssignableEntityTypeSerializer(data, many=True).data)
+
+
+# ---------------------------------------------------------------------------
+# Vistas de autenticación de dos factores (2FA)
+# ---------------------------------------------------------------------------
+
+
+class TwoFactorVerifyView(APIView):
+    """Intercambia el ``session_token`` de login diferido por el JWT completo tras
+    verificar el código OTP (TOTP o EMAIL) ingresado por el usuario (T-15).
+
+    No requiere ningún header ``Authorization``: la autenticación se basa en
+    el ``session_token`` de corta duración.
+    """
+
+    permission_classes = [AllowAny]
+    serializer_class = TwoFactorVerifySerializer
+
+    def post(self, request):
+        ser = TwoFactorVerifySerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+
+        # Validar el session_token y obtener el usuario.
+        user = validar_session_token(ser.validated_data["session_token"])
+
+        # Obtener la configuración de seguridad del usuario.
+        try:
+            user_security = UserSecurity.objects.get(usuario=user)
+        except UserSecurity.DoesNotExist:
+            return Response(
+                {"detalle": "Configuración de seguridad no encontrada."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        otp = ser.validated_data["otp_code"]
+
+        # Verificar el OTP según el método activo.
+        if user_security.two_factor_method == "TOTP":
+            totp = pyotp.TOTP(user_security.totp_secret)
+            if not totp.verify(otp):
+                return Response(
+                    {"detalle": "El código OTP no es válido.", "code": "OTP_INVALIDO"},
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+        else:
+            if not validar_otp_email(user_security, otp):
+                return Response(
+                    {"detalle": "El código OTP no es válido o ha expirado.", "code": "OTP_INVALIDO"},
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+
+        # Generar el par JWT completo con los mismos claims que el login normal.
+        refresh = RefreshToken.for_user(user)
+        # Agregar los claims personalizados del proyecto (igual que CustomTokenObtainPairSerializer).
+        refresh["nombre"] = user.get_full_name() or user.get_username()
+        refresh["grupos"] = list(user.groups.values_list("name", flat=True))
+        refresh["es_superusuario"] = user.is_superuser
+        refresh["debe_cambiar_password"] = _debe_cambiar_password(user)
+
+        access_token = str(refresh.access_token)
+        refresh_token = str(refresh)
+
+        datos = {
+            "access": access_token,
+            "refresh": refresh_token,
+            "access_token": access_token,
+            "token_type": "bearer",
+            "nombre": user.get_full_name() or user.get_username(),
+            "grupos": list(user.groups.values_list("name", flat=True)),
+            "es_superusuario": user.is_superuser,
+            "debe_cambiar_password": _debe_cambiar_password(user),
+        }
+        return Response(datos, status=status.HTTP_200_OK)
+
+
+@extend_schema(
+    request=None,
+    responses={
+        200: OpenApiResponse(
+            response=inline_serializer(
+                name="TotpSetupResponse",
+                fields={
+                    "otpauth_uri": drf_serializers.CharField(
+                        help_text="URI otpauth:// para generar el código QR en la app autenticadora."
+                    ),
+                    "secret": drf_serializers.CharField(
+                        help_text="Secreto base32 para ingresar manualmente en la app autenticadora."
+                    ),
+                },
+            ),
+            description="Secreto TOTP generado. Escanear el URI o ingresar el secret manualmente.",
+        )
+    },
+)
+class TotpSetupView(APIView):
+    """Inicia la configuración TOTP: genera un nuevo secreto base32 y devuelve el
+    URI de aprovisionamiento para que el frontend muestre el código QR (T-16).
+
+    No activa el 2FA todavía; la activación ocurre tras la confirmación en
+    ``POST /api/v1/auth/2fa/confirm-totp/``.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        from django.conf import settings as _settings
+
+        user_security, _ = UserSecurity.objects.get_or_create(usuario=request.user)
+        secret = pyotp.random_base32()
+        user_security.totp_secret = secret
+        user_security.save(update_fields=["totp_secret", "actualizado_en"])
+
+        uri = pyotp.totp.TOTP(secret).provisioning_uri(
+            name=request.user.email,
+            issuer_name=_settings.TOTP_ISSUER_NAME,
+        )
+        return Response({"otpauth_uri": uri, "secret": secret}, status=status.HTTP_200_OK)
+
+
+class TotpConfirmView(APIView):
+    """Confirma la configuración TOTP verificando que el usuario escaneó el QR
+    correctamente y activa el segundo factor (T-17).
+
+    Requiere que ``POST /api/v1/auth/2fa/setup/totp/`` haya sido llamado antes.
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = TotpSetupConfirmSerializer
+
+    def post(self, request):
+        ser = TotpSetupConfirmSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+
+        try:
+            user_security = UserSecurity.objects.get(usuario=request.user)
+        except UserSecurity.DoesNotExist:
+            return Response(
+                {"detalle": "Inicia el setup TOTP antes de confirmar."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        activar_2fa_totp(user_security, ser.validated_data["otp_code"], request.user)
+        return Response(
+            {"detalle": "Autenticación TOTP activada correctamente."},
+            status=status.HTTP_200_OK,
+        )
+
+
+class TwoFactorSetupEmailView(APIView):
+    """Activa el segundo factor por correo electrónico verificando la contraseña
+    actual del usuario (T-18). Limpia el secreto TOTP previo si existía."""
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = TwoFactorSetupEmailSerializer
+
+    def post(self, request):
+        ser = TwoFactorSetupEmailSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+
+        user_security, _ = UserSecurity.objects.get_or_create(usuario=request.user)
+        activar_2fa_email(user_security, ser.validated_data["password"], request.user)
+        return Response(
+            {"detalle": "Autenticación por correo electrónico activada correctamente."},
+            status=status.HTTP_200_OK,
+        )
+
+
+class TwoFactorResendView(APIView):
+    """Reenvía el código OTP por correo electrónico usando el ``session_token`` del
+    login diferido. Aplica rate-limit: mínimo 1 minuto entre envíos (T-19).
+
+    Solo aplica para el método EMAIL. No requiere JWT real.
+    """
+
+    permission_classes = [AllowAny]
+    serializer_class = TwoFactorResendSerializer
+
+    def post(self, request):
+        ser = TwoFactorResendSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+
+        user = validar_session_token(ser.validated_data["session_token"])
+
+        try:
+            user_security = UserSecurity.objects.get(usuario=user)
+        except UserSecurity.DoesNotExist:
+            return Response(
+                {"detalle": "Configuración de seguridad no encontrada."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if user_security.two_factor_method != "EMAIL":
+            return Response(
+                {"detalle": "El reenvío de OTP solo aplica para el método EMAIL."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not puede_reenviar_otp(user_security):
+            return Response(
+                {"detalle": "Debes esperar al menos 1 minuto antes de solicitar un nuevo código."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        generar_otp_email(user_security)
+        return Response(
+            {"detalle": "Código reenviado al correo registrado."},
+            status=status.HTTP_200_OK,
+        )
+
+
+class TwoFactorDisableView(APIView):
+    """Desactiva el segundo factor exigiendo contraseña actual más OTP vigente
+    (doble verificación — RN-2FA-07, T-20). Limpia todos los campos 2FA.
+
+    Para el método EMAIL: si no hay OTP en curso, primero lo genera y envía
+    por correo devolviendo instrucciones al cliente; si ya existe, verifica.
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = TwoFactorDisableSerializer
+
+    def delete(self, request):
+        ser = TwoFactorDisableSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+
+        try:
+            user_security = UserSecurity.objects.get(usuario=request.user)
+        except UserSecurity.DoesNotExist:
+            return Response(
+                {"detalle": "El doble factor no está activo."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not user_security.two_factor_enabled:
+            return Response(
+                {"detalle": "El doble factor no está activo."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Para EMAIL sin OTP en curso: generar y enviar, luego instruir al cliente.
+        if user_security.two_factor_method == "EMAIL" and not user_security.otp_code:
+            generar_otp_email(user_security)
+            return Response(
+                {
+                    "detalle": (
+                        "Se ha enviado un código de verificación a tu correo. "
+                        "Reenvía esta petición incluyendo el código recibido."
+                    )
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        desactivar_2fa(
+            user_security,
+            ser.validated_data["password"],
+            ser.validated_data["otp_code"],
+            request.user,
+        )
+        return Response({"detalle": "Doble factor desactivado."}, status=status.HTTP_200_OK)

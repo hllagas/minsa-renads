@@ -507,3 +507,74 @@ class AssignableEntityTypeSerializer(serializers.Serializer):
     app_label = serializers.CharField(
         help_text="App de Django (p. ej. convenios, internados)."
     )
+
+
+# ---------------------------------------------------------------------------
+# Serializers de autenticación de dos factores (2FA)
+# ---------------------------------------------------------------------------
+
+
+class TwoFactorVerifySerializer(serializers.Serializer):
+    """Intercambia el ``session_token`` de login diferido por el JWT completo,
+    tras verificar el código OTP ingresado por el usuario (TOTP o EMAIL).
+
+    Ningún campo expone ``totp_secret`` ni ``otp_code`` (hash de BD).
+    """
+
+    session_token = serializers.CharField(
+        required=True,
+        help_text="Token de sesión transitorio obtenido al hacer login con 2FA activo.",
+    )
+    otp_code = serializers.CharField(
+        max_length=8,
+        required=True,
+        help_text="Código de un solo uso: 6 dígitos TOTP (app autenticadora) o código por correo.",
+    )
+
+
+class TotpSetupConfirmSerializer(serializers.Serializer):
+    """Confirma que el usuario escaneó correctamente el código QR TOTP enviando
+    un código válido generado por su app autenticadora."""
+
+    otp_code = serializers.CharField(
+        max_length=6,
+        required=True,
+        help_text="Código TOTP de 6 dígitos generado por la app autenticadora.",
+    )
+
+
+class TwoFactorSetupEmailSerializer(serializers.Serializer):
+    """Activa el segundo factor por correo electrónico verificando la contraseña
+    actual del usuario para autorizar el cambio."""
+
+    password = serializers.CharField(
+        write_only=True,
+        required=True,
+        help_text="Contraseña actual del usuario para autorizar la activación del 2FA por email.",
+    )
+
+
+class TwoFactorDisableSerializer(serializers.Serializer):
+    """Desactiva el segundo factor exigiendo contraseña actual más el OTP vigente
+    (doble verificación — RN-2FA-07)."""
+
+    password = serializers.CharField(
+        write_only=True,
+        required=True,
+        help_text="Contraseña actual del usuario.",
+    )
+    otp_code = serializers.CharField(
+        max_length=8,
+        required=True,
+        help_text="Código OTP vigente (TOTP de app autenticadora o código por correo).",
+    )
+
+
+class TwoFactorResendSerializer(serializers.Serializer):
+    """Solicita el reenvío del código OTP por correo electrónico usando el
+    ``session_token`` del login diferido (sin necesidad de JWT real)."""
+
+    session_token = serializers.CharField(
+        required=True,
+        help_text="Token de sesión transitorio obtenido al hacer login con 2FA activo.",
+    )

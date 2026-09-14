@@ -32,6 +32,8 @@ urlpatterns = [
     path("", include("apps.calendario.urls")),
     # Administración transversal (usuarios, roles y permisos)
     path("", include("apps.common.urls")),
+    # Autenticación de dos factores — endpoints bajo /api/v1/auth/2fa/
+    path("auth/", include("apps.common.urls_2fa")),
 ]
 
 urlpatterns += router.urls

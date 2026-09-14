@@ -323,6 +323,16 @@ EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="no-reply@renads.minsa.gob.pe")
 
 
+# ---------------------------------------------------------------------------
+# Autenticación de dos factores (2FA)
+# ---------------------------------------------------------------------------
+# OTP_TTL_MINUTES — tiempo de vida del OTP de email en minutos (default 10).
+OTP_TTL_MINUTES = config("OTP_TTL_MINUTES", default=10, cast=int)
+# TOTP_ISSUER_NAME — nombre del emisor que aparece en la app autenticadora al
+# escanear el código QR (default "RENADS").
+TOTP_ISSUER_NAME = config("TOTP_ISSUER_NAME", default="RENADS")
+
+
 # OpenAPI (drf-spectacular)
 SPECTACULAR_SETTINGS = {
     "TITLE": "RENADS API",
