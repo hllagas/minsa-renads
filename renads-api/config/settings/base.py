@@ -331,6 +331,9 @@ OTP_TTL_MINUTES = config("OTP_TTL_MINUTES", default=10, cast=int)
 # TOTP_ISSUER_NAME — nombre del emisor que aparece en la app autenticadora al
 # escanear el código QR (default "RENADS").
 TOTP_ISSUER_NAME = config("TOTP_ISSUER_NAME", default="RENADS")
+# FORCE_EMAIL_2FA — cuando True, el login siempre exige OTP por correo a todos
+# los usuarios, sin importar su configuración individual de 2FA.
+FORCE_EMAIL_2FA = config("FORCE_EMAIL_2FA", default=True, cast=bool)
 
 
 # OpenAPI (drf-spectacular)

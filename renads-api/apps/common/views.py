@@ -65,24 +65,44 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
     def post(self, request, *args, **kwargs):
+        from django.conf import settings as _settings
+
         # 1. Validar credenciales usando el flujo normal de SimpleJWT.
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # 2. Identificar el usuario autenticado (SimpleJWT lo guarda en el serializer
-        #    tras llamar a validate()).
+        # 2. Identificar el usuario autenticado.
         user = serializer.user
 
         # 3. Obtener o crear el registro de seguridad del usuario.
         user_security, _ = UserSecurity.objects.get_or_create(usuario=user)
 
-        # 4. Sin 2FA activo → flujo habitual (devolver JWT completo sin modificar).
+        # 4. 2FA por email obligatorio para todos (FORCE_EMAIL_2FA=True).
+        if getattr(_settings, "FORCE_EMAIL_2FA", False):
+            if not user.email:
+                return Response(
+                    {"detail": "Tu cuenta no tiene correo registrado. Contacta al administrador."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            try:
+                generar_otp_email(user_security)
+            except Exception:
+                pass
+            return Response(
+                {
+                    "requires_2fa": True,
+                    "session_token": generar_session_token(user),
+                    "method": "EMAIL",
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        # 5. Sin 2FA activo → flujo habitual (devolver JWT completo sin modificar).
         if not user_security.two_factor_enabled:
             return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
-        # 5. Con 2FA activo → generar session_token diferido.
+        # 6. Con 2FA opt-in activo → generar session_token diferido.
         if user_security.two_factor_method == "EMAIL":
-            # Enviar OTP por correo; best-effort (no bloquear si el SMTP falla).
             try:
                 generar_otp_email(user_security)
             except Exception:
@@ -416,10 +436,14 @@ class TwoFactorVerifyView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        from django.conf import settings as _settings
+
         otp = ser.validated_data["otp_code"]
 
-        # Verificar el OTP según el método activo.
-        if user_security.two_factor_method == "TOTP":
+        # Con FORCE_EMAIL_2FA activo o método EMAIL → validar como OTP de correo.
+        # Con método TOTP → validar con la app autenticadora.
+        force_email = getattr(_settings, "FORCE_EMAIL_2FA", False)
+        if not force_email and user_security.two_factor_method == "TOTP":
             totp = pyotp.TOTP(user_security.totp_secret)
             if not totp.verify(otp):
                 return Response(
