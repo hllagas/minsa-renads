@@ -80,12 +80,120 @@ class UserSecurity(models.Model):
         blank=True,
         help_text="Fecha y hora de expiración del OTP de email; nulo si no hay OTP pendiente",
     )
+    password_changed_at = models.DateTimeField(
+        "fecha de cambio de contraseña",
+        db_column="fecha_cambio_password",
+        null=True,
+        blank=True,
+        help_text="Fecha y hora del último cambio de contraseña; nulo si nunca se ha cambiado",
+    )
     actualizado_en = models.DateTimeField("actualizado en", auto_now=True)
 
     class Meta:
         db_table = "seguridad_usuario"
         verbose_name = "seguridad de usuario"
         verbose_name_plural = "seguridad de usuarios"
+
+
+# Opciones de tipo de documento de identidad para el perfil de usuario.
+DOCUMENT_TYPE_CHOICES = [
+    ("DNI", "DNI"),
+    ("CE", "Carnet de Extranjería"),
+    ("PASAPORTE", "Pasaporte"),
+    ("RUC", "RUC"),
+]
+
+
+class UserProfile(models.Model):
+    """Datos personales e institucionales adicionales del usuario (extensión 1:1).
+
+    Almacena tipo y número de documento, apellidos, teléfono y referencias
+    institucionales (unidad orgánica y cargo). Se crea junto con el usuario en
+    ``services.crear_usuario_con_perfil`` y se actualiza vía
+    ``services.actualizar_perfil_usuario``.
+    """
+
+    usuario = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        db_column="usuario_id",
+        related_name="perfil",
+        verbose_name="usuario",
+        help_text="Usuario propietario del perfil",
+    )
+    tipo_documento = models.CharField(
+        "tipo de documento",
+        db_column="tipo_documento",
+        max_length=20,
+        choices=DOCUMENT_TYPE_CHOICES,
+        blank=True,
+        default="",
+        help_text="Tipo de documento de identidad",
+    )
+    numero_documento = models.CharField(
+        "número de documento",
+        db_column="numero_documento",
+        max_length=20,
+        null=True,
+        blank=True,
+        unique=True,
+        default=None,
+        help_text="Número de documento de identidad",
+    )
+    apellido_paterno = models.CharField(
+        "apellido paterno",
+        db_column="apellido_paterno",
+        max_length=100,
+        blank=True,
+        default="",
+        help_text="Apellido paterno del usuario",
+    )
+    apellido_materno = models.CharField(
+        "apellido materno",
+        db_column="apellido_materno",
+        max_length=100,
+        blank=True,
+        default="",
+        help_text="Apellido materno del usuario",
+    )
+    telefono = models.CharField(
+        "teléfono",
+        db_column="telefono",
+        max_length=20,
+        null=True,
+        blank=True,
+        unique=True,
+        default=None,
+        help_text="Número de teléfono de contacto",
+    )
+    unidad_organica = models.ForeignKey(
+        "convenios.OrganDirectory",
+        on_delete=models.PROTECT,
+        db_column="unidad_organica_id",
+        null=True,
+        blank=True,
+        related_name="perfiles_usuarios",
+        verbose_name="unidad orgánica",
+        help_text="Órgano del directorio al que pertenece el usuario",
+    )
+    cargo = models.ForeignKey(
+        "convenios.ExecutivePosition",
+        on_delete=models.PROTECT,
+        db_column="cargo_id",
+        null=True,
+        blank=True,
+        related_name="perfiles_usuarios",
+        verbose_name="cargo",
+        help_text="Cargo ejecutivo del usuario",
+    )
+
+    class Meta:
+        db_table = "perfil_usuario"
+        verbose_name = "perfil de usuario"
+        verbose_name_plural = "perfiles de usuario"
+
+    def __str__(self) -> str:
+        return f"{self.apellido_paterno} {self.apellido_materno}, {self.usuario.get_username()}"
 
 
 def debe_cambiar_password(usuario) -> bool:

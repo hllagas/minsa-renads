@@ -334,6 +334,9 @@ TOTP_ISSUER_NAME = config("TOTP_ISSUER_NAME", default="RENADS")
 # FORCE_EMAIL_2FA — cuando True, el login siempre exige OTP por correo a todos
 # los usuarios, sin importar su configuración individual de 2FA.
 FORCE_EMAIL_2FA = config("FORCE_EMAIL_2FA", default=True, cast=bool)
+# PASSWORD_EXPIRY_DAYS — número de días de vigencia de la contraseña antes de que
+# el sistema la trate como caducada y bloquee el login con 401 PASSWORD_EXPIRADO.
+PASSWORD_EXPIRY_DAYS = config("PASSWORD_EXPIRY_DAYS", default=90, cast=int)
 
 
 # OpenAPI (drf-spectacular)

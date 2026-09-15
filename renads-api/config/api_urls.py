@@ -9,7 +9,13 @@ from drf_spectacular.views import (
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from apps.common.views import CustomTokenObtainPairView, MeChangePasswordView, MeView
+from apps.common.views import (
+    CustomTokenObtainPairView,
+    MeChangePasswordView,
+    MeView,
+    PasswordResetConfirmView,
+    PasswordResetRequestView,
+)
 
 router = DefaultRouter()
 # Los routers de cada módulo se registran aquí en fases posteriores, p. ej.:
@@ -21,6 +27,16 @@ urlpatterns = [
     path("auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("auth/me/", MeView.as_view(), name="me"),
     path("auth/me/cambiar-password/", MeChangePasswordView.as_view(), name="me-cambiar-password"),
+    path(
+        "auth/password-reset/request/",
+        PasswordResetRequestView.as_view(),
+        name="password-reset-request",
+    ),
+    path(
+        "auth/password-reset/confirm/",
+        PasswordResetConfirmView.as_view(),
+        name="password-reset-confirm",
+    ),
     # Documentación OpenAPI
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
     path("docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),

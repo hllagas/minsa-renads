@@ -9,8 +9,25 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from apps.common.models import debe_cambiar_password as _debe_cambiar_password
+from apps.common.models import (
+    DOCUMENT_TYPE_CHOICES,
+    UserProfile,
+    debe_cambiar_password as _debe_cambiar_password,
+)
 from apps.common.selectors import grupos_del_usuario, perfiles_del_usuario
+
+
+def _nombre_usuario(user) -> str:
+    """Compone el nombre de presentación del usuario (R-7).
+
+    Si el usuario tiene ``UserProfile`` con ``apellido_paterno`` no vacío,
+    devuelve ``"{ap} {am}, {first_name}"``.strip(). De lo contrario, usa
+    ``get_full_name()`` o ``get_username()`` como fallback.
+    """
+    perfil = getattr(user, "perfil", None)
+    if perfil is not None and perfil.apellido_paterno:
+        return f"{perfil.apellido_paterno} {perfil.apellido_materno}, {user.first_name}".strip()
+    return user.get_full_name() or user.get_username()
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -23,7 +40,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-        token["nombre"] = user.get_full_name() or user.get_username()
+        token["nombre"] = _nombre_usuario(user)
         token["grupos"] = list(user.groups.values_list("name", flat=True))
         token["es_superusuario"] = user.is_superuser
         token["debe_cambiar_password"] = _debe_cambiar_password(user)
@@ -33,7 +50,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         """Enriquece el body de la respuesta de login con datos de identidad."""
         data = super().validate(attrs)
         data["es_superusuario"] = self.user.is_superuser
-        data["nombre"] = self.user.get_full_name() or self.user.get_username()
+        data["nombre"] = _nombre_usuario(self.user)
         data["grupos"] = list(self.user.groups.values_list("name", flat=True))
         data["debe_cambiar_password"] = _debe_cambiar_password(self.user)
         # Alias OAuth2-compatible para que Swagger UI (password flow) auto-configure
@@ -64,16 +81,43 @@ class MeSerializer(serializers.Serializer):
     nombre = serializers.SerializerMethodField()
     es_superusuario = serializers.BooleanField(source="is_superuser")
     debe_cambiar_password = serializers.SerializerMethodField()
+    two_factor_enabled = serializers.SerializerMethodField()
+    two_factor_method = serializers.SerializerMethodField()
+    perfil = serializers.SerializerMethodField()
     grupos = serializers.SerializerMethodField()
     perfiles = serializers.SerializerMethodField()
     modulos_habilitados = serializers.SerializerMethodField()
     modulos_bloqueados = serializers.SerializerMethodField()
 
     def get_nombre(self, obj) -> str:
-        return obj.get_full_name() or obj.get_username()
+        return _nombre_usuario(obj)
+
+    def get_perfil(self, obj):
+        perfil = getattr(obj, "perfil", None)
+        if perfil is None:
+            return None
+        # UserProfileReadSerializer se define más abajo en este mismo módulo;
+        # al llamarse el método en runtime ambas clases ya están disponibles.
+        return UserProfileReadSerializer(perfil).data
 
     def get_debe_cambiar_password(self, obj) -> bool:
         return _debe_cambiar_password(obj)
+
+    def _get_user_security(self, obj):
+        cache = getattr(self, "_cache_user_security", None)
+        if cache is not None:
+            return cache
+        from apps.common.models import UserSecurity
+        self._cache_user_security = UserSecurity.objects.filter(usuario=obj).first()
+        return self._cache_user_security
+
+    def get_two_factor_enabled(self, obj) -> bool:
+        sec = self._get_user_security(obj)
+        return bool(sec and sec.two_factor_enabled)
+
+    def get_two_factor_method(self, obj) -> str:
+        sec = self._get_user_security(obj)
+        return (sec.two_factor_method or "") if sec else ""
 
     def get_grupos(self, obj) -> list[str]:
         return grupos_del_usuario(obj)
@@ -191,10 +235,118 @@ class PermissionSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+# ---------------------------------------------------------------------------
+# Serializers de perfil de usuario (T-13)
+# ---------------------------------------------------------------------------
+
+
+class UserProfileReadSerializer(serializers.ModelSerializer):
+    """Lectura del perfil de usuario: expone datos personales e institucionales."""
+
+    unidad_organica_detalle = serializers.SerializerMethodField()
+    cargo_detalle = serializers.SerializerMethodField()
+
+    def get_unidad_organica_detalle(self, obj) -> str:
+        return str(obj.unidad_organica) if obj.unidad_organica is not None else ""
+
+    def get_cargo_detalle(self, obj) -> str:
+        return str(obj.cargo) if obj.cargo is not None else ""
+
+    class Meta:
+        model = UserProfile
+        fields = [
+            "tipo_documento",
+            "numero_documento",
+            "apellido_paterno",
+            "apellido_materno",
+            "telefono",
+            "unidad_organica",
+            "cargo",
+            "unidad_organica_detalle",
+            "cargo_detalle",
+        ]
+        read_only_fields = fields
+
+
+def _organ_directory_queryset():
+    """Queryset diferido de ``OrganDirectory`` para evitar importación circular en módulo."""
+    from apps.convenios.models import OrganDirectory
+    return OrganDirectory.objects.all()
+
+
+def _executive_position_queryset():
+    """Queryset diferido de ``ExecutivePosition`` para evitar importación circular en módulo."""
+    from apps.convenios.models import ExecutivePosition
+    return ExecutivePosition.objects.all()
+
+
+class _LazyPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
+    """``PrimaryKeyRelatedField`` que acepta un callable como queryset."""
+
+    def __init__(self, queryset_fn, **kwargs):
+        self._queryset_fn = queryset_fn
+        # Pasa un queryset dummy no-None para evitar el assert de DRF en __init__.
+        # get_queryset() lo sobreescribe al momento de la validación.
+        kwargs.setdefault("queryset", [])
+        super().__init__(**kwargs)
+
+    def get_queryset(self):
+        return self._queryset_fn()
+
+
+class UserProfileWriteSerializer(serializers.ModelSerializer):
+    """Escritura del perfil de usuario: permite actualizar datos personales e institucionales."""
+
+    numero_documento = serializers.CharField(
+        max_length=20,
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        validators=[
+            UniqueValidator(
+                queryset=UserProfile.objects.all(),
+                message="Ya existe un perfil con este número de documento.",
+            )
+        ],
+    )
+    unidad_organica = _LazyPrimaryKeyRelatedField(
+        queryset_fn=_organ_directory_queryset,
+        required=False,
+        allow_null=True,
+    )
+    cargo = _LazyPrimaryKeyRelatedField(
+        queryset_fn=_executive_position_queryset,
+        required=False,
+        allow_null=True,
+    )
+
+    class Meta:
+        model = UserProfile
+        fields = [
+            "tipo_documento",
+            "numero_documento",
+            "apellido_paterno",
+            "apellido_materno",
+            "telefono",
+            "unidad_organica",
+            "cargo",
+        ]
+
+
 class UserReadSerializer(serializers.ModelSerializer):
     """Lectura de usuarios: nunca expone la contraseña ni su hash."""
 
     groups_detalle = GroupBriefSerializer(source="groups", many=True, read_only=True)
+    perfil = UserProfileReadSerializer(read_only=True)
+    password_generada = serializers.SerializerMethodField()
+
+    def get_password_generada(self, obj):
+        """Lee la contraseña generada desde el atributo temporal ``_password_generada``.
+
+        Solo se populará en la respuesta del POST de creación de usuario (T-16/T-21).
+        En todas las lecturas subsecuentes devuelve ``None``.
+        """
+        return getattr(obj, "_password_generada", None)
 
     class Meta:
         model = User
@@ -211,14 +363,21 @@ class UserReadSerializer(serializers.ModelSerializer):
             "last_login",
             "groups",
             "groups_detalle",
+            "perfil",
+            "password_generada",
         ]
         read_only_fields = fields
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
-    """Alta de usuarios: contraseña write-only hasheada con `set_password`."""
+    """Alta de usuarios: contraseña opcional (si no se envía se genera automáticamente).
 
-    password = serializers.CharField(write_only=True, required=True)
+    Incluye campos de perfil opcionales que se persisten en ``UserProfile`` vía
+    ``services.crear_usuario_con_perfil`` (T-07, R-5).
+    """
+
+    # Contraseña optional: si no se envía el service la genera con `generar_password_segura`.
+    password = serializers.CharField(write_only=True, required=False)
     email = serializers.EmailField(
         required=True,
         validators=[
@@ -230,6 +389,50 @@ class UserCreateSerializer(serializers.ModelSerializer):
     )
     groups = serializers.PrimaryKeyRelatedField(
         many=True, queryset=Group.objects.all(), required=False
+    )
+
+    # --- Campos de perfil (T-15) ---
+    tipo_documento = serializers.ChoiceField(
+        choices=DOCUMENT_TYPE_CHOICES,
+        required=False,
+        allow_blank=True,
+        default="",
+    )
+    numero_documento = serializers.CharField(
+        max_length=20,
+        required=False,
+        allow_blank=True,
+        default="",
+    )
+    apellido_paterno = serializers.CharField(
+        max_length=100,
+        required=False,
+        allow_blank=True,
+        default="",
+    )
+    apellido_materno = serializers.CharField(
+        max_length=100,
+        required=False,
+        allow_blank=True,
+        default="",
+    )
+    telefono = serializers.CharField(
+        max_length=20,
+        required=False,
+        allow_blank=True,
+        default="",
+    )
+    unidad_organica = _LazyPrimaryKeyRelatedField(
+        queryset_fn=_organ_directory_queryset,
+        required=False,
+        allow_null=True,
+        default=None,
+    )
+    cargo = _LazyPrimaryKeyRelatedField(
+        queryset_fn=_executive_position_queryset,
+        required=False,
+        allow_null=True,
+        default=None,
     )
 
     class Meta:
@@ -245,23 +448,58 @@ class UserCreateSerializer(serializers.ModelSerializer):
             "is_staff",
             "is_superuser",
             "groups",
+            # Campos de perfil:
+            "tipo_documento",
+            "numero_documento",
+            "apellido_paterno",
+            "apellido_materno",
+            "telefono",
+            "unidad_organica",
+            "cargo",
         ]
 
     def validate_password(self, value: str) -> str:
         return _validar_password(value)
 
+    def _extraer_profile_data(self, validated_data: dict) -> dict:
+        """Extrae los campos de perfil de ``validated_data`` y normaliza strings vacíos a None."""
+        campos_perfil = [
+            "tipo_documento",
+            "numero_documento",
+            "apellido_paterno",
+            "apellido_materno",
+            "telefono",
+            "unidad_organica",
+            "cargo",
+        ]
+        profile_data = {}
+        for campo in campos_perfil:
+            if campo in validated_data:
+                valor = validated_data.pop(campo)
+                # Campos con unique=True en BD usan NULL para valor ausente.
+                if campo in ("numero_documento", "telefono") and valor == "":
+                    valor = None
+                profile_data[campo] = valor
+        return profile_data
+
     def create(self, validated_data):
+        from apps.common.services import crear_usuario_con_perfil
+
         groups = validated_data.pop("groups", [])
-        password = validated_data.pop("password")
-        user = User(**validated_data)
-        user.set_password(password)
-        user.save()
-        user.groups.set(groups)
+        profile_data = self._extraer_profile_data(validated_data)
+
+        user, password_plain = crear_usuario_con_perfil(validated_data, groups, profile_data)
+        # Atributo temporal para que UserReadSerializer lo exponga en la respuesta del POST.
+        user._password_generada = password_plain
         return user
 
 
 class UserUpdateSerializer(serializers.ModelSerializer):
-    """Edición de usuarios. La contraseña se cambia solo por la acción `set-password`."""
+    """Edición de usuarios. La contraseña se cambia solo por la acción `set-password`.
+
+    Incluye campos de perfil opcionales que se persisten en ``UserProfile`` vía
+    ``services.actualizar_perfil_usuario`` (T-08, R-9).
+    """
 
     email = serializers.EmailField(
         required=True,
@@ -276,6 +514,45 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         many=True, queryset=Group.objects.all(), required=False
     )
 
+    # --- Campos de perfil (T-16) ---
+    tipo_documento = serializers.ChoiceField(
+        choices=DOCUMENT_TYPE_CHOICES,
+        required=False,
+        allow_blank=True,
+    )
+    numero_documento = serializers.CharField(
+        max_length=20,
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+    )
+    apellido_paterno = serializers.CharField(
+        max_length=100,
+        required=False,
+        allow_blank=True,
+    )
+    apellido_materno = serializers.CharField(
+        max_length=100,
+        required=False,
+        allow_blank=True,
+    )
+    telefono = serializers.CharField(
+        max_length=20,
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+    )
+    unidad_organica = _LazyPrimaryKeyRelatedField(
+        queryset_fn=_organ_directory_queryset,
+        required=False,
+        allow_null=True,
+    )
+    cargo = _LazyPrimaryKeyRelatedField(
+        queryset_fn=_executive_position_queryset,
+        required=False,
+        allow_null=True,
+    )
+
     class Meta:
         model = User
         fields = [
@@ -288,15 +565,50 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             "is_staff",
             "is_superuser",
             "groups",
+            # Campos de perfil:
+            "tipo_documento",
+            "numero_documento",
+            "apellido_paterno",
+            "apellido_materno",
+            "telefono",
+            "unidad_organica",
+            "cargo",
         ]
 
+    def _extraer_profile_data(self, validated_data: dict) -> dict:
+        """Extrae los campos de perfil de ``validated_data`` y normaliza strings vacíos a None."""
+        campos_perfil = [
+            "tipo_documento",
+            "numero_documento",
+            "apellido_paterno",
+            "apellido_materno",
+            "telefono",
+            "unidad_organica",
+            "cargo",
+        ]
+        profile_data = {}
+        for campo in campos_perfil:
+            if campo in validated_data:
+                valor = validated_data.pop(campo)
+                # Campos con unique=True en BD usan NULL para valor ausente.
+                if campo in ("numero_documento", "telefono") and valor == "":
+                    valor = None
+                profile_data[campo] = valor
+        return profile_data
+
     def update(self, instance, validated_data):
+        from apps.common.services import actualizar_perfil_usuario
+
         groups = validated_data.pop("groups", None)
+        profile_data = self._extraer_profile_data(validated_data)
+
         for campo, valor in validated_data.items():
             setattr(instance, campo, valor)
         instance.save()
         if groups is not None:
             instance.groups.set(groups)
+        if profile_data:
+            actualizar_perfil_usuario(instance, profile_data)
         return instance
 
 
@@ -578,3 +890,45 @@ class TwoFactorResendSerializer(serializers.Serializer):
         required=True,
         help_text="Token de sesión transitorio obtenido al hacer login con 2FA activo.",
     )
+
+
+# ---------------------------------------------------------------------------
+# Serializers de "olvidé mi contraseña" (T-19)
+# ---------------------------------------------------------------------------
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    """Solicitud de restablecimiento de contraseña: solo requiere el nombre de usuario.
+
+    El endpoint siempre devuelve 200 para no revelar si el usuario existe.
+    """
+
+    username = serializers.CharField(
+        required=True,
+        help_text="Nombre de usuario para el que se solicita el restablecimiento.",
+    )
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    """Confirmación de restablecimiento de contraseña: valida el OTP y la nueva contraseña.
+
+    Ningún campo expone hashes, OTPs ni la contraseña en la representación de salida.
+    """
+
+    username = serializers.CharField(
+        required=True,
+        help_text="Nombre de usuario para el que se confirma el restablecimiento.",
+    )
+    otp_code = serializers.CharField(
+        max_length=6,
+        required=True,
+        help_text="Código OTP de 6 dígitos recibido por correo electrónico.",
+    )
+    password_nueva = serializers.CharField(
+        write_only=True,
+        required=True,
+        help_text="Nueva contraseña que debe cumplir los requisitos de seguridad.",
+    )
+
+    def validate_password_nueva(self, value: str) -> str:
+        return _validar_password(value)

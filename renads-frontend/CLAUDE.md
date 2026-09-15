@@ -25,7 +25,7 @@ campos, roles, estados) sin necesidad de abrir el repo del backend:
 | `docs/api-almacenamiento.md` | **Transversal** — adjuntos reales: logos de entidades (`upload-logo`/`logo-url`) y PDFs de anexos por actor (`annex-checklist`/`annex-upload`), sobre GCS + signed URLs; incluye Feature F3 (contraseña temporal + declaraciones juradas) |
 | `docs/frontend-conventions.md` | Idioma, SDD, cliente HTTP, gating por rol, estructura propuesta |
 
-### Estado de módulos (actualizado 2026-09-10)
+### Estado de módulos (actualizado 2026-09-14)
 
 | # | Módulo | Ruta front | Estado | Spec / Validación |
 |---|--------|-----------|--------|-------------------|
@@ -38,6 +38,7 @@ campos, roles, estados) sin necesidad de abrir el repo del backend:
 | 7 | Usuarios | `/usuarios` | ✅ **CERRADO** | `spec/usuarios.md` / `spec/usuarios.validacion.md` |
 | T | Almacenamiento | transversal | ✅ **CERRADO** | `spec/almacenamiento.md` / `spec/almacenamiento.validacion.md` |
 | 8 | Campos de Formación | `/campos-clinicos` | 🟡 **en progreso** | — |
+| F | 2FA Gestión usuario | `/perfil` (sección Seguridad) | ✅ **CERRADO** | `spec/2fa-gestion.md` / `spec/2fa-gestion.validacion.md` |
 | 9 | Calendario de Actividades | `/calendario` | ✅ **implementado** | — |
 
 > Para iniciar trabajo en un módulo nuevo, usar el flujo del orquestador SDD (ver §Metodología SDD).
@@ -173,6 +174,8 @@ Librerías del proyecto (rol fijo por convención):
 
 | Fecha | Cambio | Archivos front afectados |
 |-------|--------|--------------------------|
+| 2026-09-14 (common — 2FA gestión) | **2FA gestión de usuario implementado en `/perfil`.** Backend (`apps/common`) añadió endpoints `POST /auth/2fa/setup/totp/`, `POST /auth/2fa/confirm-totp/`, `POST /auth/2fa/setup/email/`, `DELETE /auth/2fa/disable/`. `MeSerializer` ampliado con `two_factor_enabled` / `two_factor_method`. Migración `0002_usersecurity_2fa` + `0003_usersecurity_otp_code_length` aplican los nuevos campos a `UserSecurity`. **Front:** `AuthUser` en `lib/auth/store.ts` ampliado; funciones API en `lib/api/auth.ts`; hooks en `lib/auth/two-factor.ts`; componentes en `components/auth/` (`TotpSetupDialog`, `EmailSetupDialog`, `TwoFactorDisableDialog`, `TwoFactorMethodSelector`, `TwoFactorStatus`); `app/(app)/perfil/page.tsx` con sección «Seguridad». Login redesigned: split-panel (form izq / imagen der). Librería `react-qr-code@2.2.0` añadida. | `lib/api/auth.ts`, `lib/auth/store.ts`, `lib/auth/two-factor.ts`, `components/auth/`, `app/(app)/perfil/page.tsx`, `app/(auth)/login/page.tsx`, `renads-api/apps/common/serializers.py`, `CLAUDE.md` |
+| 2026-09-14 (convenios — PDF generation) | **Nuevas acciones `POST /conventions/{id}/generar-proyecto/` y `POST /conventions/{id}/generar-expediente/`** en `ConventionViewSet`. Generan PDF (docxtpl + LibreOffice / pypdf) y lo adjuntan como `Document`. **UI pendiente de spec SDD.** | `renads-api/apps/convenios/views.py` |
 | 2026-09-10 (mig 0051 convenios) | **`ClinicalFieldRegistration.convenio` eliminado.** La FK `convenio` (Convenio Específico) se quitó de `campo_clinico_ipress`; `unique_together` queda solo `(ipress, carrera_profesional, especialidad)`. El registro de campos clínicos ya no está ligado a un convenio específico (es global por sede+carrera). **Front:** quitados `convenio` de columnas, filtros y campos de `clinicalFieldRegistrationsConfig`; quitada la función `isConvenioVigente`/`anyVigente`/`VigenteBadge` de `determinacion-view.tsx` (el badge "Conv. específico" ya no tiene sentido). | `lib/convenios/clinical-fields.ts`, `components/campos-clinicos/determinacion-view.tsx`, `CLAUDE.md` |
 | 2026-09-10 (mig 0028 internados) | **`AcademicPeriod` → `InternshipPeriod`; endpoint `academic-periods` → `internship-periods`; campo `periodo_academico` → `periodo_internado`.** Renombrado el modelo, la tabla (`periodo_academico`→`periodo_internado`), el endpoint y el campo FK en `Student`. **Front ya actualizado** en commit 0fd8c78: `persons.ts` usa `optionsEndpoint: "internship-periods"` y `name: "periodo_internado"`; `students-bulk-upload-dialog.tsx` corregido (`periodo_internado_id`). Catálogo `internship-periods` añadido a `CATALOG_CONFIGS` para gestión admin. | `lib/internados/persons.ts`, `components/internados/students-bulk-upload-dialog.tsx`, `lib/catalogos/catalogs.ts`, `CLAUDE.md` |
 | 2026-09-10 (mig 0027 internados) | **`Tutor.ipress` eliminado → `TutorConvenio` (tabla tutor↔Convenio↔IPRESS).** `Tutor` ya no tiene FK `ipress` directa; el vínculo se gestiona por asignación concreta a un convenio + sede docente mediante el modelo `TutorConvenio` (endpoint `tutors/{id}/convenios/` GET/POST, `tutors/{id}/convenios/{convenio_pk}/` GET/DELETE). **Front (commit 0fd8c78):** columna `ipress` y campo `ipress` quitados de la config de tutores (`persons.ts`). UI de `TutorConvenio` pendiente de spec SDD. | `lib/internados/persons.ts`, `CLAUDE.md` |

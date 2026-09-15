@@ -6,19 +6,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ShieldCheckIcon } from "lucide-react";
+import { ArrowLeftIcon } from "lucide-react";
 
 import { useVerify2fa } from "@/lib/auth/hooks";
 import { useAuthStore } from "@/lib/auth/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -38,15 +31,11 @@ const otpSchema = z.object({
 
 type OtpValues = z.infer<typeof otpSchema>;
 
-const GLASS_INPUT =
-  "border-white/25 bg-white/10 text-white placeholder:text-white/50 focus-visible:ring-white/40";
-
 export default function TwoFactorPage() {
   const router = useRouter();
   const pendingTwoFactor = useAuthStore((s) => s.pendingTwoFactor);
   const { mutate, isPending } = useVerify2fa();
 
-  // Si no hay flujo 2FA activo, volver al login.
   useEffect(() => {
     if (!pendingTwoFactor) router.replace("/login");
   }, [pendingTwoFactor, router]);
@@ -73,38 +62,49 @@ export default function TwoFactorPage() {
   const isTotp = pendingTwoFactor?.method === "TOTP";
 
   return (
-    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden p-4 sm:p-6 lg:justify-start lg:pl-16 xl:pl-24">
-      <div
-        aria-hidden
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: "url('/portada_login.png')" }}
-      />
-      <div
-        aria-hidden
-        className="absolute inset-0 bg-gradient-to-br from-slate-950/60 via-slate-900/35 to-slate-950/60"
-      />
+    <div className="flex min-h-dvh">
+      {/* ── Panel izquierdo ── */}
+      <div className="flex w-full flex-col items-center justify-center bg-white px-8 py-12 sm:px-12 lg:w-[44%] lg:px-16 xl:px-24">
+        <div className="w-full max-w-sm">
+          {/* Logo */}
+          <div className="mb-8 flex justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo-minsa.png"
+              alt="Logo MINSA"
+              className="h-auto w-full max-w-[240px] object-contain"
+            />
+          </div>
 
-      <Card className="relative z-10 w-full max-w-md rounded-2xl border border-white/15 bg-white/10 text-white shadow-2xl ring-1 ring-white/10 backdrop-blur-xl backdrop-saturate-150">
-        <CardHeader className="items-center text-center">
-          <ShieldCheckIcon className="mb-2 h-10 w-10 text-white/80" />
-          <CardTitle className="text-2xl tracking-wide text-white">
-            Verificación de identidad
-          </CardTitle>
-          <CardDescription className="text-white/75">
-            {isTotp
-              ? "Ingresa el código de 6 dígitos de tu aplicación autenticadora."
-              : "Ingresa el código de 6 dígitos enviado a tu correo electrónico."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          {/* Botón volver */}
+          <button
+            type="button"
+            className="mb-4 flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            onClick={() => router.replace("/login")}
+          >
+            <ArrowLeftIcon className="h-4 w-4" />
+            Volver al inicio de sesión
+          </button>
+
+          {/* Encabezado */}
+          <div className="mb-6">
+            <h1 className="text-lg font-semibold text-gray-900">Verificación de identidad</h1>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {isTotp
+                ? "Ingresa el código de 6 dígitos de tu aplicación autenticadora."
+                : "Ingresa el código de 6 dígitos enviado a tu correo electrónico."}
+            </p>
+          </div>
+
+          {/* Formulario OTP */}
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="otp_code"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-white/90">Código de verificación</FormLabel>
+                    <FormLabel className="text-gray-700">Código de verificación</FormLabel>
                     <FormControl>
                       <Input
                         inputMode="numeric"
@@ -112,7 +112,7 @@ export default function TwoFactorPage() {
                         autoFocus
                         maxLength={8}
                         placeholder="000000"
-                        className={`text-center text-xl tracking-widest ${GLASS_INPUT}`}
+                        className="h-10 text-center text-xl tracking-widest"
                         {...field}
                       />
                     </FormControl>
@@ -120,21 +120,28 @@ export default function TwoFactorPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="mt-1 w-full" disabled={isPending}>
-                {isPending ? "Verificando…" : "Verificar"}
-              </Button>
               <Button
-                type="button"
-                variant="ghost"
-                className="w-full text-white/60 hover:bg-white/10 hover:text-white"
-                onClick={() => router.replace("/login")}
+                type="submit"
+                className="mt-2 h-10 w-full text-sm font-medium"
+                disabled={isPending}
               >
-                Volver al inicio de sesión
+                {isPending ? "Verificando…" : "Verificar"}
               </Button>
             </form>
           </Form>
-        </CardContent>
-      </Card>
+
+          <p className="mt-8 text-center text-xs text-muted-foreground">© MINSA PERÚ</p>
+        </div>
+      </div>
+
+      {/* ── Panel derecho: imagen institucional ── */}
+      <div className="relative hidden lg:block lg:flex-1">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: "url('/portada_login.jpg')" }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-950/60 via-slate-900/35 to-slate-950/65" />
+      </div>
     </div>
   );
 }

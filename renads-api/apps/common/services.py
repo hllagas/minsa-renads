@@ -3,6 +3,7 @@
 import hashlib
 import hmac
 import secrets
+import string
 from datetime import timedelta
 
 import jwt
@@ -15,7 +16,7 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import AuthenticationFailed, ValidationError
 
-from apps.common.models import UserSecurity
+from apps.common.models import UserProfile, UserSecurity
 from apps.convenios.models import AuditLog, Document
 
 
@@ -325,3 +326,152 @@ def desactivar_2fa(
     )
 
     registrar_auditoria(usuario, "DESACTIVAR_2FA", user_security)
+
+
+# ---------------------------------------------------------------------------
+# Gestión de contraseñas y perfil de usuario
+# ---------------------------------------------------------------------------
+
+
+def generar_password_segura() -> str:
+    """Genera una contraseña segura de exactamente 12 caracteres (R-3).
+
+    Composición garantizada: 1 minúscula, 1 mayúscula, 1 dígito, 2 especiales
+    del conjunto ``!@#$%^&*``, más 7 caracteres adicionales del pool completo.
+    Usa exclusivamente el módulo ``secrets`` (nunca ``random``).
+    """
+    pool_minusculas = string.ascii_lowercase
+    pool_mayusculas = string.ascii_uppercase
+    pool_digitos = string.digits
+    pool_especiales = "!@#$%^&*"
+    pool_completo = pool_minusculas + pool_mayusculas + pool_digitos + pool_especiales
+
+    # Obligatorios: 1 de cada clase + 2 especiales = 5 caracteres.
+    caracteres = [
+        secrets.choice(pool_minusculas),
+        secrets.choice(pool_mayusculas),
+        secrets.choice(pool_digitos),
+        secrets.choice(pool_especiales),
+        secrets.choice(pool_especiales),
+    ]
+    # Relleno: 7 caracteres adicionales del pool completo.
+    caracteres += [secrets.choice(pool_completo) for _ in range(7)]
+
+    # Mezclar usando SystemRandom (respaldado por secrets) para evitar orden predecible.
+    secrets.SystemRandom().shuffle(caracteres)
+    return "".join(caracteres)
+
+
+@transaction.atomic
+def crear_usuario_con_perfil(
+    validated_data: dict,
+    groups: list,
+    profile_data: dict,
+) -> tuple:
+    """Crea un ``User``, su ``UserSecurity`` y su ``UserProfile`` en una transacción (R-5).
+
+    Si ``validated_data`` no contiene ``password``, la genera automáticamente con
+    ``generar_password_segura()``. Retorna ``(user, password_plain)`` donde
+    ``password_plain`` es la contraseña en texto claro (para devolverla al admin
+    en la respuesta del POST; nunca se persiste en BD).
+
+    :param validated_data: campos del modelo ``User`` (sin ``password``/``groups``).
+    :param groups: lista de instancias ``Group`` a asignar al usuario.
+    :param profile_data: campos del modelo ``UserProfile`` (todos opcionales).
+    """
+    password_plain = validated_data.pop("password", None) or generar_password_segura()
+
+    user = User(**validated_data)
+    user.set_password(password_plain)
+    user.save()
+    user.groups.set(groups)
+
+    user_security, _ = UserSecurity.objects.get_or_create(usuario=user)
+    user_security.debe_cambiar_password = True
+    user_security.password_changed_at = timezone.now()
+    user_security.save(update_fields=["debe_cambiar_password", "password_changed_at", "actualizado_en"])
+
+    UserProfile.objects.create(usuario=user, **profile_data)
+
+    return user, password_plain
+
+
+def actualizar_perfil_usuario(user: User, profile_data: dict):
+    """Actualiza o crea el ``UserProfile`` del usuario con los datos proporcionados (R-8/R-9).
+
+    Solo guarda si ``profile_data`` no está vacío, usando ``update_fields`` para
+    minimizar las columnas actualizadas. No usa ``transaction.atomic`` porque la
+    transacción la gestiona el caller (``UserViewSet.perform_update``).
+
+    :returns: la instancia ``UserProfile`` actualizada.
+    """
+    if not profile_data:
+        profile, _ = UserProfile.objects.get_or_create(usuario=user)
+        return profile
+
+    profile, _ = UserProfile.objects.get_or_create(usuario=user)
+    for campo, valor in profile_data.items():
+        setattr(profile, campo, valor)
+    profile.save(update_fields=list(profile_data.keys()))
+    return profile
+
+
+def solicitar_reset_password(username: str) -> None:
+    """Inicia el flujo de recuperación de contraseña enviando un OTP por correo (R-6).
+
+    Silencia los errores de usuario inexistente o sin correo para no revelar
+    si el usuario existe (prevención de enumeración de usuarios). Lanza
+    ``ValidationError`` si el rate-limit de reenvío no se ha cumplido aún.
+    """
+    user = User.objects.filter(username=username, is_active=True).first()
+    if user is None:
+        return
+    if not user.email:
+        return
+
+    user_security, _ = UserSecurity.objects.get_or_create(usuario=user)
+    if not puede_reenviar_otp(user_security):
+        raise ValidationError(
+            "Debes esperar al menos 1 minuto antes de solicitar un nuevo código."
+        )
+
+    generar_otp_email(user_security)
+
+
+@transaction.atomic
+def confirmar_reset_password(username: str, otp_code: str, password_nueva: str) -> None:
+    """Confirma el restablecimiento de contraseña validando el OTP y la fortaleza de la nueva
+    contraseña (R-6). Operación completamente atómica.
+
+    Lanza ``ValidationError`` si el usuario no existe, el OTP es inválido o
+    la contraseña no cumple los requisitos de seguridad de Django.
+    """
+    from django.contrib.auth.password_validation import validate_password
+    from django.core.exceptions import ValidationError as DjangoValidationError
+    from rest_framework.exceptions import ValidationError as DRFValidationError
+
+    user = User.objects.filter(username=username, is_active=True).first()
+    if user is None:
+        raise ValidationError("Credenciales no válidas.")
+
+    try:
+        user_security = UserSecurity.objects.get(usuario=user)
+    except UserSecurity.DoesNotExist:
+        raise ValidationError("Credenciales no válidas.")
+
+    if not validar_otp_email(user_security, otp_code):
+        raise ValidationError("El código OTP no es válido o ha expirado.")
+
+    try:
+        validate_password(password_nueva, user=user)
+    except DjangoValidationError as exc:
+        raise DRFValidationError(list(exc.messages)) from exc
+
+    user.set_password(password_nueva)
+    user.save(update_fields=["password"])
+
+    user_security.password_changed_at = timezone.now()
+    user_security.debe_cambiar_password = False
+    user_security.save(update_fields=["password_changed_at", "debe_cambiar_password", "actualizado_en"])
+
+    registrar_auditoria(user, "ACTUALIZAR", user, nombre_campo="password")

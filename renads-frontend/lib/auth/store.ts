@@ -34,6 +34,10 @@ export interface AuthUser {
   modulos_habilitados?: ModuleState[];
   /** Módulos gobernados pero fuera de ventana (escritura bloqueada, salvo admin/superusuario). */
   modulos_bloqueados?: ModuleState[];
+  /** Indica si el usuario tiene 2FA activo (Opción A: expuesto por MeSerializer). */
+  two_factor_enabled?: boolean;
+  /** Método 2FA activo: "TOTP", "EMAIL" o "" si no está activo. */
+  two_factor_method?: "TOTP" | "EMAIL" | "";
 }
 
 export interface PendingTwoFactor {

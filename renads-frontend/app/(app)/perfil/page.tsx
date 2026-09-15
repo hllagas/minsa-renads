@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { MailIcon, ShieldCheckIcon, UserIcon } from "lucide-react";
 
 import { useAuthStore } from "@/lib/auth/store";
 import { PageHeader } from "@/components/data/page-header";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -13,6 +15,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { TwoFactorStatus } from "@/components/auth/two-factor-status";
+import { TwoFactorMethodSelector } from "@/components/auth/two-factor-method-selector";
+import { TotpSetupDialog } from "@/components/auth/totp-setup-dialog";
+import { EmailSetupDialog } from "@/components/auth/email-setup-dialog";
+import { TwoFactorDisableDialog } from "@/components/auth/two-factor-disable-dialog";
 
 /** Iniciales (máx. 2) para el avatar. */
 function iniciales(nombre: string): string {
@@ -27,6 +34,12 @@ function iniciales(nombre: string): string {
 /** Vista de perfil: información básica del usuario autenticado (datos de `/auth/me/`). */
 export default function PerfilPage() {
   const user = useAuthStore((s) => s.user);
+
+  // Estado de diálogos 2FA
+  const [methodSelectorOpen, setMethodSelectorOpen] = useState(false);
+  const [totpDialogOpen, setTotpDialogOpen] = useState(false);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [disableDialogOpen, setDisableDialogOpen] = useState(false);
 
   if (!user) {
     return (
@@ -140,6 +153,69 @@ export default function PerfilPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Seguridad — gestión del segundo factor de autenticación */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Seguridad</CardTitle>
+          <CardDescription>Gestión del segundo factor de autenticación.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-1">
+              <p className="text-sm font-medium">Segundo factor (2FA)</p>
+              <TwoFactorStatus
+                enabled={user.two_factor_enabled}
+                method={user.two_factor_method}
+              />
+            </div>
+            <div className="shrink-0">
+              {!user.two_factor_enabled ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setMethodSelectorOpen(true)}
+                >
+                  Activar 2FA
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setDisableDialogOpen(true)}
+                >
+                  Desactivar 2FA
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Diálogos 2FA */}
+      <TwoFactorMethodSelector
+        open={methodSelectorOpen}
+        onOpenChange={setMethodSelectorOpen}
+        userEmail={user.email}
+        onSelectTotp={() => setTotpDialogOpen(true)}
+        onSelectEmail={() => setEmailDialogOpen(true)}
+      />
+      <TotpSetupDialog
+        open={totpDialogOpen}
+        onOpenChange={setTotpDialogOpen}
+      />
+      <EmailSetupDialog
+        open={emailDialogOpen}
+        onOpenChange={setEmailDialogOpen}
+        userEmail={user.email}
+      />
+      {user.two_factor_enabled && user.two_factor_method && (
+        <TwoFactorDisableDialog
+          open={disableDialogOpen}
+          onOpenChange={setDisableDialogOpen}
+          method={user.two_factor_method as "TOTP" | "EMAIL"}
+        />
+      )}
     </div>
   );
 }

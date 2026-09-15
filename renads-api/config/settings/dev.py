@@ -1,5 +1,7 @@
 """Configuración de desarrollo (SQLite)."""
 
+from decouple import config
+
 from .base import BASE_DIR, INSTALLED_APPS  # noqa: F401
 from .base import *  # noqa: F401,F403
 
@@ -10,8 +12,11 @@ DATABASES = {
     }
 }
 
-# Correo — en desarrollo se imprime en la consola (RN-22).
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+# Correo — usa el backend del .env (default consola si no está definido).
+EMAIL_BACKEND = config(
+    "EMAIL_BACKEND",
+    default="django.core.mail.backends.console.EmailBackend",
+)
 
 # CORS — solo para desarrollo local
 CORS_ALLOWED_ORIGINS = [

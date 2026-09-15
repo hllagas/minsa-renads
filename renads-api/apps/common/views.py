@@ -3,9 +3,12 @@ administración de usuarios, grupos (roles) y permisos (solo superadministrador)
 y autenticación de dos factores (2FA)."""
 
 import pyotp
+from datetime import timedelta
+
 from django.contrib.auth.models import Group, Permission, User
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
+from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiResponse, extend_schema, inline_serializer
 from rest_framework import serializers as drf_serializers
@@ -27,6 +30,8 @@ from apps.common.serializers import (
     CustomTokenObtainPairSerializer,
     GroupSerializer,
     MeSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
     PermissionSerializer,
     SetPasswordSerializer,
     TotpSetupConfirmSerializer,
@@ -39,15 +44,18 @@ from apps.common.serializers import (
     UserEntityProfileWriteSerializer,
     UserReadSerializer,
     UserUpdateSerializer,
+    _nombre_usuario,
 )
 from apps.common.services import (
     activar_2fa_email,
     activar_2fa_totp,
+    confirmar_reset_password,
     desactivar_2fa,
     generar_otp_email,
     generar_session_token,
     puede_reenviar_otp,
     registrar_auditoria,
+    solicitar_reset_password,
     validar_otp_email,
     validar_session_token,
 )
@@ -76,6 +84,30 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
         # 3. Obtener o crear el registro de seguridad del usuario.
         user_security, _ = UserSecurity.objects.get_or_create(usuario=user)
+
+        # 3b. Gate de caducidad de contraseña (R-4).
+        # Superusuario exento; para el resto, si no ha cambiado nunca o han pasado
+        # más de PASSWORD_EXPIRY_DAYS días desde el último cambio → bloquear login.
+        if not user.is_superuser:
+            password_expirada = (
+                user_security.password_changed_at is None
+                or (
+                    timezone.now() - user_security.password_changed_at
+                    > timedelta(days=_settings.PASSWORD_EXPIRY_DAYS)
+                )
+            )
+            if password_expirada:
+                from rest_framework.status import HTTP_401_UNAUTHORIZED
+                return Response(
+                    {
+                        "detail": (
+                            "Tu contraseña ha expirado. "
+                            "Usa la opción 'Olvidé mi contraseña' para obtener una nueva."
+                        ),
+                        "code": "PASSWORD_EXPIRADO",
+                    },
+                    status=HTTP_401_UNAUTHORIZED,
+                )
 
         # 4. 2FA por email obligatorio para todos (FORCE_EMAIL_2FA=True).
         if getattr(_settings, "FORCE_EMAIL_2FA", False):
@@ -148,9 +180,9 @@ class MeChangePasswordView(APIView):
             usuario.set_password(ser.validated_data["password_nueva"])
             usuario.save(update_fields=["password"])
             seguridad, _ = UserSecurity.objects.get_or_create(usuario=usuario)
-            if seguridad.debe_cambiar_password:
-                seguridad.debe_cambiar_password = False
-                seguridad.save(update_fields=["debe_cambiar_password", "actualizado_en"])
+            seguridad.password_changed_at = timezone.now()
+            seguridad.debe_cambiar_password = False
+            seguridad.save(update_fields=["debe_cambiar_password", "password_changed_at", "actualizado_en"])
             registrar_auditoria(usuario, "ACTUALIZAR", usuario, nombre_campo="password")
         return Response(MeSerializer(usuario).data)
 
@@ -177,9 +209,15 @@ class UserViewSet(viewsets.ModelViewSet):
         return UserReadSerializer
 
     @transaction.atomic
-    def perform_create(self, serializer):
-        objeto = serializer.save()
-        registrar_auditoria(self.request.user, "CREAR", objeto)
+    def create(self, request, *args, **kwargs):
+        """Crea el usuario y devuelve la respuesta con `UserReadSerializer` incluyendo
+        `password_generada` en texto claro (solo en la respuesta del POST). (T-21)
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        registrar_auditoria(request.user, "CREAR", user)
+        return Response(UserReadSerializer(user).data, status=status.HTTP_201_CREATED)
 
     @transaction.atomic
     def perform_update(self, serializer):
@@ -460,7 +498,9 @@ class TwoFactorVerifyView(APIView):
         # Generar el par JWT completo con los mismos claims que el login normal.
         refresh = RefreshToken.for_user(user)
         # Agregar los claims personalizados del proyecto (igual que CustomTokenObtainPairSerializer).
-        refresh["nombre"] = user.get_full_name() or user.get_username()
+        # Usamos _nombre_usuario para componer el nombre con apellidos cuando hay UserProfile (T-18).
+        nombre = _nombre_usuario(user)
+        refresh["nombre"] = nombre
         refresh["grupos"] = list(user.groups.values_list("name", flat=True))
         refresh["es_superusuario"] = user.is_superuser
         refresh["debe_cambiar_password"] = _debe_cambiar_password(user)
@@ -473,7 +513,7 @@ class TwoFactorVerifyView(APIView):
             "refresh": refresh_token,
             "access_token": access_token,
             "token_type": "bearer",
-            "nombre": user.get_full_name() or user.get_username(),
+            "nombre": nombre,
             "grupos": list(user.groups.values_list("name", flat=True)),
             "es_superusuario": user.is_superuser,
             "debe_cambiar_password": _debe_cambiar_password(user),
@@ -665,3 +705,79 @@ class TwoFactorDisableView(APIView):
             request.user,
         )
         return Response({"detalle": "Doble factor desactivado."}, status=status.HTTP_200_OK)
+
+
+# ---------------------------------------------------------------------------
+# Vistas de "olvidé mi contraseña" (T-22, T-23)
+# ---------------------------------------------------------------------------
+
+
+class PasswordResetRequestView(APIView):
+    """Solicita el restablecimiento de contraseña enviando un OTP por correo (T-22).
+
+    Siempre devuelve 200 para no revelar si el usuario existe (prevención de
+    enumeración de usuarios). Devuelve 429 si el rate-limit de reenvío está activo.
+    Accesible sin autenticación (``AllowAny``).
+    """
+
+    permission_classes = [AllowAny]
+    serializer_class = PasswordResetRequestSerializer
+
+    def post(self, request):
+        from rest_framework.exceptions import ValidationError as DRFValidationError
+
+        ser = PasswordResetRequestSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+
+        try:
+            solicitar_reset_password(ser.validated_data["username"])
+        except DRFValidationError as exc:
+            return Response(
+                {"detalle": exc.detail[0] if exc.detail else "Error de validación."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        return Response(
+            {
+                "detalle": (
+                    "Si el usuario existe y tiene correo registrado, "
+                    "recibirá un código de verificación."
+                )
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class PasswordResetConfirmView(APIView):
+    """Confirma el restablecimiento de contraseña validando el OTP y la nueva contraseña (T-23).
+
+    Devuelve 400 si el OTP no es válido o la contraseña no cumple los requisitos.
+    Devuelve 200 si el restablecimiento es exitoso.
+    Accesible sin autenticación (``AllowAny``).
+    """
+
+    permission_classes = [AllowAny]
+    serializer_class = PasswordResetConfirmSerializer
+
+    def post(self, request):
+        from rest_framework.exceptions import ValidationError as DRFValidationError
+
+        ser = PasswordResetConfirmSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+
+        try:
+            confirmar_reset_password(
+                ser.validated_data["username"],
+                ser.validated_data["otp_code"],
+                ser.validated_data["password_nueva"],
+            )
+        except DRFValidationError as exc:
+            return Response(
+                {"detalle": exc.detail},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(
+            {"detalle": "Contraseña actualizada correctamente. Ya puedes iniciar sesión."},
+            status=status.HTTP_200_OK,
+        )
