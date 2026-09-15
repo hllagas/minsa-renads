@@ -32,6 +32,14 @@ export function useUniversityGate(
   const [picked, setPicked] = useState<number | null>(initialValue ?? null);
   const universidad = singleId ?? picked;
 
+  const singleUnivQuery = useQuery({
+    queryKey: ["universities", singleId],
+    queryFn: () =>
+      api.get<WithId>(`/universities/${singleId}/`).then((r) => r.data),
+    enabled: singleId != null,
+    staleTime: 10 * 60_000,
+  });
+
   const gateUI = (
     <div className="grid gap-1.5 max-w-md">
       <Label className="flex items-center gap-2 text-sm font-medium">
@@ -41,7 +49,14 @@ export function useUniversityGate(
         {stepLabel}
       </Label>
       {singleId != null ? (
-        <p className="text-sm text-muted-foreground">Acotado a tu universidad autorizada.</p>
+        <div>
+          <p className="text-sm font-medium">
+            {singleUnivQuery.isLoading
+              ? "Cargando…"
+              : String(singleUnivQuery.data?.nombre ?? singleUnivQuery.data?.siglas ?? singleId)}
+          </p>
+          <p className="text-xs text-muted-foreground">Acotado a tu universidad autorizada.</p>
+        </div>
       ) : scoped ? (
         <ScopedUniversitySelect ids={ids} value={picked} onChange={setPicked} />
       ) : (

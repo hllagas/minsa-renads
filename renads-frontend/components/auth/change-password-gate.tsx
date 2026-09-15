@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { EyeIcon, EyeOffIcon } from "lucide-react";
 
 import { useAuthStore } from "@/lib/auth/store";
 import { useChangePassword } from "@/lib/auth/hooks";
@@ -30,6 +31,9 @@ export function ChangePasswordGate() {
   const [actual, setActual] = useState("");
   const [nueva, setNueva] = useState("");
   const [confirma, setConfirma] = useState("");
+  const [showActual, setShowActual] = useState(false);
+  const [showNueva, setShowNueva] = useState(false);
+  const [showConfirma, setShowConfirma] = useState(false);
 
   if (!user?.debe_cambiar_password) return null;
 
@@ -65,39 +69,75 @@ export function ChangePasswordGate() {
         <form className="grid gap-4" onSubmit={onSubmit}>
           <div className="grid gap-2">
             <Label htmlFor="pwd-actual">Contraseña actual (temporal)</Label>
-            <Input
-              id="pwd-actual"
-              type="password"
-              autoComplete="current-password"
-              value={actual}
-              onChange={(e) => setActual(e.target.value)}
-              required
-              disabled={changeM.isPending}
-            />
+            <div className="relative">
+              <Input
+                id="pwd-actual"
+                type={showActual ? "text" : "password"}
+                autoComplete="current-password"
+                value={actual}
+                onChange={(e) => setActual(e.target.value)}
+                required
+                disabled={changeM.isPending}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                aria-label={showActual ? "Ocultar contraseña" : "Mostrar contraseña"}
+                aria-pressed={showActual}
+                className="absolute top-1/2 right-2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                onClick={() => setShowActual((v) => !v)}
+              >
+                {showActual ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
           <div className="grid gap-2">
             <Label htmlFor="pwd-nueva">Nueva contraseña</Label>
-            <Input
-              id="pwd-nueva"
-              type="password"
-              autoComplete="new-password"
-              value={nueva}
-              onChange={(e) => setNueva(e.target.value)}
-              required
-              disabled={changeM.isPending}
-            />
+            <div className="relative">
+              <Input
+                id="pwd-nueva"
+                type={showNueva ? "text" : "password"}
+                autoComplete="new-password"
+                value={nueva}
+                onChange={(e) => setNueva(e.target.value)}
+                required
+                disabled={changeM.isPending}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                aria-label={showNueva ? "Ocultar contraseña" : "Mostrar contraseña"}
+                aria-pressed={showNueva}
+                className="absolute top-1/2 right-2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                onClick={() => setShowNueva((v) => !v)}
+              >
+                {showNueva ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
           <div className="grid gap-2">
             <Label htmlFor="pwd-confirma">Confirmar nueva contraseña</Label>
-            <Input
-              id="pwd-confirma"
-              type="password"
-              autoComplete="new-password"
-              value={confirma}
-              onChange={(e) => setConfirma(e.target.value)}
-              required
-              disabled={changeM.isPending}
-            />
+            <div className="relative">
+              <Input
+                id="pwd-confirma"
+                type={showConfirma ? "text" : "password"}
+                autoComplete="new-password"
+                value={confirma}
+                onChange={(e) => setConfirma(e.target.value)}
+                required
+                disabled={changeM.isPending}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                aria-label={showConfirma ? "Ocultar contraseña" : "Mostrar contraseña"}
+                aria-pressed={showConfirma}
+                className="absolute top-1/2 right-2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                onClick={() => setShowConfirma((v) => !v)}
+              >
+                {showConfirma ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
 
           <DialogFooter>

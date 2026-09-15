@@ -249,6 +249,9 @@ class UserViewSet(viewsets.ModelViewSet):
         ser.is_valid(raise_exception=True)
         usuario.set_password(ser.validated_data["password"])
         usuario.save(update_fields=["password"])
+        seguridad, _ = UserSecurity.objects.get_or_create(usuario=usuario)
+        seguridad.password_changed_at = timezone.now()
+        seguridad.save(update_fields=["password_changed_at", "actualizado_en"])
         registrar_auditoria(request.user, "ACTUALIZAR", usuario, nombre_campo="password")
         return Response({"detalle": "Contraseña actualizada."})
 

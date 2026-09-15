@@ -138,7 +138,10 @@ export default function LoginPage() {
   // ── Handlers ────────────────────────────────────────────────────────────────
   function onLogin(values: LoginValues) {
     login(values, {
-      onError: () => toast.error("Credenciales inválidas. Verifica usuario y contraseña."),
+      onError: (err: unknown) => {
+        const msg = extractApiError(err);
+        toast.error(msg || "Credenciales inválidas. Verifica usuario y contraseña.");
+      },
     });
   }
 

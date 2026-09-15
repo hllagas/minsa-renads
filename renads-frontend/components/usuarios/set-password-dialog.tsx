@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { EyeIcon, EyeOffIcon } from "lucide-react";
 
 import type { User } from "@/lib/usuarios/types";
 import { useSetPassword } from "@/lib/usuarios/hooks";
@@ -62,6 +63,8 @@ function SetPasswordForm({
 }) {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const setPasswordM = useSetPassword();
 
@@ -92,25 +95,49 @@ function SetPasswordForm({
     <form onSubmit={onSubmit} className="grid gap-4">
       <div className="grid gap-1.5">
         <Label htmlFor="set-password-new">Nueva contraseña *</Label>
-        <Input
-          id="set-password-new"
-          type="password"
-          autoComplete="new-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          aria-invalid={!!error}
-        />
+        <div className="relative">
+          <Input
+            id="set-password-new"
+            type={showPassword ? "text" : "password"}
+            autoComplete="new-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            aria-invalid={!!error}
+            className="pr-10"
+          />
+          <button
+            type="button"
+            aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+            aria-pressed={showPassword}
+            className="absolute top-1/2 right-2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={() => setShowPassword((v) => !v)}
+          >
+            {showPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+          </button>
+        </div>
       </div>
       <div className="grid gap-1.5">
         <Label htmlFor="set-password-confirm">Confirmar contraseña *</Label>
-        <Input
-          id="set-password-confirm"
-          type="password"
-          autoComplete="new-password"
-          value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
-          aria-invalid={!!error}
-        />
+        <div className="relative">
+          <Input
+            id="set-password-confirm"
+            type={showConfirm ? "text" : "password"}
+            autoComplete="new-password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            aria-invalid={!!error}
+            className="pr-10"
+          />
+          <button
+            type="button"
+            aria-label={showConfirm ? "Ocultar contraseña" : "Mostrar contraseña"}
+            aria-pressed={showConfirm}
+            className="absolute top-1/2 right-2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={() => setShowConfirm((v) => !v)}
+          >
+            {showConfirm ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+          </button>
+        </div>
       </div>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       <DialogFooter>
