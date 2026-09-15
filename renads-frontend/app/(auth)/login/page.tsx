@@ -27,6 +27,29 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
+// ─── Tema fijo: light-mode vars para el panel izquierdo ──────────────────────
+const LIGHT_PANEL_VARS: React.CSSProperties = {
+  color: "#0f172a",
+  ["--background" as string]: "#eff6ff",
+  ["--foreground" as string]: "#0f172a",
+  ["--card" as string]: "#ffffff",
+  ["--card-foreground" as string]: "#0f172a",
+  ["--popover" as string]: "#ffffff",
+  ["--popover-foreground" as string]: "#0f172a",
+  ["--primary" as string]: "#2563eb",
+  ["--primary-foreground" as string]: "#ffffff",
+  ["--secondary" as string]: "#3b82f6",
+  ["--secondary-foreground" as string]: "#ffffff",
+  ["--muted" as string]: "oklch(0.968 0.007 247)",
+  ["--muted-foreground" as string]: "oklch(0.45 0.03 250)",
+  ["--accent" as string]: "oklch(0.968 0.007 247)",
+  ["--accent-foreground" as string]: "#0f172a",
+  ["--field" as string]: "#f1f5f9",
+  ["--input" as string]: "#cbd5e1",
+  ["--border" as string]: "oklch(0.9 0.02 247)",
+  ["--ring" as string]: "#2563eb",
+};
+
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
 const loginSchema = z.object({
@@ -68,6 +91,7 @@ export default function LoginPage() {
   const [resetUsername, setResetUsername] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     if (accessToken) router.replace("/inicio");
@@ -154,8 +178,12 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-dvh">
-      {/* ── Panel izquierdo ── */}
-      <div className="flex w-full flex-col items-center justify-center bg-white px-8 py-12 sm:px-12 lg:w-[44%] lg:px-16 xl:px-24">
+      {/* ── Panel izquierdo ── forzamos vars de light mode para que inputs/botones
+          sean legibles independientemente del tema del sistema operativo. */}
+      <div
+        className="flex w-full flex-col items-center justify-center bg-white px-8 py-12 sm:px-12 lg:w-[44%] lg:px-16 xl:px-24"
+        style={LIGHT_PANEL_VARS}
+      >
         <div className="w-full max-w-sm">
           {/* Logo */}
           <div className="mb-8 flex justify-center">
@@ -366,13 +394,27 @@ export default function LoginPage() {
                     <FormItem>
                       <FormLabel className="text-gray-700">Confirmar contraseña</FormLabel>
                       <FormControl>
-                        <Input
-                          type={showNewPassword ? "text" : "password"}
-                          autoComplete="new-password"
-                          placeholder="Repite la nueva contraseña"
-                          className="h-10"
-                          {...field}
-                        />
+                        <div className="relative">
+                          <Input
+                            type={showConfirmPassword ? "text" : "password"}
+                            autoComplete="new-password"
+                            placeholder="Repite la nueva contraseña"
+                            className="h-10 pr-10"
+                            {...field}
+                          />
+                          <button
+                            type="button"
+                            aria-label={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                            className="absolute top-1/2 right-2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            onClick={() => setShowConfirmPassword((v) => !v)}
+                          >
+                            {showConfirmPassword ? (
+                              <EyeOffIcon className="h-4 w-4" />
+                            ) : (
+                              <EyeIcon className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>

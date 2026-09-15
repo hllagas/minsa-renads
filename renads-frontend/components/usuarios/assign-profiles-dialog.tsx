@@ -52,14 +52,16 @@ export function AssignProfilesDialog({
         if (!open) onClose();
       }}
     >
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[90dvh] flex-col sm:max-w-2xl">
+        <DialogHeader className="shrink-0">
           <DialogTitle>Asignar entidades</DialogTitle>
           <DialogDescription>
             {user ? `Alcance institucional de: ${user.username}` : null}
           </DialogDescription>
         </DialogHeader>
-        {user ? <AssignProfilesBody key={user.id} user={user} /> : null}
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+          {user ? <AssignProfilesBody key={user.id} user={user} /> : null}
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -326,7 +328,7 @@ function AssignProfilesBody({ user }: { user: User }) {
 
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-        <DialogFooter>
+        <DialogFooter className="sticky bottom-0 pt-2">
           <Button type="submit" disabled={assignM.isPending || !hasRoles}>
             {assignM.isPending
               ? "Guardando…"

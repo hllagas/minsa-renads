@@ -21,6 +21,28 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
+const LIGHT_PANEL_VARS: React.CSSProperties = {
+  color: "#0f172a",
+  ["--background" as string]: "#eff6ff",
+  ["--foreground" as string]: "#0f172a",
+  ["--card" as string]: "#ffffff",
+  ["--card-foreground" as string]: "#0f172a",
+  ["--popover" as string]: "#ffffff",
+  ["--popover-foreground" as string]: "#0f172a",
+  ["--primary" as string]: "#2563eb",
+  ["--primary-foreground" as string]: "#ffffff",
+  ["--secondary" as string]: "#3b82f6",
+  ["--secondary-foreground" as string]: "#ffffff",
+  ["--muted" as string]: "oklch(0.968 0.007 247)",
+  ["--muted-foreground" as string]: "oklch(0.45 0.03 250)",
+  ["--accent" as string]: "oklch(0.968 0.007 247)",
+  ["--accent-foreground" as string]: "#0f172a",
+  ["--field" as string]: "#f1f5f9",
+  ["--input" as string]: "#cbd5e1",
+  ["--border" as string]: "oklch(0.9 0.02 247)",
+  ["--ring" as string]: "#2563eb",
+};
+
 const otpSchema = z.object({
   otp_code: z
     .string()
@@ -64,7 +86,10 @@ export default function TwoFactorPage() {
   return (
     <div className="flex min-h-dvh">
       {/* ── Panel izquierdo ── */}
-      <div className="flex w-full flex-col items-center justify-center bg-white px-8 py-12 sm:px-12 lg:w-[44%] lg:px-16 xl:px-24">
+      <div
+        className="flex w-full flex-col items-center justify-center bg-white px-8 py-12 sm:px-12 lg:w-[44%] lg:px-16 xl:px-24"
+        style={LIGHT_PANEL_VARS}
+      >
         <div className="w-full max-w-sm">
           {/* Logo */}
           <div className="mb-8 flex justify-center">
