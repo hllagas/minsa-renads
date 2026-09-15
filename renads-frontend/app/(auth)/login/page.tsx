@@ -221,7 +221,7 @@ export default function LoginPage() {
           {/* ─── Vista: login ─── */}
           {view === "login" && (
             <Form {...loginForm}>
-              <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
+              <form onSubmit={loginForm.handleSubmit(onLogin)} method="POST" className="space-y-4">
                 <FormField
                   control={loginForm.control}
                   name="username"
@@ -298,7 +298,7 @@ export default function LoginPage() {
           {/* ─── Vista: solicitar código ─── */}
           {view === "forgot-request" && (
             <Form {...forgotRequestForm}>
-              <form onSubmit={forgotRequestForm.handleSubmit(onForgotRequest)} className="space-y-4">
+              <form onSubmit={forgotRequestForm.handleSubmit(onForgotRequest)} method="POST" className="space-y-4">
                 <FormField
                   control={forgotRequestForm.control}
                   name="username"
@@ -332,7 +332,7 @@ export default function LoginPage() {
           {/* ─── Vista: confirmar OTP + nueva contraseña ─── */}
           {view === "forgot-confirm" && (
             <Form {...forgotConfirmForm}>
-              <form onSubmit={forgotConfirmForm.handleSubmit(onForgotConfirm)} className="space-y-4">
+              <form onSubmit={forgotConfirmForm.handleSubmit(onForgotConfirm)} method="POST" className="space-y-4">
                 <FormField
                   control={forgotConfirmForm.control}
                   name="otp_code"
