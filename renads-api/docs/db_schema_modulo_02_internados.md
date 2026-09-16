@@ -138,7 +138,7 @@ Re-subir el mismo anexo a la misma entidad genera una nueva versión del
 | `carrera_profesional_id` | FK → `carrera_profesional` | No | Carrera / programa |
 | `periodo_internado_id` | FK → `periodo_internado` | Sí | Periodo de internado (obligatorio para nivel `PREGRADO` — RN-19; PROTECT) |
 | `especialidad_id` | FK → `especialidad` | Sí | Especialidad (obligatoria para niveles distintos de `PREGRADO` — RN-19; SET_NULL) |
-| `nota_promedio_ponderado` | decimal(4,2) | Sí | Nota promedio ponderado (escala 0–20) |
+| `nota_promedio_ponderado` | decimal(6,4) | Sí | Nota promedio ponderado (escala 0–20, 4 decimales) |
 | `contacto_emergencia_nombre` | varchar(255) | Sí | Nombre del contacto de emergencia |
 | `contacto_emergencia_telefono` | varchar(30) | Sí | Teléfono del contacto de emergencia |
 | `contacto_emergencia_parentesco_id` | FK → `parentesco` (PROTECT) | Sí | Parentesco del contacto de emergencia |

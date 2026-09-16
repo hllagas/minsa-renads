@@ -6,6 +6,8 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from django.http import HttpResponse
+
 from django.contrib.contenttypes.models import ContentType
 from django.shortcuts import get_object_or_404
 
@@ -38,6 +40,35 @@ from apps.internados.serializers import (
     RotationStatusHistorySerializer,
     RotationWriteSerializer,
 )
+
+
+def _derivar_universidad_del_usuario(usuario) -> University:
+    """Deriva la universidad del perfil institucional del usuario para la carga masiva.
+
+    Si el usuario pertenece a exactamente una universidad, la devuelve.
+    Si tiene más de una o ninguna, lanza ValidationError pidiendo que la especifique.
+    """
+    from rest_framework.exceptions import ValidationError as DRFValidationError
+    from apps.convenios.models import UserEntityProfile
+
+    ct_uni = ContentType.objects.get_for_model(University)
+    ids_objeto = list(
+        UserEntityProfile.objects.filter(
+            usuario=usuario, tipo_contenido=ct_uni, activo=True
+        ).values_list("id_objeto", flat=True)
+    )
+    if len(ids_objeto) == 1:
+        try:
+            return University.objects.get(pk=int(ids_objeto[0]))
+        except (University.DoesNotExist, ValueError):
+            pass
+    if len(ids_objeto) > 1:
+        raise DRFValidationError(
+            {"universidad_id": "El usuario pertenece a más de una universidad; indique universidad_id explícitamente."}
+        )
+    raise DRFValidationError(
+        {"universidad_id": "No se pudo determinar la universidad del usuario; indique universidad_id explícitamente."}
+    )
 
 
 class InternshipViewSet(AnnexAttachmentMixin, viewsets.ModelViewSet):
@@ -263,15 +294,44 @@ class StudentViewSet(AuditedModelViewSet):
     def bulk_upload(self, request):
         """Carga masiva de estudiantes desde un Excel (.xlsx) — RN-16.
 
-        Escritura por rol Universidad/Administrador (misma política que el CRUD).
-        El alcance institucional se valida por fila. Devuelve el resumen de la carga.
+        `universidad_id` es opcional en el cuerpo: si no se envía se deriva del perfil
+        institucional del usuario. Si el usuario pertenece a más de una universidad debe
+        especificarla explícitamente.
         """
         ser = StudentBulkUploadSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
+
+        universidad = ser.validated_data.get("universidad_id")
+        if universidad is None:
+            universidad = _derivar_universidad_del_usuario(request.user)
+
         resumen = services.registrar_estudiantes_masivo(
-            archivo=ser.validated_data["archivo"], usuario=request.user
+            archivo=ser.validated_data["archivo"],
+            usuario=request.user,
+            universidad=universidad,
+            periodo_internado=ser.validated_data.get("periodo_internado_id"),
         )
         return Response(resumen, status=200)
+
+    @action(detail=False, methods=["get"], url_path="bulk-template")
+    def bulk_template(self, request):
+        """Descarga la plantilla Excel de carga masiva según nivel académico.
+
+        Parámetro de query ``nivel_academico=PREGRADO`` (por defecto) genera la trama
+        con la columna ``carrera_profesional``. Cualquier otro valor genera la trama
+        con la columna ``especialidad`` (segunda especialidad, maestría, doctorado).
+        """
+        nivel = request.query_params.get("nivel_academico", "PREGRADO")
+        es_pregrado = nivel.upper() == "PREGRADO"
+        datos = services.generar_trama_excel(es_pregrado=es_pregrado)
+        sufijo = "PREGRADO" if es_pregrado else "noPREGRADO"
+        nombre_archivo = f"TramaCargaMasivaEstudiantes_{sufijo}.xlsx"
+        respuesta = HttpResponse(
+            datos,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        respuesta["Content-Disposition"] = f'attachment; filename="{nombre_archivo}"'
+        return respuesta
 
 
 class TutorViewSet(AuditedModelViewSet):

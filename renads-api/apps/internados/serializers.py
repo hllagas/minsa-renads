@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from apps.convenios.models import Convention, Ipress, University
+from apps.internados.models import InternshipPeriod
 from apps.internados import services
 from apps.internados.models import (
     Student,
@@ -79,9 +80,26 @@ class StudentSerializer(serializers.ModelSerializer):
 
 
 class StudentBulkUploadSerializer(serializers.Serializer):
-    """Entrada de la carga masiva de estudiantes (RN-16): archivo Excel `.xlsx`."""
+    """Entrada de la carga masiva de estudiantes (RN-16): archivo Excel `.xlsx`.
+
+    `universidad_id` es opcional: si no se envía, la vista lo deriva del perfil
+    institucional del usuario (válido cuando el usuario pertenece a una sola universidad).
+    `periodo_internado_id` aplica solo a filas PREGRADO; se ignora en las demás.
+    """
 
     archivo = serializers.FileField(help_text="Archivo Excel (.xlsx) con los estudiantes a registrar")
+    universidad_id = serializers.PrimaryKeyRelatedField(
+        queryset=University.objects.all(),
+        required=False,
+        allow_null=True,
+        help_text="Universidad que aplica a todos los estudiantes del archivo. Si no se envía, se deriva del perfil del usuario.",
+    )
+    periodo_internado_id = serializers.PrimaryKeyRelatedField(
+        queryset=InternshipPeriod.objects.all(),
+        required=False,
+        allow_null=True,
+        help_text="Periodo de internado (solo para estudiantes PREGRADO); opcional",
+    )
 
 
 class TutorSerializer(serializers.ModelSerializer):

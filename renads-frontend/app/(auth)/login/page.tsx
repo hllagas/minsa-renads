@@ -246,16 +246,7 @@ export default function LoginPage() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <div className="flex items-center justify-between">
-                        <FormLabel className="text-gray-700">Contraseña</FormLabel>
-                        <button
-                          type="button"
-                          className="text-xs text-primary hover:underline"
-                          onClick={() => setView("forgot-request")}
-                        >
-                          ¿Olvidaste tu contraseña?
-                        </button>
-                      </div>
+                      <FormLabel className="text-gray-700">Contraseña</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Input
@@ -281,6 +272,15 @@ export default function LoginPage() {
                         </div>
                       </FormControl>
                       <FormMessage />
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          className="text-xs text-primary hover:underline"
+                          onClick={() => setView("forgot-request")}
+                        >
+                          ¿Olvidaste tu contraseña?
+                        </button>
+                      </div>
                     </FormItem>
                   )}
                 />

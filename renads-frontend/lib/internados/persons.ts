@@ -61,17 +61,18 @@ export function buildStudentsConfig(
     { name: "numero_documento", label: "Número de documento", type: "text", required: true, uppercase: false, docNumberFor: "tipo_documento_identidad" },
     { name: "nombres", label: "Nombres", type: "text", required: true, uppercase: true },
     { name: "apellido_paterno", label: "Apellido paterno", type: "text", required: true, uppercase: true },
-    { name: "apellido_materno", label: "Apellido materno", type: "text", uppercase: true },
+    { name: "apellido_materno", label: "Apellido materno", type: "text", required: true, uppercase: true },
     {
       name: "sexo",
       label: "Sexo",
       type: "select",
+      required: true,
       choices: [
         { value: "M", label: "Masculino" },
         { value: "F", label: "Femenino" },
       ],
     },
-    { name: "fecha_nacimiento", label: "Fecha de nacimiento", type: "date" },
+    { name: "fecha_nacimiento", label: "Fecha de nacimiento", type: "date", required: true },
 
     { name: "_s2", label: "Datos académicos", type: "separator" },
     // `universidad` la fija la vista principal (fixedValues); queda oculta del form.
@@ -91,6 +92,7 @@ export function buildStudentsConfig(
             name: "carrera_profesional",
             label: "Carrera profesional",
             type: "select",
+            required: true,
             optionsEndpoint: "professional-careers",
             optionsParams:
               pregradoId != null ? { nivel_academico: String(pregradoId) } : undefined,
@@ -101,6 +103,7 @@ export function buildStudentsConfig(
             name: "especialidad",
             label: "Especialidad",
             type: "select",
+            required: true,
             optionsEndpoint: "specialties",
           } as FieldConfig,
         ]),
@@ -108,21 +111,23 @@ export function buildStudentsConfig(
     // el período se inyecta desde la vista principal vía `fixedValues`; el código universitario se quitó del modelo.
     {
       name: "nota_promedio_ponderado",
-      label: "Promedio ponderado promocional (##.999)",
+      label: "Promedio ponderado promocional (##.9999)",
       type: "number",
+      required: true,
       min: 0,
       max: 20,
-      decimals: 3,
+      decimals: 4,
     },
 
     { name: "_s3", label: "Contacto", type: "separator" },
-    { name: "correo", label: "Correo personal", type: "email" },
-    { name: "telefono", label: "Teléfono", type: "text", uppercase: false, numericOnly: true },
-    { name: "direccion", label: "Dirección", type: "text", uppercase: true },
+    { name: "correo", label: "Correo personal", type: "email", required: true },
+    { name: "telefono", label: "Teléfono", type: "text", required: true, uppercase: false, numericOnly: true },
+    { name: "direccion", label: "Dirección", type: "text", required: true, uppercase: true },
     {
       name: "ubigeo",
       label: "Ubigeo",
       type: "select",
+      required: true,
       optionsEndpoint: "ubigeos",
       optionsValueKey: "codigo", // PK textual (mig 0048-0049)
       optionsSearchable: true,
@@ -134,12 +139,13 @@ export function buildStudentsConfig(
 
     // Contacto de emergencia — vive en el estudiante desde la mig 0025 (2026-09-09; antes en el internado).
     { name: "_s4", label: "Contacto de emergencia", type: "separator" },
-    { name: "contacto_emergencia_nombre", label: "Nombre", type: "text", uppercase: true },
-    { name: "contacto_emergencia_telefono", label: "Teléfono", type: "text", uppercase: false, numericOnly: true },
+    { name: "contacto_emergencia_nombre", label: "Nombre", type: "text", required: true, uppercase: true },
+    { name: "contacto_emergencia_telefono", label: "Teléfono", type: "text", required: true, uppercase: false, numericOnly: true },
     {
       name: "contacto_emergencia_parentesco",
       label: "Parentesco",
       type: "select",
+      required: true,
       optionsEndpoint: "relationship-types",
     },
 

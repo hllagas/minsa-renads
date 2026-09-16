@@ -5,6 +5,7 @@ from django.contrib.auth.models import Group, Permission, User
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError as DjangoValidationError
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -280,8 +281,14 @@ def _executive_position_queryset():
     return ExecutivePosition.objects.all()
 
 
+@extend_schema_field(field={"type": "integer"})
 class _LazyPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
-    """``PrimaryKeyRelatedField`` que acepta un callable como queryset."""
+    """``PrimaryKeyRelatedField`` que acepta un callable como queryset.
+
+    El decorator ``@extend_schema_field`` indica a drf-spectacular que trate el
+    campo como entero (PK) y omita la introspección de ``field.queryset``, que
+    contiene una lista dummy ``[]`` para evitar el assert de DRF en ``__init__``.
+    """
 
     def __init__(self, queryset_fn, **kwargs):
         self._queryset_fn = queryset_fn

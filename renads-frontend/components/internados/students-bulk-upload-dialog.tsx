@@ -8,6 +8,8 @@ import {
   type StudentBulkUploadResult,
 } from "@/lib/internados/hooks";
 import { extractApiError } from "@/lib/api/errors";
+import { DownloadIcon } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -89,6 +91,35 @@ export function StudentsBulkUploadDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {/* ── Descargar formato ── */}
+        <div className="rounded-md border bg-muted/40 p-4">
+          <p className="mb-3 text-sm font-medium">1. Descarga el formato correspondiente al nivel académico</p>
+          <div className="flex flex-wrap gap-2">
+            <a
+              href="/TramaCargaMasivaEstudiantes_PREGRADO.xlsx"
+              download
+              className="inline-flex"
+            >
+              <Button type="button" variant="outline" size="sm" className="gap-2">
+                <DownloadIcon className="h-4 w-4" />
+                Trama Pregrado
+              </Button>
+            </a>
+            <a
+              href="/TramaCargaMasivaEstudiantes_noPREGRADO.xlsx"
+              download
+              className="inline-flex"
+            >
+              <Button type="button" variant="outline" size="sm" className="gap-2">
+                <DownloadIcon className="h-4 w-4" />
+                Trama Posgrado / Especialidad
+              </Button>
+            </a>
+          </div>
+        </div>
+
+        <hr className="border-border" />
+
         {scoped ? (
           <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
             Tu acceso está acotado a tus universidades autorizadas. Las filas cuya
@@ -98,6 +129,7 @@ export function StudentsBulkUploadDialog({
         ) : null}
 
         <div className="grid gap-2">
+          <p className="text-sm font-medium">2. Completa la trama y súbela aquí</p>
           <Label htmlFor="students-bulk-file">Archivo (.xlsx) *</Label>
           <Input
             id="students-bulk-file"

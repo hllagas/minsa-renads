@@ -119,23 +119,18 @@ def eliminar_tutor_convenio(*, tutor_convenio: TutorConvenio, usuario) -> None:
 
 # Columnas requeridas del Excel de carga masiva de estudiantes (RN-16, §6 bis schema M2).
 # Se expresan con la clave canónica interna (ver CARGA_ALIAS_COLUMNAS).
+# Columnas base requeridas (siempre). El campo de nivel (carrera_profesional o
+# especialidad) se detecta dinámicamente del encabezado — ver registrar_estudiantes_masivo.
 CARGA_COLUMNAS_REQUERIDAS = {
     "tipo_documento", "numero_documento", "nombres", "apellido_paterno",
-    "universidad", "carrera_profesional",
 }
 
-# Alias de encabezados del Excel → clave canónica interna. Permite adoptar la
-# estructura de la trama oficial `TramaCargaEstudiante.xlsx` (encabezados con
-# sufijo `_id`) manteniendo compatibilidad con los nombres históricos. Cada valor
-# de esas columnas puede seguir siendo un id numérico o un código (los resolvers
-# aceptan ambos). Todo encabezado no listado se usa tal cual (identidad).
+# Alias de encabezados del Excel → clave canónica interna.
+# `universidad` y `periodo_internado` ya no vienen en el Excel: se reciben como
+# parámetros fijos del endpoint (tomados de los filtros de la UI).
+# `ubigeo` se reemplazó por los tres campos: departamento / provincia / distrito.
 CARGA_ALIAS_COLUMNAS = {
     "tipo_documento_identidad_id": "tipo_documento",
-    "ubigeo_id": "ubigeo",
-    "universidad_id": "universidad",
-    "carrera_profesional_id": "carrera_profesional",
-    "periodo_internado_id": "periodo_internado",
-    "especialidad_id": "especialidad",
     "contacto_emergencia_parentesco_id": "contacto_emergencia_parentesco",
 }
 
@@ -673,10 +668,14 @@ def _parse_fecha(valor):
         return valor.date()
     if isinstance(valor, datetime.date):
         return valor
-    try:
-        return datetime.date.fromisoformat(str(valor).strip()[:10])
-    except ValueError as exc:
-        raise ValidationError("Fecha inválida (use YYYY-MM-DD).") from exc
+    texto = str(valor).strip()
+    # Soporta dd/mm/yyyy (formato de la trama) e ISO yyyy-mm-dd.
+    for fmt in ("%d/%m/%Y", "%Y-%m-%d"):
+        try:
+            return datetime.datetime.strptime(texto[:10], fmt).date()
+        except ValueError:
+            continue
+    raise ValidationError("Fecha inválida (use dd/mm/yyyy o YYYY-MM-DD).")
 
 
 def _resolver_universidad(valor):
@@ -746,7 +745,7 @@ def _resolver_especialidad(valor):
     if valor is None:
         return None
     texto = str(valor).strip()
-    # La columna `especialidad_id` de la trama admite id o el código de especialidad.
+    # Acepta id numérico, código o nombre (iexact) de la especialidad.
     if texto.isdigit():
         try:
             return Specialty.objects.get(id=int(texto))
@@ -754,8 +753,14 @@ def _resolver_especialidad(valor):
             pass
     try:
         return Specialty.objects.get(codigo=texto)
+    except Specialty.DoesNotExist:
+        pass
+    try:
+        return Specialty.objects.get(nombre__iexact=texto)
     except Specialty.DoesNotExist as exc:
         raise ValidationError(f"Especialidad no encontrada: {texto}.") from exc
+    except Specialty.MultipleObjectsReturned as exc:
+        raise ValidationError(f"Especialidad ambigua (use el código): {texto}.") from exc
 
 
 def _resolver_parentesco(valor):
@@ -773,7 +778,58 @@ def _resolver_parentesco(valor):
         raise ValidationError(f"Parentesco no encontrado: {valor}. Valores válidos: PADRE, MADRE, HERMANO, CONYUGE, HIJO, ABUELO, TIO, OTRO.") from exc
 
 
-def _crear_estudiante_desde_fila(*, obtener, usuario, ct_uni, es_admin) -> Student:
+def _resolver_ubigeo_por_partes(departamento, provincia, distrito):
+    """Resuelve el Ubigeo desde los tres campos de la trama (departamento/provincia/distrito)."""
+    valores = (departamento, provincia, distrito)
+    if all(v is None for v in valores):
+        return None
+    if any(v is None for v in valores):
+        raise ValidationError(
+            "Para registrar la ubicación se requieren los tres campos: departamento, provincia y distrito."
+        )
+    try:
+        return Ubigeo.objects.get(
+            departamento__iexact=str(departamento).strip(),
+            provincia__iexact=str(provincia).strip(),
+            distrito__iexact=str(distrito).strip(),
+        )
+    except Ubigeo.DoesNotExist as exc:
+        raise ValidationError(
+            f"Ubigeo no encontrado: {departamento} / {provincia} / {distrito}. "
+            "Verifique los nombres exactos de departamento, provincia y distrito."
+        ) from exc
+    except Ubigeo.MultipleObjectsReturned as exc:
+        raise ValidationError(
+            f"Ubigeo ambiguo: {departamento} / {provincia} / {distrito}. "
+            "Ingrese el nombre de distrito más específico."
+        ) from exc
+
+
+def _resolver_carrera_no_pregrado(especialidad_texto: str) -> "ProfessionalCareer":
+    """Resuelve la carrera profesional de un estudiante no-PREGRADO por el nombre de su especialidad.
+
+    Para nivel no-PREGRADO (segunda especialidad, maestría, doctorado) la trama solo
+    pide `especialidad`; la carrera profesional se deriva por nombre coincidente en el
+    catálogo de carreras excluyendo el nivel PREGRADO.
+    """
+    qs = ProfessionalCareer.objects.exclude(nivel_academico__codigo="PREGRADO")
+    try:
+        return qs.get(nombre__iexact=especialidad_texto)
+    except ProfessionalCareer.DoesNotExist as exc:
+        raise ValidationError(
+            f"No se encontró carrera profesional para la especialidad '{especialidad_texto}'. "
+            "Verifique que exista una carrera del nivel correspondiente con ese nombre exacto."
+        ) from exc
+    except ProfessionalCareer.MultipleObjectsReturned as exc:
+        raise ValidationError(
+            f"Carrera ambigua para la especialidad '{especialidad_texto}'. "
+            "Contacte al administrador para definir la carrera correcta."
+        ) from exc
+
+
+def _crear_estudiante_desde_fila(
+    *, obtener, usuario, universidad, periodo_internado, ct_uni, es_admin, es_pregrado_trama: bool
+) -> Student:
     tipo_doc_codigo = obtener("tipo_documento")
     numero_documento = obtener("numero_documento")
     nombres = obtener("nombres")
@@ -792,32 +848,39 @@ def _crear_estudiante_desde_fila(*, obtener, usuario, ct_uni, es_admin) -> Stude
     if Student.objects.filter(tipo_documento_identidad=tipo_doc, numero_documento=numero_documento).exists():
         raise ValidationError(f"Ya existe un estudiante con {tipo_doc.codigo} {numero_documento}.")
 
-    universidad = _resolver_universidad(obtener("universidad"))
     if not es_admin and not usuario_pertenece_a_entidad(usuario, ct_uni, universidad.id):
         raise ValidationError(
             f"La universidad {universidad.codigo_inei or universidad.id} está fuera de tu ámbito."
         )
-    carrera = _resolver_carrera(obtener("carrera_profesional"))
-    periodo_internado = _resolver_periodo_internado(obtener("periodo_internado"))
-    especialidad = _resolver_especialidad(obtener("especialidad"))
+
+    # RN-19: la trama tiene SOLO carrera_profesional (PREGRADO) o SOLO especialidad (no-PREGRADO).
+    if es_pregrado_trama:
+        carrera = _resolver_carrera(obtener("carrera_profesional"))
+        especialidad = None
+        periodo_internado_fila = periodo_internado
+    else:
+        especialidad_texto = obtener("especialidad")
+        if not especialidad_texto:
+            raise ValidationError("`especialidad` es requerida para estudiantes de nivel no PREGRADO.")
+        especialidad_texto = str(especialidad_texto).strip()
+        especialidad = _resolver_especialidad(especialidad_texto)
+        carrera = _resolver_carrera_no_pregrado(especialidad_texto)
+        periodo_internado_fila = None
+
     # RN-19: coherencia entre nivel académico, periodo de internado y especialidad.
     validar_regla_periodo_especialidad(
-        carrera=carrera, periodo_internado=periodo_internado, especialidad=especialidad
+        carrera=carrera, periodo_internado=periodo_internado_fila, especialidad=especialidad
     )
 
-    ubigeo = None
-    ubigeo_codigo = obtener("ubigeo")
-    if ubigeo_codigo is not None:
-        try:
-            ubigeo = Ubigeo.objects.get(codigo=str(ubigeo_codigo).strip())
-        except Ubigeo.DoesNotExist as exc:
-            raise ValidationError(f"UBIGEO no encontrado: {ubigeo_codigo}.") from exc
+    # Ubigeo: se resuelve desde los tres campos separados departamento / provincia / distrito.
+    ubigeo = _resolver_ubigeo_por_partes(
+        obtener("departamento"), obtener("provincia"), obtener("distrito")
+    )
 
-    sexo = obtener("sexo")
-    if sexo is not None:
-        sexo = str(sexo).strip().upper()
-        if sexo not in ("M", "F"):
-            raise ValidationError("`sexo` debe ser M o F.")
+    sexo_raw = obtener("sexo")
+    sexo = str(sexo_raw).strip().upper() if sexo_raw is not None else None
+    if sexo is not None and sexo not in ("M", "F"):
+        raise ValidationError("`sexo` debe ser M o F.")
 
     nota = obtener("nota_promedio_ponderado")
     if nota is not None:
@@ -842,7 +905,7 @@ def _crear_estudiante_desde_fila(*, obtener, usuario, ct_uni, es_admin) -> Stude
         ubigeo=ubigeo,
         universidad=universidad,
         carrera_profesional=carrera,
-        periodo_internado=periodo_internado,
+        periodo_internado=periodo_internado_fila,
         especialidad=especialidad,
         nota_promedio_ponderado=nota,
         contacto_emergencia_nombre=(str(obtener("contacto_emergencia_nombre")).strip() if obtener("contacto_emergencia_nombre") else ""),
@@ -855,9 +918,12 @@ def _crear_estudiante_desde_fila(*, obtener, usuario, ct_uni, es_admin) -> Stude
 
 
 @transaction.atomic
-def registrar_estudiantes_masivo(*, archivo, usuario) -> dict:
+def registrar_estudiantes_masivo(*, archivo, usuario, universidad, periodo_internado=None) -> dict:
     """Carga masiva de estudiantes desde un Excel (.xlsx) — RN-16.
 
+    `universidad` y `periodo_internado` son parámetros fijos tomados de los filtros
+    de la UI (no vienen en el Excel). Para carreras no-PREGRADO `periodo_internado`
+    se ignora por fila y se espera la columna `especialidad` en el Excel.
     Valida por fila; las filas inválidas se reportan sin abortar el lote.
     Devuelve un resumen: ``{creados, omitidos, errores:[{fila, motivo}]}``.
     """
@@ -883,6 +949,17 @@ def registrar_estudiantes_masivo(*, archivo, usuario) -> dict:
     faltantes = CARGA_COLUMNAS_REQUERIDAS - set(encabezados)
     if faltantes:
         raise ValidationError(f"Faltan columnas requeridas: {', '.join(sorted(faltantes))}.")
+
+    # Detecta el modo por la presencia de la columna de nivel académico.
+    tiene_carrera = "carrera_profesional" in set(encabezados)
+    tiene_especialidad = "especialidad" in set(encabezados)
+    if not tiene_carrera and not tiene_especialidad:
+        raise ValidationError(
+            "El archivo debe incluir la columna 'carrera_profesional' (trama PREGRADO) "
+            "o 'especialidad' (trama no-PREGRADO)."
+        )
+    es_pregrado_trama = tiene_carrera
+
     indice = {h: i for i, h in enumerate(encabezados)}
 
     ct_uni = ContentType.objects.get_for_model(University).id
@@ -903,7 +980,10 @@ def registrar_estudiantes_masivo(*, archivo, usuario) -> dict:
         try:
             with transaction.atomic():  # savepoint por fila
                 _crear_estudiante_desde_fila(
-                    obtener=obtener, usuario=usuario, ct_uni=ct_uni, es_admin=es_admin
+                    obtener=obtener, usuario=usuario,
+                    universidad=universidad, periodo_internado=periodo_internado,
+                    ct_uni=ct_uni, es_admin=es_admin,
+                    es_pregrado_trama=es_pregrado_trama,
                 )
             creados += 1
         except ValidationError as exc:
@@ -922,3 +1002,115 @@ def _mensaje_error(exc: ValidationError) -> str:
     if isinstance(detalle, list):
         return " ".join(map(str, detalle))
     return str(detalle)
+
+
+# ---------------------------------------------------------------------------
+# Generador de trama Excel para carga masiva de estudiantes
+# ---------------------------------------------------------------------------
+def generar_trama_excel(*, es_pregrado: bool = True) -> bytes:
+    """Genera la plantilla Excel de carga masiva de estudiantes según nivel académico.
+
+    - ``es_pregrado=True``  → columna ``carrera_profesional`` (NO ``especialidad``)
+    - ``es_pregrado=False`` → columna ``especialidad`` (NO ``carrera_profesional``)
+
+    El ubigeo se divide en tres columnas: ``departamento``, ``provincia``, ``distrito``.
+    Retorna el contenido del .xlsx como bytes.
+    """
+    import io
+
+    import openpyxl
+    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+    from openpyxl.utils import get_column_letter
+
+    # ---------- paleta ----------
+    fill_req = PatternFill("solid", fgColor="1F3864")   # azul oscuro — requerido
+    fill_opt = PatternFill("solid", fgColor="2E75B6")   # azul medio — opcional
+    fill_niv = PatternFill("solid", fgColor="9DC3E6")   # azul claro — nivel (requerido)
+    font_blanco = Font(color="FFFFFF", bold=True, size=10)
+    font_oscuro = Font(color="1F3864", bold=True, size=10)
+    font_celda = Font(size=10)
+    borde = Border(
+        left=Side(style="thin"), right=Side(style="thin"),
+        top=Side(style="thin"),  bottom=Side(style="thin"),
+    )
+    alineacion = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+    # ---------- definición de columnas ----------
+    columnas = [
+        # (clave_interna, etiqueta_encabezado, tipo)
+        ("tipo_documento",           "tipo_documento\n(DNI / CE / PASAPORTE)",          "req"),
+        ("numero_documento",         "numero_documento",                                "req"),
+        ("apellido_paterno",         "apellido_paterno",                                "req"),
+        ("apellido_materno",         "apellido_materno",                                "opt"),
+        ("nombres",                  "nombres",                                         "req"),
+        ("fecha_nacimiento",         "fecha_nacimiento\n(dd/mm/yyyy)",                  "opt"),
+        ("sexo",                     "sexo\n(M / F)",                                   "opt"),
+        ("correo",                   "correo",                                          "opt"),
+        ("telefono",                 "telefono",                                        "opt"),
+        ("direccion",                "direccion",                                       "opt"),
+        ("departamento",             "departamento",                                    "opt"),
+        ("provincia",                "provincia",                                       "opt"),
+        ("distrito",                 "distrito",                                        "opt"),
+    ]
+    if es_pregrado:
+        columnas.append(("carrera_profesional", "carrera_profesional\n(nombre exacto)", "niv"))
+    else:
+        columnas.append(("especialidad", "especialidad\n(nombre exacto)", "niv"))
+    columnas += [
+        ("nota_promedio_ponderado",       "nota_promedio_ponderado\n(0–20, hasta 4 decimales)", "opt"),
+        ("contacto_emergencia_nombre",    "contacto_emergencia_nombre",                         "opt"),
+        ("contacto_emergencia_telefono",  "contacto_emergencia_telefono",                       "opt"),
+        ("contacto_emergencia_parentesco","contacto_emergencia_parentesco\n(PADRE/MADRE/HERMANO/CONYUGE/HIJO/ABUELO/TIO/OTRO)", "opt"),
+    ]
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Estudiantes"
+    ws.freeze_panes = "A2"
+    ws.row_dimensions[1].height = 42
+
+    for col_idx, (clave, etiqueta, tipo) in enumerate(columnas, start=1):
+        celda = ws.cell(row=1, column=col_idx, value=etiqueta)
+        celda.border = borde
+        celda.alignment = alineacion
+        if tipo == "req":
+            celda.fill = fill_req
+            celda.font = font_blanco
+        elif tipo == "opt":
+            celda.fill = fill_opt
+            celda.font = font_blanco
+        else:  # "niv"
+            celda.fill = fill_niv
+            celda.font = font_oscuro
+        ws.column_dimensions[get_column_letter(col_idx)].width = 22
+
+    # Leyenda en hoja adicional
+    ws2 = wb.create_sheet("Instrucciones")
+    nivel_txt = "PREGRADO" if es_pregrado else "no-PREGRADO (segunda especialidad / maestría / doctorado)"
+    leyenda = [
+        ("INSTRUCCIONES DE CARGA MASIVA DE ESTUDIANTES", None),
+        ("", None),
+        (f"Esta trama corresponde al nivel académico: {nivel_txt}", None),
+        ("", None),
+        ("CONVENCIÓN DE COLORES:", None),
+        ("Azul oscuro", "Campo REQUERIDO — la fila se rechaza si falta."),
+        ("Azul medio",  "Campo OPCIONAL — puede dejarse en blanco."),
+        ("Azul claro",  f"Campo de NIVEL — requerido según el nivel seleccionado ({nivel_txt})."),
+        ("", None),
+        ("NOTAS:", None),
+        ("fecha_nacimiento",             "Formato dd/mm/yyyy  (ej. 15/04/1998)"),
+        ("departamento / provincia / distrito", "Nombre completo tal como aparece en el padrón de ubigeos del RENIEC."),
+        ("tipo_documento",               "DNI, CE o PASAPORTE"),
+        ("sexo",                         "M (masculino) o F (femenino)"),
+        ("nota_promedio_ponderado",      "Escala 0 a 20 con hasta 4 decimales"),
+    ]
+    ws2.column_dimensions["A"].width = 40
+    ws2.column_dimensions["B"].width = 60
+    for fila_idx, (col_a, col_b) in enumerate(leyenda, start=1):
+        ws2.cell(row=fila_idx, column=1, value=col_a)
+        if col_b:
+            ws2.cell(row=fila_idx, column=2, value=col_b)
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()

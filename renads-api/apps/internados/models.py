@@ -4,7 +4,10 @@ Nombres de clases en inglés; tablas, columnas y descripciones en español.
 Reutiliza modelos del módulo 1 (app ``convenios``).
 """
 
+import decimal
+
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 from apps.convenios.models import (
@@ -135,8 +138,12 @@ class Student(models.Model):
         help_text="Especialidad (obligatoria para niveles distintos de Pregrado — RN-19)",
     )
     nota_promedio_ponderado = models.DecimalField(
-        "nota promedio ponderado", max_digits=5, decimal_places=3, null=True, blank=True,
-        help_text="Nota promedio ponderado (escala 0–20, máximo 3 decimales)",
+        "nota promedio ponderado", max_digits=6, decimal_places=4, null=True, blank=True,
+        validators=[
+            MinValueValidator(decimal.Decimal("0")),
+            MaxValueValidator(decimal.Decimal("20")),
+        ],
+        help_text="Nota promedio ponderado (escala 0–20, máximo 4 decimales)",
     )
     contacto_emergencia_nombre = models.CharField(
         "contacto de emergencia - nombre", max_length=255, blank=True,
