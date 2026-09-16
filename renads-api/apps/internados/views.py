@@ -45,30 +45,46 @@ from apps.internados.serializers import (
 def _derivar_universidad_del_usuario(usuario) -> University:
     """Deriva la universidad del perfil institucional del usuario para la carga masiva.
 
+    Usa ``entidades_del_usuario`` (fuente canónica, misma que ``estudiantes_visibles``).
     Si el usuario pertenece a exactamente una universidad, la devuelve.
-    Si tiene más de una o ninguna, lanza ValidationError pidiendo que la especifique.
+    Admins y superusuarios no tienen perfil de universidad — deben enviar ``universidad_id``.
     """
     from rest_framework.exceptions import ValidationError as DRFValidationError
-    from apps.convenios.models import UserEntityProfile
+    from apps.common.selectors import entidades_del_usuario
 
-    ct_uni = ContentType.objects.get_for_model(University)
-    ids_objeto = list(
-        UserEntityProfile.objects.filter(
-            usuario=usuario, tipo_contenido=ct_uni, activo=True
-        ).values_list("id_objeto", flat=True)
-    )
-    if len(ids_objeto) == 1:
+    es_admin = usuario.is_superuser or usuario.groups.filter(name="Administrador RENADS").exists()
+    if es_admin:
+        raise DRFValidationError({
+            "universidad_id": (
+                "Los administradores deben enviar universidad_id en el formulario "
+                "al realizar carga masiva."
+            )
+        })
+
+    ct_uni = ContentType.objects.get_for_model(University).id
+    refs = entidades_del_usuario(usuario)
+    uni_ids = [oid for (tc, oid) in refs if tc == ct_uni]
+
+    if len(uni_ids) == 1:
         try:
-            return University.objects.get(pk=int(ids_objeto[0]))
+            return University.objects.get(pk=int(uni_ids[0]))
         except (University.DoesNotExist, ValueError):
             pass
-    if len(ids_objeto) > 1:
-        raise DRFValidationError(
-            {"universidad_id": "El usuario pertenece a más de una universidad; indique universidad_id explícitamente."}
+
+    if len(uni_ids) > 1:
+        raise DRFValidationError({
+            "universidad_id": (
+                "El usuario pertenece a más de una universidad. "
+                "Envíe universidad_id en el formulario para indicar cuál usar."
+            )
+        })
+
+    raise DRFValidationError({
+        "universidad_id": (
+            "No se encontró perfil de universidad para este usuario. "
+            "Envíe universidad_id en el formulario."
         )
-    raise DRFValidationError(
-        {"universidad_id": "No se pudo determinar la universidad del usuario; indique universidad_id explícitamente."}
-    )
+    })
 
 
 class InternshipViewSet(AnnexAttachmentMixin, viewsets.ModelViewSet):
