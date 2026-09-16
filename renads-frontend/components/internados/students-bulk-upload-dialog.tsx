@@ -36,18 +36,35 @@ import {
  * Diálogo de carga masiva de estudiantes (RN-16). Sube un `.xlsx` y muestra el resumen del
  * backend (`creados`/`omitidos`) más la tabla de errores por fila (las filas inválidas se omiten
  * sin abortar el lote). El gating de rol vive en la página; el backend es la autoridad final.
+ *
+ * Recibe `universidadId` y `periodoId` del contexto de la vista (filtros ya seleccionados),
+ * y los envía como parámetros de formulario al endpoint de carga masiva.
  */
 export function StudentsBulkUploadDialog({
   scoped,
+  universidadId,
+  esPregrado = true,
+  periodoId,
 }: {
   /** `true` si el usuario está acotado a universidades concretas (backend valida por fila). */
   scoped?: boolean;
+  /** ID de la universidad seleccionada en el filtro de la vista principal. */
+  universidadId?: number | null;
+  /** `true` cuando el nivel activo es PREGRADO (determina la trama a descargar). */
+  esPregrado?: boolean;
+  /** ID del periodo de internado activo (solo aplica a nivel PREGRADO). */
+  periodoId?: number | null;
 } = {}) {
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [result, setResult] = useState<StudentBulkUploadResult | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const uploadM = useStudentsBulkUpload();
+
+  const tramaNombre = esPregrado
+    ? "TramaCargaMasivaEstudiantes_PREGRADO.xlsx"
+    : "TramaCargaMasivaEstudiantes_noPREGRADO.xlsx";
+  const tramaLabel = esPregrado ? "Trama Pregrado" : "Trama Posgrado / Especialidad";
 
   function reset() {
     setFile(null);
@@ -62,15 +79,18 @@ export function StudentsBulkUploadDialog({
 
   function onSubmit() {
     if (!file) return;
-    uploadM.mutate(file, {
-      onSuccess: (data) => {
-        setResult(data);
-        toast.success(
-          `Carga procesada: ${data.creados} creado(s), ${data.omitidos} omitido(s).`,
-        );
+    uploadM.mutate(
+      { archivo: file, universidadId, periodoId: esPregrado ? periodoId : null },
+      {
+        onSuccess: (data) => {
+          setResult(data);
+          toast.success(
+            `Carga procesada: ${data.creados} creado(s), ${data.omitidos} omitido(s).`,
+          );
+        },
+        onError: (e) => toast.error(extractApiError(e)),
       },
-      onError: (e) => toast.error(extractApiError(e)),
-    });
+    );
   }
 
   return (
@@ -80,42 +100,29 @@ export function StudentsBulkUploadDialog({
         <DialogHeader>
           <DialogTitle>Carga masiva de estudiantes</DialogTitle>
           <DialogDescription>
-            Sube un archivo <strong>.xlsx</strong> con la estructura de la trama
-            oficial (encabezados con sufijo <code>_id</code>). Columnas requeridas: {" "}
-            <code>tipo_documento_identidad_id</code> (código, p. ej. DNI, o id), {" "}
-            <code>numero_documento</code>, <code>nombres</code>, {" "}
-            <code>apellido_paterno</code>, <code>universidad_id</code> (id o código INEI) y {" "}
-            <code>carrera_profesional_id</code> (id o nombre). El resto es opcional
-            (<code>periodo_internado_id</code> admite <code>2025-I</code> o <code>2025-01</code>).
+            Sube un archivo <strong>.xlsx</strong> con la estructura de la trama oficial.
+            Columnas requeridas: <code>tipo_documento</code> (DNI / CE / PASAPORTE),{" "}
+            <code>numero_documento</code>, <code>nombres</code>, <code>apellido_paterno</code> y{" "}
+            {esPregrado
+              ? <><code>carrera_profesional</code> (nombre exacto)</>
+              : <><code>especialidad</code> (nombre exacto)</>
+            }.
+            La universidad y el periodo se toman automáticamente de los filtros activos.
             Las filas con error se omiten sin abortar el resto del lote.
           </DialogDescription>
         </DialogHeader>
 
         {/* ── Descargar formato ── */}
         <div className="rounded-md border bg-muted/40 p-4">
-          <p className="mb-3 text-sm font-medium">1. Descarga el formato correspondiente al nivel académico</p>
-          <div className="flex flex-wrap gap-2">
-            <a
-              href="/TramaCargaMasivaEstudiantes_PREGRADO.xlsx"
-              download
-              className="inline-flex"
-            >
-              <Button type="button" variant="outline" size="sm" className="gap-2">
-                <DownloadIcon className="h-4 w-4" />
-                Trama Pregrado
-              </Button>
-            </a>
-            <a
-              href="/TramaCargaMasivaEstudiantes_noPREGRADO.xlsx"
-              download
-              className="inline-flex"
-            >
-              <Button type="button" variant="outline" size="sm" className="gap-2">
-                <DownloadIcon className="h-4 w-4" />
-                Trama Posgrado / Especialidad
-              </Button>
-            </a>
-          </div>
+          <p className="mb-3 text-sm font-medium">
+            1. Descarga la trama para el nivel activo
+          </p>
+          <a href={`/${tramaNombre}`} download className="inline-flex">
+            <Button type="button" variant="outline" size="sm" className="gap-2">
+              <DownloadIcon className="h-4 w-4" />
+              {tramaLabel}
+            </Button>
+          </a>
         </div>
 
         <hr className="border-border" />

@@ -32,16 +32,26 @@ export interface StudentBulkUploadResult {
   errores: { fila: number; motivo: string }[];
 }
 
+export interface StudentBulkUploadParams {
+  archivo: File;
+  /** Universidad fijada en el filtro de la vista (siempre disponible cuando el dialog está visible). */
+  universidadId?: number | null;
+  /** Periodo de internado (solo PREGRADO). */
+  periodoId?: number | null;
+}
+
 /**
- * Carga masiva de estudiantes desde `.xlsx` (`POST /students/bulk-upload/`, multipart, campo
- * `archivo`). Al éxito invalida la lista de estudiantes para que el CRUD refresque.
+ * Carga masiva de estudiantes desde `.xlsx` (`POST /students/bulk-upload/`, multipart).
+ * Envía `universidad_id` y `periodo_internado_id` tomados de los filtros activos de la vista.
  */
 export function useStudentsBulkUpload() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (archivo: File) => {
+    mutationFn: ({ archivo, universidadId, periodoId }: StudentBulkUploadParams) => {
       const form = new FormData();
       form.append("archivo", archivo);
+      if (universidadId != null) form.append("universidad_id", String(universidadId));
+      if (periodoId != null) form.append("periodo_internado_id", String(periodoId));
       return postMultipart<StudentBulkUploadResult>("students/bulk-upload/", form);
     },
     onSuccess: () => {

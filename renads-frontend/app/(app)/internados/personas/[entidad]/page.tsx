@@ -201,7 +201,14 @@ function StudentsView() {
           initialFilters={initialFilters}
           hideHeader
           headerActions={
-            canBulkUpload ? <StudentsBulkUploadDialog scoped={scoped} /> : undefined
+            canBulkUpload ? (
+              <StudentsBulkUploadDialog
+                scoped={scoped}
+                universidadId={universidad}
+                esPregrado={esPregrado}
+                periodoId={esPregrado ? periodoId : null}
+              />
+            ) : undefined
           }
         />
       )}
