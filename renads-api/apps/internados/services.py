@@ -942,9 +942,16 @@ def registrar_estudiantes_masivo(*, archivo, usuario, universidad, periodo_inter
     # Normaliza los encabezados y aplica los alias de la trama oficial (`_id`) a la
     # clave canónica interna; así la carga acepta tanto la estructura nueva como la
     # histórica sin tocar los resolvers ni el mapeo de columnas.
+    # Normaliza encabezados: extrae la primera línea (las celdas multi-línea de la trama oficial
+    # usan \n para añadir instrucciones bajo el nombre de columna, p. ej. "tipo_documento\n(DNI…)").
+    def _norm_header(c) -> str:
+        if c is None:
+            return ""
+        return str(c).strip().split("\n")[0].strip().lower()
+
     encabezados = [
         CARGA_ALIAS_COLUMNAS.get(h, h)
-        for h in (str(c).strip().lower() if c is not None else "" for c in cabecera)
+        for h in (_norm_header(c) for c in cabecera)
     ]
     faltantes = CARGA_COLUMNAS_REQUERIDAS - set(encabezados)
     if faltantes:
