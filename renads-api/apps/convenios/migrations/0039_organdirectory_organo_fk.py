@@ -27,6 +27,14 @@ def poblar_organo(apps, schema_editor):
     OrganDirectory = apps.get_model("convenios", "OrganDirectory")
     Organ = apps.get_model("convenios", "Organ")
 
+    # Renombrado legacy: BD fresca arranca con 'Órgano del MINSA' (seed 0018/0029).
+    Organ.objects.filter(nombre="Órgano del MINSA").exclude(
+        pk__in=Organ.objects.filter(nombre="MINSA Administrativo").values("pk")
+    ).update(nombre="MINSA Administrativo")
+    # Asegurar que existan todos los órganos canónicos.
+    for nombre in CODE_A_ORGANO_NOMBRE.values():
+        Organ.objects.get_or_create(nombre=nombre, defaults={"estado": True})
+
     # Cache Organ por nombre.
     organos = {o.nombre: o for o in Organ.objects.all()}
     for code, nombre in CODE_A_ORGANO_NOMBRE.items():

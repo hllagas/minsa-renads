@@ -36,8 +36,15 @@ class Migration(migrations.Migration):
 
     operations = [
         # ======================================================================
-        # PASO A — promover codigo a PK textual + eliminar id AutoField
+        # PASO A — eliminar id AutoField + promover codigo a PK textual
+        # (En PostgreSQL no se puede agregar PK mientras ya existe otra; hay que
+        #  quitar id primero. FK enteras a ubigeo.id ya eliminadas por 0048b y
+        #  internados.0023b_remove_int_ubigeo_fk.)
         # ======================================================================
+        migrations.RemoveField(
+            model_name="ubigeo",
+            name="id",
+        ),
         migrations.AlterField(
             model_name="ubigeo",
             name="codigo",
@@ -48,10 +55,6 @@ class Migration(migrations.Migration):
                 serialize=False,
                 help_text="Código UBIGEO INEI (6 dígitos, clave primaria)",
             ),
-        ),
-        migrations.RemoveField(
-            model_name="ubigeo",
-            name="id",
         ),
 
         # ======================================================================

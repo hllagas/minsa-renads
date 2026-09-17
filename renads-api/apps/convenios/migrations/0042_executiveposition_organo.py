@@ -19,13 +19,23 @@ import django.db.models.deletion
 
 # Mapeo de cargos globales (sin organo_directivo) por nombre_masculino → nombre del Organ.
 MAPEO_CARGOS_GLOBALES = {
+    # MINSA Administrativo
     "Ministro": "MINSA Administrativo",
     "Viceministro": "MINSA Administrativo",
     "Secretario General": "MINSA Administrativo",
     "Director General": "MINSA Administrativo",
+    "Director General de Personal de Salud": "MINSA Administrativo",
+    # MINSA DIRIS
     "Director de DIRIS": "MINSA DIRIS",
+    # Gobierno Regional
     "Gerente General": "Gobierno Regional",
+    "Director Regional de Salud": "Gobierno Regional",
+    # Unidad Ejecutora
     "Director de Hospital III": "Unidad Ejecutora",
+    # Universidad
+    "Rector": "Universidad",
+    "Vicerrector": "Universidad",
+    "Decano": "Universidad",
 }
 
 

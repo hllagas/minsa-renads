@@ -117,16 +117,18 @@ class Migration(migrations.Migration):
         ),
 
         # ==================================================================
-        # PASO B — promocionar codigo_nuevo a unique + convertir FKs transitorias
+        # PASO B — hacer codigo_nuevo not null (sin unique constraint para
+        # evitar dependencias en PostgreSQL al convertirlo luego a PK)
         # ==================================================================
 
-        # B1: hacer codigo_nuevo unique y not null.
+        # B1: hacer codigo_nuevo not null. NO se pone unique=True porque en
+        # PostgreSQL eso crearía una constraint que bloquearía la conversión
+        # posterior a PK (C9) mientras existan FKs transitorias que la referencien.
         migrations.AlterField(
             model_name="executingunit",
             name="codigo_nuevo",
             field=models.CharField(
                 max_length=4,
-                unique=True,
                 null=False,
                 blank=False,
                 db_column="codigo_nuevo",
@@ -134,43 +136,34 @@ class Migration(migrations.Migration):
             ),
         ),
 
-        # B2: Ipress.unidad_ejecutora_codigo → FK a ExecutingUnit via to_field="codigo_nuevo".
-        migrations.AlterField(
-            model_name="ipress",
-            name="unidad_ejecutora_codigo",
-            field=models.ForeignKey(
-                null=True,
-                blank=True,
-                on_delete=django.db.models.deletion.PROTECT,
-                db_column="unidad_ejecutora_codigo_nuevo",
-                to_field="codigo_nuevo",
-                to="convenios.executingunit",
-                related_name="+",
-                help_text="Campo transitorio: FK a unidad ejecutora por código nuevo",
-            ),
-        ),
-
-        # B3: Convention.unidad_ejecutora_codigo → FK a ExecutingUnit via to_field="codigo_nuevo".
-        migrations.AlterField(
-            model_name="convention",
-            name="unidad_ejecutora_codigo",
-            field=models.ForeignKey(
-                null=True,
-                blank=True,
-                on_delete=django.db.models.deletion.PROTECT,
-                db_column="convenio_unidad_ejecutora_codigo_nuevo",
-                to_field="codigo_nuevo",
-                to="convenios.executingunit",
-                related_name="+",
-                help_text="Campo transitorio: FK a unidad ejecutora por código nuevo",
-            ),
-        ),
-
         # ==================================================================
         # PASO C — eliminar campos obsoletos, renombrar y establecer nueva PK
         # ==================================================================
 
-        # C1: eliminar el AutoField PK (Django recreará la tabla en SQLite).
+        # C10/C12: eliminar las FKs int a ExecutingUnit.id en Ipress y Convention
+        # ANTES de quitar id de ExecutingUnit (PostgreSQL no permite drop PK
+        # mientras hay FK referenciándola).
+        migrations.RemoveField(
+            model_name="ipress",
+            name="unidad_ejecutora",
+        ),
+        migrations.RemoveField(
+            model_name="convention",
+            name="unidad_ejecutora",
+        ),
+
+        # Eliminar las columnas transitorias CharField (no tienen FKs ni constraints
+        # dependientes) antes de reestructurar ExecutingUnit.
+        migrations.RemoveField(
+            model_name="ipress",
+            name="unidad_ejecutora_codigo",
+        ),
+        migrations.RemoveField(
+            model_name="convention",
+            name="unidad_ejecutora_codigo",
+        ),
+
+        # C1: eliminar el AutoField PK (ya no hay FKs que lo referencien).
         migrations.RemoveField(
             model_name="executingunit",
             name="id",
@@ -212,6 +205,8 @@ class Migration(migrations.Migration):
         ),
 
         # C9: hacer codigo la PK (primary_key=True, db_column="codigo").
+        # En este punto no hay unique constraint previo ni FKs dependientes:
+        # ALTER TABLE puede proceder sin conflicto.
         migrations.AlterField(
             model_name="executingunit",
             name="codigo",
@@ -224,41 +219,26 @@ class Migration(migrations.Migration):
             ),
         ),
 
-        # C10: eliminar la FK int original en Ipress (columna unidad_ejecutora_id).
-        migrations.RemoveField(
-            model_name="ipress",
-            name="unidad_ejecutora",
-        ),
-
-        # C11: renombrar unidad_ejecutora_codigo → unidad_ejecutora en Ipress.
-        migrations.RenameField(
-            model_name="ipress",
-            old_name="unidad_ejecutora_codigo",
-            new_name="unidad_ejecutora",
-        ),
-
-        # C12: eliminar la FK int original en Convention.
-        migrations.RemoveField(
-            model_name="convention",
-            name="unidad_ejecutora",
-        ),
-
-        # C13: renombrar unidad_ejecutora_codigo → unidad_ejecutora en Convention.
-        migrations.RenameField(
-            model_name="convention",
-            old_name="unidad_ejecutora_codigo",
-            new_name="unidad_ejecutora",
-        ),
-
         # ==================================================================
-        # PASO D — ajuste final de campos: llevar las FKs al estado definitivo
-        # del modelo (not null en ipress, to_field="codigo", db_column canónico).
+        # PASO D — añadir las FKs definitivas al nuevo PK y ajustar campos
         # ==================================================================
 
-        # D1: Ipress.unidad_ejecutora → not null, db_column="unidad_ejecutora_id".
-        # Django omite to_field del deconstruct cuando la FK apunta a la PK del modelo
-        # destino, por lo que no se especifica aquí para que el estado de migración
-        # coincida con el modelo.
+        # D1: Ipress.unidad_ejecutora → FK a ejecutingunit.codigo (NOT NULL).
+        migrations.AddField(
+            model_name="ipress",
+            name="unidad_ejecutora",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.PROTECT,
+                db_column="unidad_ejecutora_id",
+                to="convenios.executingunit",
+                related_name="ipress",
+                help_text="Unidad ejecutora a la que pertenece",
+                null=True,  # null temporal para poder añadir sobre filas existentes
+            ),
+        ),
+
+        # D1b: hacer NOT NULL (no hay filas en unidad_ejecutora en BD de desarrollo,
+        # pero si las hubiera se necesitaría backfill previo — ver nota en 0044).
         migrations.AlterField(
             model_name="ipress",
             name="unidad_ejecutora",
@@ -271,8 +251,8 @@ class Migration(migrations.Migration):
             ),
         ),
 
-        # D2: Convention.unidad_ejecutora → nullable, db_column="unidad_ejecutora_id".
-        migrations.AlterField(
+        # D2: Convention.unidad_ejecutora → FK a executingunit.codigo (nullable).
+        migrations.AddField(
             model_name="convention",
             name="unidad_ejecutora",
             field=models.ForeignKey(

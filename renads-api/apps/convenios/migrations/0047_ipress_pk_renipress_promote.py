@@ -73,8 +73,15 @@ class Migration(migrations.Migration):
         ),
 
         # ======================================================================
-        # PASO A — promover codigo_renipress a PK + eliminar id AutoField
+        # PASO A — eliminar id AutoField + promover codigo_renipress a PK
+        # (En PostgreSQL no se puede agregar PK mientras ya existe otra; hay que
+        #  quitar id primero. Todas las FK a ipress.id fueron eliminadas en
+        #  pre-A y en las dependencias de internados/actividades.)
         # ======================================================================
+        migrations.RemoveField(
+            model_name="ipress",
+            name="id",
+        ),
         migrations.AlterField(
             model_name="ipress",
             name="codigo_renipress",
@@ -85,10 +92,6 @@ class Migration(migrations.Migration):
                 serialize=False,
                 help_text="Código RENIPRESS de 8 caracteres (clave primaria)",
             ),
-        ),
-        migrations.RemoveField(
-            model_name="ipress",
-            name="id",
         ),
 
         # ======================================================================
