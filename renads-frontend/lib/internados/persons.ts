@@ -206,7 +206,7 @@ export const PERSON_CONFIGS: Record<string, ResourceConfig> = {
       { name: "numero_documento", label: "Número de documento", type: "text", required: true, docNumberFor: "tipo_documento_identidad" },
       { name: "nombres", label: "Nombres", type: "text", required: true },
       { name: "apellido_paterno", label: "Apellido paterno", type: "text", required: true },
-      { name: "apellido_materno", label: "Apellido materno", type: "text" },
+      { name: "apellido_materno", label: "Apellido materno", type: "text", required: true },
       {
         // RN-24: el backend exige de 1 a 2 universidades por tutor (valida 400 si 0 o >2).
         name: "universidades",
@@ -220,6 +220,7 @@ export const PERSON_CONFIGS: Record<string, ResourceConfig> = {
         name: "profesion",
         label: "Profesión",
         type: "select",
+        required: true,
         optionsEndpoint: "professional-careers",
       },
       {
@@ -228,14 +229,19 @@ export const PERSON_CONFIGS: Record<string, ResourceConfig> = {
         type: "select",
         optionsEndpoint: "specialties",
       },
-      { name: "numero_colegiatura", label: "Número de colegiatura", type: "text", uppercase: false },
-      { name: "correo", label: "Correo", type: "email" },
-      { name: "telefono", label: "Teléfono", type: "text", uppercase: false },
-      { name: "direccion", label: "Dirección", type: "text", uppercase: false },
+      { name: "numero_colegiatura", 
+        label: "Número de colegiatura", 
+        type: "text", 
+        required: true,
+        uppercase: false },
+      { name: "correo", label: "Correo", type: "email", required: true },
+      { name: "telefono", label: "Teléfono", type: "text", required: true, uppercase: false },
+      { name: "direccion", label: "Dirección", type: "text", required: true, uppercase: false },
       {
         name: "ubigeo",
         label: "Ubigeo",
         type: "select",
+        required: true,
         optionsEndpoint: "ubigeos",
         optionsValueKey: "codigo", // PK textual (mig 0048-0049)
         optionsSearchable: true,

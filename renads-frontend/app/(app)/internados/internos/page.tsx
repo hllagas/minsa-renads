@@ -8,7 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { internshipHooks, type InternshipRead, type InternshipWrite } from "@/lib/internados/hooks";
-import { INTERNSHIP_FIELDS } from "@/lib/internados/internship-fields";
+import { buildInternshipFields } from "@/lib/internados/internship-fields";
 import { conventionHooks } from "@/lib/convenios/hooks";
 import { extractApiError } from "@/lib/api/errors";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
@@ -33,14 +33,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-/**
- * Campos de alta de internado con `convenio` oculto (se inyecta como valor fijo en el payload).
- * `showWhen: () => false` oculta la UI pero mantiene el valor en react-hook-form, de modo que
- * `optionsParamsFromEntity` del campo `ipress` siga funcionando (depende de `convenio`).
- */
-const INTERNSHIP_DIALOG_FIELDS = INTERNSHIP_FIELDS.map((f) =>
-  f.name === "convenio" ? { ...f, showWhen: () => false } : f,
-);
 
 /**
  * Listado de internos: universidad (acotada al alcance) → convenio Específico vigente → listado.
@@ -105,6 +97,14 @@ export default function InternosPage() {
     if (vigenteId != null) p.estado_actual = String(vigenteId);
     return p;
   }, [universidad, especificoId, vigenteId]);
+
+  const internshipDialogFields = useMemo(
+    () =>
+      buildInternshipFields(universidad).map((f) =>
+        f.name === "convenio" ? { ...f, showWhen: () => false } : f,
+      ),
+    [universidad],
+  );
 
   const debouncedSearch = useDebouncedValue(search, 300);
   const list = internshipHooks.useList({
@@ -281,7 +281,7 @@ export default function InternosPage() {
           {convenio != null && (
             <ResourceForm
               key={convenio}
-              fields={INTERNSHIP_DIALOG_FIELDS}
+              fields={internshipDialogFields}
               initial={{ convenio }}
               submitting={createM.isPending}
               onCancel={() => setCreateOpen(false)}

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { internshipHooks, type InternshipWrite } from "@/lib/internados/hooks";
-import { INTERNSHIP_FIELDS } from "@/lib/internados/internship-fields";
+import { buildInternshipFields } from "@/lib/internados/internship-fields";
 import { extractApiError } from "@/lib/api/errors";
 import { PageHeader } from "@/components/data/page-header";
 import { ResourceForm } from "@/components/crud/resource-form";
@@ -20,7 +20,7 @@ export default function NuevoInternadoPage() {
       <Card>
         <CardContent className="pt-6">
           <ResourceForm
-            fields={INTERNSHIP_FIELDS}
+            fields={buildInternshipFields(null)}
             initial={null}
             submitting={createM.isPending}
             onCancel={() => router.back()}
