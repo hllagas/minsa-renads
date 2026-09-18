@@ -5,12 +5,11 @@ services:
       POSTGRES_DB: renads
       POSTGRES_USER: renads
       POSTGRES_PASSWORD: renads
-      POSTGRES_HOST_AUTH_METHOD: md5
-      POSTGRES_INITDB_ARGS: "--auth-host=md5 --auth-local=trust"
+      POSTGRES_HOST_AUTH_METHOD: trust
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U renads"]
       interval: 5s
