@@ -5,6 +5,8 @@ services:
       POSTGRES_DB: renads
       POSTGRES_USER: renads
       POSTGRES_PASSWORD: renads
+      POSTGRES_HOST_AUTH_METHOD: md5
+      POSTGRES_INITDB_ARGS: "--auth-host=md5 --auth-local=trust"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:

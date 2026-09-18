@@ -16,13 +16,22 @@ Documento de arquitectura para la implementación del API REST de RENADS. Define
 
 ## 2. Stack tecnológico
 
-### Runtime (ya instalado)
+### Runtime (instalado)
 | Paquete | Versión | Rol |
 |---------|---------|-----|
 | Django | 6.0.6 | Framework base, ORM, migraciones |
 | djangorestframework | 3.17.1 | Capa API REST |
-| psycopg2-binary | 2.9.12 | Driver PostgreSQL (producción) |
+| psycopg2-binary | 2.9.12 | Driver PostgreSQL |
 | python-decouple | 3.8 | Configuración por entorno (`.env`) |
+| dj-database-url | 3.1.2 | Parseo de `DATABASE_URL` (config 12-factor) |
+
+### Infraestructura de desarrollo (Docker)
+| Componente | Versión | Rol |
+|------------|---------|-----|
+| Docker Desktop | 29.8.0+ | Motor de contenedores (requiere WSL2 en Windows) |
+| `python:3.14-slim-bookworm` | 3.14 | Imagen base del contenedor Django |
+| PostgreSQL | 17-alpine | Base de datos en contenedor (`db`) |
+| LibreOffice headless | sistema | Conversión DOCX → PDF (`soffice --convert-to pdf`) dentro del contenedor |
 
 ### A agregar (runtime)
 | Paquete | Rol |
@@ -30,7 +39,6 @@ Documento de arquitectura para la implementación del API REST de RENADS. Define
 | `djangorestframework-simplejwt` | Autenticación JWT (access/refresh) |
 | `drf-spectacular` | Documentación OpenAPI 3 (Swagger / Redoc) |
 | `django-filter` | Filtrado declarativo de querysets |
-| `dj-database-url` | Parseo de `DATABASE_URL` (config 12-factor) |
 
 ### A agregar (desarrollo)
 | Paquete | Rol |
@@ -40,7 +48,7 @@ Documento de arquitectura para la implementación del API REST de RENADS. Define
 | `pytest` + `pytest-django` | Framework de pruebas |
 | `factory_boy` | Factories para datos de prueba |
 
-> **Base de datos:** SQLite en desarrollo, **PostgreSQL** en producción. El schema es agnóstico (sin tipos específicos de motor).
+> **Base de datos:** PostgreSQL 17 tanto en desarrollo (Docker) como en producción. El entorno de desarrollo local sin Docker usa SQLite (`config/settings/dev.py`).
 
 ---
 
@@ -52,7 +60,8 @@ renads-api/
 │   ├── settings/
 │   │   ├── __init__.py
 │   │   ├── base.py        # configuración común
-│   │   ├── dev.py         # desarrollo (SQLite, DEBUG=True)
+│   │   ├── dev.py         # desarrollo local (SQLite, DEBUG=True)
+│   │   ├── docker.py      # desarrollo Docker (PostgreSQL local, DEBUG=True)
 │   │   └── prod.py        # producción (PostgreSQL, DEBUG=False)
 │   ├── urls.py            # URLconf raíz → incluye api/v1
 │   ├── api_urls.py        # router de /api/v1/
@@ -64,6 +73,9 @@ renads-api/
 │   ├── actividades/      # Módulo 3
 │   └── common/           # utilidades compartidas (storage, permisos base, auditoría, paginación)
 ├── docs/
+├── Dockerfile            # imagen Python 3.14 + LibreOffice + dependencias del sistema
+├── docker-compose.yml    # servicios: web (Django) + db (PostgreSQL 17)
+├── .dockerignore
 ├── manage.py
 └── .env                  # NO versionado
 ```
@@ -123,13 +135,27 @@ ORM Django  →  PostgreSQL / SQLite
 
 ## 5. Configuración por entorno
 
-- Settings en paquete `config/settings/` (`base`, `dev`, `prod`). `DJANGO_SETTINGS_MODULE` selecciona el entorno.
+Settings en paquete `config/settings/` — `DJANGO_SETTINGS_MODULE` selecciona el entorno:
+
+| Módulo | Cuándo usar | Base de datos |
+|--------|-------------|---------------|
+| `config.settings.dev` | desarrollo local sin Docker | SQLite (`db.sqlite3`) |
+| `config.settings.docker` | desarrollo con Docker Compose | PostgreSQL 17 (contenedor `db`) |
+| `config.settings.prod` | producción (Railway / VPS) | PostgreSQL (via `DATABASE_URL`) |
+
 - Todo secreto/parámetro sensible vía `.env` con `python-decouple`:
-  - `SECRET_KEY` (migrar — hoy hardcodeado), `DEBUG`, `ALLOWED_HOSTS`
+  - `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`
   - `DATABASE_URL` (vía `dj-database-url`)
   - `JWT_*` (tiempos de vida de tokens)
-  - credenciales del repositorio externo de archivos
-- Proveer `.env.example` versionado (sin secretos) como plantilla.
+  - credenciales de Cloudflare R2 / GCS (almacenamiento de objetos)
+- `.env.example` versionado (sin secretos) como plantilla.
+
+En Docker, `docker-compose.yml` inyecta directamente:
+```yaml
+environment:
+  DJANGO_SETTINGS_MODULE: config.settings.docker
+  DATABASE_URL: postgresql://renads:renads@db:5432/renads
+```
 
 ```python
 # config/settings/base.py (extracto)
@@ -223,17 +249,78 @@ class DocumentStorage(Protocol):
 
 ---
 
-## 11. Calidad y pruebas
+## 11. Entorno de desarrollo con Docker
+
+### Requisitos previos
+- Docker Desktop 29.8.0+ con **WSL2** habilitado (Windows) o Docker Engine (Linux/macOS).
+- Puerto `8000` (Django) y `5432` (PostgreSQL) libres en el host.
+
+### Servicios declarados en `docker-compose.yml`
+
+| Servicio | Imagen | Puerto host | Descripción |
+|----------|--------|-------------|-------------|
+| `db` | `postgres:17-alpine` | `5432` | PostgreSQL con healthcheck; credenciales `renads/renads/renads` |
+| `web` | `renads-api-web` (build local) | `8000` | Django + runserver; espera a que `db` esté healthy |
+
+El servicio `web` ejecuta al arrancar:
+```sh
+python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000
+```
+
+### Comandos habituales
+
+```powershell
+# Levantar (primera vez: construye la imagen)
+docker compose up -d --build
+
+# Levantar (sin rebuild)
+docker compose up -d
+
+# Ver logs del API
+docker compose logs -f web
+
+# Detener (conserva la BD)
+docker compose down
+
+# Detener y borrar la BD (BD limpia)
+docker compose down -v
+
+# Crear superusuario
+docker compose exec web python manage.py createsuperuser
+
+# Shell Django
+docker compose exec web python manage.py shell
+
+# Ejecutar migraciones manualmente
+docker compose exec web python manage.py migrate
+```
+
+### Conexión a la base de datos (cliente externo)
+
+```
+Host:     localhost    Puerto: 5432
+Database: renads       User:    renads    Password: renads
+```
+
+### Notas de la imagen Docker
+
+- **LibreOffice headless** incluido para la generación de PDF desde plantillas DOCX (`soffice --convert-to pdf`).
+- El directorio del proyecto se monta como volumen (`- .:/app`), por lo que los cambios de código se reflejan sin rebuild.
+- Variables de entorno del `.env` se pasan al contenedor vía `env_file`; `DJANGO_SETTINGS_MODULE` y `DATABASE_URL` se sobreescriben en `docker-compose.yml`.
+
+---
+
+## 12. Calidad y pruebas
 
 - **Lint/format:** `ruff` (config en `pyproject.toml`).
 - **Tipado:** `mypy` + `django-stubs`; resolver incidencias con la skill **`/fix-types`**.
 - **Pruebas:** `pytest` + `pytest-django`; `factory_boy` para factories. Cobertura prioritaria: **services** (reglas de negocio) y **API** (permisos/serialización).
 - **Seed de catálogos:** vía **data migrations** (patrón ya establecido en `convenios/migrations/0002_*` y `0003_*`); reproducible e idempotente.
-- **Comandos:** ejecutar siempre con el venv activado (`.venv\Scripts\Activate.ps1`); nunca `runserver` automatizado (lo corre el usuario).
+- **Comandos:** en desarrollo local activar el venv (`.venv\Scripts\Activate.ps1`); en Docker usar `docker compose exec web <comando>`; nunca `runserver` automatizado (lo corre el usuario o Docker).
 
 ---
 
-## 12. Convenciones de código
+## 13. Convenciones de código
 
 - **Comunicación/documentación:** español. **Código** (variables, funciones, clases, endpoints, ramas, commits): inglés.
 - **Modelo de datos:** nombres de tablas, columnas y descripción de campos en **español** (`db_table`, nombres de campo, `help_text`).
@@ -242,7 +329,7 @@ class DocumentStorage(Protocol):
 
 ---
 
-## 13. Roadmap del MVP
+## 14. Roadmap del MVP
 
 1. **Base técnica:** dependencias nuevas, `config/settings/` por entorno, `.env`/`.env.example`, migrar `SECRET_KEY`, registrar DRF/JWT/spectacular en `INSTALLED_APPS`, configurar `DATABASE_URL` Postgres, montar `/api/v1/` y OpenAPI.
 2. **Autenticación y usuarios:** JWT, grupos/roles, `perfil_usuario_entidad`, permisos de alcance institucional.
