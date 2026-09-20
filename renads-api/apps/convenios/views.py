@@ -591,6 +591,7 @@ def _entity_viewset(
     annex_actor=None,
     detalles=None,
     ordering=None,
+    ordering_fields=None,
 ):
     """ModelViewSet (CRUD) para una entidad. Escritura solo Administrador RENADS; con auditoría.
 
@@ -615,6 +616,8 @@ def _entity_viewset(
         "search_fields": search_fields or [],
         "ordering": ordering if ordering is not None else ["id"],
     }
+    if ordering_fields is not None:
+        atributos["ordering_fields"] = ordering_fields
     if annex_actor:
         atributos["annex_actor"] = annex_actor
     return type(f"{model.__name__}ViewSet", tuple(bases), atributos)
@@ -871,6 +874,18 @@ class ExecutivePositionViewSet(
     serializer_class = _ExecutivePositionSerializer
 
 
+class UniversityEntityTypeViewSet(viewsets.ReadOnlyModelViewSet):
+    """Tipos de entidad universitaria (catálogo fijo, solo lectura)."""
+
+    queryset = m.UniversityEntityType.objects.all()
+    serializer_class = _auto_serializer(m.UniversityEntityType)
+    permission_classes = [IsAuthenticated]
+    filterset_fields = ["activo"]
+    search_fields = ["nombre"]
+    ordering_fields = ["id", "nombre"]
+    ordering = ["id"]
+
+
 # Catálogos (solo lectura): basename -> ViewSet
 CATALOG_VIEWSETS = {
     "regions": _catalog_viewset(m.Region),
@@ -882,6 +897,7 @@ CATALOG_VIEWSETS = {
     "observation-reasons": _catalog_viewset(m.ObservationReason),
     "rejection-reasons": _catalog_viewset(m.RejectionReason),
     "closure-reasons": _catalog_viewset(m.ClosureReason),
+    "university-entity-types": UniversityEntityTypeViewSet,
 }
 
 # Entidades (CRUD): basename -> ViewSet
@@ -948,6 +964,8 @@ ENTITY_VIEWSETS = {
         m.ProfessionalCareer,
         filterset_fields=["nivel_academico", "activo"],
         search_fields=["nombre"],
+        ordering=["orden", "nombre"],
+        ordering_fields=["id", "orden", "nombre"],
     ),
     "university-careers": UniversityCareerViewSet,
     "university-campuses": _entity_viewset(

@@ -636,6 +636,28 @@ class OrganRepresentativeHistory(models.Model):
 # ---------------------------------------------------------------------------
 # Entidades — Universidades
 # ---------------------------------------------------------------------------
+class UniversityEntityType(models.Model):
+    """Tipo de entidad universitaria (catálogo fijo: Universidad, Instituto, etc.)."""
+
+    nombre = models.CharField(
+        "nombre", max_length=100, unique=True,
+        help_text="Nombre del tipo de entidad universitaria",
+    )
+    activo = models.BooleanField(
+        "activo", default=True,
+        help_text="Indica si el tipo está activo",
+    )
+
+    class Meta:
+        db_table = "tipo_entidad_universidad"
+        verbose_name = "tipo de entidad universitaria"
+        verbose_name_plural = "tipos de entidad universitaria"
+        ordering = ["id"]
+
+    def __str__(self):
+        return self.nombre
+
+
 class University(models.Model):
     nombre = models.CharField("nombre", max_length=255, help_text="Nombre de la universidad")
     siglas = models.CharField("siglas", max_length=50, blank=True, help_text="Siglas")
@@ -645,9 +667,10 @@ class University(models.Model):
         help_text="Pública / privada",
     )
     tipo_entidad = models.ForeignKey(
-        OrganDirectory, on_delete=models.PROTECT, db_column="tipo_entidad_id",
-        limit_choices_to={"organo__nombre": "Universidad"},
-        help_text="Tipo de entidad del directorio (organo=Universidad)",
+        UniversityEntityType,
+        on_delete=models.PROTECT,
+        db_column="tipo_entidad_id",
+        help_text="Tipo de entidad universitaria",
     )
     tipo_autorizacion = models.ForeignKey(
         AuthorizationType, on_delete=models.PROTECT, db_column="tipo_autorizacion_id",
@@ -710,6 +733,11 @@ class ProfessionalCareer(models.Model):
     nivel_academico = models.ForeignKey(
         AcademicLevel, on_delete=models.PROTECT, db_column="nivel_academico_id",
         help_text="Carrera profesional / segunda especialidad / maestría / doctorado",
+    )
+    orden = models.IntegerField(
+        "orden",
+        default=0,
+        help_text="Orden de visualización en el listado (menor primero)",
     )
     activo = models.BooleanField("activo", default=True)
 

@@ -45,6 +45,21 @@ Tablas paramétricas (RNF-MAN-01). Patrón común: `id` (PK), `codigo` (varchar,
 | `motivo_cierre` | Motivos de cierre o anulación | — |
 | `tipo_categoria` | Categoría del establecimiento de salud (clasificación de IPRESS). Hereda de `Catalog` (`codigo` único global). Tabla renombrada de `categoria` → `tipo_categoria` | — |
 | `tipo_clasificacion` | Tipo de clasificación del establecimiento de salud (clasificación de IPRESS). Hereda de `Catalog` (`codigo` único global) | — |
+| `tipo_entidad_universidad` | Tipo de entidad universitaria. Seed fijo: 4 tipos. | — |
+
+### `tipo_entidad_universidad`
+
+Catálogo fijo de tipos de entidad universitaria. Seed en migración `0052`.
+
+| Columna | Tipo | Null | Descripción |
+|---------|------|------|-------------|
+| `id` | PK | No | |
+| `nombre` | varchar(100) | No | Nombre del tipo (único) |
+| `activo` | bool | No | |
+
+Valores seed: `Universidad`, `Instituto`, `Escuela superior`, `Escuela de posgrado`.
+
+Endpoint: `/api/v1/university-entity-types/` (solo lectura, `IsAuthenticated`; filtros `activo`; búsqueda `nombre`).
 
 ### Jerarquía geográfica sanitaria: `red` y `microred`
 
@@ -106,7 +121,7 @@ Seed: 5 registros — `Órgano del MINSA`, `Universidad`, `Gobierno Regional`, `
 
 La tabla `tipo_organo` (modelo `OrganType`) y su endpoint `/api/v1/organ-types/` fueron **retirados** (404). Sus filas se migraron a `organo_directorio` como filas con la `categoria` correspondiente (una fila de directorio por cada tipo de órgano). Las FKs que la referenciaban se reapuntaron a `organo_directorio`:
 - `unidad_ejecutora.tipo_organo_id` → `organo_directorio` (categoría `UNIDAD_EJECUTORA`) — **posteriormente eliminada en migración 0045** (refactor de `unidad_ejecutora`).
-- `universidad.tipo_entidad_id` → `organo_directorio` (categoría `UNIVERSIDAD`).
+- `universidad.tipo_entidad_id` → `tipo_entidad_universidad` (refactorizado en migración `0052`; antes apuntaba a `organo_directorio`).
 
 El backfill de la `categoria` de las filas regionales derivó del antiguo `tipo_organo.codigo`: `GERESA`/`DIRESA` → `GOBIERNO_REGIONAL`, `DIRIS` → `MINSA_DIRIS`.
 
@@ -245,7 +260,7 @@ Los representantes de CONAPRES y de los demás órganos se registran en `organo_
 | `siglas` | varchar(50) | Sí | Siglas |
 | `numero_ruc` | varchar(11) | Sí | Número de RUC |
 | `tipo_gestion_id` | FK → `tipo_gestion_universidad` | No | Pública / privada |
-| `tipo_entidad_id` | FK → `organo_directorio` (PROTECT) | No | Tipo de entidad del directorio (categoría `UNIVERSIDAD`, vía `limit_choices_to`) |
+| `tipo_entidad_id` | FK → `tipo_entidad_universidad` (PROTECT) | No | Tipo de entidad universitaria |
 | `tipo_autorizacion_id` | FK → `tipo_autorizacion` | No | Licenciada / Denegada / Pendiente |
 | `codigo_inei` | varchar(20) | Sí | Código INEI |
 | `fecha_constitucion` | date | Sí | Fecha de constitución |
@@ -281,6 +296,7 @@ Endpoint: `/api/v1/faculties/` (CRUD con logo, escritura solo `Administrador REN
 | `id` | PK | No | |
 | `nombre` | varchar(255) | No | Nombre de la carrera o programa |
 | `nivel_academico_id` | FK → `nivel_academico` | No | Carrera profesional / segunda especialidad / maestría / doctorado |
+| `orden` | `int` | No | Orden de visualización en el listado (default 0, menor primero) |
 | `activo` | bool | No | |
 
 ### `universidad_carrera`
@@ -713,7 +729,7 @@ organo_representante >── cargo_ejecutivo >── organo_directorio   (cargo 
 organo_representante >── tipo_documento_identidad (módulo 2)
 organo_representante ──< historial_organo_representante   (baja del anterior al designar uno nuevo)
 
-universidad >── tipo_gestion_universidad / tipo_entidad (→ organo_directorio, categoría UNIVERSIDAD) / tipo_autorizacion
+universidad >── tipo_gestion_universidad / tipo_entidad_universidad / tipo_autorizacion
 universidad ──< facultad >── ubigeo
 universidad ──< universidad_carrera >── carrera_profesional   (carreras que dicta cada universidad)
 carrera_profesional >── nivel_academico

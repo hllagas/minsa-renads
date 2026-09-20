@@ -371,3 +371,36 @@ await fetch("/api/v1/interns/8/revisar-declaraciones/", {
 
 `OBSERVADAS` vuelve a `COMPLETAS` al re-adjuntar y cumplir el checklist. **Gate:** el internado no
 pasa a `ACTIVO` (`interns/{id}/cambiar-estado/`) salvo que `estado_declaraciones == "VALIDADAS"` (`400`).
+
+---
+
+## Tipos de entidad universitaria — `GET /api/v1/university-entity-types/`
+
+Catálogo de solo lectura con los 4 tipos de entidad universitaria del sistema.
+
+### Respuesta
+
+```json
+[
+  { "id": 1, "nombre": "Universidad", "activo": true },
+  { "id": 2, "nombre": "Instituto", "activo": true },
+  { "id": 3, "nombre": "Escuela superior", "activo": true },
+  { "id": 4, "nombre": "Escuela de posgrado", "activo": true }
+]
+```
+
+### Uso
+
+- Poblar el selector de tipo de entidad al crear o editar una universidad
+  (`POST /api/v1/universities/` body `tipo_entidad: <id>`).
+- Filtrar universidades por tipo: `GET /api/v1/universities/?tipo_entidad=<id>`.
+
+### Breaking change — IDs de `tipo_entidad`
+
+> Los IDs del campo `tipo_entidad` de `universidad` **cambiaron** tras la migración `0052`.
+> Antes referenciaban filas de `organo_directorio`; ahora referencian filas de
+> `tipo_entidad_universidad`. Los IDs numéricos son distintos.
+>
+> Si el frontend guardaba IDs de `tipo_entidad` en caché o en URLs, debe refrescar el
+> catálogo llamando a `GET /api/v1/university-entity-types/` para obtener los nuevos IDs.
+> Los filtros `?tipo_entidad=<id>` en `GET /api/v1/universities/` esperan los nuevos IDs.
