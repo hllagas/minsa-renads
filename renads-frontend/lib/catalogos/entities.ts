@@ -102,13 +102,13 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     title: "Carreras profesionales",
     singular: "carrera profesional",
     createPrefix: "Nueva",
-    // Contrato backend (`ProfessionalCareerAuto`): solo `nombre`, `nivel_academico` y `activo`.
-    // El nivel académico distingue carrera / segunda especialidad / maestría / doctorado.
     description: "Carreras, segundas especialidades, maestrías y doctorados.",
     searchPlaceholder: "Buscar por nombre…",
     containerClassName: "max-w-2xl",
+    defaultOrdering: "orden",
     columns: [
       { key: "nombre", header: "Nombre" },
+      { key: "orden", header: "Orden" },
       {
         key: "activo",
         header: "Activo",
@@ -137,6 +137,7 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         required: true,
         optionsEndpoint: "academic-levels",
       },
+      { name: "orden", label: "Orden", type: "number", defaultValue: 0 },
       { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
     ],
   },

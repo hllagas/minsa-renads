@@ -107,9 +107,7 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         name: "tipo_entidad",
         label: "Tipo de entidad",
         type: "select",
-        // El filtro por `organo` (id de "Universidad") lo inyecta la página en runtime
-        // (los ids de `organs` dependen de la BD — nunca se hardcodean).
-        optionsEndpoint: "organ-directories",
+        optionsEndpoint: "university-entity-types",
       },
       {
         name: "tipo_autorizacion",
@@ -140,8 +138,7 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         label: "Tipo de entidad",
         type: "select",
         required: true,
-        // `optionsParams:{organo:<id de "Universidad">}` inyectado por la página (runtime).
-        optionsEndpoint: "organ-directories",
+        optionsEndpoint: "university-entity-types",
       },
       {
         name: "tipo_autorizacion",

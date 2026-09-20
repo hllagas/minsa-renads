@@ -188,8 +188,9 @@ filtrar `?organo=<id>`; mig 0039), `executing-units` (FK `ambito_geografico_sani
 `identity-document-types`, `executive-positions`, `observation-reasons`, `rejection-reasons`,
 `closure-reasons`, `organs` (5 categorías canónicas, solo lectura).
 
-> **Eliminados del backend (no usar):** `document-types`, `university-entity-types`,
+> **Eliminados del backend (no usar):** `document-types`,
 > `regional-organ-types`, `minsa-organ-types`, `executing-unit-types`, `organ-types`.
+> (`university-entity-types` fue **reintroducido en mig 0052** — ver `docs/api-catalogos.md §1`.)
 
 > Los `estado_codigo` de convenios provienen del catálogo `convention-statuses`.
 > Cargarlo para etiquetas y transiciones; no hardcodear nombres.

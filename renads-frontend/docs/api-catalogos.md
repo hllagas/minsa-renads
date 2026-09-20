@@ -54,8 +54,13 @@ Campos del modelo base `Catalog`: `codigo` (único, obligatorio), `nombre` (obli
 | `classification-types` | Clasificación de convenio | — |
 | `health-geographic-scopes` | Ámbito geográfico sanitario (cúspide: ámbito→red→microrred) | — |
 
-> **Eliminados del backend (no usar):** `organ-types`, `document-types`, `university-entity-types`,
+> **Eliminados del backend (no usar):** `organ-types`, `document-types`,
 > `regional-organ-types`, `minsa-organ-types`, `executing-unit-types`.
+
+`university-entity-types` — **reintroducido en mig 0052** como catálogo propio (ya NO es `organ-directories`).
+Catálogo fijo de solo lectura con 4 tipos: `Universidad`, `Instituto`, `Escuela superior`, `Escuela de posgrado`.
+Endpoint: `GET /api/v1/university-entity-types/` (`IsAuthenticated`; filtro `activo`; search `nombre`).
+`University.tipo_entidad` FK ahora apunta a este catálogo. IDs cambiaron tras la migración (refrescar con `GET /university-entity-types/`).
 
 > Front: configurados con `writableCatalog()` en `lib/catalogos/catalogs.ts`. Se editan desde
 > `/catalogos/listas/<slug>`.
