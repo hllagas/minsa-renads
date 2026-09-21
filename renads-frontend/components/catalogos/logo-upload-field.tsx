@@ -26,6 +26,7 @@ export function LogoUploadField({
   referenciaLogo?: string | null;
 }) {
   const [file, setFile] = useState<File | null>(null);
+  const [localRef, setLocalRef] = useState<string | null>(referenciaLogo ?? null);
   const inputRef = useRef<HTMLInputElement>(null);
   const uploadM = useUploadLogo(entidad, id);
 
@@ -36,7 +37,8 @@ export function LogoUploadField({
       return;
     }
     uploadM.mutate(file, {
-      onSuccess: () => {
+      onSuccess: (data) => {
+        setLocalRef(data.referencia_logo);
         toast.success("Logo actualizado.");
         setFile(null);
         if (inputRef.current) inputRef.current.value = "";
@@ -50,7 +52,7 @@ export function LogoUploadField({
       <EntityLogo
         entidad={entidad}
         id={id}
-        referenciaLogo={referenciaLogo ?? null}
+        referenciaLogo={localRef}
         size={72}
       />
       <div className="grid flex-1 gap-2">

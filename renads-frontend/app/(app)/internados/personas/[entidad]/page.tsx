@@ -3,16 +3,20 @@
 import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
-import { PERSON_CONFIGS, buildStudentsConfig } from "@/lib/internados/persons";
+import { buildStudentsConfig, buildTutorsConfig } from "@/lib/internados/persons";
 import { useAuthStore, userHasRole } from "@/lib/auth/store";
+import { TutorCreateWizard } from "@/components/internados/tutor-create-wizard";
 import { useUniversityScope } from "@/lib/auth/scope";
 import { api, type Paginated } from "@/lib/api/client";
 import type { WithId } from "@/lib/api/query";
 import { ResourceCrud } from "@/components/crud/resource-crud";
 import { StudentsBulkUploadDialog } from "@/components/internados/students-bulk-upload-dialog";
 import { useUniversityGate } from "@/components/internados/university-gate";
+import { UniversityLogoDisplay } from "@/components/internados/university-logo-display";
+import { extractApiError } from "@/lib/api/errors";
 import { PageHeader } from "@/components/data/page-header";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -44,7 +48,7 @@ export default function PersonaPage() {
 
 function BackLink() {
   return (
-    <div className="mb-4">
+    <div className="mb-1">
       <Link href="/internados" className="text-sm text-muted-foreground hover:text-foreground">
         ← Internados
       </Link>
@@ -121,7 +125,11 @@ function StudentsView() {
   return (
     <div>
       <BackLink />
-      <PageHeader title="Estudiantes" description="Estudiantes en proceso de internado." />
+      <PageHeader
+        title="Estudiantes"
+        description="Estudiantes en proceso de internado."
+        actions={universidad != null ? <UniversityLogoDisplay id={universidad} /> : undefined}
+      />
       <div className="mb-4 flex flex-wrap items-end gap-4">
         {gateUI}
         {universidad != null ? (
@@ -216,27 +224,142 @@ function StudentsView() {
   );
 }
 
+type UnivInfo = { id: number; nombre: string; siglas: string };
+
+/** Muestra las universidades asignadas al tutor en modo solo lectura dentro del form de edición. */
+function TutorUniversidades({
+  row,
+  universidad,
+}: {
+  row: WithId;
+  universidad: number | null;
+}) {
+  const univsDet = (row.universidades_detalle as UnivInfo[] | undefined) ?? [];
+  if (univsDet.length === 0) {
+    return <p className="text-sm text-muted-foreground">Sin universidades asignadas.</p>;
+  }
+  return (
+    <div className="grid gap-1.5">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        Universidades asignadas
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        {univsDet.map((u) => (
+          <span
+            key={u.id}
+            className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-sm ${
+              u.id === universidad
+                ? "border-primary/50 bg-primary/5 font-medium text-primary"
+                : "text-muted-foreground"
+            }`}
+          >
+            {u.siglas || u.nombre}
+            {u.id === universidad && (
+              <span className="text-xs opacity-70">• universidad actual</span>
+            )}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /**
  * Vista de tutores: elegir universidad (acotada al alcance) → listar los tutores de esa universidad
- * (filtro `universidades`). No usa `fixedValues` porque `universidades` es M2M (1–2, RN-24).
+ * (filtro `universidades`). No usa `fixedValues` porque `universidades` es M2M (RN-24).
  */
 function TutorsView() {
+  const user = useAuthStore((s) => s.user);
+  const isAdmin = userHasRole(user, "Administrador RENADS");
+  const canWrite = userHasRole(user, "Universidad", "Administrador RENADS");
   const { universidad, gateUI } = useUniversityGate();
-  const config = PERSON_CONFIGS.tutors;
+  const queryClient = useQueryClient();
+  const config = useMemo(() => buildTutorsConfig(isAdmin, universidad), [isAdmin, universidad]);
   const initialFilters = useMemo<Record<string, string> | undefined>(
     () => (universidad != null ? { universidades: String(universidad) } : undefined),
     [universidad],
   );
+  const [wizardOpen, setWizardOpen] = useState(false);
+
+  async function handleTutorDelete(row: WithId, close: () => void) {
+    // IDs actuales de universidades del tutor. La lista puede exponerlos como
+    // `universidades_detalle` (objetos) o `universidades` (ids planos u objetos).
+    // Se coercionan a number para comparar sin mismatch de tipo (bug: string vs number).
+    const extractIds = (v: unknown): number[] => {
+      if (!Array.isArray(v)) return [];
+      return v
+        .map((x) =>
+          x != null && typeof x === "object" && "id" in x
+            ? Number((x as { id: unknown }).id)
+            : Number(x),
+        )
+        .filter((n) => Number.isFinite(n));
+    };
+
+    const currentUnivIds =
+      extractIds(row.universidades_detalle).length > 0
+        ? extractIds(row.universidades_detalle)
+        : extractIds(row.universidades);
+    const target = Number(universidad);
+    const remaining = currentUnivIds.filter((id) => id !== target);
+
+    const refresh = () =>
+      queryClient.invalidateQueries({ queryKey: ["tutors"], refetchType: "all" });
+
+    try {
+      if (remaining.length > 0) {
+        // Tutor tiene otras universidades → solo quitar esta del M2M
+        await api.patch(`/tutors/${row.id}/`, { universidades: remaining });
+        toast.success("Tutor desvinculado de esta universidad.");
+      } else {
+        // Sin otras universidades → eliminar la ficha completa
+        await api.delete(`/tutors/${row.id}/`);
+        toast.success("Tutor eliminado.");
+      }
+      await refresh();
+    } catch (e) {
+      toast.error(extractApiError(e));
+    } finally {
+      close();
+    }
+  }
 
   return (
     <div>
       <BackLink />
-      <PageHeader title={config.title} description={config.description} />
+      <PageHeader
+        title={config.title}
+        description={config.description}
+        actions={universidad != null ? <UniversityLogoDisplay id={universidad} /> : undefined}
+      />
       <div className="mb-4">{gateUI}</div>
       {universidad == null ? (
         <EmptyPick label="Selecciona una universidad para ver sus tutores." />
       ) : (
-        <ResourceCrud key={universidad} config={config} initialFilters={initialFilters} hideHeader />
+        <>
+          <ResourceCrud
+            key={universidad}
+            config={config}
+            initialFilters={initialFilters}
+            hideHeader
+            onDelete={handleTutorDelete}
+            renderEditInfo={(row) => (
+              <TutorUniversidades row={row} universidad={universidad} />
+            )}
+            headerActions={
+              canWrite ? (
+                <Button onClick={() => setWizardOpen(true)}>Nuevo tutor</Button>
+              ) : undefined
+            }
+          />
+          {canWrite && (
+            <TutorCreateWizard
+              universidad={universidad}
+              open={wizardOpen}
+              onOpenChange={setWizardOpen}
+            />
+          )}
+        </>
       )}
     </div>
   );

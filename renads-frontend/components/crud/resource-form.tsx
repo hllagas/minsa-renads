@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, Controller, useWatch, type Control } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 
@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { EntityCombobox } from "@/components/form/entity-combobox";
 import { MultiEntityCombobox } from "@/components/form/multi-entity-combobox";
+import { Eye, EyeOff } from "lucide-react";
 import { DatePicker } from "@/components/form/date-picker";
 import {
   Select,
@@ -199,6 +200,8 @@ function InputFieldRow({
   field: FieldConfig;
   control: Control<FormValues>;
 }) {
+  const [showPassword, setShowPassword] = useState(false);
+
   const inputType =
     field.type === "number"
       ? "number"
@@ -207,7 +210,7 @@ function InputFieldRow({
         : field.type === "email"
           ? "email"
           : field.type === "password"
-            ? "password"
+            ? showPassword ? "text" : "password"
             : "text";
   // Texto en MAYÚSCULAS por defecto; se excluye con `uppercase: false` (p. ej. `username`).
   const toUpper = field.type === "text" && field.uppercase !== false;
@@ -287,6 +290,31 @@ function InputFieldRow({
               onChange={(iso) => f.onChange(iso)}
               ariaInvalid={!!fieldState.error}
             />
+          ) : field.type === "password" ? (
+            <div className="relative">
+              <Input
+                id={`f-${field.name}`}
+                type={inputType}
+                disabled={field.disabled}
+                autoComplete="new-password"
+                data-form-type="other"
+                data-lpignore="true"
+                value={(f.value as string | null) ?? ""}
+                onChange={(e) => f.onChange(e.target.value)}
+                onBlur={f.onBlur}
+                aria-invalid={!!fieldState.error}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                tabIndex={-1}
+                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground focus:outline-none"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           ) : (
             <Input
               id={`f-${field.name}`}
@@ -303,8 +331,7 @@ function InputFieldRow({
               }
               maxLength={docMaxLen}
               disabled={field.disabled}
-              autoComplete={field.type === "password" ? "new-password" : "off"}
-              // Excluye el campo del pipeline de detección de pago de Chrome/gestores de contraseñas.
+              autoComplete="off"
               data-form-type="other"
               data-lpignore="true"
               value={(f.value as string | number | null) ?? ""}

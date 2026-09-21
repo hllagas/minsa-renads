@@ -52,7 +52,7 @@ export function AssignProfilesDialog({
         if (!open) onClose();
       }}
     >
-      <DialogContent className="flex max-h-[90dvh] flex-col sm:max-w-2xl">
+      <DialogContent className="flex max-h-[92dvh] flex-col sm:max-w-3xl">
         <DialogHeader className="shrink-0">
           <DialogTitle>Asignar entidades</DialogTitle>
           <DialogDescription>
@@ -185,7 +185,7 @@ function AssignProfilesBody({ user }: { user: User }) {
   const activos = (profiles.data ?? []).filter((p) => p.activo);
 
   return (
-    <div className="grid gap-5">
+    <div className="grid gap-4">
       {/* Alcance actual */}
       <section className="grid gap-2">
         <h3 className="text-sm font-medium">Alcance actual</h3>
@@ -235,7 +235,7 @@ function AssignProfilesBody({ user }: { user: User }) {
       </section>
 
       {/* Asignar nuevo alcance */}
-      <form onSubmit={onAssign} className="grid gap-4 border-t pt-4">
+      <form onSubmit={onAssign} className="grid gap-3 border-t pt-3">
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-sm font-medium">
             {editingId != null ? "Editar alcance" : "Asignar"}
@@ -254,7 +254,7 @@ function AssignProfilesBody({ user }: { user: User }) {
           </p>
         ) : null}
 
-        <div className="grid gap-1.5">
+        <div className="grid gap-1">
           <Label>Rol *</Label>
           {roles.length === 1 ? (
             // Un solo rol: fijo (read-only), no se pide elegir.
@@ -284,7 +284,7 @@ function AssignProfilesBody({ user }: { user: User }) {
           </p>
         </div>
 
-        <div className="grid gap-1.5">
+        <div className="grid gap-1">
           <Label>Tipo de entidad *</Label>
           <Select
             items={items.map((t) => ({ value: t.tipo_entidad, label: t.label }))}
@@ -307,7 +307,7 @@ function AssignProfilesBody({ user }: { user: User }) {
           </Select>
         </div>
 
-        <div className="grid gap-1.5">
+        <div className="grid gap-1">
           <Label>Entidades *</Label>
           {mapping ? (
             <MultiEntityCombobox

@@ -357,12 +357,37 @@ class TutorViewSet(AuditedModelViewSet):
     del tutor con Convenios Específicos e IPRESS (tabla `tutor_convenio`).
     """
 
-    queryset = im.Tutor.objects.select_related("especialidad").prefetch_related("universidades")
+    queryset = im.Tutor.objects.select_related(
+        "especialidad", "profesion", "tipo_documento_identidad"
+    ).prefetch_related("universidades")
     serializer_class = TutorSerializer
     permission_classes = [IsAuthenticated, IsInstitutionalMember, IsUniversityOrReadOnly]
     filterset_fields = ["especialidad", "universidades", "numero_documento", "activo"]
     search_fields = ["numero_documento", "nombres", "apellido_paterno"]
     ordering = ["id"]
+
+    @action(detail=False, methods=["get"], url_path="buscar")
+    def buscar(self, request):
+        """Busca un tutor por tipo y número de documento.
+
+        Parámetros requeridos: ``tipo_documento_identidad`` (id) y ``numero_documento`` (str).
+        Devuelve 200+datos si existe, 404 si no, 400 si faltan parámetros.
+        """
+        tipo_doc = request.query_params.get("tipo_documento_identidad")
+        numero_doc = request.query_params.get("numero_documento")
+        if not tipo_doc or not numero_doc:
+            return Response(
+                {"detail": "Se requieren tipo_documento_identidad y numero_documento."},
+                status=400,
+            )
+        tutor = self.get_queryset().filter(
+            tipo_documento_identidad_id=tipo_doc,
+            numero_documento=numero_doc.strip(),
+        ).first()
+        if tutor is None:
+            return Response({"detail": "No encontrado."}, status=404)
+        ser = self.get_serializer(tutor)
+        return Response(ser.data)
 
     @action(detail=True, methods=["get", "post"], url_path="convenios")
     def convenios(self, request, pk=None):

@@ -62,12 +62,15 @@ ESTADOS_INTERNADO_BLOQUEANTES = {
 # RN-22 — Grupo (rol) asignado al interno aprovisionado.
 GRUPO_INTERNO = "Interno"
 
-# RN-24 — Un tutor pertenece de 1 a 2 universidades (tope de negocio).
-MAX_UNIVERSIDADES_TUTOR = 2
+# RN-24 — Un tutor pertenece de 1 a 5 universidades (tope de negocio).
+MAX_UNIVERSIDADES_TUTOR = 5
+
+# RN-TUT-MAX — Número máximo de internos activos por tutor en simultáneo.
+MAX_INTERNOS_POR_TUTOR = 5
 
 
 def validar_universidades_tutor(universidades) -> None:
-    """Valida la regla RN-24: un tutor pertenece de 1 a ``MAX_UNIVERSIDADES_TUTOR`` universidades.
+    """Valida RN-24: un tutor pertenece de 1 a ``MAX_UNIVERSIDADES_TUTOR`` universidades.
 
     ``universidades`` es la colección de universidades a asignar. Lanza
     ``ValidationError`` (mensaje en español) si está vacía o excede el tope.

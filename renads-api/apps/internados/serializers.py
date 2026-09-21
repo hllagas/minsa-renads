@@ -3,7 +3,9 @@
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
-from apps.convenios.models import Convention, Ipress, University
+from django.contrib.contenttypes.models import ContentType
+
+from apps.convenios.models import Convention, Ipress, University, UserEntityProfile
 from apps.internados.models import InternshipPeriod
 from apps.internados import services
 from apps.internados.models import (
@@ -103,15 +105,17 @@ class StudentBulkUploadSerializer(serializers.Serializer):
 
 
 class TutorSerializer(serializers.ModelSerializer):
-    """CRUD de tutores. `universidades` (RN-24): de 1 a 2 universidades por tutor."""
+    """CRUD de tutores. `universidades` (RN-24): de 1 a 5 universidades por tutor."""
 
     universidades = serializers.PrimaryKeyRelatedField(
         queryset=University.objects.all(), many=True,
-        help_text="Universidades del tutor (de 1 a 2 — RN-24)",
+        help_text="Universidades del tutor (de 1 a 5 — RN-24)",
     )
     # Detalles legibles para el listado (lectura; la escritura sigue por id).
     profesion_detalle = serializers.SerializerMethodField(read_only=True)
     especialidad_detalle = serializers.SerializerMethodField(read_only=True)
+    tipo_documento_identidad_detalle = serializers.SerializerMethodField(read_only=True)
+    universidades_detalle = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Tutor
@@ -125,8 +129,42 @@ class TutorSerializer(serializers.ModelSerializer):
         e = obj.especialidad
         return {"id": e.id, "nombre": e.nombre} if e else None
 
+    def get_tipo_documento_identidad_detalle(self, obj):
+        t = obj.tipo_documento_identidad
+        return {"id": t.id, "codigo": t.codigo, "nombre": t.nombre} if t else None
+
+    def get_universidades_detalle(self, obj):
+        return [{"id": u.id, "nombre": u.nombre, "siglas": u.siglas} for u in obj.universidades.all()]
+
     def validate_universidades(self, value):
-        # RN-24: fuente única de la regla (1..2 universidades, sin repetidos).
+        # B5: usuario Universidad solo puede añadir/quitar sus propias universidades.
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if user and not user.is_superuser and not user.groups.filter(name="Administrador RENADS").exists():
+            ct = ContentType.objects.get_for_model(University)
+            ids_ambito = set(
+                UserEntityProfile.objects.filter(
+                    usuario=user, tipo_contenido=ct, activo=True
+                ).values_list("id_objeto", flat=True)
+            )
+            submitted_ids = {str(u.pk) for u in value}
+            if self.instance is not None:
+                # Actualización: solo puede añadir/quitar universidades de su propio ámbito.
+                current_ids = {str(u.pk) for u in self.instance.universidades.all()}
+                cambios = (submitted_ids - current_ids) | (current_ids - submitted_ids)
+                for uid in cambios:
+                    if uid not in ids_ambito:
+                        raise serializers.ValidationError(
+                            "Solo puedes añadir o quitar universidades de tu ámbito institucional."
+                        )
+            else:
+                # Alta: todas las universidades enviadas deben estar en su ámbito.
+                for u in value:
+                    if str(u.pk) not in ids_ambito:
+                        raise serializers.ValidationError(
+                            "Solo puedes asignar universidades de tu ámbito institucional."
+                        )
+        # RN-24: fuente única de la regla (1..5 universidades, sin repetidos).
         services.validar_universidades_tutor(value)
         return value
 
@@ -199,6 +237,22 @@ class InternshipWriteSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             "ambito_geografico_sanitario": {"required": False, "allow_null": True},
         }
+
+    def validate_tutor(self, tutor):
+        """RN-TUT-MAX: un tutor no puede supervisar más de 5 internos activos simultáneamente."""
+        if tutor is None:
+            return tutor
+        # Estados terminados — no cuentan hacia el tope.
+        ESTADOS_TERMINADOS = {"CULMINADO", "RETIRADO", "ANULADO"}
+        activos = tutor.internos.exclude(
+            estado_actual__codigo__in=ESTADOS_TERMINADOS
+        ).count()
+        from apps.internados.services import MAX_INTERNOS_POR_TUTOR
+        if activos >= MAX_INTERNOS_POR_TUTOR:
+            raise serializers.ValidationError(
+                f"El tutor ya tiene {activos} internos activos (máximo {MAX_INTERNOS_POR_TUTOR})."
+            )
+        return tutor
 
 
 class InternshipUpdateSerializer(serializers.ModelSerializer):

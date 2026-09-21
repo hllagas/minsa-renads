@@ -16,6 +16,7 @@ import { useAuthStore, userHasRole } from "@/lib/auth/store";
 import { api, type Paginated } from "@/lib/api/client";
 import type { WithId } from "@/lib/api/query";
 import { useUniversityGate } from "@/components/internados/university-gate";
+import { UniversityLogoDisplay } from "@/components/internados/university-logo-display";
 import { PageHeader } from "@/components/data/page-header";
 import { DataTable } from "@/components/ui/data-table";
 import { DataTablePagination } from "@/components/data/data-table-pagination";
@@ -155,7 +156,7 @@ export default function InternosPage() {
 
   return (
     <div>
-      <div className="mb-4">
+      <div className="mb-1">
         <Link href="/internados" className="text-sm text-muted-foreground hover:text-foreground">
           ← Internados
         </Link>
@@ -163,6 +164,7 @@ export default function InternosPage() {
       <PageHeader
         title="Internos"
         description="Internados, rotaciones y autorizaciones."
+        actions={universidad != null ? <UniversityLogoDisplay id={universidad} /> : undefined}
       />
 
       {/* Paso 1 — universidad · Paso 2 — convenio Específico vigente */}

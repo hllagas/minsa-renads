@@ -46,9 +46,11 @@ export function ResourceCrud<TRead extends WithId>({
   cardView,
   renderCard,
   renderForm,
+  renderEditInfo,
   dialogClassName,
   initialFilters,
   hideHeader,
+  onDelete,
 }: {
   config: ResourceConfig<TRead>;
   /** Acciones por fila inyectadas por la página (p. ej. abrir el diálogo de contraseña). */
@@ -65,6 +67,11 @@ export function ResourceCrud<TRead extends WithId>({
     onSubmit: (payload: Record<string, unknown>) => void;
     onCancel: () => void;
   }) => ReactNode;
+  /**
+   * Contenido informativo de solo lectura mostrado sobre el form al editar (override de
+   * `config.renderEditInfo`). Útil cuando la lógica depende del estado del componente padre.
+   */
+  renderEditInfo?: (row: TRead) => ReactNode;
   /** Clase del `DialogContent` de alta/edición (por defecto `sm:max-w-2xl`). */
   dialogClassName?: string;
   /**
@@ -85,6 +92,12 @@ export function ResourceCrud<TRead extends WithId>({
   initialFilters?: Record<string, string>;
   /** Oculta el PageHeader interno (título + descripción). Útil cuando la página lo renderiza antes. */
   hideHeader?: boolean;
+  /**
+   * Handler de borrado personalizado. Si está presente reemplaza el `DELETE` genérico del CRUD.
+   * Recibe la fila y una función `close()` que cierra el diálogo de confirmación. El caller es
+   * responsable de mostrar toasts e invalidar queries.
+   */
+  onDelete?: (row: TRead, close: () => void) => void;
 }) {
   const hooks = useMemo(
     () => createResourceHooks<TRead, Record<string, unknown>>(config.endpoint),
@@ -118,6 +131,7 @@ export function ResourceCrud<TRead extends WithId>({
   }, [initialFilters]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState<TRead | null>(null);
+  const [customDeletePending, setCustomDeletePending] = useState(false);
 
   // La búsqueda se aplica con retraso para no pedir al backend en cada tecla.
   const debouncedSearch = useDebouncedValue(search, 300);
@@ -231,6 +245,14 @@ export function ResourceCrud<TRead extends WithId>({
 
   function confirmDelete() {
     if (!deleting) return;
+    if (onDelete) {
+      setCustomDeletePending(true);
+      onDelete(deleting, () => {
+        setCustomDeletePending(false);
+        setDeleting(null);
+      });
+      return;
+    }
     removeM.mutate(pkOf(deleting), {
       onSuccess: () => {
         toast.success(
@@ -376,9 +398,9 @@ export function ResourceCrud<TRead extends WithId>({
               {editing ? `Editar ${config.singular}` : `${config.createPrefix ?? "Nuevo"} ${config.singular}`}
             </DialogTitle>
           </DialogHeader>
-          {editing && config.renderEditInfo ? (
+          {editing && (renderEditInfo ?? config.renderEditInfo) ? (
             <div className="rounded-md border bg-muted/40 p-3 text-sm">
-              {config.renderEditInfo(editing)}
+              {(renderEditInfo ?? config.renderEditInfo)!(editing)}
             </div>
           ) : null}
           {renderForm ? (
@@ -435,9 +457,9 @@ export function ResourceCrud<TRead extends WithId>({
             <Button
               variant="destructive"
               onClick={confirmDelete}
-              disabled={removeM.isPending}
+              disabled={removeM.isPending || customDeletePending}
             >
-              {removeM.isPending
+              {removeM.isPending || customDeletePending
                 ? "Procesando…"
                 : config.deleteActionLabel ?? "Eliminar"}
             </Button>
