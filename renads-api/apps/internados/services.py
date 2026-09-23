@@ -123,7 +123,7 @@ def eliminar_tutor_convenio(*, tutor_convenio: TutorConvenio, usuario) -> None:
 # Columnas requeridas del Excel de carga masiva de estudiantes (RN-16, §6 bis schema M2).
 # Se expresan con la clave canónica interna (ver CARGA_ALIAS_COLUMNAS).
 # Columnas base requeridas (siempre). El campo de nivel (carrera_profesional o
-# especialidad) se detecta dinámicamente del encabezado — ver registrar_estudiantes_masivo.
+# especialidad) se detecta dinámicamente del encabezado — ver _parsear_trama.
 CARGA_COLUMNAS_REQUERIDAS = {
     "tipo_documento", "numero_documento", "nombres", "apellido_paterno",
 }
@@ -135,6 +135,10 @@ CARGA_COLUMNAS_REQUERIDAS = {
 CARGA_ALIAS_COLUMNAS = {
     "tipo_documento_identidad_id": "tipo_documento",
     "contacto_emergencia_parentesco_id": "contacto_emergencia_parentesco",
+    # Encabezados renombrados en la trama nueva → clave canónica interna.
+    "correo personal": "correo",
+    "teléfono móvil": "telefono",
+    "telefono móvil": "telefono",  # tolera la variante sin tilde
 }
 
 
@@ -769,16 +773,24 @@ def _resolver_especialidad(valor):
 def _resolver_parentesco(valor):
     if valor is None:
         return None
-    texto = str(valor).strip().upper()
+    texto = str(valor).strip()
     if texto.isdigit():
         try:
             return RelationshipType.objects.get(id=int(texto))
         except RelationshipType.DoesNotExist:
             pass
+    # Acepta el código (`PADRE`) o el nombre mostrado en el cuadro combinado (`Padre`).
     try:
-        return RelationshipType.objects.get(codigo=texto)
+        return RelationshipType.objects.get(codigo__iexact=texto)
+    except RelationshipType.DoesNotExist:
+        pass
+    try:
+        return RelationshipType.objects.get(nombre__iexact=texto)
     except RelationshipType.DoesNotExist as exc:
-        raise ValidationError(f"Parentesco no encontrado: {valor}. Valores válidos: PADRE, MADRE, HERMANO, CONYUGE, HIJO, ABUELO, TIO, OTRO.") from exc
+        raise ValidationError(
+            f"Parentesco no encontrado: {valor}. "
+            "Seleccione un valor del cuadro combinado de la trama."
+        ) from exc
 
 
 def _resolver_ubigeo_por_partes(departamento, provincia, distrito):
@@ -830,105 +842,257 @@ def _resolver_carrera_no_pregrado(especialidad_texto: str) -> "ProfessionalCaree
         ) from exc
 
 
-def _crear_estudiante_desde_fila(
-    *, obtener, usuario, universidad, periodo_internado, ct_uni, es_admin, es_pregrado_trama: bool
-) -> Student:
-    tipo_doc_codigo = obtener("tipo_documento")
-    numero_documento = obtener("numero_documento")
-    nombres = obtener("nombres")
-    apellido_paterno = obtener("apellido_paterno")
-    if not (tipo_doc_codigo and numero_documento and nombres and apellido_paterno):
-        raise ValidationError(
-            "Campos requeridos: tipo_documento, numero_documento, nombres, apellido_paterno."
-        )
+# Regex simple para validar el formato del correo electrónico en la trama.
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
+
+def _resolver_tipo_documento(valor):
+    """Resuelve el tipo de documento por id, código o nombre (cuadro combinado de la trama)."""
+    if valor is None:
+        raise ValidationError("`tipo_documento` es requerido.")
+    texto = str(valor).strip()
+    qs = IdentityDocumentType.objects.all()
+    if texto.isdigit():
+        try:
+            return qs.get(id=int(texto))
+        except IdentityDocumentType.DoesNotExist:
+            pass
     try:
-        tipo_doc = IdentityDocumentType.objects.get(codigo=str(tipo_doc_codigo).strip().upper())
+        return qs.get(codigo__iexact=texto)
+    except IdentityDocumentType.DoesNotExist:
+        pass
+    try:
+        return qs.get(nombre__iexact=texto)
     except IdentityDocumentType.DoesNotExist as exc:
-        raise ValidationError(f"Tipo de documento inválido: {tipo_doc_codigo}.") from exc
+        raise ValidationError(f"Tipo de documento inválido: {valor}.") from exc
+    except IdentityDocumentType.MultipleObjectsReturned as exc:
+        raise ValidationError(f"Tipo de documento ambiguo: {valor}.") from exc
 
-    numero_documento = str(numero_documento).strip()
-    if Student.objects.filter(tipo_documento_identidad=tipo_doc, numero_documento=numero_documento).exists():
-        raise ValidationError(f"Ya existe un estudiante con {tipo_doc.codigo} {numero_documento}.")
 
+def _agregar_error(errores: list, columna, motivo: str) -> None:
+    errores.append({"columna": columna, "motivo": motivo})
+
+
+def _capturar(errores: list, columna, fn):
+    """Ejecuta `fn`; si lanza ValidationError registra el error en `columna` y devuelve None."""
+    try:
+        return fn()
+    except ValidationError as exc:
+        _agregar_error(errores, columna, _mensaje_error(exc))
+        return None
+
+
+def _validar_ubigeo_por_partes(errores: list, departamento, provincia, distrito):
+    """Valida la coherencia departamento→provincia→distrito reportando la columna exacta.
+
+    Devuelve el `Ubigeo` resuelto o None. Los tres campos son opcionales en bloque:
+    o se envían los tres o ninguno.
+    """
+    valores = (departamento, provincia, distrito)
+    if all(v is None for v in valores):
+        return None
+    if any(v is None for v in valores):
+        for columna, valor in (("departamento", departamento), ("provincia", provincia), ("distrito", distrito)):
+            if valor is None:
+                _agregar_error(errores, columna, "Requerido cuando se registra la ubicación (los tres campos).")
+        return None
+
+    depto, prov, dist = (str(v).strip() for v in valores)
+    if not Ubigeo.objects.filter(departamento__iexact=depto).exists():
+        _agregar_error(errores, "departamento", f"Departamento no encontrado: {depto}.")
+        return None
+    if not Ubigeo.objects.filter(departamento__iexact=depto, provincia__iexact=prov).exists():
+        _agregar_error(errores, "provincia", f"Provincia no encontrada en {depto}: {prov}.")
+        return None
+    qs = Ubigeo.objects.filter(departamento__iexact=depto, provincia__iexact=prov, distrito__iexact=dist)
+    ubigeo = qs.first()
+    if ubigeo is None:
+        _agregar_error(errores, "distrito", f"Distrito no encontrado en {depto} / {prov}: {dist}.")
+    return ubigeo
+
+
+def validar_fila_estudiante(
+    *, obtener, usuario, universidad, periodo_internado, ct_uni, es_admin,
+    es_pregrado_trama: bool, dnis_vistos: set | None = None,
+) -> tuple[dict, list]:
+    """Valida una fila de la trama SIN escribir en BD (RN-16).
+
+    Acumula TODOS los errores de la fila como ``{"columna": <clave>, "motivo": str}``
+    (no aborta en el primer fallo). Devuelve ``(datos, errores)``; ``datos`` trae los
+    valores normalizados/resueltos listos para crear el `Student` (confiables solo si
+    ``errores`` está vacío). ``dnis_vistos`` detecta duplicados dentro del mismo archivo.
+    """
+    errores: list = []
+
+    # --- Identificación ---
+    tipo_doc = _capturar(errores, "tipo_documento", lambda: _resolver_tipo_documento(obtener("tipo_documento")))
+
+    numero_documento = obtener("numero_documento")
+    if not numero_documento:
+        _agregar_error(errores, "numero_documento", "`numero_documento` es requerido.")
+        numero_documento = None
+    else:
+        numero_documento = str(numero_documento).strip()
+        if not numero_documento.isdigit():
+            _agregar_error(errores, "numero_documento", "Debe contener solo dígitos.")
+        elif tipo_doc is not None:
+            esperado = 8 if tipo_doc.codigo.upper() == "DNI" else 9
+            if len(numero_documento) != esperado:
+                _agregar_error(
+                    errores, "numero_documento",
+                    f"Debe tener {esperado} dígitos para el tipo de documento {tipo_doc.codigo}.",
+                )
+
+    # Unicidad: contra BD y dentro del mismo archivo.
+    if tipo_doc is not None and numero_documento:
+        clave = (tipo_doc.id, numero_documento)
+        if dnis_vistos is not None and clave in dnis_vistos:
+            _agregar_error(errores, "numero_documento", "Documento duplicado dentro del archivo.")
+        elif Student.objects.filter(tipo_documento_identidad=tipo_doc, numero_documento=numero_documento).exists():
+            _agregar_error(errores, "numero_documento", f"Ya existe un estudiante con {tipo_doc.codigo} {numero_documento}.")
+        elif dnis_vistos is not None:
+            dnis_vistos.add(clave)
+
+    # --- Nombres ---
+    nombres = obtener("nombres")
+    if not nombres:
+        _agregar_error(errores, "nombres", "`nombres` es requerido.")
+    apellido_paterno = obtener("apellido_paterno")
+    if not apellido_paterno:
+        _agregar_error(errores, "apellido_paterno", "`apellido_paterno` es requerido.")
+
+    # --- Ámbito institucional (aplica a la fila; se ancla en la primera columna) ---
     if not es_admin and not usuario_pertenece_a_entidad(usuario, ct_uni, universidad.id):
-        raise ValidationError(
-            f"La universidad {universidad.codigo_inei or universidad.id} está fuera de tu ámbito."
+        _agregar_error(
+            errores, "tipo_documento",
+            f"La universidad {universidad.codigo_inei or universidad.id} está fuera de tu ámbito.",
         )
 
-    # RN-19: la trama tiene SOLO carrera_profesional (PREGRADO) o SOLO especialidad (no-PREGRADO).
+    # --- Carrera / especialidad / periodo (RN-19) ---
+    carrera = especialidad = None
+    periodo_internado_fila = None
     if es_pregrado_trama:
-        carrera = _resolver_carrera(obtener("carrera_profesional"))
-        especialidad = None
+        carrera = _capturar(errores, "carrera_profesional", lambda: _resolver_carrera(obtener("carrera_profesional")))
         periodo_internado_fila = periodo_internado
+        columna_nivel = "carrera_profesional"
     else:
+        columna_nivel = "especialidad"
         especialidad_texto = obtener("especialidad")
         if not especialidad_texto:
-            raise ValidationError("`especialidad` es requerida para estudiantes de nivel no PREGRADO.")
-        especialidad_texto = str(especialidad_texto).strip()
-        especialidad = _resolver_especialidad(especialidad_texto)
-        carrera = _resolver_carrera_no_pregrado(especialidad_texto)
-        periodo_internado_fila = None
+            _agregar_error(errores, "especialidad", "Requerida para estudiantes de nivel no PREGRADO.")
+        else:
+            especialidad_texto = str(especialidad_texto).strip()
+            especialidad = _capturar(errores, "especialidad", lambda: _resolver_especialidad(especialidad_texto))
+            carrera = _capturar(errores, "especialidad", lambda: _resolver_carrera_no_pregrado(especialidad_texto))
 
-    # RN-19: coherencia entre nivel académico, periodo de internado y especialidad.
-    validar_regla_periodo_especialidad(
-        carrera=carrera, periodo_internado=periodo_internado_fila, especialidad=especialidad
+    if carrera is not None:
+        _capturar(
+            errores, columna_nivel,
+            lambda: validar_regla_periodo_especialidad(
+                carrera=carrera, periodo_internado=periodo_internado_fila, especialidad=especialidad,
+            ),
+        )
+
+    # --- Ubigeo (departamento / provincia / distrito) ---
+    ubigeo = _validar_ubigeo_por_partes(
+        errores, obtener("departamento"), obtener("provincia"), obtener("distrito")
     )
 
-    # Ubigeo: se resuelve desde los tres campos separados departamento / provincia / distrito.
-    ubigeo = _resolver_ubigeo_por_partes(
-        obtener("departamento"), obtener("provincia"), obtener("distrito")
-    )
-
+    # --- Sexo ---
     sexo_raw = obtener("sexo")
-    sexo = str(sexo_raw).strip().upper() if sexo_raw is not None else None
-    if sexo is not None and sexo not in ("M", "F"):
-        raise ValidationError("`sexo` debe ser M o F.")
+    sexo = str(sexo_raw).strip().upper() if sexo_raw is not None else ""
+    if sexo and sexo not in ("M", "F"):
+        _agregar_error(errores, "sexo", "Debe ser M o F.")
+        sexo = ""
 
+    # --- Correo (formato email) ---
+    correo = obtener("correo")
+    correo = str(correo).strip() if correo else ""
+    if correo and not _EMAIL_RE.match(correo):
+        _agregar_error(errores, "correo", "Correo electrónico con formato inválido.")
+
+    # --- Teléfono (numérico) ---
+    telefono = obtener("telefono")
+    telefono = str(telefono).strip() if telefono else ""
+    if telefono and not telefono.isdigit():
+        _agregar_error(errores, "telefono", "Debe contener solo dígitos.")
+
+    # --- Nota ponderada ---
     nota = obtener("nota_promedio_ponderado")
     if nota is not None:
         try:
             nota = decimal.Decimal(str(nota).replace(",", "."))
-        except (decimal.InvalidOperation, ValueError) as exc:
-            raise ValidationError("`nota_promedio_ponderado` inválida.") from exc
+        except (decimal.InvalidOperation, ValueError):
+            _agregar_error(errores, "nota_promedio_ponderado", "Debe ser numérica.")
+            nota = None
+        else:
+            if not (decimal.Decimal("0") <= nota <= decimal.Decimal("20")):
+                _agregar_error(errores, "nota_promedio_ponderado", "Debe estar entre 0 y 20.")
+                nota = None
+            elif -nota.as_tuple().exponent > 4:
+                _agregar_error(errores, "nota_promedio_ponderado", "Máximo 4 decimales.")
+                nota = None
 
-    parentesco = _resolver_parentesco(obtener("contacto_emergencia_parentesco"))
-
-    estudiante = Student.objects.create(
-        tipo_documento_identidad=tipo_doc,
-        numero_documento=numero_documento,
-        nombres=str(nombres).strip(),
-        apellido_paterno=str(apellido_paterno).strip(),
-        apellido_materno=(str(obtener("apellido_materno")).strip() if obtener("apellido_materno") else ""),
-        fecha_nacimiento=_parse_fecha(obtener("fecha_nacimiento")),
-        sexo=sexo or "",
-        correo=(str(obtener("correo")).strip() if obtener("correo") else ""),
-        telefono=(str(obtener("telefono")).strip() if obtener("telefono") else ""),
-        direccion=(str(obtener("direccion")).strip() if obtener("direccion") else ""),
-        ubigeo=ubigeo,
-        universidad=universidad,
-        carrera_profesional=carrera,
-        periodo_internado=periodo_internado_fila,
-        especialidad=especialidad,
-        nota_promedio_ponderado=nota,
-        contacto_emergencia_nombre=(str(obtener("contacto_emergencia_nombre")).strip() if obtener("contacto_emergencia_nombre") else ""),
-        contacto_emergencia_telefono=(str(obtener("contacto_emergencia_telefono")).strip() if obtener("contacto_emergencia_telefono") else ""),
-        contacto_emergencia_parentesco=parentesco,
-        creado_por=usuario,
+    # --- Contacto de emergencia ---
+    parentesco = _capturar(
+        errores, "contacto_emergencia_parentesco",
+        lambda: _resolver_parentesco(obtener("contacto_emergencia_parentesco")),
     )
+    contacto_tel = obtener("contacto_emergencia_telefono")
+    contacto_tel = str(contacto_tel).strip() if contacto_tel else ""
+    if contacto_tel and not contacto_tel.isdigit():
+        _agregar_error(errores, "contacto_emergencia_telefono", "Debe contener solo dígitos.")
+
+    # --- Fecha de nacimiento ---
+    fecha_nacimiento = _capturar(errores, "fecha_nacimiento", lambda: _parse_fecha(obtener("fecha_nacimiento")))
+
+    # Nombres, apellidos, dirección y contacto de emergencia se registran en MAYÚSCULAS.
+    datos = {
+        "tipo_documento_identidad": tipo_doc,
+        "numero_documento": numero_documento,
+        "nombres": str(nombres).strip().upper() if nombres else "",
+        "apellido_paterno": str(apellido_paterno).strip().upper() if apellido_paterno else "",
+        "apellido_materno": (str(obtener("apellido_materno")).strip().upper() if obtener("apellido_materno") else ""),
+        "fecha_nacimiento": fecha_nacimiento,
+        "sexo": sexo,
+        "correo": correo,
+        "telefono": telefono,
+        "direccion": (str(obtener("direccion")).strip().upper() if obtener("direccion") else ""),
+        "ubigeo": ubigeo,
+        "carrera_profesional": carrera,
+        "periodo_internado": periodo_internado_fila,
+        "especialidad": especialidad,
+        "nota_promedio_ponderado": nota,
+        "contacto_emergencia_nombre": (str(obtener("contacto_emergencia_nombre")).strip().upper() if obtener("contacto_emergencia_nombre") else ""),
+        "contacto_emergencia_telefono": contacto_tel,
+        "contacto_emergencia_parentesco": parentesco,
+    }
+    return datos, errores
+
+
+def _crear_estudiante_desde_datos(datos: dict, usuario, universidad) -> Student:
+    """Crea el `Student` a partir de los datos ya validados por `validar_fila_estudiante`."""
+    estudiante = Student.objects.create(universidad=universidad, creado_por=usuario, **datos)
     registrar_auditoria(usuario, "CREAR", estudiante)
     return estudiante
 
 
-@transaction.atomic
-def registrar_estudiantes_masivo(*, archivo, usuario, universidad, periodo_internado=None) -> dict:
-    """Carga masiva de estudiantes desde un Excel (.xlsx) — RN-16.
+def _norm_header(c) -> str:
+    """Normaliza un encabezado: primera línea (las celdas multi-línea de la trama usan
+    ``\\n`` para añadir instrucciones bajo el nombre), sin espacios y en minúsculas."""
+    if c is None:
+        return ""
+    return str(c).strip().split("\n")[0].strip().lower()
 
-    `universidad` y `periodo_internado` son parámetros fijos tomados de los filtros
-    de la UI (no vienen en el Excel). Para carreras no-PREGRADO `periodo_internado`
-    se ignora por fila y se espera la columna `especialidad` en el Excel.
-    Valida por fila; las filas inválidas se reportan sin abortar el lote.
-    Devuelve un resumen: ``{creados, omitidos, errores:[{fila, motivo}]}``.
+
+def _parsear_trama(archivo):
+    """Abre el `.xlsx`, valida su estructura y devuelve ``(filas, indice, es_pregrado_trama)``.
+
+    - ``filas``: lista de ``(numero_fila, valores)`` de las filas con datos (sin vacías).
+    - ``indice``: ``{clave_columna_canónica: posición}``.
+    - ``es_pregrado_trama``: True si trae ``carrera_profesional``, False si trae ``especialidad``.
+
+    Lanza ``ValidationError`` si el archivo es ilegible, vacío o le faltan columnas.
     """
     try:
         wb = openpyxl.load_workbook(archivo, read_only=True, data_only=True)
@@ -936,51 +1100,56 @@ def registrar_estudiantes_masivo(*, archivo, usuario, universidad, periodo_inter
         raise ValidationError("No se pudo leer el archivo Excel (.xlsx).") from exc
 
     ws = wb.active
-    filas = ws.iter_rows(values_only=True)
+    filas_iter = ws.iter_rows(values_only=True)
     try:
-        cabecera = next(filas)
+        cabecera = next(filas_iter)
     except StopIteration as exc:
+        wb.close()
         raise ValidationError("El archivo está vacío.") from exc
 
-    # Normaliza los encabezados y aplica los alias de la trama oficial (`_id`) a la
-    # clave canónica interna; así la carga acepta tanto la estructura nueva como la
-    # histórica sin tocar los resolvers ni el mapeo de columnas.
-    # Normaliza encabezados: extrae la primera línea (las celdas multi-línea de la trama oficial
-    # usan \n para añadir instrucciones bajo el nombre de columna, p. ej. "tipo_documento\n(DNI…)").
-    def _norm_header(c) -> str:
-        if c is None:
-            return ""
-        return str(c).strip().split("\n")[0].strip().lower()
-
-    encabezados = [
-        CARGA_ALIAS_COLUMNAS.get(h, h)
-        for h in (_norm_header(c) for c in cabecera)
-    ]
+    # Aplica los alias de encabezado (`_id`, "correo personal", …) a la clave canónica interna.
+    encabezados = [CARGA_ALIAS_COLUMNAS.get(h, h) for h in (_norm_header(c) for c in cabecera)]
     faltantes = CARGA_COLUMNAS_REQUERIDAS - set(encabezados)
     if faltantes:
+        wb.close()
         raise ValidationError(f"Faltan columnas requeridas: {', '.join(sorted(faltantes))}.")
 
-    # Detecta el modo por la presencia de la columna de nivel académico.
     tiene_carrera = "carrera_profesional" in set(encabezados)
     tiene_especialidad = "especialidad" in set(encabezados)
     if not tiene_carrera and not tiene_especialidad:
+        wb.close()
         raise ValidationError(
             "El archivo debe incluir la columna 'carrera_profesional' (trama PREGRADO) "
             "o 'especialidad' (trama no-PREGRADO)."
         )
-    es_pregrado_trama = tiene_carrera
 
     indice = {h: i for i, h in enumerate(encabezados)}
+    filas = []
+    for numero_fila, fila in enumerate(filas_iter, start=2):
+        if fila is None or all(_celda(v) is None for v in fila):
+            continue  # fila vacía
+        filas.append((numero_fila, fila))
+    wb.close()
+    return filas, indice, tiene_carrera
 
+
+def validar_trama_estudiantes(*, archivo, usuario, universidad, periodo_internado=None) -> dict:
+    """Valida TODA la trama sin escribir en BD (RN-16 — pre-validación).
+
+    Devuelve ``{filas, errores_por_fila, indice, validos}``:
+    - ``filas``: n° de filas con datos.
+    - ``errores_por_fila``: ``{numero_fila: [ {columna, motivo} ]}`` (solo filas con error).
+    - ``indice``: ``{clave_columna: posición}`` (para resaltar la celda exacta).
+    - ``validos``: ``[ (numero_fila, datos) ]`` de las filas sin error, listas para crear.
+    """
+    filas, indice, es_pregrado_trama = _parsear_trama(archivo)
     ct_uni = ContentType.objects.get_for_model(University).id
     es_admin = usuario.is_superuser or usuario.groups.filter(name="Administrador RENADS").exists()
 
-    creados = 0
-    errores: list[dict] = []
-    for numero_fila, fila in enumerate(filas, start=2):
-        if fila is None or all(_celda(v) is None for v in fila):
-            continue  # fila vacía
-
+    dnis_vistos: set = set()
+    errores_por_fila: dict[int, list] = {}
+    validos: list = []
+    for numero_fila, fila in filas:
         def obtener(col, _fila=fila):
             i = indice.get(col)
             if i is None or i >= len(_fila):
@@ -988,21 +1157,71 @@ def registrar_estudiantes_masivo(*, archivo, usuario, universidad, periodo_inter
             return _celda(_fila[i])
 
         try:
-            with transaction.atomic():  # savepoint por fila
-                _crear_estudiante_desde_fila(
-                    obtener=obtener, usuario=usuario,
-                    universidad=universidad, periodo_internado=periodo_internado,
-                    ct_uni=ct_uni, es_admin=es_admin,
-                    es_pregrado_trama=es_pregrado_trama,
-                )
-            creados += 1
-        except ValidationError as exc:
-            errores.append({"fila": numero_fila, "motivo": _mensaje_error(exc)})
-        except Exception as exc:  # noqa: BLE001 — reportar sin abortar el lote
-            errores.append({"fila": numero_fila, "motivo": str(exc)})
+            datos, errores = validar_fila_estudiante(
+                obtener=obtener, usuario=usuario, universidad=universidad,
+                periodo_internado=periodo_internado, ct_uni=ct_uni, es_admin=es_admin,
+                es_pregrado_trama=es_pregrado_trama, dnis_vistos=dnis_vistos,
+            )
+        except Exception as exc:  # noqa: BLE001 — nunca abortar el lote de validación
+            errores = [{"columna": None, "motivo": str(exc)}]
+            datos = None
+        if errores:
+            errores_por_fila[numero_fila] = errores
+        else:
+            validos.append((numero_fila, datos))
 
-    wb.close()
-    return {"creados": creados, "omitidos": len(errores), "errores": errores}
+    return {
+        "filas": len(filas),
+        "errores_por_fila": errores_por_fila,
+        "indice": indice,
+        "validos": validos,
+    }
+
+
+@transaction.atomic
+def crear_estudiantes_validados(*, validos, usuario, universidad) -> int:
+    """Crea todos los estudiantes de una trama ya validada (all-or-nothing). Devuelve el total."""
+    for _numero_fila, datos in validos:
+        _crear_estudiante_desde_datos(datos, usuario, universidad)
+    return len(validos)
+
+
+def anotar_trama(*, archivo, errores_por_fila: dict, indice: dict) -> bytes:
+    """Reabre el `.xlsx` de carga y resalta en rojo las celdas con inconsistencias.
+
+    Cada celda con error recibe un relleno rojo y un comentario con el motivo. Los
+    errores sin columna asociada (``columna=None``) se anclan en la primera celda de la
+    fila. Devuelve el contenido del `.xlsx` anotado como bytes.
+    """
+    import io
+
+    from openpyxl.comments import Comment
+    from openpyxl.styles import PatternFill
+
+    try:
+        archivo.seek(0)
+    except (AttributeError, OSError):
+        pass
+    wb = openpyxl.load_workbook(archivo)  # modo normal: conserva estilos y permite comentarios
+    ws = wb.active
+    rojo = PatternFill("solid", fgColor="FFC7CE")
+
+    for numero_fila, errores in errores_por_fila.items():
+        for err in errores:
+            columna = err.get("columna")
+            posicion = indice.get(columna) if columna else None
+            col_idx = (posicion + 1) if posicion is not None else 1
+            celda = ws.cell(row=numero_fila, column=col_idx)
+            celda.fill = rojo
+            previo = (celda.comment.text + "\n") if celda.comment else ""
+            comentario = Comment(previo + err["motivo"], "Validación RENADS")
+            comentario.width = 260
+            comentario.height = 120
+            celda.comment = comentario
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
 
 
 def _mensaje_error(exc: ValidationError) -> str:
@@ -1017,20 +1236,127 @@ def _mensaje_error(exc: ValidationError) -> str:
 # ---------------------------------------------------------------------------
 # Generador de trama Excel para carga masiva de estudiantes
 # ---------------------------------------------------------------------------
+# Número de filas de datos habilitadas con cuadros combinados en la trama.
+_TRAMA_FILAS_DATOS = 500
+
+# Caracteres que Excel no admite en un nombre de rango (defined name): se sustituyen por
+# "_". La MISMA sustitución debe aplicarse en la fórmula INDIRECT (ver `_formula_subst`)
+# para que el nombre generado en Python coincida con el que arma Excel en tiempo real.
+_RANGO_SUBS = [" ", "'", "-", ".", "(", ")", "/", ",", "&"]
+
+
+def _nombre_rango(*partes) -> str:
+    """Construye el nombre de rango saneado para una lista dependiente (depto / depto_prov).
+
+    Une las partes con "_", pasa a mayúsculas y reemplaza los caracteres no admitidos por
+    Excel en defined names. Debe ser equivalente, carácter a carácter, a `_formula_subst`.
+    Asume nombres de ubigeo en ASCII (padrón INEI en mayúsculas sin tildes).
+    """
+    texto = "_".join(str(p).upper() for p in partes)
+    for ch in _RANGO_SUBS:
+        texto = texto.replace(ch, "_")
+    return "R_" + texto
+
+
+def _formula_subst(cell_ref: str) -> str:
+    """Devuelve la expresión Excel que sanea el valor de `cell_ref` igual que `_nombre_rango`."""
+    expr = f"UPPER({cell_ref})"
+    for ch in _RANGO_SUBS:
+        expr = f'SUBSTITUTE({expr},"{ch}","_")'
+    return expr
+
+
+def _construir_hoja_listas(wb, *, es_pregrado: bool = True):
+    """Crea una hoja oculta con las listas de los cuadros combinados y sus rangos con nombre.
+
+    - ``Departamentos``: los departamentos distintos del padrón de ubigeos.
+    - Un rango por departamento (``_nombre_rango(depto)``) con sus provincias.
+    - Un rango por ``(depto, provincia)`` (``_nombre_rango(depto, prov)``) con sus distritos.
+    - ``TipoDocumento`` y ``Parentesco``: catálogos de la BD.
+    - ``CarreraProfesional`` (trama PREGRADO) o ``Especialidad`` (trama no-PREGRADO).
+    """
+    from openpyxl.utils import get_column_letter
+    from openpyxl.workbook.defined_name import DefinedName
+
+    ws = wb.create_sheet("_listas")
+    ws.sheet_state = "hidden"
+    estado = {"col": 1}
+
+    def _agregar_lista(nombre: str, valores: list) -> None:
+        valores = [v for v in valores if v not in (None, "")]
+        if not valores:
+            return
+        col = estado["col"]
+        letra = get_column_letter(col)
+        for i, valor in enumerate(valores, start=1):
+            ws.cell(row=i, column=col, value=valor)
+        ref = f"'_listas'!${letra}$1:${letra}${len(valores)}"
+        wb.defined_names.add(DefinedName(nombre, attr_text=ref))
+        estado["col"] = col + 1
+
+    # Estructura jerárquica del padrón de ubigeos.
+    filas = (
+        Ubigeo.objects.filter(activo=True)
+        .values_list("departamento", "provincia", "distrito")
+        .order_by("departamento", "provincia", "distrito")
+    )
+    deptos: list = []
+    prov_por_depto: dict = {}
+    dist_por_dp: dict = {}
+    for depto, prov, dist in filas:
+        if depto not in prov_por_depto:
+            prov_por_depto[depto] = []
+            deptos.append(depto)
+        if prov not in prov_por_depto[depto]:
+            prov_por_depto[depto].append(prov)
+        dist_por_dp.setdefault((depto, prov), [])
+        if dist not in dist_por_dp[(depto, prov)]:
+            dist_por_dp[(depto, prov)].append(dist)
+
+    _agregar_lista("Departamentos", deptos)
+    for depto in deptos:
+        _agregar_lista(_nombre_rango(depto), prov_por_depto[depto])
+    for (depto, prov), distritos in dist_por_dp.items():
+        _agregar_lista(_nombre_rango(depto, prov), distritos)
+
+    _agregar_lista("TipoDocumento", list(
+        IdentityDocumentType.objects.filter(activo=True).order_by("codigo").values_list("codigo", flat=True)
+    ))
+    _agregar_lista("Parentesco", list(
+        RelationshipType.objects.filter(activo=True).order_by("nombre").values_list("nombre", flat=True)
+    ))
+
+    # Carrera profesional (PREGRADO) o especialidad (no-PREGRADO) desde su tabla.
+    # `values_list("nombre")` selecciona solo esa columna y `order_by("nombre")` evita
+    # la ordenación por defecto (por `orden`), para no depender de esa columna.
+    if es_pregrado:
+        _agregar_lista("CarreraProfesional", list(
+            ProfessionalCareer.objects.filter(activo=True, nivel_academico__codigo="PREGRADO")
+            .order_by("nombre").values_list("nombre", flat=True)
+        ))
+    else:
+        _agregar_lista("Especialidad", list(
+            Specialty.objects.filter(activo=True).order_by("nombre").values_list("nombre", flat=True)
+        ))
+    return ws
+
+
 def generar_trama_excel(*, es_pregrado: bool = True) -> bytes:
     """Genera la plantilla Excel de carga masiva de estudiantes según nivel académico.
 
     - ``es_pregrado=True``  → columna ``carrera_profesional`` (NO ``especialidad``)
     - ``es_pregrado=False`` → columna ``especialidad`` (NO ``carrera_profesional``)
 
-    El ubigeo se divide en tres columnas: ``departamento``, ``provincia``, ``distrito``.
-    Retorna el contenido del .xlsx como bytes.
+    El ubigeo se divide en tres columnas (``departamento``/``provincia``/``distrito``) con
+    cuadros combinados dependientes; ``tipo_documento`` y ``contacto_emergencia_parentesco``
+    también se eligen de una lista. Retorna el contenido del .xlsx como bytes.
     """
     import io
 
     import openpyxl
     from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
     from openpyxl.utils import get_column_letter
+    from openpyxl.worksheet.datavalidation import DataValidation
 
     # ---------- paleta ----------
     fill_req = PatternFill("solid", fgColor="1F3864")   # azul oscuro — requerido
@@ -1038,7 +1364,6 @@ def generar_trama_excel(*, es_pregrado: bool = True) -> bytes:
     fill_niv = PatternFill("solid", fgColor="9DC3E6")   # azul claro — nivel (requerido)
     font_blanco = Font(color="FFFFFF", bold=True, size=10)
     font_oscuro = Font(color="1F3864", bold=True, size=10)
-    font_celda = Font(size=10)
     borde = Border(
         left=Side(style="thin"), right=Side(style="thin"),
         top=Side(style="thin"),  bottom=Side(style="thin"),
@@ -1048,30 +1373,32 @@ def generar_trama_excel(*, es_pregrado: bool = True) -> bytes:
     # ---------- definición de columnas ----------
     columnas = [
         # (clave_interna, etiqueta_encabezado, tipo)
-        ("tipo_documento",           "tipo_documento\n(DNI / CE / PASAPORTE)",          "req"),
-        ("numero_documento",         "numero_documento",                                "req"),
+        ("tipo_documento",           "tipo_documento\n(elija de la lista)",             "req"),
+        ("numero_documento",         "numero_documento\n(8 dígitos DNI, 9 los demás)",  "req"),
         ("apellido_paterno",         "apellido_paterno",                                "req"),
         ("apellido_materno",         "apellido_materno",                                "opt"),
         ("nombres",                  "nombres",                                         "req"),
         ("fecha_nacimiento",         "fecha_nacimiento\n(dd/mm/yyyy)",                  "opt"),
         ("sexo",                     "sexo\n(M / F)",                                   "opt"),
-        ("correo",                   "correo",                                          "opt"),
-        ("telefono",                 "telefono",                                        "opt"),
+        ("correo",                   "correo personal",                                 "opt"),
+        ("telefono",                 "teléfono móvil",                                  "opt"),
         ("direccion",                "direccion",                                       "opt"),
-        ("departamento",             "departamento",                                    "opt"),
-        ("provincia",                "provincia",                                       "opt"),
-        ("distrito",                 "distrito",                                        "opt"),
+        ("departamento",             "departamento\n(elija de la lista)",               "opt"),
+        ("provincia",                "provincia\n(elija de la lista)",                  "opt"),
+        ("distrito",                 "distrito\n(elija de la lista)",                   "opt"),
     ]
     if es_pregrado:
-        columnas.append(("carrera_profesional", "carrera_profesional\n(nombre exacto)", "niv"))
+        columnas.append(("carrera_profesional", "carrera_profesional\n(elija de la lista)", "niv"))
     else:
-        columnas.append(("especialidad", "especialidad\n(nombre exacto)", "niv"))
+        columnas.append(("especialidad", "especialidad\n(elija de la lista)", "niv"))
     columnas += [
         ("nota_promedio_ponderado",       "nota_promedio_ponderado\n(0–20, hasta 4 decimales)", "opt"),
         ("contacto_emergencia_nombre",    "contacto_emergencia_nombre",                         "opt"),
         ("contacto_emergencia_telefono",  "contacto_emergencia_telefono",                       "opt"),
-        ("contacto_emergencia_parentesco","contacto_emergencia_parentesco\n(PADRE/MADRE/HERMANO/CONYUGE/HIJO/ABUELO/TIO/OTRO)", "opt"),
+        ("contacto_emergencia_parentesco","contacto_emergencia_parentesco\n(elija de la lista)", "opt"),
     ]
+    # Todos los campos son obligatorios: no hay columnas opcionales en la trama.
+    columnas = [(clave, etiqueta, ("req" if tipo == "opt" else tipo)) for clave, etiqueta, tipo in columnas]
 
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -1079,7 +1406,10 @@ def generar_trama_excel(*, es_pregrado: bool = True) -> bytes:
     ws.freeze_panes = "A2"
     ws.row_dimensions[1].height = 42
 
+    # Índice clave_columna → letra de columna (para las validaciones de datos).
+    letra_de = {}
     for col_idx, (clave, etiqueta, tipo) in enumerate(columnas, start=1):
+        letra_de[clave] = get_column_letter(col_idx)
         celda = ws.cell(row=1, column=col_idx, value=etiqueta)
         celda.border = borde
         celda.alignment = alineacion
@@ -1092,30 +1422,138 @@ def generar_trama_excel(*, es_pregrado: bool = True) -> bytes:
         else:  # "niv"
             celda.fill = fill_niv
             celda.font = font_oscuro
-        ws.column_dimensions[get_column_letter(col_idx)].width = 22
+        ws.column_dimensions[get_column_letter(col_idx)].width = 24
 
-    # Leyenda en hoja adicional
+    # ---------- hoja oculta de listas + rangos con nombre ----------
+    _construir_hoja_listas(wb, es_pregrado=es_pregrado)
+
+    # ---------- cuadros combinados y validaciones de datos ----------
+    fila_ini, fila_fin = 2, 1 + _TRAMA_FILAS_DATOS
+
+    def _agregar_dv(clave: str, *, tipo: str, formula1: str, error: str) -> None:
+        letra = letra_de.get(clave)
+        if not letra:
+            return
+        # openpyxl almacena la fórmula tal cual en el XML; Excel la espera SIN el "=" inicial.
+        formula1 = formula1[1:] if formula1.startswith("=") else formula1
+        dv = DataValidation(
+            type=tipo, formula1=formula1, allow_blank=True,
+            showErrorMessage=True, showDropDown=False,
+        )
+        dv.error = error
+        dv.errorTitle = "Valor inválido"
+        ws.add_data_validation(dv)
+        dv.add(f"{letra}{fila_ini}:{letra}{fila_fin}")
+
+    dep = letra_de["departamento"]
+    prov = letra_de["provincia"]
+    tdoc = letra_de["tipo_documento"]
+    ndoc = letra_de["numero_documento"]
+
+    _agregar_dv("tipo_documento", tipo="list", formula1="=TipoDocumento",
+                error="Seleccione un tipo de documento de la lista.")
+    _agregar_dv("contacto_emergencia_parentesco", tipo="list", formula1="=Parentesco",
+                error="Seleccione un parentesco de la lista.")
+    _agregar_dv("sexo", tipo="list", formula1='"M,F"', error="Seleccione M o F.")
+    # El rango solo existe si la tabla trae valores; si no, se deja la columna libre.
+    if es_pregrado and "CarreraProfesional" in wb.defined_names:
+        _agregar_dv("carrera_profesional", tipo="list", formula1="=CarreraProfesional",
+                    error="Seleccione una carrera profesional de la lista.")
+    elif not es_pregrado and "Especialidad" in wb.defined_names:
+        _agregar_dv("especialidad", tipo="list", formula1="=Especialidad",
+                    error="Seleccione una especialidad de la lista.")
+    _agregar_dv("departamento", tipo="list", formula1="=Departamentos",
+                error="Seleccione un departamento de la lista.")
+    _agregar_dv(
+        "provincia", tipo="list",
+        formula1=f'=INDIRECT("R_"&{_formula_subst(f"${dep}{fila_ini}")})',
+        error="Seleccione primero el departamento y luego una provincia válida.",
+    )
+    _agregar_dv(
+        "distrito", tipo="list",
+        formula1=(
+            f'=INDIRECT("R_"&{_formula_subst(f"${dep}{fila_ini}")}'
+            f'&"_"&{_formula_subst(f"${prov}{fila_ini}")})'
+        ),
+        error="Seleccione primero departamento y provincia, luego un distrito válido.",
+    )
+    # numero_documento: TEXTO de solo dígitos 0-9 (conserva ceros a la izquierda),
+    # con longitud 8 (DNI) o 9 (otros). El chequeo dígito-a-dígito con MID evita que
+    # Excel lo interprete como número o acepte signos/decimales/exponentes.
+    _celda_num = f"${ndoc}{fila_ini}"
+    _solo_digitos = (
+        f'SUMPRODUCT(--ISNUMBER(--MID({_celda_num},ROW(INDIRECT("1:"&LEN({_celda_num}))),1)))=LEN({_celda_num})'
+    )
+    _agregar_dv(
+        "numero_documento", tipo="custom",
+        formula1=f'=AND(LEN({_celda_num})=IF(${tdoc}{fila_ini}="DNI",8,9),{_solo_digitos})',
+        error="Solo dígitos (0-9); 8 para DNI, 9 para otro tipo. Se acepta ceros a la izquierda.",
+    )
+    # Formatear la columna como texto para preservar los ceros iniciales.
+    for _fila in range(fila_ini, fila_fin + 1):
+        ws[f"{ndoc}{_fila}"].number_format = "@"
+    _agregar_dv(
+        "correo", tipo="custom",
+        formula1=(
+            f'=OR(LEN(${letra_de["correo"]}{fila_ini})=0,'
+            f'AND(ISNUMBER(SEARCH("@",${letra_de["correo"]}{fila_ini})),'
+            f'ISNUMBER(SEARCH(".",${letra_de["correo"]}{fila_ini}))))'
+        ),
+        error="Ingrese un correo electrónico válido.",
+    )
+    _agregar_dv(
+        "telefono", tipo="custom",
+        formula1=f'=OR(LEN(${letra_de["telefono"]}{fila_ini})=0,ISNUMBER(-${letra_de["telefono"]}{fila_ini}))',
+        error="El teléfono debe ser numérico.",
+    )
+    _agregar_dv(
+        "contacto_emergencia_telefono", tipo="custom",
+        formula1=(
+            f'=OR(LEN(${letra_de["contacto_emergencia_telefono"]}{fila_ini})=0,'
+            f'ISNUMBER(-${letra_de["contacto_emergencia_telefono"]}{fila_ini}))'
+        ),
+        error="El teléfono de contacto debe ser numérico.",
+    )
+    _nota = f'${letra_de["nota_promedio_ponderado"]}{fila_ini}'
+    _agregar_dv(
+        "nota_promedio_ponderado", tipo="custom",
+        formula1=(
+            f'=OR(LEN({_nota})=0,AND(ISNUMBER({_nota}),{_nota}>=0,{_nota}<=20,'
+            f'ROUND({_nota},4)={_nota}))'
+        ),
+        error="Nota numérica de 0 a 20, con hasta 4 decimales.",
+    )
+
+    # ---------- hoja de instrucciones ----------
     ws2 = wb.create_sheet("Instrucciones")
     nivel_txt = "PREGRADO" if es_pregrado else "no-PREGRADO (segunda especialidad / maestría / doctorado)"
+    # Tipos de documento vigentes según el catálogo (endpoint identity-document-types).
+    tipos_doc = ", ".join(
+        IdentityDocumentType.objects.filter(activo=True).order_by("codigo").values_list("codigo", flat=True)
+    ) or "—"
     leyenda = [
         ("INSTRUCCIONES DE CARGA MASIVA DE ESTUDIANTES", None),
         ("", None),
         (f"Esta trama corresponde al nivel académico: {nivel_txt}", None),
+        ("Todos los campos son obligatorios.", None),
         ("", None),
         ("CONVENCIÓN DE COLORES:", None),
-        ("Azul oscuro", "Campo REQUERIDO — la fila se rechaza si falta."),
-        ("Azul medio",  "Campo OPCIONAL — puede dejarse en blanco."),
-        ("Azul claro",  f"Campo de NIVEL — requerido según el nivel seleccionado ({nivel_txt})."),
+        ("Azul oscuro", "Campo obligatorio."),
+        ("Azul claro",  f"Campo de NIVEL — obligatorio según el nivel de la trama ({nivel_txt})."),
         ("", None),
         ("NOTAS:", None),
         ("fecha_nacimiento",             "Formato dd/mm/yyyy  (ej. 15/04/1998)"),
-        ("departamento / provincia / distrito", "Nombre completo tal como aparece en el padrón de ubigeos del RENIEC."),
-        ("tipo_documento",               "DNI, CE o PASAPORTE"),
+        ("departamento / provincia / distrito", "Elija en cascada: primero el departamento, luego la provincia y el distrito se filtran solos."),
+        ("tipo_documento",               f"Elija de la lista ({tipos_doc})."),
+        ("numero_documento",             "Texto de solo dígitos 0-9 (se conservan los ceros a la izquierda). 8 si es DNI, 9 para cualquier otro tipo."),
+        ("correo personal",              "Debe tener formato de correo electrónico (usuario@dominio)."),
+        ("teléfono móvil",               "Solo dígitos."),
         ("sexo",                         "M (masculino) o F (femenino)"),
+        ("contacto_emergencia_parentesco", "Elija de la lista."),
         ("nota_promedio_ponderado",      "Escala 0 a 20 con hasta 4 decimales"),
     ]
     ws2.column_dimensions["A"].width = 40
-    ws2.column_dimensions["B"].width = 60
+    ws2.column_dimensions["B"].width = 70
     for fila_idx, (col_a, col_b) in enumerate(leyenda, start=1):
         ws2.cell(row=fila_idx, column=1, value=col_a)
         if col_b:

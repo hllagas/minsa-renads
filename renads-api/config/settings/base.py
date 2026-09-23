@@ -13,6 +13,10 @@ SECRET_KEY = config("SECRET_KEY")
 DEBUG = config("DEBUG", default=False, cast=bool)
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="", cast=Csv())
 
+# Cabeceras de respuesta expuestas al frontend cross-origin (descarga de la trama anotada
+# de carga masiva: nombre de archivo y número de filas con errores).
+CORS_EXPOSE_HEADERS = ["Content-Disposition", "X-Validation-Errors"]
+
 
 # Aplicaciones
 INSTALLED_APPS = [

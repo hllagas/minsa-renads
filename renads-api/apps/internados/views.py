@@ -87,6 +87,28 @@ def _derivar_universidad_del_usuario(usuario) -> University:
     })
 
 
+def _respuesta_trama_anotada(archivo, resultado: dict, *, status: int) -> HttpResponse:
+    """Devuelve el `.xlsx` de carga con las celdas inconsistentes resaltadas (RN-16).
+
+    Adjunta en el header `X-Validation-Errors` el número de filas con errores para que
+    el frontend lo muestre sin abrir el archivo.
+    """
+    datos = services.anotar_trama(
+        archivo=archivo,
+        errores_por_fila=resultado["errores_por_fila"],
+        indice=resultado["indice"],
+    )
+    respuesta = HttpResponse(
+        datos,
+        status=status,
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    respuesta["Content-Disposition"] = 'attachment; filename="TramaCargaMasivaEstudiantes_observada.xlsx"'
+    respuesta["X-Validation-Errors"] = str(len(resultado["errores_por_fila"]))
+    respuesta["Access-Control-Expose-Headers"] = "Content-Disposition, X-Validation-Errors"
+    return respuesta
+
+
 class InternshipViewSet(AnnexAttachmentMixin, viewsets.ModelViewSet):
     """CRUD de internados y acciones de flujo. Escritura vía services; lectura vía selectors.
 
@@ -308,7 +330,11 @@ class StudentViewSet(AuditedModelViewSet):
         serializer_class=StudentBulkUploadSerializer,
     )
     def bulk_upload(self, request):
-        """Carga masiva de estudiantes desde un Excel (.xlsx) — RN-16.
+        """Carga masiva de estudiantes desde un Excel (.xlsx) — RN-16 (all-or-nothing).
+
+        Pre-valida TODAS las filas; si hay ≥1 inconsistencia NO crea nada y devuelve el
+        mismo `.xlsx` con las celdas problema resaltadas (igual que `bulk-validate`). Si la
+        trama está limpia crea todos los estudiantes en una sola transacción.
 
         `universidad_id` es opcional en el cuerpo: si no se envía se deriva del perfil
         institucional del usuario. Si el usuario pertenece a más de una universidad debe
@@ -321,13 +347,50 @@ class StudentViewSet(AuditedModelViewSet):
         if universidad is None:
             universidad = _derivar_universidad_del_usuario(request.user)
 
-        resumen = services.registrar_estudiantes_masivo(
-            archivo=ser.validated_data["archivo"],
+        archivo = ser.validated_data["archivo"]
+        resultado = services.validar_trama_estudiantes(
+            archivo=archivo,
             usuario=request.user,
             universidad=universidad,
             periodo_internado=ser.validated_data.get("periodo_internado_id"),
         )
-        return Response(resumen, status=200)
+        if resultado["errores_por_fila"]:
+            return _respuesta_trama_anotada(archivo, resultado, status=422)
+
+        creados = services.crear_estudiantes_validados(
+            validos=resultado["validos"], usuario=request.user, universidad=universidad,
+        )
+        return Response({"creados": creados}, status=201)
+
+    @action(
+        detail=False, methods=["post"], url_path="bulk-validate",
+        parser_classes=[MultiPartParser, FormParser],
+        serializer_class=StudentBulkUploadSerializer,
+    )
+    def bulk_validate(self, request):
+        """Pre-valida la trama de carga masiva SIN escribir en BD — RN-16.
+
+        Si hay inconsistencias devuelve el mismo `.xlsx` con las celdas problema
+        resaltadas en rojo y un comentario por celda con el motivo. Si la trama está
+        limpia responde `200 {"valido": true, "filas": N}` para habilitar `bulk-upload`.
+        """
+        ser = StudentBulkUploadSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+
+        universidad = ser.validated_data.get("universidad_id")
+        if universidad is None:
+            universidad = _derivar_universidad_del_usuario(request.user)
+
+        archivo = ser.validated_data["archivo"]
+        resultado = services.validar_trama_estudiantes(
+            archivo=archivo,
+            usuario=request.user,
+            universidad=universidad,
+            periodo_internado=ser.validated_data.get("periodo_internado_id"),
+        )
+        if resultado["errores_por_fila"]:
+            return _respuesta_trama_anotada(archivo, resultado, status=200)
+        return Response({"valido": True, "filas": resultado["filas"]}, status=200)
 
     @action(detail=False, methods=["get"], url_path="bulk-template")
     def bulk_template(self, request):

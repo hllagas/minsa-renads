@@ -6,6 +6,7 @@ Archivos generados en el mismo directorio:
   - TramaAsignacionCampos.xlsx         — asignación de campos de formación (Gobierno Regional)
 """
 
+import csv
 import os
 from pathlib import Path
 
@@ -18,9 +19,155 @@ from openpyxl.styles import (
     Side,
 )
 from openpyxl.utils import get_column_letter
+from openpyxl.workbook.defined_name import DefinedName
 from openpyxl.worksheet.datavalidation import DataValidation
 
 HERE = Path(__file__).parent
+
+# Padrón de ubigeos usado para los cuadros combinados dependientes (mismo CSV que
+# consume el cargador de la BD). Ruta: renads-api/loads/ubigeo.csv.
+UBIGEO_CSV = HERE.parent.parent / "loads" / "ubigeo.csv"
+
+# --- Cuadros combinados dependientes (espejo de apps/internados/services.py, F7) ---
+# La MISMA sustitución debe aplicarse al construir el nombre del rango y en la fórmula
+# INDIRECT, para que Python y Excel generen la misma clave. Asume ubigeo ASCII mayúsculas.
+_RANGO_SUBS = [" ", "'", "-", ".", "(", ")", "/", ",", "&"]
+
+
+def _nombre_rango(*partes) -> str:
+    texto = "_".join(str(p).upper() for p in partes)
+    for ch in _RANGO_SUBS:
+        texto = texto.replace(ch, "_")
+    return "R_" + texto
+
+
+def _formula_subst(cell_ref: str) -> str:
+    expr = f"UPPER({cell_ref})"
+    for ch in _RANGO_SUBS:
+        expr = f'SUBSTITUTE({expr},"{ch}","_")'
+    return expr
+
+
+def _leer_ubigeo():
+    """Lee `loads/ubigeo.csv` y devuelve (deptos, prov_por_depto, dist_por_dp)."""
+    deptos: list = []
+    prov_por_depto: dict = {}
+    dist_por_dp: dict = {}
+    if not UBIGEO_CSV.exists():
+        print(f"  AVISO: no se encontró {UBIGEO_CSV}; la trama saldrá sin cuadros de ubigeo.")
+        return deptos, prov_por_depto, dist_por_dp
+    # El padrón puede venir en UTF-8 o Latin-1 (Ñ = 0xD1); se intenta en ese orden.
+    for enc in ("utf-8", "latin-1"):
+        try:
+            with open(UBIGEO_CSV, encoding=enc) as fh:
+                filas = [
+                    (r["departamento"].strip(), r["provincia"].strip(), r["distrito"].strip())
+                    for r in csv.DictReader(fh, delimiter=";")
+                    if str(r.get("activo", "1")).strip() not in ("0", "")
+                ]
+            break
+        except UnicodeDecodeError:
+            continue
+    for depto, prov, dist in sorted(set(filas)):
+        if depto not in prov_por_depto:
+            prov_por_depto[depto] = []
+            deptos.append(depto)
+        if prov not in prov_por_depto[depto]:
+            prov_por_depto[depto].append(prov)
+        dist_por_dp.setdefault((depto, prov), [])
+        if dist not in dist_por_dp[(depto, prov)]:
+            dist_por_dp[(depto, prov)].append(dist)
+    return deptos, prov_por_depto, dist_por_dp
+
+
+_DJANGO_READY = None
+
+
+def _bootstrap_django() -> bool:
+    """Inicializa Django una sola vez para leer catálogos de la BD. False si no disponible."""
+    global _DJANGO_READY
+    if _DJANGO_READY is not None:
+        return _DJANGO_READY
+    try:
+        import os
+        import sys
+
+        import django
+
+        # La raíz del proyecto (donde vive `config/` y `manage.py`) es renads-api.
+        raiz = HERE.parent.parent
+        if str(raiz) not in sys.path:
+            sys.path.insert(0, str(raiz))
+        os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.dev")
+        django.setup()
+        _DJANGO_READY = True
+    except Exception as exc:  # noqa: BLE001 — dev tool: degradar a listas por defecto
+        print(f"  AVISO: sin acceso a la BD ({exc}); se usan las listas por defecto.")
+        _DJANGO_READY = False
+    return _DJANGO_READY
+
+
+def _cargar_tipos_documento():
+    """Códigos de tipo de documento desde la BD (endpoint identity-document-types)."""
+    if not _bootstrap_django():
+        return list(TIPOS_DOCUMENTO)
+    from apps.internados.models import IdentityDocumentType
+    return list(
+        IdentityDocumentType.objects.filter(activo=True).order_by("codigo").values_list("codigo", flat=True)
+    ) or list(TIPOS_DOCUMENTO)
+
+
+def _cargar_parentescos():
+    """Nombres de parentesco desde la BD (tabla parentesco)."""
+    if not _bootstrap_django():
+        return list(PARENTESCOS)
+    from apps.internados.models import RelationshipType
+    return list(
+        RelationshipType.objects.filter(activo=True).order_by("nombre").values_list("nombre", flat=True)
+    ) or list(PARENTESCOS)
+
+
+def _cargar_carreras(es_pregrado: bool):
+    """Carreras (PREGRADO) o especialidades (no-PREGRADO) desde la BD. [] si no disponible."""
+    if not _bootstrap_django():
+        return []
+    from apps.convenios.models import ProfessionalCareer, Specialty
+    if es_pregrado:
+        return list(
+            ProfessionalCareer.objects.filter(activo=True, nivel_academico__codigo="PREGRADO")
+            .order_by("nombre").values_list("nombre", flat=True)
+        )
+    return list(Specialty.objects.filter(activo=True).order_by("nombre").values_list("nombre", flat=True))
+
+
+def _hoja_listas(wb, deptos, prov_por_depto, dist_por_dp, tipos_documento, parentescos,
+                 carreras=None, nombre_carrera="CarreraProfesional"):
+    """Crea la hoja oculta `_listas` con los rangos con nombre de los cuadros combinados."""
+    ws = wb.create_sheet("_listas")
+    ws.sheet_state = "hidden"
+    estado = {"col": 1}
+
+    def _agregar(nombre, valores):
+        valores = [v for v in valores if v not in (None, "")]
+        if not valores:
+            return
+        col = estado["col"]
+        letra = get_column_letter(col)
+        for i, valor in enumerate(valores, start=1):
+            ws.cell(row=i, column=col, value=valor)
+        ref = f"'_listas'!${letra}$1:${letra}${len(valores)}"
+        wb.defined_names.add(DefinedName(nombre, attr_text=ref))
+        estado["col"] = col + 1
+
+    _agregar("Departamentos", deptos)
+    for depto in deptos:
+        _agregar(_nombre_rango(depto), prov_por_depto[depto])
+    for (depto, prov), distritos in dist_por_dp.items():
+        _agregar(_nombre_rango(depto, prov), distritos)
+    _agregar("TipoDocumento", tipos_documento)
+    _agregar("Parentesco", parentescos)
+    if carreras:
+        _agregar(nombre_carrera, carreras)
 
 # ── Paleta ────────────────────────────────────────────────────────────────────
 AZUL_HEADER  = "1F4E79"   # fondo encabezado principal
@@ -103,229 +250,159 @@ def _titulo_hoja(ws, texto):
 # 1. TRAMA CARGA MASIVA DE ESTUDIANTES
 # ═════════════════════════════════════════════════════════════════════════════
 
-COLS_ESTUDIANTES = [
-    # (nombre_columna, requerida, instruccion, ejemplo, ancho)
-    (
-        "tipo_documento_identidad_id",
-        True,
-        "Código del tipo de doc. de identidad.\nValores: DNI | CE | PASAPORTE",
-        "DNI",
-        22,
-    ),
-    (
-        "numero_documento",
-        True,
-        "Número de documento de identidad.\nEj: 8 dígitos para DNI.",
-        "74521836",
-        20,
-    ),
-    (
-        "nombres",
-        True,
-        "Nombres del estudiante (tal como figura en el documento).",
-        "Ana María",
-        20,
-    ),
-    (
-        "apellido_paterno",
-        True,
-        "Apellido paterno.",
-        "García",
-        18,
-    ),
-    (
-        "apellido_materno",
-        False,
-        "Apellido materno (dejar vacío si no aplica).",
-        "López",
-        18,
-    ),
-    (
-        "fecha_nacimiento",
-        False,
-        "Fecha de nacimiento. Formato: YYYY-MM-DD.",
-        "2000-05-14",
-        18,
-    ),
-    (
-        "sexo",
-        False,
-        "Sexo biológico. Valores: M | F",
-        "F",
-        10,
-    ),
-    (
-        "correo",
-        False,
-        "Correo electrónico del estudiante.",
-        "ana.garcia@uni.pe",
-        28,
-    ),
-    (
-        "telefono",
-        False,
-        "Teléfono de contacto (incluir código de país si es extranjero).",
-        "987654321",
-        18,
-    ),
-    (
-        "direccion",
-        False,
-        "Dirección de residencia.",
-        "Av. Universitaria 1234, Lima",
-        30,
-    ),
-    (
-        "ubigeo_id",
-        False,
-        "Código UBIGEO de 6 dígitos (INEI). Ej: Lima=150101.",
-        "150101",
-        14,
-    ),
-    (
-        "universidad_id",
-        True,
-        "ID numérico o código INEI de la universidad.\nDebe coincidir con el ámbito del usuario.",
-        "1",
-        20,
-    ),
-    (
-        "carrera_profesional_id",
-        True,
-        "ID numérico o nombre exacto de la carrera profesional.",
-        "Medicina Humana",
-        28,
-    ),
-    (
-        "periodo_internado_id",
-        False,
-        "Código o ID del periodo de internado.\nRequerido si nivel = PREGRADO (RN-19).\nEj: 2025-I | 2025-II",
-        "2025-I",
-        22,
-    ),
-    (
-        "especialidad_id",
-        False,
-        "Código o ID de la especialidad.\nRequerido si nivel ≠ PREGRADO (RN-19).\nDejar vacío para Pregrado.",
-        "",
-        22,
-    ),
-    (
-        "nota_promedio_ponderado",
-        False,
-        "Nota promedio ponderado. Escala 0–20. Máx. 3 decimales.\nUsado en prelación RN-18.",
-        "16.500",
-        22,
-    ),
-    (
-        "contacto_emergencia_nombre",
-        False,
-        "Nombre completo del contacto de emergencia.",
-        "Carlos García Pérez",
-        28,
-    ),
-    (
-        "contacto_emergencia_telefono",
-        False,
-        "Teléfono del contacto de emergencia.",
-        "999888777",
-        24,
-    ),
-    (
-        "contacto_emergencia_parentesco",
-        False,
-        "Código o ID del tipo de parentesco.\nValores: PADRE | MADRE | HERMANO | CONYUGE | HIJO | ABUELO | TIO | OTRO",
-        "MADRE",
-        28,
-    ),
-]
+# Catálogos de las listas simples (deben coincidir con las semillas de la BD).
+TIPOS_DOCUMENTO = ["DNI", "CE", "PASAPORTE"]
+PARENTESCOS = ["Padre", "Madre", "Hermano/a", "Cónyuge", "Hijo/a", "Abuelo/a", "Tío/a", "Otro"]
+
+# Fila final de datos con cuadros combinados (espejo de services._TRAMA_FILAS_DATOS).
+_FILAS_DATOS = 500
 
 
-def generar_estudiantes(ruta: Path):
+def _cols_estudiantes(es_pregrado: bool):
+    """Columnas de la trama de estudiantes (espejo de services.generar_trama_excel).
+
+    `universidad` y `periodo_internado` NO son columnas: se toman de los filtros de la
+    UI. Devuelve una lista de (clave_interna, etiqueta_encabezado, ancho).
+    """
+    cols = [
+        ("tipo_documento",    "tipo_documento\n(elija de la lista)",            22),
+        ("numero_documento",  "numero_documento\n(8 dígitos DNI, 9 los demás)", 24),
+        ("apellido_paterno",  "apellido_paterno",                               18),
+        ("apellido_materno",  "apellido_materno",                               18),
+        ("nombres",           "nombres",                                        20),
+        ("fecha_nacimiento",  "fecha_nacimiento\n(dd/mm/yyyy)",                 18),
+        ("sexo",              "sexo\n(M / F)",                                  10),
+        ("correo",            "correo personal",                                26),
+        ("telefono",          "teléfono móvil",                                 16),
+        ("direccion",         "direccion",                                      30),
+        ("departamento",      "departamento\n(elija de la lista)",              20),
+        ("provincia",         "provincia\n(elija de la lista)",                 20),
+        ("distrito",          "distrito\n(elija de la lista)",                  20),
+    ]
+    if es_pregrado:
+        cols.append(("carrera_profesional", "carrera_profesional\n(elija de la lista)", 28))
+    else:
+        cols.append(("especialidad", "especialidad\n(elija de la lista)", 28))
+    cols += [
+        ("nota_promedio_ponderado",        "nota_promedio_ponderado\n(0–20, hasta 4 decimales)", 22),
+        ("contacto_emergencia_nombre",     "contacto_emergencia_nombre",                         28),
+        ("contacto_emergencia_telefono",   "contacto_emergencia_telefono",                       24),
+        ("contacto_emergencia_parentesco", "contacto_emergencia_parentesco\n(elija de la lista)", 28),
+    ]
+    return cols
+
+
+def generar_estudiantes(ruta: Path, es_pregrado: bool = True):
+    """Genera la trama de estudiantes con cuadros combinados dependientes (F7).
+
+    Espejo de `apps/internados/services.generar_trama_excel` — **fuente de verdad**; ante
+    dudas regenerar desde el endpoint `GET /api/v1/students/bulk-template`.
+    """
+    columnas = _cols_estudiantes(es_pregrado)
+    deptos, prov_por_depto, dist_por_dp = _leer_ubigeo()
+    carreras = _cargar_carreras(es_pregrado)
+    tipos_documento = _cargar_tipos_documento()
+    parentescos = _cargar_parentescos()
+    clave_nivel = "carrera_profesional" if es_pregrado else "especialidad"
+    nombre_rango_carrera = "CarreraProfesional" if es_pregrado else "Especialidad"
+
     wb = Workbook()
     ws = wb.active
     ws.title = "Estudiantes"
-    ws.row_dimensions[1].height = 30
-    ws.row_dimensions[2].height = 20
-    ws.row_dimensions[3].height = 50
-    ws.row_dimensions[4].height = 20
+    ws.freeze_panes = "A2"
+    ws.row_dimensions[1].height = 42
 
-    for idx, (col, req, instr, ejemplo, ancho) in enumerate(COLS_ESTUDIANTES, start=1):
-        _escribir_encabezado(ws, idx, col, req)
-        _escribir_tipo(ws, idx, req)
-        _escribir_instruccion(ws, idx, instr)
-        _escribir_ejemplo(ws, idx, ejemplo)
+    letra_de = {}
+    for idx, (clave, etiqueta, ancho) in enumerate(columnas, start=1):
+        letra_de[clave] = get_column_letter(idx)
+        cell = ws.cell(row=1, column=idx, value=etiqueta)
+        cell.font = _font(bold=True, color="FFFFFF", size=10)
+        cell.fill = _fill(AZUL_HEADER)
+        cell.alignment = _center()
+        cell.border = _border()
         _ancho(ws, idx, ancho)
 
-    # Validación de datos — sexo
-    col_sexo = next(i + 1 for i, (c, *_) in enumerate(COLS_ESTUDIANTES) if c == "sexo")
-    dv_sexo = DataValidation(type="list", formula1='"M,F"', allow_blank=True, showDropDown=False)
-    dv_sexo.sqref = f"{get_column_letter(col_sexo)}5:{get_column_letter(col_sexo)}10000"
-    ws.add_data_validation(dv_sexo)
+    # Hoja oculta con las listas y los rangos con nombre.
+    _hoja_listas(wb, deptos, prov_por_depto, dist_por_dp, tipos_documento, parentescos,
+                 carreras=carreras, nombre_carrera=nombre_rango_carrera)
 
-    # Validación de datos — tipo_documento
-    col_tdoc = 1
-    dv_tdoc = DataValidation(
-        type="list", formula1='"DNI,CE,PASAPORTE"', allow_blank=False, showDropDown=False
+    fila_ini, fila_fin = 2, 1 + _FILAS_DATOS
+
+    def _dv(clave, *, tipo, formula1):
+        letra = letra_de.get(clave)
+        if not letra:
+            return
+        formula1 = formula1[1:] if formula1.startswith("=") else formula1
+        dv = DataValidation(type=tipo, formula1=formula1, allow_blank=True,
+                            showErrorMessage=True, showDropDown=False)
+        ws.add_data_validation(dv)
+        dv.add(f"{letra}{fila_ini}:{letra}{fila_fin}")
+
+    dep, prov = letra_de["departamento"], letra_de["provincia"]
+    tdoc, ndoc = letra_de["tipo_documento"], letra_de["numero_documento"]
+    correo, tel = letra_de["correo"], letra_de["telefono"]
+    ctel = letra_de["contacto_emergencia_telefono"]
+
+    _dv("tipo_documento", tipo="list", formula1="=TipoDocumento")
+    _dv("contacto_emergencia_parentesco", tipo="list", formula1="=Parentesco")
+    _dv("sexo", tipo="list", formula1='"M,F"')
+    if carreras:
+        _dv(clave_nivel, tipo="list", formula1=f"={nombre_rango_carrera}")
+    _dv("departamento", tipo="list", formula1="=Departamentos")
+    _dv("provincia", tipo="list", formula1=f'=INDIRECT("R_"&{_formula_subst(f"${dep}{fila_ini}")})')
+    _dv("distrito", tipo="list", formula1=(
+        f'=INDIRECT("R_"&{_formula_subst(f"${dep}{fila_ini}")}'
+        f'&"_"&{_formula_subst(f"${prov}{fila_ini}")})'))
+    # numero_documento: TEXTO solo dígitos 0-9 (conserva ceros a la izquierda), long. 8/9.
+    _celda_num = f"${ndoc}{fila_ini}"
+    _solo_digitos = (
+        f'SUMPRODUCT(--ISNUMBER(--MID({_celda_num},ROW(INDIRECT("1:"&LEN({_celda_num}))),1)))=LEN({_celda_num})'
     )
-    dv_tdoc.sqref = f"A5:A10000"
-    ws.add_data_validation(dv_tdoc)
+    _dv("numero_documento", tipo="custom",
+        formula1=f'=AND(LEN({_celda_num})=IF(${tdoc}{fila_ini}="DNI",8,9),{_solo_digitos})')
+    for _fila in range(fila_ini, fila_fin + 1):
+        ws[f"{ndoc}{_fila}"].number_format = "@"
+    _dv("correo", tipo="custom",
+        formula1=(f'=OR(LEN(${correo}{fila_ini})=0,'
+                  f'AND(ISNUMBER(SEARCH("@",${correo}{fila_ini})),'
+                  f'ISNUMBER(SEARCH(".",${correo}{fila_ini}))))'))
+    _dv("telefono", tipo="custom", formula1=f'=OR(LEN(${tel}{fila_ini})=0,ISNUMBER(-${tel}{fila_ini}))')
+    _dv("contacto_emergencia_telefono", tipo="custom",
+        formula1=f'=OR(LEN(${ctel}{fila_ini})=0,ISNUMBER(-${ctel}{fila_ini}))')
+    nota = letra_de["nota_promedio_ponderado"]
+    _nota = f"${nota}{fila_ini}"
+    _dv("nota_promedio_ponderado", tipo="custom",
+        formula1=f'=OR(LEN({_nota})=0,AND(ISNUMBER({_nota}),{_nota}>=0,{_nota}<=20,ROUND({_nota},4)={_nota}))')
 
-    # Validación de datos — periodo_internado
-    col_pi = next(i + 1 for i, (c, *_) in enumerate(COLS_ESTUDIANTES) if c == "periodo_internado_id")
-    dv_pi = DataValidation(
-        type="list",
-        formula1='"2025-I,2025-II,2026-I,2026-II"',
-        allow_blank=True,
-        showDropDown=False,
-    )
-    dv_pi.sqref = f"{get_column_letter(col_pi)}5:{get_column_letter(col_pi)}10000"
-    ws.add_data_validation(dv_pi)
-
-    # Validación de datos — contacto_emergencia_parentesco
-    col_par = next(i + 1 for i, (c, *_) in enumerate(COLS_ESTUDIANTES) if c == "contacto_emergencia_parentesco")
-    dv_par = DataValidation(
-        type="list",
-        formula1='"PADRE,MADRE,HERMANO,CONYUGE,HIJO,ABUELO,TIO,OTRO"',
-        allow_blank=True,
-        showDropDown=False,
-    )
-    dv_par.sqref = f"{get_column_letter(col_par)}5:{get_column_letter(col_par)}10000"
-    ws.add_data_validation(dv_par)
-
-    _freeze(ws)
-
-    # Hoja de referencia
-    ws_ref = wb.create_sheet("Referencia")
+    # Hoja de instrucciones.
+    nivel_txt = "PREGRADO" if es_pregrado else "no-PREGRADO (segunda especialidad / maestría / doctorado)"
+    ws_ref = wb.create_sheet("Instrucciones")
+    tipos_txt = ", ".join(tipos_documento) or "—"
     notas = [
         ("RENADS — Trama Carga Masiva de Estudiantes", True),
+        (f"Nivel académico de esta trama: {nivel_txt}", False),
+        ("Todos los campos son obligatorios.", False),
         ("", False),
         ("REGLAS IMPORTANTES:", True),
-        ("• La fila 1 contiene los nombres de columna exactos que el sistema reconoce.", False),
-        ("• (R) = campo requerido. Dejar vacío genera error en esa fila.", False),
-        ("• (O) = campo opcional.", False),
-        ("• La fila 4 es un ejemplo; puede eliminarla antes de enviar.", False),
-        ("• Los datos se ingresan desde la fila 5 en adelante.", False),
+        ("• La fila 1 son los encabezados que el sistema reconoce; los datos van desde la fila 2.", False),
+        ("• tipo_documento, sexo, departamento, provincia, distrito, parentesco y carrera/especialidad se ELIGEN de la lista.", False),
+        (f"• tipo_documento: {tipos_txt} (según el catálogo vigente).", False),
+        ("• departamento → provincia → distrito son cuadros combinados EN CASCADA.", False),
+        ("• numero_documento: texto de solo dígitos 0-9 (conserva ceros a la izquierda); 8 si es DNI, 9 para otro tipo.", False),
+        ("• correo personal: formato usuario@dominio.  teléfono móvil: solo dígitos.", False),
+        ("• La universidad y el periodo de internado NO son columnas: se eligen en la pantalla de carga.", False),
         ("", False),
-        ("RN-19 — Periodo de internado vs. Especialidad:", True),
-        ("  • Nivel PREGRADO → periodo_internado_id REQUERIDO, especialidad_id VACÍO.", False),
-        ("  • Nivel SEGUNDA_ESPECIALIDAD / MAESTRÍA / DOCTORADO → especialidad_id REQUERIDO, periodo_internado_id VACÍO.", False),
+        ("CARGA EN DOS PASOS:", True),
+        ("  1. POST /api/v1/students/bulk-validate  → valida y resalta las celdas con errores.", False),
+        ("  2. POST /api/v1/students/bulk-upload    → crea todo (solo si no hay errores).", False),
         ("", False),
-        ("RN-18 — Prelación:", True),
-        ("  • Los internos se asignan a los campos clínicos en orden de mayor nota_promedio_ponderado.", False),
-        ("", False),
-        ("RN-20 — Alcance institucional:", True),
-        ("  • El usuario Universidad solo puede registrar estudiantes de las universidades de su ámbito.", False),
-        ("", False),
-        ("RN-21 — Unicidad:", True),
-        ("  • Un estudiante con internado vigente no puede registrarse de nuevo.", False),
-        ("  • Se identifica por (tipo_documento, numero_documento).", False),
-        ("", False),
-        ("ENDPOINT:", True),
-        ("  POST /api/v1/students/bulk-upload/", False),
-        ("  Content-Type: multipart/form-data   campo: archivo", False),
+        ("RN-19 — Nivel vs. periodo/especialidad:", True),
+        ("  • PREGRADO → periodo de internado (en pantalla), sin especialidad.", False),
+        ("  • no-PREGRADO → columna 'especialidad' requerida, sin periodo.", False),
+        ("RN-18 — Prelación por mayor nota_promedio_ponderado.", False),
+        ("RN-21 — Unicidad por (tipo_documento, numero_documento).", False),
     ]
-    ws_ref.column_dimensions["A"].width = 90
+    ws_ref.column_dimensions["A"].width = 95
     for fila, (texto, negrita) in enumerate(notas, start=1):
         c = ws_ref.cell(row=fila, column=1, value=texto)
         c.font = _font(bold=negrita, size=10)
@@ -718,7 +795,8 @@ def generar_convenios(ruta: Path):
 
 if __name__ == "__main__":
     print("Generando tramas RENADS…")
-    generar_estudiantes(HERE / "TramaCargaMasivaEstudiantes.xlsx")
+    generar_estudiantes(HERE / "TramaCargaMasivaEstudiantes_PREGRADO.xlsx", es_pregrado=True)
+    generar_estudiantes(HERE / "TramaCargaMasivaEstudiantes_noPREGRADO.xlsx", es_pregrado=False)
     generar_determinacion(HERE / "TramaDeterminacionCamposFormacion.xlsx")
     generar_asignacion(HERE / "TramaAsignacionCamposFormacion.xlsx")
     generar_convenios(HERE / "TramaCargaMasivaConvenios.xlsx")

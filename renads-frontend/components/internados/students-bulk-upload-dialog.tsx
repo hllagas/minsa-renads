@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 import {
   useStudentsBulkUpload,
-  type StudentBulkUploadResult,
+  useStudentsBulkValidate,
 } from "@/lib/internados/hooks";
 import { extractApiError } from "@/lib/api/errors";
 import { DownloadIcon } from "lucide-react";
@@ -23,14 +23,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+
+/** Dispara la descarga de un `Blob` (la trama `.xlsx` anotada con las celdas a corregir). */
+function descargarBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
 
 /**
  * Diálogo de carga masiva de estudiantes (RN-16). Sube un `.xlsx` y muestra el resumen del
@@ -57,9 +61,11 @@ export function StudentsBulkUploadDialog({
 } = {}) {
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
-  const [result, setResult] = useState<StudentBulkUploadResult | null>(null);
+  const [result, setResult] = useState<{ creados?: number; errores?: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const validateM = useStudentsBulkValidate();
   const uploadM = useStudentsBulkUpload();
+  const pending = validateM.isPending || uploadM.isPending;
 
   const tramaNombre = esPregrado
     ? "TramaCargaMasivaEstudiantes_PREGRADO.xlsx"
@@ -79,18 +85,30 @@ export function StudentsBulkUploadDialog({
 
   function onSubmit() {
     if (!file) return;
-    uploadM.mutate(
-      { archivo: file, universidadId, periodoId: esPregrado ? periodoId : null },
-      {
-        onSuccess: (data) => {
-          setResult(data);
-          toast.success(
-            `Carga procesada: ${data.creados} creado(s), ${data.omitidos} omitido(s).`,
+    const params = { archivo: file, universidadId, periodoId: esPregrado ? periodoId : null };
+    // Paso 1: pre-validar. Si hay inconsistencias, el backend devuelve la trama anotada.
+    validateM.mutate(params, {
+      onSuccess: (r) => {
+        if (!r.valido) {
+          descargarBlob(r.blob, r.filename);
+          setResult({ errores: r.errores });
+          toast.error(
+            `Se encontraron inconsistencias en ${r.errores} fila(s). Descargamos la trama con las ` +
+              `celdas resaltadas para que las corrijas y la vuelvas a subir.`,
           );
-        },
-        onError: (e) => toast.error(extractApiError(e)),
+          return;
+        }
+        // Paso 2: trama limpia → crear todo (all-or-nothing).
+        uploadM.mutate(params, {
+          onSuccess: (data) => {
+            setResult({ creados: data.creados });
+            toast.success(`Carga completada: ${data.creados} estudiante(s) creado(s).`);
+          },
+          onError: (e) => toast.error(extractApiError(e)),
+        });
       },
-    );
+      onError: (e) => toast.error(extractApiError(e)),
+    });
   }
 
   return (
@@ -100,15 +118,11 @@ export function StudentsBulkUploadDialog({
         <DialogHeader>
           <DialogTitle>Carga masiva de estudiantes</DialogTitle>
           <DialogDescription>
-            Sube un archivo <strong>.xlsx</strong> con la estructura de la trama oficial.
-            Columnas requeridas: <code>tipo_documento</code> (DNI / CE / PASAPORTE),{" "}
-            <code>numero_documento</code>, <code>nombres</code>, <code>apellido_paterno</code> y{" "}
-            {esPregrado
-              ? <><code>carrera_profesional</code> (nombre exacto)</>
-              : <><code>especialidad</code> (nombre exacto)</>
-            }.
-            La universidad y el periodo se toman automáticamente de los filtros activos.
-            Las filas con error se omiten sin abortar el resto del lote.
+            Sube un archivo <strong>.xlsx</strong> con la estructura de la trama oficial. La
+            universidad y el periodo se toman automáticamente de los filtros activos. Primero se
+            <strong> valida</strong> toda la trama: si hay inconsistencias se descarga el archivo
+            con las <strong>celdas resaltadas</strong> y no se crea nada; solo si está limpia se
+            cargan todos los estudiantes.
           </DialogDescription>
         </DialogHeader>
 
@@ -147,42 +161,23 @@ export function StudentsBulkUploadDialog({
               setFile(e.target.files?.[0] ?? null);
               setResult(null);
             }}
-            disabled={uploadM.isPending}
+            disabled={pending}
           />
         </div>
 
         {result ? (
-          <div className="grid gap-3">
+          result.creados != null ? (
             <div className="flex items-center gap-2">
               <Badge>Creados: {result.creados}</Badge>
-              <Badge variant="secondary">Omitidos: {result.omitidos}</Badge>
             </div>
-            {result.errores.length > 0 ? (
-              <div className="grid gap-2">
-                <p className="text-sm text-muted-foreground">
-                  Las siguientes filas se omitieron:
-                </p>
-                <div className="max-h-64 overflow-y-auto rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-20">Fila</TableHead>
-                        <TableHead>Motivo</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {result.errores.map((err, i) => (
-                        <TableRow key={`${err.fila}-${i}`}>
-                          <TableCell>{err.fila}</TableCell>
-                          <TableCell>{err.motivo}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            ) : null}
-          </div>
+          ) : (
+            <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+              Se encontraron inconsistencias en <strong>{result.errores}</strong> fila(s). Se
+              descargó la trama con las <strong>celdas resaltadas en rojo</strong> y el motivo en
+              el comentario de cada celda. Corrígelas y vuelve a subir el archivo. No se creó
+              ningún estudiante.
+            </div>
+          )
         ) : null}
 
         <DialogFooter>
@@ -198,12 +193,12 @@ export function StudentsBulkUploadDialog({
               <Button
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                disabled={uploadM.isPending}
+                disabled={pending}
               >
                 Cancelar
               </Button>
-              <Button onClick={onSubmit} disabled={!file || uploadM.isPending}>
-                {uploadM.isPending ? "Subiendo…" : "Subir"}
+              <Button onClick={onSubmit} disabled={!file || pending}>
+                {validateM.isPending ? "Validando…" : uploadM.isPending ? "Subiendo…" : "Subir"}
               </Button>
             </>
           )}

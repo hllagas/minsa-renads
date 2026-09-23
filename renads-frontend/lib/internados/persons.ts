@@ -149,7 +149,7 @@ export function buildStudentsConfig(
 
     { name: "_s3", label: "Contacto", type: "separator" },
     { name: "correo", label: "Correo personal", type: "email", required: true },
-    { name: "telefono", label: "Teléfono", type: "text", required: true, uppercase: false, numericOnly: true },
+    { name: "telefono", label: "Teléfono móvil personal", type: "text", required: true, uppercase: false, numericOnly: true },
     { name: "direccion", label: "Dirección", type: "text", required: true, uppercase: true },
     {
       name: "ubigeo",
@@ -167,8 +167,8 @@ export function buildStudentsConfig(
 
     // Contacto de emergencia — vive en el estudiante desde la mig 0025 (2026-09-09; antes en el internado).
     { name: "_s4", label: "Contacto de emergencia", type: "separator" },
-    { name: "contacto_emergencia_nombre", label: "Nombre", type: "text", required: true, uppercase: true },
-    { name: "contacto_emergencia_telefono", label: "Teléfono", type: "text", required: true, uppercase: false, numericOnly: true },
+    { name: "contacto_emergencia_nombre", label: "Nombre y apellidos", type: "text", required: true, uppercase: true },
+    { name: "contacto_emergencia_telefono", label: "Teléfono móvil", type: "text", required: true, uppercase: false, numericOnly: true },
     {
       name: "contacto_emergencia_parentesco",
       label: "Parentesco",

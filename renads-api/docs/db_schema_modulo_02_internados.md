@@ -300,7 +300,10 @@ Escritura exige rol `Universidad` o `Administrador RENADS`.
 El registro de estudiantes tiene **doble modalidad** (RN-16):
 
 - **Individual:** `POST /api/v1/students/` (contemplado).
-- **Masiva:** carga de un **archivo Excel** (`.xlsx`) con una fila por estudiante. Endpoint: `POST /api/v1/students/bulk-upload/` (multipart con el campo `archivo`), que **valida y crea** en lote dentro de una transacción (savepoint por fila) y devuelve un **resumen** `{creados, omitidos, errores:[{fila, motivo}]}`. Implementado con **openpyxl** (`apps/internados/services.registrar_estudiantes_masivo`).
+- **Masiva:** carga de un **archivo Excel** (`.xlsx`) con una fila por estudiante, en **dos pasos** (F7, RN-16):
+  1. **`POST /api/v1/students/bulk-validate`** — **pre-valida** todas las filas **sin escribir** en BD. Si hay inconsistencias devuelve **el mismo `.xlsx` con las celdas problema resaltadas en rojo + un comentario por celda** (header `X-Validation-Errors`); si está limpio responde `200 {valido:true, filas:N}`.
+  2. **`POST /api/v1/students/bulk-upload`** — **all-or-nothing**: re-valida y, si hay ≥1 error, responde `422` + el `.xlsx` anotado (**0 creados**); si está limpio crea todos en una sola transacción y responde `201 {creados:N}`.
+  Implementado con **openpyxl** (`apps/internados/services.validar_trama_estudiantes` / `crear_estudiantes_validados` / `anotar_trama`).
 
 ### Estructura del archivo Excel (trama oficial `TramaCargaEstudiante.xlsx`, hoja `carga`)
 
@@ -308,28 +311,31 @@ La estructura de referencia es la trama oficial **`TramaCargaEstudiante.xlsx`** 
 
 | Columna Excel (trama) | Alias histórico | Req. | Mapea a | Formato / valor aceptado |
 |-----------------------|-----------------|------|---------|--------------------------|
-| `tipo_documento_identidad_id` | `tipo_documento` | R | `tipo_documento_identidad` | `codigo` (`DNI`/`CE`/`PASAPORTE`) o id |
-| `numero_documento` | — | R | `numero_documento` | texto (único con el tipo de documento) |
+| `tipo_documento` | `tipo_documento_identidad_id` | R | `tipo_documento_identidad` | **cuadro combinado** — `codigo` (`DNI`/`CE`/`PASAPORTE`) |
+| `numero_documento` | — | R | `numero_documento` | **texto de solo dígitos 0-9** (columna con formato texto → conserva ceros a la izquierda); **8 si `DNI`, 9 los demás**; único con el tipo de documento |
 | `nombres` | — | R | `nombres` | texto |
 | `apellido_paterno` | — | R | `apellido_paterno` | texto |
 | `apellido_materno` | — | O | `apellido_materno` | texto |
-| `fecha_nacimiento` | — | O | `fecha_nacimiento` | `YYYY-MM-DD` |
-| `sexo` | — | O | `sexo` | `M` / `F` |
-| `correo` | — | O | `correo` | email |
-| `telefono` | — | O | `telefono` | texto |
+| `fecha_nacimiento` | — | O | `fecha_nacimiento` | `dd/mm/yyyy` o `YYYY-MM-DD` |
+| `sexo` | — | O | `sexo` | **cuadro combinado** `M` / `F` |
+| `correo personal` | `correo` | O | `correo` | formato email |
+| `teléfono móvil` | `telefono` | O | `telefono` | numérico |
 | `direccion` | — | O | `direccion` | texto |
-| `ubigeo_id` | `ubigeo` | O | `ubigeo` | 6 dígitos INEI (`codigo`) o id |
-| `universidad_id` | `universidad` | R | `universidad` | id o código INEI; debe existir y estar en el ámbito del usuario |
-| `carrera_profesional_id` | `carrera_profesional` | R | `carrera_profesional` | id o nombre de la carrera |
-| `periodo_internado_id` | `periodo_internado` | O | `periodo_internado` | `codigo` (p. ej. `2025-01`) o id; requerido si el nivel es `PREGRADO` (RN-19) |
-| `especialidad_id` | `especialidad` | O | `especialidad` | `codigo` o id; requerido si el nivel no es `PREGRADO` (RN-19) |
+| `departamento` | — | O | `ubigeo` | **cuadro combinado** (padrón INEI) |
+| `provincia` | — | O | `ubigeo` | **cuadro combinado dependiente** del departamento |
+| `distrito` | — | O | `ubigeo` | **cuadro combinado dependiente** del departamento+provincia |
+| `carrera_profesional` | — | R (trama PREGRADO) | `carrera_profesional` | **cuadro combinado** (tabla `carrera_profesional`, nivel `PREGRADO`, por `nombre`); requerido si el nivel es `PREGRADO` (RN-19) |
+| `especialidad` | — | R (trama no-PREGRADO) | `especialidad` | **cuadro combinado** (tabla `especialidad`, por `nombre`); requerido si el nivel no es `PREGRADO` (RN-19) |
 | `nota_promedio_ponderado` | — | O | `nota_promedio_ponderado` | decimal 0–20 (usado en la prelación, RN-18) |
+| `contacto_emergencia_nombre` | — | O | `interno`* | texto |
+| `contacto_emergencia_telefono` | — | O | `interno`* | numérico |
+| `contacto_emergencia_parentesco` | `contacto_emergencia_parentesco_id` | O | `parentesco` | **cuadro combinado** (catálogo `parentesco`, por `nombre`) |
 
-> El campo `anio_academico` fue **eliminado** de `estudiante` por redundante con `periodo_internado` (F6). Si la trama del Excel aún incluye la columna `anio_academico`, se **ignora silenciosamente**: no se lee ni se valida, y no rompe el lote.
+> **F7 (2026-09):** el ubigeo se captura en **tres columnas** (`departamento`/`provincia`/`distrito`) con **cuadros combinados dependientes en cascada** (hoja oculta `_listas` + rangos con nombre + `INDIRECT`), no como `ubigeo_id`. `tipo_documento`, `sexo`, `contacto_emergencia_parentesco` y `carrera_profesional`/`especialidad` también se eligen de una **lista** poblada desde su tabla. La `universidad` y el `periodo_internado` **no** son columnas del Excel: se toman de los filtros de la UI / perfil del usuario. Los encabezados `correo`/`telefono` se renombraron a **"correo personal"**/**"teléfono móvil"** (alias en `services.CARGA_ALIAS_COLUMNAS`).
 
-> El **contacto de emergencia** ya no forma parte de la carga masiva de estudiantes: se registra en el **internado** (`interno`) al crear/actualizar el internado, no en el estudiante.
+> El campo `anio_academico` fue **eliminado** de `estudiante` por redundante con `periodo_internado` (F6). Si la trama del Excel aún incluye la columna `anio_academico`, se **ignora silenciosamente**.
 
-**Validaciones de la carga:** por fila se valida unicidad (`tipo_documento` + `numero_documento`), existencia de catálogos/entidades referenciadas, alcance institucional de la `universidad` y la regla **RN-19** (coherencia entre nivel académico, `periodo_internado` y `especialidad`). Filas inválidas **no** detienen el lote: se reportan con número de fila y motivo. Se registra auditoría por cada creación (RNF-AUD-01/02) y se puede adjuntar el archivo origen como `documento`.
+**Validaciones de la carga (F7):** por fila se **acumulan todos** los errores como `{columna, motivo}` (fuente única `services.validar_fila_estudiante`): unicidad de `tipo_documento`+`numero_documento` (contra BD **y** dentro del archivo), longitud del documento por tipo, formato de correo/teléfonos, coherencia depto→prov→dist contra `ubigeo`, existencia de catálogos/entidades, alcance institucional de la `universidad` y la regla **RN-19**. La validación **no escribe** en BD; los errores se **resaltan en la celda exacta** del `.xlsx` devuelto. La creación (`bulk-upload`) es **all-or-nothing**. Se registra auditoría por cada creación (RNF-AUD-01/02).
 
 ---
 
@@ -388,7 +394,7 @@ bitacora_auditoria >── django_content_type  (genérico)
 - **RN-16 (registro individual y masivo):** `POST /students/` y `POST /students/bulk-upload/` (ver §6 bis).
 - **RN-17 (asignación a campos clínicos por sede/carrera):** validación contra la asignación por universidad `campo_clinico_ipress_universidad` del Convenio Específico (disponibilidad = `campos_clinicos_autorizados` − internos ya usados en esa asignación).
 - **RN-18 (prelación por mérito):** ordenamiento por `estudiante.nota_promedio_ponderado` descendente al asignar cupos.
-- **RN-19 (periodo de internado vs. especialidad según nivel):** deriva `nivel = estudiante.carrera_profesional.nivel_academico.codigo`; `PREGRADO` ⇒ `periodo_internado_id` requerido / `especialidad_id` nulo; otro nivel ⇒ `especialidad_id` requerido / `periodo_internado_id` nulo. Regla única en `services.validar_regla_periodo_especialidad`, invocada por `StudentSerializer.validate` (individual) y por `registrar_estudiantes_masivo` (carga masiva).
+- **RN-19 (periodo de internado vs. especialidad según nivel):** deriva `nivel = estudiante.carrera_profesional.nivel_academico.codigo`; `PREGRADO` ⇒ `periodo_internado_id` requerido / `especialidad_id` nulo; otro nivel ⇒ `especialidad_id` requerido / `periodo_internado_id` nulo. Regla única en `services.validar_regla_periodo_especialidad`, invocada por `StudentSerializer.validate` (individual) y por `services.validar_fila_estudiante` (carga masiva).
 - **RN-24 (universidades del tutor):** un tutor pertenece de **1 a 2** universidades vía `tutor_universidad`. Regla única en `services.validar_universidades_tutor`, invocada por `TutorSerializer` (create/update). El endpoint `tutors` acepta y filtra por `universidades`. La asignación del tutor a una IPRESS se registra **por convenio** en `tutor_convenio` (tabla nueva: `services.crear_tutor_convenio` aplica RN-TC-01/RN-TC-02; acciones `GET/POST /api/v1/tutors/{id}/convenios/` y `GET/DELETE /api/v1/tutors/{id}/convenios/{convenio_pk}/`).
 
 > **Nota — `documentos_anexos`:** catálogo maestro de documentos requeridos **por actor** (`tipo_actor`): `INTERNO` → declaraciones juradas del estudiante; `AUTORIDAD_UNIVERSIDAD` y `REPRESENTANTE` (incluye autoridades de CONAPRES) → resolución del cargo y documento de identidad. Filtrable por `tipo_actor` en el endpoint. Este spec cubre solo el catálogo maestro y su CRUD (`/api/v1/annex-documents/`). El flujo de adjunto real por entidad (tabla puente entidad↔anexo, carga del PDF, estados de presentación) queda fuera de alcance.
