@@ -16,6 +16,6 @@ class UserSecurityAdmin(admin.ModelAdmin):
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ("usuario", "apellido_paterno", "apellido_materno", "tipo_documento", "numero_documento", "unidad_organica", "cargo")
+    list_display = ("usuario", "tipo_documento", "numero_documento", "unidad_organica", "cargo")
     list_filter = ("tipo_documento", "unidad_organica")
-    search_fields = ("usuario__username", "apellido_paterno", "apellido_materno", "numero_documento")
+    search_fields = ("usuario__username", "usuario__last_name", "usuario__first_name", "numero_documento")

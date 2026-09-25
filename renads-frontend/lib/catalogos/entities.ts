@@ -292,7 +292,7 @@ export const CATALOGO_ENTITY_MENU: { slug: string; title: string }[] = [
   { slug: "university-campuses", title: "Sedes Universitarias" },
   { slug: "ipress", title: "Establecimientos de Salud" },
   { slug: "regional-governments", title: "Gobiernos Regionales" },
-  { slug: "organ-directories", title: "Órganos del Directorio" },
+  { slug: "organic-units", title: "Unidades orgánicas" },
   { slug: "executing-units", title: "Unidades Ejecutoras" },
   { slug: "networks", title: "Redes" },
   { slug: "micro-networks", title: "Microrredes" },

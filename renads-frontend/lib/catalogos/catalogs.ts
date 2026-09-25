@@ -185,9 +185,9 @@ export const CATALOG_CONFIGS: Record<string, ResourceConfig> = {
         render: (r: WithId) => detalleNombre(r.organo_detalle),
       },
       {
-        key: "organo_directivo_detalle",
-        header: "Órgano del directorio",
-        render: (r: WithId) => detalleNombre(r.organo_directivo_detalle),
+        key: "unidad_organica_detalle",
+        header: "Unidad orgánica",
+        render: (r: WithId) => detalleNombre(r.unidad_organica_detalle),
       },
       { key: "nombre_masculino", header: "Nombre (masculino)" },
       { key: "nombre_femenino", header: "Nombre (femenino)" },
@@ -202,10 +202,10 @@ export const CATALOG_CONFIGS: Record<string, ResourceConfig> = {
         optionsToLabel: (o) => String(o.nombre ?? o.id),
       },
       {
-        name: "organo_directivo",
-        label: "Órgano del directorio",
+        name: "unidad_organica",
+        label: "Unidad orgánica",
         type: "select",
-        optionsEndpoint: "organ-directories",
+        optionsEndpoint: "organic-units",
       },
       activoFilter,
     ],
@@ -219,14 +219,14 @@ export const CATALOG_CONFIGS: Record<string, ResourceConfig> = {
         optionsEndpoint: "organs",
         optionsToLabel: (o) => String(o.nombre ?? o.id),
       },
-      // Paso 2: el órgano del directorio, filtrado por el órgano elegido (`?organo=<id>`).
-      // El backend valida la coherencia `organo == organo_directivo.organo`.
+      // Paso 2: la unidad orgánica, filtrada por el órgano elegido (`?organo=<id>`).
+      // El backend valida la coherencia `organo == unidad_organica.organo`.
       {
-        name: "organo_directivo",
-        label: "Órgano del directorio",
+        name: "unidad_organica",
+        label: "Unidad orgánica",
         type: "select",
         required: true,
-        optionsEndpoint: "organ-directories",
+        optionsEndpoint: "organic-units",
         optionsParamsFrom: (values): Record<string, string> =>
           values.organo ? { organo: String(values.organo) } : {},
         resetsOn: ["organo"],

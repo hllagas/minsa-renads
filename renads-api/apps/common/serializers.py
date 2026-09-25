@@ -21,14 +21,11 @@ from apps.common.selectors import grupos_del_usuario, perfiles_del_usuario
 def _nombre_usuario(user) -> str:
     """Compone el nombre de presentación del usuario (R-7).
 
-    Si el usuario tiene ``UserProfile`` con ``apellido_paterno`` no vacío,
-    devuelve ``"{ap} {am}, {first_name}"``.strip(). De lo contrario, usa
-    ``get_full_name()`` o ``get_username()`` como fallback.
+    Usa ``get_full_name()`` (combina ``first_name`` + ``last_name`` de ``auth_user``);
+    si está vacío (p. ej. superusuario sin nombre), cae a ``get_username()``. Los
+    apellidos ya no viven en ``UserProfile``: se almacenan en ``auth_user.last_name``.
     """
-    perfil = getattr(user, "perfil", None)
-    if perfil is not None and perfil.apellido_paterno:
-        return f"{perfil.apellido_paterno} {perfil.apellido_materno}, {user.first_name}".strip()
-    return user.get_full_name() or user.get_username()
+    return user.get_full_name().strip() or user.get_username()
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -258,21 +255,20 @@ class UserProfileReadSerializer(serializers.ModelSerializer):
         fields = [
             "tipo_documento",
             "numero_documento",
-            "apellido_paterno",
-            "apellido_materno",
             "telefono",
             "unidad_organica",
             "cargo",
+            "tiene_ficha_usuario",
             "unidad_organica_detalle",
             "cargo_detalle",
         ]
         read_only_fields = fields
 
 
-def _organ_directory_queryset():
-    """Queryset diferido de ``OrganDirectory`` para evitar importación circular en módulo."""
-    from apps.convenios.models import OrganDirectory
-    return OrganDirectory.objects.all()
+def _organic_unit_queryset():
+    """Queryset diferido de ``OrganicUnit`` para evitar importación circular en módulo."""
+    from apps.convenios.models import OrganicUnit
+    return OrganicUnit.objects.all()
 
 
 def _executive_position_queryset():
@@ -306,9 +302,7 @@ class UserProfileWriteSerializer(serializers.ModelSerializer):
 
     numero_documento = serializers.CharField(
         max_length=20,
-        required=False,
-        allow_blank=True,
-        allow_null=True,
+        required=True,
         validators=[
             UniqueValidator(
                 queryset=UserProfile.objects.all(),
@@ -316,15 +310,23 @@ class UserProfileWriteSerializer(serializers.ModelSerializer):
             )
         ],
     )
+    telefono = serializers.CharField(
+        max_length=20,
+        required=True,
+        validators=[
+            UniqueValidator(
+                queryset=UserProfile.objects.all(),
+                message="Ya existe un perfil con este número de teléfono.",
+            )
+        ],
+    )
     unidad_organica = _LazyPrimaryKeyRelatedField(
-        queryset_fn=_organ_directory_queryset,
-        required=False,
-        allow_null=True,
+        queryset_fn=_organic_unit_queryset,
+        required=True,
     )
     cargo = _LazyPrimaryKeyRelatedField(
         queryset_fn=_executive_position_queryset,
-        required=False,
-        allow_null=True,
+        required=True,
     )
 
     class Meta:
@@ -332,11 +334,10 @@ class UserProfileWriteSerializer(serializers.ModelSerializer):
         fields = [
             "tipo_documento",
             "numero_documento",
-            "apellido_paterno",
-            "apellido_materno",
             "telefono",
             "unidad_organica",
             "cargo",
+            "tiene_ficha_usuario",
         ]
 
 
@@ -385,6 +386,9 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
     # Contraseña optional: si no se envía el service la genera con `generar_password_segura`.
     password = serializers.CharField(write_only=True, required=False)
+    # username autogenerado (= numero_documento para no-super) → read-only; el
+    # cliente no lo envía y el service lo deriva del documento.
+    username = serializers.CharField(read_only=True)
     email = serializers.EmailField(
         required=True,
         validators=[
@@ -394,52 +398,50 @@ class UserCreateSerializer(serializers.ModelSerializer):
             )
         ],
     )
+    # Nombre y apellidos combinados viven en auth_user. Obligatorios para no-super
+    # (exigencia trasladada al validate() condicional; ver exención del superusuario).
+    first_name = serializers.CharField(max_length=150, required=False, allow_blank=False)
+    last_name = serializers.CharField(max_length=150, required=False, allow_blank=False)
     groups = serializers.PrimaryKeyRelatedField(
         many=True, queryset=Group.objects.all(), required=False
     )
 
-    # --- Campos de perfil (T-15) ---
+    # --- Campos de perfil (obligatorios para no-super vía validate() condicional) ---
     tipo_documento = serializers.ChoiceField(
         choices=DOCUMENT_TYPE_CHOICES,
         required=False,
-        allow_blank=True,
-        default="",
     )
     numero_documento = serializers.CharField(
         max_length=20,
         required=False,
-        allow_blank=True,
-        default="",
-    )
-    apellido_paterno = serializers.CharField(
-        max_length=100,
-        required=False,
-        allow_blank=True,
-        default="",
-    )
-    apellido_materno = serializers.CharField(
-        max_length=100,
-        required=False,
-        allow_blank=True,
-        default="",
+        validators=[
+            UniqueValidator(
+                queryset=UserProfile.objects.all(),
+                message="Ya existe un perfil con este número de documento.",
+            )
+        ],
     )
     telefono = serializers.CharField(
         max_length=20,
         required=False,
-        allow_blank=True,
-        default="",
+        validators=[
+            UniqueValidator(
+                queryset=UserProfile.objects.all(),
+                message="Ya existe un perfil con este número de teléfono.",
+            )
+        ],
     )
     unidad_organica = _LazyPrimaryKeyRelatedField(
-        queryset_fn=_organ_directory_queryset,
+        queryset_fn=_organic_unit_queryset,
         required=False,
-        allow_null=True,
-        default=None,
     )
     cargo = _LazyPrimaryKeyRelatedField(
         queryset_fn=_executive_position_queryset,
         required=False,
-        allow_null=True,
-        default=None,
+    )
+    tiene_ficha_usuario = serializers.BooleanField(
+        required=False,
+        default=False,
     )
 
     class Meta:
@@ -458,32 +460,75 @@ class UserCreateSerializer(serializers.ModelSerializer):
             # Campos de perfil:
             "tipo_documento",
             "numero_documento",
-            "apellido_paterno",
-            "apellido_materno",
             "telefono",
             "unidad_organica",
             "cargo",
+            "tiene_ficha_usuario",
         ]
 
     def validate_password(self, value: str) -> str:
         return _validar_password(value)
 
+    def validate(self, attrs):
+        """Exige nombre, apellidos y campos de perfil **solo para no-superusuario**.
+
+        El superusuario está **exento total**: puede crearse sin ``first_name``,
+        ``last_name`` ni campos de perfil (username libre, sin perfil obligatorio).
+        Para el resto, todos son obligatorios (mensaje en español por campo faltante).
+        """
+        if not attrs.get("is_superuser"):
+            obligatorios = [
+                "first_name",
+                "last_name",
+                "tipo_documento",
+                "numero_documento",
+                "telefono",
+                "unidad_organica",
+                "cargo",
+            ]
+            errores = {
+                campo: "Este campo es obligatorio para usuarios que no son superadministrador."
+                for campo in obligatorios
+                if attrs.get(campo) in (None, "")
+            }
+            if errores:
+                raise serializers.ValidationError(errores)
+        else:
+            # El superusuario define su username libremente (no se autogenera del
+            # documento). ``username`` es read-only, por lo que se valida su presencia
+            # y unicidad sobre el payload crudo (``initial_data``).
+            username_super = (self.initial_data.get("username") or "").strip()
+            if not username_super:
+                raise serializers.ValidationError({
+                    "username": "El nombre de usuario es obligatorio para el superadministrador."
+                })
+            if User.objects.filter(username=username_super).exists():
+                raise serializers.ValidationError({
+                    "username": "Ya existe un usuario con este nombre de usuario."
+                })
+        return attrs
+
     def _extraer_profile_data(self, validated_data: dict) -> dict:
-        """Extrae los campos de perfil de ``validated_data`` y normaliza strings vacíos a None."""
+        """Extrae los campos de perfil de ``validated_data``.
+
+        El ``numero_documento`` queda en ``profile_data`` y de él deriva el service
+        el ``username`` para los no-superusuario. Para el superusuario ``profile_data``
+        puede quedar vacío (no se crea perfil).
+        """
         campos_perfil = [
             "tipo_documento",
             "numero_documento",
-            "apellido_paterno",
-            "apellido_materno",
             "telefono",
             "unidad_organica",
             "cargo",
+            "tiene_ficha_usuario",
         ]
         profile_data = {}
         for campo in campos_perfil:
             if campo in validated_data:
                 valor = validated_data.pop(campo)
-                # Campos con unique=True en BD usan NULL para valor ausente.
+                # Campos con unique=True en BD ya no admiten blanco (required); esta
+                # normalización queda como salvaguarda inofensiva.
                 if campo in ("numero_documento", "telefono") and valor == "":
                     valor = None
                 profile_data[campo] = valor
@@ -493,7 +538,23 @@ class UserCreateSerializer(serializers.ModelSerializer):
         from apps.common.services import crear_usuario_con_perfil
 
         groups = validated_data.pop("groups", [])
+        es_superusuario = bool(validated_data.get("is_superuser"))
         profile_data = self._extraer_profile_data(validated_data)
+
+        # Exención total del superusuario:
+        #  - No se crea perfil. El único campo que podría llegar
+        #    (``tiene_ficha_usuario`` por su default) se descarta para no forzar un
+        #    perfil incompleto que violaría el ``NOT NULL`` de las columnas.
+        #  - ``username`` es read-only en la API (autogenerado para no-super), pero el
+        #    superusuario **sí** define su username libremente: se rescata del payload
+        #    crudo (``initial_data``) y se pasa al service, que respeta el username
+        #    explícito para superusuario.
+        if es_superusuario:
+            if "numero_documento" not in profile_data:
+                profile_data = {}
+            username_super = (self.initial_data.get("username") or "").strip()
+            if username_super:
+                validated_data["username"] = username_super
 
         user, password_plain = crear_usuario_con_perfil(validated_data, groups, profile_data)
         # Atributo temporal para que UserReadSerializer lo exponga en la respuesta del POST.
@@ -508,6 +569,10 @@ class UserUpdateSerializer(serializers.ModelSerializer):
     ``services.actualizar_perfil_usuario`` (T-08, R-9).
     """
 
+    # username read-only: lo gobierna el documento (= numero_documento para no-super);
+    # un PATCH no lo cambia libremente. La re-derivación al editar documento queda
+    # fuera de alcance de este refactor (ver riesgo anotado en el spec).
+    username = serializers.CharField(read_only=True)
     email = serializers.EmailField(
         required=True,
         validators=[
@@ -521,43 +586,44 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         many=True, queryset=Group.objects.all(), required=False
     )
 
-    # --- Campos de perfil (T-16) ---
+    # --- Campos de perfil (perfil endurecido) ---
+    #
+    # Decisión T-09: los campos de perfil se mantienen ``required=False`` a nivel
+    # serializer para no romper un PATCH parcial que no toca el perfil. La exigencia
+    # dura (todos obligatorios) vive en la constraint ``NOT NULL`` de la BD; el
+    # serializer únicamente impide dejarlos en blanco/nulo cuando SÍ se envían
+    # (``allow_blank=False``/``allow_null=False``), evitando degradar un perfil ya
+    # completo. La unicidad de ``numero_documento``/``telefono`` la garantiza la BD;
+    # aquí se omite el ``UniqueValidator`` para no chocar con el propio valor del
+    # usuario en un update (la constraint de BD sigue protegiendo la unicidad).
     tipo_documento = serializers.ChoiceField(
         choices=DOCUMENT_TYPE_CHOICES,
         required=False,
-        allow_blank=True,
     )
     numero_documento = serializers.CharField(
         max_length=20,
         required=False,
-        allow_blank=True,
-        allow_null=True,
-    )
-    apellido_paterno = serializers.CharField(
-        max_length=100,
-        required=False,
-        allow_blank=True,
-    )
-    apellido_materno = serializers.CharField(
-        max_length=100,
-        required=False,
-        allow_blank=True,
+        allow_blank=False,
+        allow_null=False,
     )
     telefono = serializers.CharField(
         max_length=20,
         required=False,
-        allow_blank=True,
-        allow_null=True,
+        allow_blank=False,
+        allow_null=False,
     )
     unidad_organica = _LazyPrimaryKeyRelatedField(
-        queryset_fn=_organ_directory_queryset,
+        queryset_fn=_organic_unit_queryset,
         required=False,
-        allow_null=True,
+        allow_null=False,
     )
     cargo = _LazyPrimaryKeyRelatedField(
         queryset_fn=_executive_position_queryset,
         required=False,
-        allow_null=True,
+        allow_null=False,
+    )
+    tiene_ficha_usuario = serializers.BooleanField(
+        required=False,
     )
 
     class Meta:
@@ -575,32 +641,26 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             # Campos de perfil:
             "tipo_documento",
             "numero_documento",
-            "apellido_paterno",
-            "apellido_materno",
             "telefono",
             "unidad_organica",
             "cargo",
+            "tiene_ficha_usuario",
         ]
 
     def _extraer_profile_data(self, validated_data: dict) -> dict:
-        """Extrae los campos de perfil de ``validated_data`` y normaliza strings vacíos a None."""
+        """Extrae los campos de perfil de ``validated_data`` para el update parcial."""
         campos_perfil = [
             "tipo_documento",
             "numero_documento",
-            "apellido_paterno",
-            "apellido_materno",
             "telefono",
             "unidad_organica",
             "cargo",
+            "tiene_ficha_usuario",
         ]
         profile_data = {}
         for campo in campos_perfil:
             if campo in validated_data:
-                valor = validated_data.pop(campo)
-                # Campos con unique=True en BD usan NULL para valor ausente.
-                if campo in ("numero_documento", "telefono") and valor == "":
-                    valor = None
-                profile_data[campo] = valor
+                profile_data[campo] = validated_data.pop(campo)
         return profile_data
 
     def update(self, instance, validated_data):
@@ -680,7 +740,7 @@ from apps.convenios.models import (  # noqa: E402
     Conapres,
     ExecutingUnit,
     Ipress,
-    OrganDirectory,
+    OrganicUnit,
     RegionalGovernment,
     University,
 )
@@ -698,7 +758,7 @@ ASSIGNABLE_PROFILE_MODELS = (
     University,
     Ipress,
     RegionalGovernment,
-    OrganDirectory,
+    OrganicUnit,
     ExecutingUnit,
     Conapres,
     Student,

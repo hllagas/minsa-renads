@@ -24,8 +24,8 @@ export const ENTITY_ENDPOINTS: Record<
     endpoint: "regional-governments",
     toLabel: (r) => String(r.nombre ?? r.id),
   },
-  organdirectory: {
-    endpoint: "organ-directories",
+  organicunit: {
+    endpoint: "organic-units",
     toLabel: (r) => String(r.nombre ?? r.id),
   },
   // PK textual (`codigo`) → el valor de la asignación es el código string.

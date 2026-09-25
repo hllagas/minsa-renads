@@ -4,8 +4,8 @@ import { ORGAN_NOMBRE } from "@/lib/catalogos/organs";
 /**
  * Entidad de un representante/autoridad (relación polimórfica `entidad`). El backend expone los
  * `ContentType` elegibles en `/representante-content-types/` (ids dependientes de la BD). Como
- * MINSA/GORE/DIRIS son el mismo modelo `OrganDirectory` (discriminado por `organo`), la UI
- * ofrece 7 opciones pero solo hay 5 ContentTypes; los tres de OrganDirectory comparten id.
+ * MINSA/GORE/DIRIS son el mismo modelo `OrganicUnit` (discriminado por `organo`), la UI
+ * ofrece 7 opciones pero solo hay 5 ContentTypes; los tres de OrganicUnit comparten id.
  */
 export interface RepresentanteContentType {
   id: number;
@@ -24,68 +24,68 @@ export interface RepresentanteEntityOption {
   /** Endpoint del CRUD de la entidad concreta (paso 2). */
   endpoint: string;
   /**
-   * Para los tipos de OrganDirectory (MINSA/GORE/DIRIS): `nombre` del `Organ` por el que se filtra
+   * Para los tipos de OrganicUnit (MINSA/GORE/DIRIS): `nombre` del `Organ` por el que se filtra
    * la entidad concreta. La pantalla resuelve su id (vía `organs`) y pasa `?organo=<id>` — nunca
    * hardcodea el id ni usa `?categoria=`.
    */
   organoNombre?: string;
-  /** `true` si la entidad es un OrganDirectory (habilita cargos por órgano). */
-  esOrganDirectory: boolean;
+  /** `true` si la entidad es una OrganicUnit (habilita cargos por órgano). */
+  esOrganicUnit: boolean;
 }
 
-/** Las 7 opciones de UI (5 ContentTypes; OrganDirectory se divide por `organo`). */
+/** Las 7 opciones de UI (5 ContentTypes; OrganicUnit se divide por `organo`). */
 export const REPRESENTANTE_ENTITIES: RepresentanteEntityOption[] = [
   {
     key: "organo-minsa",
     label: "Órgano del MINSA",
-    model: "organdirectory",
-    endpoint: "organ-directories",
+    model: "organicunit",
+    endpoint: "organic-units",
     organoNombre: ORGAN_NOMBRE.MINSA,
-    esOrganDirectory: true,
+    esOrganicUnit: true,
   },
   {
     key: "gobierno-regional",
     label: "Gobierno Regional",
-    model: "organdirectory",
-    endpoint: "organ-directories",
+    model: "organicunit",
+    endpoint: "organic-units",
     organoNombre: ORGAN_NOMBRE.GORE,
-    esOrganDirectory: true,
+    esOrganicUnit: true,
   },
   {
     key: "diris",
     label: "DIRIS",
-    model: "organdirectory",
-    endpoint: "organ-directories",
+    model: "organicunit",
+    endpoint: "organic-units",
     organoNombre: ORGAN_NOMBRE.DIRIS,
-    esOrganDirectory: true,
+    esOrganicUnit: true,
   },
   {
     key: "universidad",
     label: "Universidad",
     model: "university",
     endpoint: "universities",
-    esOrganDirectory: false,
+    esOrganicUnit: false,
   },
   {
     key: "unidad-ejecutora",
     label: "Unidad Ejecutora",
     model: "executingunit",
     endpoint: "executing-units",
-    esOrganDirectory: false,
+    esOrganicUnit: false,
   },
   {
     key: "conapres",
     label: "CONAPRES",
     model: "conapres",
     endpoint: "conapres",
-    esOrganDirectory: false,
+    esOrganicUnit: false,
   },
   {
     key: "ipress",
     label: "IPRESS",
     model: "ipress",
     endpoint: "ipress",
-    esOrganDirectory: false,
+    esOrganicUnit: false,
   },
 ];
 

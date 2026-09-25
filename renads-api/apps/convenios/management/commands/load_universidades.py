@@ -8,9 +8,9 @@ Estructura esperada (fila 1 = encabezados; una universidad por fila):
 
 Notas de mapeo:
 - `tipo_autorizacion_id`, `tipo_gestion` (→ `tipo_gestion_id`) y `tipo_entidad_id`
-  (→ `OrganDirectory`, categoría `UNIVERSIDAD`) son **ids** de catálogo; se validan
+  (→ `OrganicUnit`, categoría `UNIVERSIDAD`) son **ids** de catálogo; se validan
   contra la BD. Tras el refactor de entidades, `tipo_entidad_id` debe usar los ids
-  del directorio (`organo_directorio`, categoría UNIVERSIDAD), no los antiguos de
+  de la unidad orgánica (`unidad_organica`, categoría UNIVERSIDAD), no los antiguos de
   `tipo_organo`.
 - `ubigeo_id` es el **código INEI** del distrito (no el PK); se resuelve por `Ubigeo.codigo`.
   Si el código no existe, la universidad se carga con `ubigeo` nulo (campo opcional).
@@ -29,7 +29,7 @@ from django.db import transaction
 
 from apps.convenios.models import (
     AuthorizationType,
-    OrganDirectory,
+    OrganicUnit,
     Ubigeo,
     University,
     UniversityManagementType,
@@ -95,7 +95,7 @@ class Command(BaseCommand):
         # Cachés de catálogos (id → instancia) y ubigeos (codigo → instancia).
         gestiones = {u.id: u for u in UniversityManagementType.objects.all()}
         autorizaciones = {a.id: a for a in AuthorizationType.objects.all()}
-        entidades = {o.id: o for o in OrganDirectory.objects.filter(categoria="UNIVERSIDAD")}
+        entidades = {o.id: o for o in OrganicUnit.objects.filter(categoria="UNIVERSIDAD")}
 
         def val(fila, nombre):
             return _txt(fila[idx[nombre]]) if nombre in idx else ""

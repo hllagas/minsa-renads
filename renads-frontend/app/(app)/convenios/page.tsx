@@ -64,14 +64,14 @@ export default function ConveniosPage() {
         ),
       },
       {
-        accessorKey: "organo_directorio_nombre",
-        header: "Órgano del directorio",
+        accessorKey: "unidad_organica_nombre",
+        header: "Unidad orgánica",
         cell: ({ row }) => (
           <div
             className="max-w-[12rem] truncate"
-            title={row.original.organo_directorio_nombre || undefined}
+            title={row.original.unidad_organica_nombre || undefined}
           >
-            {row.original.organo_directorio_nombre || "—"}
+            {row.original.unidad_organica_nombre || "—"}
           </div>
         ),
       },

@@ -27,7 +27,7 @@ import {
  * - `tipo_convenio` se bloquea una vez elegido.
  * - `convenio_marco`, `max_campos_clinicos`, `unidad_ejecutora` y `facultad`
  *   solo aplican a Específico.
- * - **Órgano (categoría)** `_organo` (virtual, no se envía) filtra `organ-directories`
+ * - **Órgano (categoría)** `_organo` (virtual, no se envía) filtra `organic-units`
  *   por `?organo=<id>`. Para un **Marco** solo se ofrecen las categorías que pueden
  *   solicitarlo (RN-1: Gobierno Regional / MINSA / Universidad).
  * - `gobierno_regional` es **obligatorio** solo en Marco + órgano Gobierno Regional; en
@@ -53,7 +53,7 @@ export function ConvenioCreateForm({
       solicitante_tipo_contenido: null,
       solicitante_id_objeto: null,
       _organo: null,
-      organo_directorio: null,
+      unidad_organica: null,
       gobierno_regional: null,
       universidad: null,
       unidad_ejecutora: null,
@@ -121,7 +121,7 @@ export function ConvenioCreateForm({
   // Al cambiar la categoría del órgano: resetear el órgano del directorio (cascada) y, si ya no
   // corresponde GORE, limpiarlo.
   useEffect(() => {
-    setValue("organo_directorio", null);
+    setValue("unidad_organica", null);
   }, [organoCat, setValue]);
 
   useEffect(() => {
@@ -139,7 +139,7 @@ export function ConvenioCreateForm({
       titulo: values.titulo,
       solicitante_tipo_contenido: Number(values.solicitante_tipo_contenido),
       solicitante_id_objeto: Number(values.solicitante_id_objeto),
-      organo_directorio: Number(values.organo_directorio),
+      unidad_organica: Number(values.unidad_organica),
       universidad: Number(values.universidad),
       fecha_solicitud: values.fecha_solicitud,
     };
@@ -298,16 +298,16 @@ export function ConvenioCreateForm({
         )}
       />
 
-      {/* Órgano del directorio — filtrado por la categoría elegida (`?organo=<id>`) */}
+      {/* Unidad orgánica — filtrada por la categoría elegida (`?organo=<id>`) */}
       <Controller
         control={control}
-        name="organo_directorio"
+        name="unidad_organica"
         rules={{ validate: (v) => (v != null && v !== "") || "Campo obligatorio." }}
         render={({ field, fieldState }) => (
-          <Row label="Órgano del directorio" required error={fieldState.error?.message}>
+          <Row label="Unidad orgánica" required error={fieldState.error?.message}>
             <EntityCombobox
               key={organoCat ?? 0}
-              endpoint="organ-directories"
+              endpoint="organic-units"
               params={organoCat != null ? { organo: String(organoCat) } : undefined}
               value={field.value as number | null}
               onChange={(v) => field.onChange(v)}
@@ -315,7 +315,7 @@ export function ConvenioCreateForm({
               placeholder={
                 organoCat == null
                   ? "Elige primero la categoría…"
-                  : "Buscar órgano del directorio…"
+                  : "Buscar unidad orgánica…"
               }
             />
           </Row>

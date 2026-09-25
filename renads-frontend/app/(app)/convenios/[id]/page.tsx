@@ -130,10 +130,10 @@ export default function ConvenioDetallePage() {
                 <Dato label="Estado" value={`${c.estado_actual} (${c.estado_codigo})`} />
                 <Dato label="Solicitante" value={c.solicitante} />
                 <Dato
-                  label="Órgano del directorio"
+                  label="Unidad orgánica"
                   value={
-                    c.organo_directorio_nombre
-                      ? `${c.organo_directorio_nombre}${c.tipo_organo_directorio ? ` (${c.tipo_organo_directorio})` : ""}`
+                    c.unidad_organica_nombre
+                      ? `${c.unidad_organica_nombre}${c.tipo_unidad_organica ? ` (${c.tipo_unidad_organica})` : ""}`
                       : "—"
                   }
                 />
@@ -207,9 +207,9 @@ export default function ConvenioDetallePage() {
             columns={[
               { key: "rol_display", header: "Rol" },
               {
-                key: "organo_directorio_detalle",
-                header: "Órgano",
-                render: (row) => detalleNombre((row as Record<string, unknown>).organo_directorio_detalle),
+                key: "unidad_organica_detalle",
+                header: "Unidad orgánica",
+                render: (row) => detalleNombre((row as Record<string, unknown>).unidad_organica_detalle),
               },
               {
                 key: "organo_representante_detalle",

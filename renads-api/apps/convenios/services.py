@@ -28,7 +28,7 @@ from apps.convenios.models import (
     Faculty,
     Ipress,
     LegalOpinion,
-    OrganDirectory,
+    OrganicUnit,
     OrganRepresentative,
     OrganRepresentativeHistory,
     ProfessionalCareer,
@@ -252,7 +252,7 @@ def crear_convenio(*, datos: dict, usuario) -> Convention:
     """Registra un convenio. RN-3: el Específico requiere un Marco vigente."""
     tipo = datos["tipo_convenio"]
     marco = datos.get("convenio_marco")
-    organo = datos["organo_directorio"]
+    organo = datos["unidad_organica"]
     categoria = organo.categoria  # ORGANO_MINSA / UNIVERSIDAD / GOBIERNO_REGIONAL / MINSA_DIRIS / UNIDAD_EJECUTORA
 
     if tipo.codigo == "MARCO":
@@ -260,7 +260,7 @@ def crear_convenio(*, datos: dict, usuario) -> Convention:
         _CATEGORIAS_MARCO = {"GOBIERNO_REGIONAL", "ORGANO_MINSA", "UNIVERSIDAD"}
         if categoria not in _CATEGORIAS_MARCO:
             raise ValidationError(
-                {"organo_directorio": "Un Convenio Marco solo puede ser solicitado por un Gobierno Regional, el Ministerio de Salud o una Universidad."}
+                {"unidad_organica": "Un Convenio Marco solo puede ser solicitado por un Gobierno Regional, el Ministerio de Salud o una Universidad."}
             )
         if marco is not None:
             raise ValidationError({"convenio_marco": "Un Convenio Marco no depende de otro convenio."})
@@ -306,7 +306,7 @@ def crear_convenio(*, datos: dict, usuario) -> Convention:
         titulo=datos["titulo"],
         solicitante_tipo_contenido=datos["solicitante_tipo_contenido"],
         solicitante_id_objeto=datos["solicitante_id_objeto"],
-        organo_directorio=datos["organo_directorio"],
+        unidad_organica=datos["unidad_organica"],
         gobierno_regional=datos.get("gobierno_regional"),
         universidad=datos["universidad"],
         unidad_ejecutora=datos.get("unidad_ejecutora"),
@@ -361,7 +361,7 @@ def crear_adenda(*, convenio_origen: Convention, datos: dict, usuario) -> Conven
         titulo=titulo,
         solicitante_tipo_contenido_id=convenio_origen.solicitante_tipo_contenido_id,
         solicitante_id_objeto=convenio_origen.solicitante_id_objeto,
-        organo_directorio=convenio_origen.organo_directorio,
+        unidad_organica=convenio_origen.unidad_organica,
         gobierno_regional=convenio_origen.gobierno_regional,
         universidad=convenio_origen.universidad,
         unidad_ejecutora=convenio_origen.unidad_ejecutora,
@@ -385,7 +385,7 @@ def actualizar_convenio(*, convenio: Convention, datos: dict, usuario) -> Conven
     """Actualiza campos editables del convenio (no el estado: usar `cambiar_estado`)."""
     # `nomenclatura` habilitado temporalmente para edición directa (Específicos).
     editables = [
-        "titulo", "nomenclatura", "plantilla", "organo_directorio", "gobierno_regional",
+        "titulo", "nomenclatura", "plantilla", "unidad_organica", "gobierno_regional",
         "universidad", "unidad_ejecutora", "facultad",
         "fecha_inicio", "fecha_fin", "max_campos_clinicos",
     ]
@@ -404,7 +404,7 @@ def actualizar_convenio(*, convenio: Convention, datos: dict, usuario) -> Conven
     # Revalidar el gobierno regional por tipo contra el estado final (RN-GORE-1/2).
     _validar_gobierno_regional_por_tipo(
         tipo_codigo=convenio.tipo_convenio.codigo,
-        categoria_organo=convenio.organo_directorio.categoria,
+        categoria_organo=convenio.unidad_organica.categoria,
         gobierno_regional=convenio.gobierno_regional,
     )
     convenio.save()
@@ -657,7 +657,7 @@ def registrar_firma(*, convenio: Convention, datos: dict, usuario) -> Signature:
         raise ValidationError("No se puede firmar: hay observaciones pendientes de subsanar.")
     firma = Signature.objects.create(convenio=convenio, **datos)
     registrar_auditoria(usuario, "CREAR", firma)
-    if firma.firmante_tipo_contenido.model == "organdirectory":
+    if firma.firmante_tipo_contenido.model == "organicunit":
         _set_estado(convenio, "FIRMADO_MINSA", usuario)
     else:
         _set_estado(convenio, "FIRMADO_EXTERNOS", usuario)
@@ -855,31 +855,31 @@ def sincronizar_carreras_facultad(*, facultad, carreras_ids, usuario) -> list[Un
 # ---------------------------------------------------------------------------
 # Partes firmantes del convenio (sincronización en lote)
 # ---------------------------------------------------------------------------
-def _validar_coherencia_parte(*, organo_directorio, organo_representante, cargo_ejecutivo) -> None:
+def _validar_coherencia_parte(*, unidad_organica, organo_representante, cargo_ejecutivo) -> None:
     """Coherencia órgano↔representante↔cargo de una parte firmante.
 
-    - El representante (si se envía) debe representar al mismo órgano del directorio.
-      Tras el modelo polimórfico, esto es: su `entidad` es ese OrganDirectory
-      (``tipo_contenido == organdirectory`` y ``id_objeto == organo_directorio.id``).
-    - El cargo (si se envía y tiene órgano directivo) debe pertenecer al mismo órgano.
-      Los cargos legacy sin ``organo_directivo`` no se validan.
+    - El representante (si se envía) debe representar a la misma unidad orgánica.
+      Tras el modelo polimórfico, esto es: su `entidad` es esa OrganicUnit
+      (``tipo_contenido == organicunit`` y ``id_objeto == unidad_organica.id``).
+    - El cargo (si se envía y tiene unidad orgánica) debe pertenecer a la misma unidad.
+      Los cargos legacy sin ``unidad_organica`` no se validan.
     """
     if organo_representante is not None:
         representa_al_organo = (
-            organo_representante.tipo_contenido.model == "organdirectory"
-            and organo_representante.id_objeto == organo_directorio.id
+            organo_representante.tipo_contenido.model == "organicunit"
+            and organo_representante.id_objeto == unidad_organica.id
         )
         if not representa_al_organo:
             raise ValidationError(
-                {"organo_representante": "El representante no pertenece al órgano del directorio indicado."}
+                {"organo_representante": "El representante no pertenece a la unidad orgánica indicada."}
             )
     if (
         cargo_ejecutivo is not None
-        and cargo_ejecutivo.organo_directivo_id
-        and cargo_ejecutivo.organo_directivo_id != organo_directorio.id
+        and cargo_ejecutivo.unidad_organica_id
+        and cargo_ejecutivo.unidad_organica_id != unidad_organica.id
     ):
         raise ValidationError(
-            {"cargo_ejecutivo": "El cargo no pertenece al órgano del directorio indicado."}
+            {"cargo_ejecutivo": "El cargo no pertenece a la unidad orgánica indicada."}
         )
 
 
@@ -887,7 +887,7 @@ def _validar_coherencia_parte(*, organo_directorio, organo_representante, cargo_
 def sincronizar_partes(*, convenio: Convention, datos: list[dict], usuario) -> list[ConventionParty]:
     """Sincroniza (idempotente) las partes firmantes de un convenio.
 
-    Cada elemento de ``datos`` es un dict con ``rol``, ``organo_directorio``,
+    Cada elemento de ``datos`` es un dict con ``rol``, ``unidad_organica``,
     ``organo_representante`` (opcional), ``cargo_ejecutivo`` (opcional), ``orden`` y
     ``es_firmante``. Reconcilia por la clave ``(convenio, rol, orden)``: crea las
     partes nuevas, actualiza las existentes y elimina las que ya no estén en el
@@ -899,11 +899,11 @@ def sincronizar_partes(*, convenio: Convention, datos: list[dict], usuario) -> l
     entradas: dict[tuple[str, int], dict] = {}
     roles_presentes: set[str] = set()
     for item in datos:
-        organo_directorio = item["organo_directorio"]
+        unidad_organica = item["unidad_organica"]
         organo_representante = item.get("organo_representante")
         cargo_ejecutivo = item.get("cargo_ejecutivo")
         _validar_coherencia_parte(
-            organo_directorio=organo_directorio,
+            unidad_organica=unidad_organica,
             organo_representante=organo_representante,
             cargo_ejecutivo=cargo_ejecutivo,
         )
@@ -915,7 +915,7 @@ def sincronizar_partes(*, convenio: Convention, datos: list[dict], usuario) -> l
             )
         entradas[clave] = {
             "rol": item["rol"],
-            "organo_directorio": organo_directorio,
+            "unidad_organica": unidad_organica,
             "organo_representante": organo_representante,
             "cargo_ejecutivo": cargo_ejecutivo,
             "orden": orden,
@@ -926,7 +926,7 @@ def sincronizar_partes(*, convenio: Convention, datos: list[dict], usuario) -> l
     # Composición de roles requerida por tipo/categoría (exigida al sincronizar).
     _validar_composicion_partes(
         tipo_codigo=convenio.tipo_convenio.codigo,
-        categoria_organo=convenio.organo_directorio.categoria if convenio.organo_directorio_id else None,
+        categoria_organo=convenio.unidad_organica.categoria if convenio.unidad_organica_id else None,
         roles_presentes=roles_presentes,
     )
 
@@ -943,13 +943,13 @@ def sincronizar_partes(*, convenio: Convention, datos: list[dict], usuario) -> l
             registrar_auditoria(usuario, "CREAR", parte)
         else:
             cambiado = False
-            for campo in ("organo_directorio", "organo_representante", "cargo_ejecutivo", "es_firmante"):
+            for campo in ("unidad_organica", "organo_representante", "cargo_ejecutivo", "es_firmante"):
                 if getattr(parte, campo) != valores[campo]:
                     setattr(parte, campo, valores[campo])
                     cambiado = True
             if cambiado:
                 parte.save(update_fields=[
-                    "organo_directorio", "organo_representante", "cargo_ejecutivo", "es_firmante",
+                    "unidad_organica", "organo_representante", "cargo_ejecutivo", "es_firmante",
                 ])
                 registrar_auditoria(usuario, "ACTUALIZAR", parte)
 
@@ -969,12 +969,12 @@ def sincronizar_partes(*, convenio: Convention, datos: list[dict], usuario) -> l
 # ---------------------------------------------------------------------------
 # Columnas requeridas mínimas del Excel.
 BULK_CONV_COLUMNAS_REQUERIDAS = {
-    "tipo_convenio", "titulo", "organo_directorio", "universidad", "fecha_solicitud",
+    "tipo_convenio", "titulo", "unidad_organica", "universidad", "fecha_solicitud",
 }
 
 # Alias de encabezados con sufijo `_id` → clave canónica interna.
 BULK_CONV_ALIAS_COLUMNAS = {
-    "organo_directorio_id": "organo_directorio",
+    "unidad_organica_id": "unidad_organica",
     "convenio_marco_id": "convenio_marco",
     "gobierno_regional_id": "gobierno_regional",
     "universidad_id": "universidad",
@@ -1018,16 +1018,16 @@ def _bc_resolver_tipo(valor) -> ConventionType:
         raise ValidationError(f"Tipo de convenio no encontrado: {valor}. Valores: MARCO, ESPECIFICO.") from exc
 
 
-def _bc_resolver_organo(valor) -> OrganDirectory:
+def _bc_resolver_organo(valor) -> OrganicUnit:
     if valor is None:
-        raise ValidationError("`organo_directorio` es requerido.")
+        raise ValidationError("`unidad_organica` es requerida.")
     texto = str(valor).strip()
     try:
-        return OrganDirectory.objects.get(id=int(texto)) if texto.isdigit() else OrganDirectory.objects.get(nombre__iexact=texto)
-    except OrganDirectory.DoesNotExist as exc:
-        raise ValidationError(f"Órgano directorio no encontrado: {valor}.") from exc
-    except OrganDirectory.MultipleObjectsReturned as exc:
-        raise ValidationError(f"Órgano directorio ambiguo (use el id): {valor}.") from exc
+        return OrganicUnit.objects.get(id=int(texto)) if texto.isdigit() else OrganicUnit.objects.get(nombre__iexact=texto)
+    except OrganicUnit.DoesNotExist as exc:
+        raise ValidationError(f"Unidad orgánica no encontrada: {valor}.") from exc
+    except OrganicUnit.MultipleObjectsReturned as exc:
+        raise ValidationError(f"Unidad orgánica ambigua (use el id): {valor}.") from exc
 
 
 def _bc_resolver_universidad(valor) -> University:
@@ -1094,7 +1094,7 @@ def _bc_validar_fila(tipo, organo, marco, gobierno_regional, unidad_ejecutora, f
         categorias_marco = {"GOBIERNO_REGIONAL", "ORGANO_MINSA", "UNIVERSIDAD"}
         if categoria not in categorias_marco:
             raise ValidationError(
-                "`organo_directorio`: Convenio Marco solo puede ser solicitado por Gobierno Regional, MINSA o Universidad."
+                "`unidad_organica`: Convenio Marco solo puede ser solicitado por Gobierno Regional, MINSA o Universidad."
             )
         if unidad_ejecutora is not None or facultad is not None:
             raise ValidationError("Convenio Marco no debe llevar `unidad_ejecutora` ni `facultad`.")
@@ -1113,10 +1113,10 @@ def _bc_validar_fila(tipo, organo, marco, gobierno_regional, unidad_ejecutora, f
             raise ValidationError("`facultad` debe pertenecer a la universidad del convenio (RN-FC-02).")
 
 
-def _bc_solicitante(tipo_codigo: str, organo: OrganDirectory, unidad_ejecutora):
-    """Deriva el solicitante genérico: para Marco → organo_directorio; para Específico → unidad_ejecutora."""
+def _bc_solicitante(tipo_codigo: str, organo: OrganicUnit, unidad_ejecutora):
+    """Deriva el solicitante genérico: para Marco → unidad_organica; para Específico → unidad_ejecutora."""
     if tipo_codigo == "MARCO":
-        ct = ContentType.objects.get_for_model(OrganDirectory)
+        ct = ContentType.objects.get_for_model(OrganicUnit)
         return ct, organo.id
     ct = ContentType.objects.get_for_model(ExecutingUnit)
     return ct, unidad_ejecutora.id
@@ -1142,7 +1142,7 @@ def _bc_crear_convenio_fila(*, obtener, usuario) -> Convention:
         raise ValidationError("`titulo` es requerido.")
     titulo = str(titulo).strip()
 
-    organo = _bc_resolver_organo(obtener("organo_directorio"))
+    organo = _bc_resolver_organo(obtener("unidad_organica"))
     universidad = _bc_resolver_universidad(obtener("universidad"))
     marco = _bc_resolver_convenio_marco(obtener("convenio_marco"))
     gobierno_regional = _bc_resolver_gobierno_regional(obtener("gobierno_regional"))
@@ -1174,7 +1174,7 @@ def _bc_crear_convenio_fila(*, obtener, usuario) -> Convention:
         titulo=titulo,
         solicitante_tipo_contenido=ct_sol,
         solicitante_id_objeto=id_sol,
-        organo_directorio=organo,
+        unidad_organica=organo,
         gobierno_regional=gobierno_regional,
         universidad=universidad,
         unidad_ejecutora=unidad_ejecutora,

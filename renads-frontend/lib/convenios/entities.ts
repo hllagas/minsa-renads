@@ -418,10 +418,10 @@ export const ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     fields: [],
   },
 
-  "organ-directories": {
-    endpoint: "organ-directories",
-    title: "Órganos del directorio",
-    singular: "órgano del directorio",
+  "organic-units": {
+    endpoint: "organic-units",
+    title: "Unidades orgánicas",
+    singular: "unidad orgánica",
     description: "Directorio unificado: órganos del MINSA, Gobiernos Regionales, DIRIS y Unidades Ejecutoras.",
     searchPlaceholder: "Buscar por nombre o siglas…",
     columns: [
@@ -482,7 +482,7 @@ export const ENTITY_MENU: { slug: string; title: string }[] = [
   { slug: "universities", title: "Universidades" },
   { slug: "ipress", title: "IPRESS" },
   { slug: "regional-governments", title: "Gobiernos regionales" },
-  { slug: "organ-directories", title: "Órganos del directorio" },
+  { slug: "organic-units", title: "Unidades orgánicas" },
   { slug: "executing-units", title: "Unidades ejecutoras" },
   { slug: "conapres", title: "CONAPRES" },
 ];

@@ -24,7 +24,30 @@ export interface PermissionBrief {
   model: string;
 }
 
-/** Usuario — lectura (`GET /users/`). Todos read-only; `password` nunca se devuelve. */
+/**
+ * Ficha de usuario — lectura anidada bajo `perfil` (`UserProfileReadSerializer`, `apps/common`).
+ * OJO por asimetría del backend: en LECTURA la ficha viene anidada; en ESCRITURA los campos van
+ * PLANOS al nivel superior del payload (ver `UserCreatePayload`/`UserUpdatePayload`).
+ * `unidad_organica_detalle`/`cargo_detalle` son STRINGS (`str(obj.*)`), no objetos `{id,nombre}`.
+ */
+export interface UserFichaRead {
+  tipo_documento: string;
+  numero_documento: string;
+  apellido_paterno: string;
+  apellido_materno: string;
+  telefono: string;
+  unidad_organica: number;
+  cargo: number;
+  tiene_ficha_usuario: boolean;
+  unidad_organica_detalle: string;
+  cargo_detalle: string;
+}
+
+/**
+ * Usuario — lectura (`GET /users/`). Todos read-only; `password` nunca se devuelve.
+ * La ficha de usuario (`apps/common`, endurecida) viene ANIDADA bajo `perfil` (o `null` si el
+ * usuario aún no tiene `UserProfile`). La escritura, en cambio, es plana (ver payloads).
+ */
 export interface User extends WithId {
   id: number;
   username: string;
@@ -38,9 +61,14 @@ export interface User extends WithId {
   last_login: string | null;
   groups: number[];
   groups_detalle: GroupBrief[];
+  perfil: UserFichaRead | null;
 }
 
-/** Usuario — alta (`POST /users/`). Incluye `password` write-only. */
+/**
+ * Usuario — alta (`POST /users/`). Incluye `password` write-only.
+ * Los 7 campos de la ficha son **obligatorios** (el backend responde 400 si faltan);
+ * `tiene_ficha_usuario` es opcional (default false).
+ */
 export interface UserCreatePayload {
   username: string;
   email: string;
@@ -51,9 +79,23 @@ export interface UserCreatePayload {
   is_staff: boolean;
   is_superuser: boolean;
   groups: number[];
+  // Ficha de usuario (obligatoria en el alta).
+  tipo_documento: string;
+  numero_documento: string;
+  apellido_paterno: string;
+  apellido_materno: string;
+  telefono: string;
+  unidad_organica: number;
+  cargo: number;
+  tiene_ficha_usuario?: boolean;
 }
 
-/** Usuario — edición (`PATCH /users/{id}/`). Igual que el alta pero **sin** `password`. */
+/**
+ * Usuario — edición (`PATCH /users/{id}/`). Igual que el alta pero **sin** `password`.
+ * En PATCH los campos de ficha son opcionales, pero el `UserUpdateSerializer` usa
+ * `allow_blank=False`/`allow_null=False`: NO deben enviarse vacíos ni nulos (el
+ * `ResourceForm` omite del payload los opcionales vacíos, evitando el 400 — ver R7 del spec).
+ */
 export type UserUpdatePayload = Omit<UserCreatePayload, "password">;
 
 /** Cambio de contraseña vía la acción `set-password`. */

@@ -367,7 +367,7 @@ def fig_er_simplified():
     entities = {
         # name:        (x, y,  w,   h,  color,  fields_short)
         "convenio":       (5.5, 7.5, 2.8, 1.8, "#1565C0", "id · tipo · estado\norg.directorio · universidad\nunidad_ejecutora · facultad"),
-        "organo_directorio": (1.0, 7.5, 2.6, 1.4, "#37474F", "id · categoria · nombre"),
+        "unidad_organica": (1.0, 7.5, 2.6, 1.4, "#37474F", "id · categoria · nombre"),
         "universidad":    (9.2, 7.5, 2.6, 1.4, "#37474F", "id · nombre · ruc"),
         "ipress":         (9.2, 5.0, 2.6, 1.4, "#4A148C", "codigo_renipress PK\nunidad_ejecutora · nombre"),
         "campo_clinico_ipress": (5.5, 5.0, 2.8, 1.4, "#6A1B9A",
@@ -402,7 +402,7 @@ def fig_er_simplified():
         pos[name] = (x+w/2, y+h/2)
 
     rels = [
-        ("convenio", "organo_directorio", "N:1"),
+        ("convenio", "unidad_organica", "N:1"),
         ("convenio", "universidad", "N:1"),
         ("convenio", "ipress", ""),
         ("convenio", "campo_clinico_univ", "1:N"),
@@ -1010,7 +1010,7 @@ def build_document():
     add_heading(doc, "7.1. Tablas Principales por Módulo", 2)
     er_tables = [
         ("M0 – Seguridad", "auth_user, seguridad_usuario, perfil_usuario, perfil_usuario_entidad, bitacora_auditoria, documento_adjunto, documento_anexo"),
-        ("M1 – Convenios", "convenio, tipo_convenio, estado_convenio, organo_directorio, organo_representante, cargo_ejecutivo, gobierno_regional, universidad, facultad, unidad_ejecutora, ipress, campo_clinico_ipress, campo_clinico_ipress_universidad, parte_convenio, evaluacion_tecnica, opinion_conapres, opinion_juridica"),
+        ("M1 – Convenios", "convenio, tipo_convenio, estado_convenio, unidad_organica, organo_representante, cargo_ejecutivo, gobierno_regional, universidad, facultad, unidad_ejecutora, ipress, campo_clinico_ipress, campo_clinico_ipress_universidad, parte_convenio, evaluacion_tecnica, opinion_conapres, opinion_juridica"),
         ("M1 – Catálogos geo.", "ubigeo, region, ambito_geografico_sanitario, red, microred"),
         ("M2 – Internados", "estudiante, tutor, tutor_universidad, interno, rotacion, autorizacion_rotacion, historial_estado_internado, historial_estado_rotacion"),
         ("M3 – Actividades", "actividad_docente_asistencial, validacion_actividad"),

@@ -36,12 +36,12 @@ class ConventionReadSerializer(serializers.ModelSerializer):
     estado_actual = serializers.CharField(source="estado_actual.nombre", read_only=True)
     estado_codigo = serializers.CharField(source="estado_actual.codigo", read_only=True)
     solicitante = serializers.SerializerMethodField()
-    # Universidad y órgano del directorio: id + nombre legible; el "tipo" se deriva de la
+    # Universidad y unidad orgánica: id + nombre legible; el "tipo" se deriva de la
     # entidad (no se almacena en `convenio`), evitando redundancia en el esquema.
-    organo_directorio_nombre = serializers.CharField(source="organo_directorio.nombre", read_only=True)
-    # Categoría del órgano del directorio (discriminador), label español; ya no es un sub-tipo.
-    tipo_organo_directorio = serializers.CharField(
-        source="organo_directorio.get_categoria_display", read_only=True, allow_null=True,
+    unidad_organica_nombre = serializers.CharField(source="unidad_organica.nombre", read_only=True)
+    # Categoría de la unidad orgánica (discriminador), label español; ya no es un sub-tipo.
+    tipo_unidad_organica = serializers.CharField(
+        source="unidad_organica.get_categoria_display", read_only=True, allow_null=True,
     )
     universidad_nombre = serializers.CharField(source="universidad.nombre", read_only=True)
     tipo_entidad_universidad = serializers.CharField(
@@ -60,7 +60,7 @@ class ConventionReadSerializer(serializers.ModelSerializer):
             "id", "tipo_convenio", "convenio_marco", "convenio_origen", "es_adenda",
             "plantilla", "nomenclatura", "titulo",
             "solicitante_tipo_contenido", "solicitante_id_objeto", "solicitante",
-            "organo_directorio", "organo_directorio_nombre", "tipo_organo_directorio",
+            "unidad_organica", "unidad_organica_nombre", "tipo_unidad_organica",
             "universidad", "universidad_nombre", "tipo_entidad_universidad",
             "unidad_ejecutora", "unidad_ejecutora_detalle", "facultad", "facultad_detalle",
             "gobierno_regional", "gobierno_regional_detalle",
@@ -134,7 +134,7 @@ class ConventionWriteSerializer(serializers.ModelSerializer):
         fields = [
             "tipo_convenio", "convenio_marco", "plantilla", "titulo", "nomenclatura",
             "solicitante_tipo_contenido", "solicitante_id_objeto",
-            "organo_directorio", "gobierno_regional", "universidad",
+            "unidad_organica", "gobierno_regional", "universidad",
             "unidad_ejecutora", "facultad",
             "fecha_solicitud", "fecha_inicio", "fecha_fin", "max_campos_clinicos",
         ]
@@ -187,7 +187,7 @@ class ConventionPartySerializer(serializers.ModelSerializer):
     """
 
     rol_display = serializers.CharField(source="get_rol_display", read_only=True)
-    organo_directorio_detalle = serializers.SerializerMethodField()
+    unidad_organica_detalle = serializers.SerializerMethodField()
     organo_representante_detalle = serializers.SerializerMethodField()
     cargo_ejecutivo_detalle = serializers.SerializerMethodField()
 
@@ -195,15 +195,15 @@ class ConventionPartySerializer(serializers.ModelSerializer):
         model = ConventionParty
         fields = [
             "id", "convenio", "rol", "rol_display",
-            "organo_directorio", "organo_directorio_detalle",
+            "unidad_organica", "unidad_organica_detalle",
             "organo_representante", "organo_representante_detalle",
             "cargo_ejecutivo", "cargo_ejecutivo_detalle",
             "orden", "es_firmante", "creado_en",
         ]
         read_only_fields = ["id", "convenio", "creado_en"]
 
-    def get_organo_directorio_detalle(self, obj):
-        return _detalle_fk(obj.organo_directorio, "nombre", "siglas")
+    def get_unidad_organica_detalle(self, obj):
+        return _detalle_fk(obj.unidad_organica, "nombre", "siglas")
 
     def get_organo_representante_detalle(self, obj):
         return _detalle_fk(obj.organo_representante, "nombre", "numero_documento_identidad")
@@ -237,7 +237,7 @@ class TechnicalEvaluationSerializer(serializers.ModelSerializer):
     class Meta:
         model = TechnicalEvaluation
         fields = [
-            "resultado", "observaciones", "subsanacion", "organo_directorio",
+            "resultado", "observaciones", "subsanacion", "unidad_organica",
             "fecha_evaluacion", "nomenclatura",
         ]
 
@@ -420,7 +420,7 @@ class PublicationSerializer(serializers.ModelSerializer):
 # Modelos que un representante puede representar (relación polimórfica `entidad`).
 # Se validan por `app_label.model` para no depender de ids de ContentType.
 REPRESENTANTE_MODELOS_PERMITIDOS = {
-    "convenios.organdirectory",
+    "convenios.organicunit",
     "convenios.university",
     "convenios.executingunit",
     "convenios.conapres",
@@ -433,7 +433,7 @@ class OrganRepresentativeSerializer(serializers.ModelSerializer):
 
     Valida: (a) unicidad del documento entre representantes activos, (b) que la entidad
     (`tipo_contenido`) sea uno de los modelos permitidos, y (c) la coherencia cargo↔entidad
-    (cargo por órgano ⇒ la entidad debe ser ese OrganDirectory; cargo global ⇒ cualquiera).
+    (cargo por órgano ⇒ la entidad debe ser esa OrganicUnit; cargo global ⇒ cualquiera).
     La baja del representante anterior (histórico) la resuelve el service
     ``registrar_organo_representante``.
     """
@@ -494,15 +494,15 @@ class OrganRepresentativeSerializer(serializers.ModelSerializer):
                         {"id_objeto": "La entidad referenciada no existe."}
                     )
 
-        # (c) Coherencia cargo↔entidad (D4): un cargo con órgano directivo asignado solo
-        # aplica a ese OrganDirectory; un cargo global (sin órgano) aplica a cualquiera.
+        # (c) Coherencia cargo↔entidad (D4): un cargo con unidad orgánica asignada solo
+        # aplica a esa OrganicUnit; un cargo global (sin unidad orgánica) aplica a cualquiera.
         cargo = attrs.get("cargo_ejecutivo", getattr(self.instance, "cargo_ejecutivo", None))
-        if cargo is not None and cargo.organo_directivo_id:
-            es_organ_directory = (
+        if cargo is not None and cargo.unidad_organica_id:
+            es_organic_unit = (
                 tipo_contenido is not None
-                and tipo_contenido.model == "organdirectory"
+                and tipo_contenido.model == "organicunit"
             )
-            if not es_organ_directory or cargo.organo_directivo_id != id_objeto:
+            if not es_organic_unit or cargo.unidad_organica_id != id_objeto:
                 raise serializers.ValidationError(
                     {"cargo_ejecutivo": "El cargo no corresponde a la entidad seleccionada."}
                 )

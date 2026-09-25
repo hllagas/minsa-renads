@@ -48,11 +48,11 @@ export const CONVENTION_FIELDS: FieldConfig[] = [
     required: true,
   },
   {
-    name: "organo_directorio",
-    label: "Órgano del directorio",
+    name: "unidad_organica",
+    label: "Unidad orgánica",
     type: "select",
     required: true,
-    optionsEndpoint: "organ-directories",
+    optionsEndpoint: "organic-units",
   },
   {
     name: "gobierno_regional",

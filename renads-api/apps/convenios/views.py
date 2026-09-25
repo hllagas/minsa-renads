@@ -218,7 +218,7 @@ class ConventionViewSet(AnnexAttachmentMixin, viewsets.ModelViewSet):
             )
             return Response(ConventionPartySerializer(partes, many=True).data)
         qs = convenio.partes_firmantes.select_related(
-            "organo_directorio", "organo_representante", "cargo_ejecutivo"
+            "unidad_organica", "organo_representante", "cargo_ejecutivo"
         ).order_by("orden", "id")
         return Response(ConventionPartySerializer(qs, many=True).data)
 
@@ -507,8 +507,8 @@ def _detalle_nombre(rel):
     return {"id": rel.pk, "codigo": getattr(rel, "codigo", None), "nombre": rel.nombre}
 
 
-def _detalle_organo_directorio(rel):
-    """Detalle legible de un órgano del directorio (`nombre` + su `organo` canónico)."""
+def _detalle_unidad_organica(rel):
+    """Detalle legible de una unidad orgánica (`nombre` + su `organo` canónico)."""
     return {
         "id": rel.pk,
         "nombre": rel.nombre,
@@ -761,13 +761,13 @@ class UniversityCareerViewSet(
     serializer_class = UniversityCareerSerializer
 
 
-class _OrganDirectorySerializer(
+class _OrganicUnitSerializer(
     _auto_serializer(
-        m.OrganDirectory,
+        m.OrganicUnit,
         detalles={"organo": _detalle_nombre},
     )
 ):
-    """Serializer de órganos del directorio con RN de unicidad `(organo, nombre)`.
+    """Serializer de unidades orgánicas con RN de unicidad `(organo, nombre)`.
 
     RN-GORE-3: el nombre no se repite dentro del mismo `organo`. El auto-serializer no
     aplica esta regla, así que se valida aquí y se devuelve un 400 legible en vez del
@@ -780,14 +780,14 @@ class _OrganDirectorySerializer(
         organo = attrs.get("organo", getattr(self.instance, "organo", None))
         nombre = attrs.get("nombre", getattr(self.instance, "nombre", None))
         if organo is not None and nombre is not None:
-            qs = m.OrganDirectory._default_manager.filter(organo=organo, nombre=nombre)
+            qs = m.OrganicUnit._default_manager.filter(organo=organo, nombre=nombre)
             if self.instance is not None:
                 qs = qs.exclude(pk=self.instance.pk)
             if qs.exists():
                 raise drf_serializers.ValidationError(
                     {
                         "nombre": (
-                            "Ya existe un órgano del directorio con este nombre para el "
+                            "Ya existe una unidad orgánica con este nombre para el "
                             "mismo órgano."
                         )
                     }
@@ -795,20 +795,20 @@ class _OrganDirectorySerializer(
         return attrs
 
 
-class OrganDirectoryViewSet(
+class OrganicUnitViewSet(
     _entity_viewset(
-        m.OrganDirectory,
+        m.OrganicUnit,
         filterset_fields=["organo", "activo"],
         search_fields=["nombre", "siglas"],
         detalles={"organo": _detalle_nombre},
     ),
 ):
-    """CRUD del directorio unificado de órganos (RN: único por organo+nombre)."""
+    """CRUD del directorio unificado de unidades orgánicas (RN: único por organo+nombre)."""
 
-    queryset = m.OrganDirectory._default_manager.select_related(
+    queryset = m.OrganicUnit._default_manager.select_related(
         "organo"
     ).all()
-    serializer_class = _OrganDirectorySerializer
+    serializer_class = _OrganicUnitSerializer
 
 
 class _ExecutivePositionSerializer(
@@ -816,16 +816,16 @@ class _ExecutivePositionSerializer(
         m.ExecutivePosition,
         detalles={
             "organo": _detalle_nombre,
-            "organo_directivo": _detalle_organo_directorio,
+            "unidad_organica": _detalle_unidad_organica,
         },
     )
 ):
-    """Serializer de cargos ejecutivos con RN de coherencia `organo == organo_directivo.organo`.
+    """Serializer de cargos ejecutivos con RN de coherencia `organo == unidad_organica.organo`.
 
-    RN-CE-02: cuando `organo_directivo` está seteado, el `organo` del cargo debe coincidir
-    con el `organo` de ese órgano directivo. El auto-serializer (`ModelSerializer`) no ejecuta
+    RN-CE-02: cuando `unidad_organica` está seteado, el `organo` del cargo debe coincidir
+    con el `organo` de esa unidad orgánica. El auto-serializer (`ModelSerializer`) no ejecuta
     `Model.clean()`, así que la coherencia se valida aquí y se devuelve un 400 legible.
-    Si `organo_directivo` es nulo (cargo global), la coherencia no aplica; el FK `organo`
+    Si `unidad_organica` es nulo (cargo global), la coherencia no aplica; el FK `organo`
     obligatorio ya lo garantiza el propio `ModelSerializer` (campo requerido por `null=False`).
     """
 
@@ -833,16 +833,16 @@ class _ExecutivePositionSerializer(
         attrs = super().validate(attrs)
         # Estado final del objeto (soporta PATCH parcial partiendo de la instancia).
         organo = attrs.get("organo", getattr(self.instance, "organo", None))
-        organo_directivo = attrs.get(
-            "organo_directivo", getattr(self.instance, "organo_directivo", None)
+        unidad_organica = attrs.get(
+            "unidad_organica", getattr(self.instance, "unidad_organica", None)
         )
-        if organo_directivo is not None and organo is not None:
-            if organo.id != organo_directivo.organo_id:
+        if unidad_organica is not None and organo is not None:
+            if organo.id != unidad_organica.organo_id:
                 raise drf_serializers.ValidationError(
                     {
                         "organo": (
-                            "El órgano del cargo debe coincidir con el órgano del "
-                            "órgano directivo seleccionado."
+                            "El órgano del cargo debe coincidir con el órgano de la "
+                            "unidad orgánica seleccionada."
                         )
                     }
                 )
@@ -852,24 +852,24 @@ class _ExecutivePositionSerializer(
 class ExecutivePositionViewSet(
     _entity_viewset(
         m.ExecutivePosition,
-        # `organo_directivo__isnull=true` lista los cargos globales (sin órgano directivo),
+        # `unidad_organica__isnull=true` lista los cargos globales (sin unidad orgánica),
         # reutilizables por cualquier entidad (representantes multi-entidad).
         filterset_fields={
             "organo": ["exact"],
-            "organo_directivo": ["exact", "isnull"],
+            "unidad_organica": ["exact", "isnull"],
             "activo": ["exact"],
         },
         search_fields=["nombre_masculino", "nombre_femenino"],
         detalles={
             "organo": _detalle_nombre,
-            "organo_directivo": _detalle_organo_directorio,
+            "unidad_organica": _detalle_unidad_organica,
         },
     ),
 ):
-    """CRUD de cargos ejecutivos (RN de coherencia organo ↔ organo_directivo.organo)."""
+    """CRUD de cargos ejecutivos (RN de coherencia organo ↔ unidad_organica.organo)."""
 
     queryset = m.ExecutivePosition._default_manager.select_related(
-        "organo", "organo_directivo"
+        "organo", "unidad_organica"
     ).all()
     serializer_class = _ExecutivePositionSerializer
 
@@ -938,7 +938,7 @@ ENTITY_VIEWSETS = {
         logo=True,
         detalles={"ubigeo": _detalle_ubigeo},
     ),
-    "organ-directories": OrganDirectoryViewSet,
+    "organic-units": OrganicUnitViewSet,
     "executing-units": _entity_viewset(
         m.ExecutingUnit,
         filterset_fields=["ambito_geografico_sanitario", "activo"],
@@ -1132,7 +1132,7 @@ SOLICITANTE_MODELS = (
     m.Ipress,
     m.RegionalGovernment,
     m.ExecutingUnit,
-    m.OrganDirectory,
+    m.OrganicUnit,
     m.Conapres,
 )
 
@@ -1169,10 +1169,10 @@ class SolicitanteContentTypeView(APIView):
 
 
 # Entidades cuyos representantes/autoridades se registran (relación polimórfica `entidad`).
-# MINSA/GORE/DIRIS son el mismo modelo `OrganDirectory` (se discriminan por `organo` en
+# MINSA/GORE/DIRIS son el mismo modelo `OrganicUnit` (se discriminan por `organo` en
 # el front), por eso NO incluye `RegionalGovernment` (a diferencia de SOLICITANTE_MODELS).
 REPRESENTANTE_MODELS = (
-    m.OrganDirectory,
+    m.OrganicUnit,
     m.University,
     m.ExecutingUnit,
     m.Conapres,
@@ -1185,7 +1185,7 @@ class RepresentanteContentTypeView(APIView):
 
     El frontend usa esta lista para resolver `tipo_contenido` a partir del `model`
     (los ids de `ContentType` dependen de la BD, por eso se exponen vía API). Los 3
-    «tipos» de OrganDirectory (MINSA/GORE/DIRIS) comparten el mismo ContentType y se
+    «tipos» de OrganicUnit (MINSA/GORE/DIRIS) comparten el mismo ContentType y se
     distinguen en la UI por el filtro `categoria`.
     """
 

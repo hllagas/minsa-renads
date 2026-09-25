@@ -12,7 +12,7 @@ import { EntityCombobox } from "@/components/form/entity-combobox";
 /**
  * Par de selects en cascada: un **tipo** (catálogo) filtra la lista de **entidades** concretas.
  * Solo se persiste la entidad (`name`); el tipo es UX (no se almacena: se deriva de la entidad).
- * Se usa para órgano del directorio (tipo → `organ-directories`) y universidad (tipo → `universities`).
+ * Se usa para unidad orgánica (tipo → `organic-units`) y universidad (tipo → `universities`).
  */
 export function CascadingEntityField({
   control,

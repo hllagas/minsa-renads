@@ -692,3 +692,20 @@ Extiende la capa de identidad de `apps/common` con tres capacidades nuevas:
 - **Compatibilidad hacia atrás en login 2FA:** `TwoFactorVerifyView` ya genera el JWT completo; T-18 solo actualiza el campo `nombre`, no altera la estructura de la respuesta.
 - **`MeChangePasswordView` ya existente (T-11):** no se reescribe; solo se agrega el seteo de `password_changed_at` y se elimina la condición `if debe_cambiar_password`.
 - **Convenciones de idioma:** código Python en inglés; `db_column`, `verbose_name`, `help_text` y mensajes de error al usuario en español.
+
+---
+
+## Cambios posteriores
+
+- **2026-09-24 — Endurecimiento del perfil (`spec/common_perfil_usuario_obligatorio.md`):**
+  los 7 campos de `UserProfile` (`tipo_documento`, `numero_documento` único,
+  `apellido_paterno`, `apellido_materno`, `telefono` único, `unidad_organica`,
+  `cargo`) pasaron de **opcionales** a **obligatorios (`NOT NULL`)**. Se agregó el
+  campo `tiene_ficha_usuario` (`BooleanField` default `False`). El backfill de los
+  usuarios existentes y las constraints `NOT NULL` se aplicaron en las migraciones
+  `common 0009_userprofile_campos_obligatorios` (AddField + RunPython backfill
+  determinista) y `common 0010_userprofile_not_null` (AlterField a `NOT NULL`,
+  separadas para evitar el error PostgreSQL de «pending trigger events»). El
+  onboarding del interno (RN-22, `apps/internados/services.py`) ahora crea también el
+  `UserProfile` del interno con placeholders "No aplica" para `unidad_organica`/`cargo`
+  y teléfono real o sintético único.

@@ -21,11 +21,11 @@ erDiagram
     ambito_geografico_sanitario ||--o{ ipress : ""
 
     %% ===== M1: Jerarquía GORE =====
-    %% organo_directorio referencia su categoría vía FK `organo` (organo_id, migración 0039).
+    %% unidad_organica referencia su categoría vía FK `organo` (organo_id, migración 0039).
     %% El GORE del convenio vive en `convenio.gobierno_regional` (solo Marco regional).
-    organo ||--o{ organo_directorio : "organo (organo_id)"
-    organo_directorio ||--o{ unidad_ejecutora : "tipo_organo (UNIDAD_EJECUTORA)"
-    organo_directorio ||--o{ universidad : "tipo_entidad (UNIVERSIDAD)"
+    organo ||--o{ unidad_organica : "organo (organo_id)"
+    unidad_organica ||--o{ unidad_ejecutora : "tipo_organo (UNIDAD_EJECUTORA)"
+    unidad_organica ||--o{ universidad : "tipo_entidad (UNIVERSIDAD)"
     unidad_ejecutora ||--o{ ipress : ""
 
     %% ===== M1: Jerarquía Red/Microred y clasificación de IPRESS =====
@@ -36,7 +36,7 @@ erDiagram
     tipo_clasificacion ||--o{ ipress : ""
 
     %% ===== M1: Representantes de órgano =====
-    organo_directorio ||--o{ organo_representante : ""
+    unidad_organica ||--o{ organo_representante : ""
     cargo_ejecutivo ||--o{ organo_representante : ""
     organo_representante ||--o{ historial_organo_representante : "baja"
     organo ||--o{ cargo_ejecutivo : "organo (organo_id)"
@@ -131,9 +131,9 @@ erDiagram
 | Tabla | Apunta a | Propósito |
 |-------|----------|-----------|
 | `perfil_usuario_entidad` (M1) | cualquier entidad organizacional | Vínculo usuario↔entidad↔rol |
-| `convenio.solicitante` (M1) | `universidad`, `organo_directorio`, … | Entidad solicitante |
+| `convenio.solicitante` (M1) | `universidad`, `unidad_organica`, … | Entidad solicitante |
 | `participante_convenio` (M1) | cualquier entidad | Entidades participantes/firmantes |
-| `firma.firmante` (M1) | `organo_directorio`, `universidad`, … | Entidad firmante |
+| `firma.firmante` (M1) | `unidad_organica`, `universidad`, … | Entidad firmante |
 | `documento_adjunto` (M1) | toda tabla del flujo | Adjuntos PDF (repositorio externo) |
 | `bitacora_auditoria` (M1) | cualquier entidad | Auditoría de operaciones críticas |
 | `actividad_calendario` (M4) | cualquier modelo (vía M2M `content_types` → `django_content_type`) | Módulos gobernados por la ventana; si `controla_acceso=True` habilita/bloquea su escritura |
@@ -166,7 +166,7 @@ actividad_calendario (M4) ─ M2M content_types ─> [cualquier modelo] (gobiern
 
 | App | Tablas (db_table) |
 |-----|-------------------|
-| **Gestionar Convenios** (`convenios`, M1) | `ubigeo`, `region`, `ambito_geografico_sanitario`, `tipo_convenio`, `estado_convenio`, `tipo_gestion_universidad`, `organo`, `tipo_autorizacion`, `nivel_academico`, `especialidad`, `tipo_autoridad_firmante`, `cargo_ejecutivo`, `motivo_observacion`, `motivo_rechazo`, `motivo_cierre`, `gobierno_regional`, `organo_directorio` (catálogo unificado de órganos/tipos, discriminado por `categoria`; absorbe la retirada `tipo_organo` y los antiguos `organo_regional`/`organo_minsa`), `unidad_ejecutora`, `ipress`, `conapres`, `organo_representante`, `historial_organo_representante`, `universidad`, `facultad`, `carrera_profesional`, `universidad_carrera`, `local_universidad`, `perfil_usuario_entidad`, `plantilla_convenio`, `convenio`, `participante_convenio`, `historial_estado_convenio`, `evaluacion_tecnica`, `opinion_conapres`, `campo_clinico_ipress`, `campo_clinico_ipress_universidad`, `opinion_juridica`, `firma`, `publicacion`, `documento_adjunto`, `bitacora_auditoria` |
+| **Gestionar Convenios** (`convenios`, M1) | `ubigeo`, `region`, `ambito_geografico_sanitario`, `tipo_convenio`, `estado_convenio`, `tipo_gestion_universidad`, `organo`, `tipo_autorizacion`, `nivel_academico`, `especialidad`, `tipo_autoridad_firmante`, `cargo_ejecutivo`, `motivo_observacion`, `motivo_rechazo`, `motivo_cierre`, `gobierno_regional`, `unidad_organica` (catálogo unificado de órganos/tipos, discriminado por `categoria`; absorbe la retirada `tipo_organo` y los antiguos `organo_regional`/`organo_minsa`), `unidad_ejecutora`, `ipress`, `conapres`, `organo_representante`, `historial_organo_representante`, `universidad`, `facultad`, `carrera_profesional`, `universidad_carrera`, `local_universidad`, `perfil_usuario_entidad`, `plantilla_convenio`, `convenio`, `participante_convenio`, `historial_estado_convenio`, `evaluacion_tecnica`, `opinion_conapres`, `campo_clinico_ipress`, `campo_clinico_ipress_universidad`, `opinion_juridica`, `firma`, `publicacion`, `documento_adjunto`, `bitacora_auditoria` |
 | **Registrar Internados** (`internados`, M2) | `estado_internado`, `estado_rotacion`, `servicio_area`, `tipo_documento_identidad`, `parentesco`, `periodo_internado`, `documento_anexo`, `estudiante`, `tutor`, `tutor_universidad`, `interno`, `historial_estado_internado`, `historial_tutor`, `rotacion`, `autorizacion_rotacion`, `historial_estado_rotacion` |
 | **Registrar Actividades** (`actividades`, M3) | `tipo_actividad`, `estado_actividad`, `actividad_docente_asistencial`, `validacion_actividad`, `historial_estado_actividad` |
 | **Calendario administrativo** (`calendario`, M4) | `actividad_calendario`, `actividad_calendario_content_type` (puente M2M → `django_content_type`) |

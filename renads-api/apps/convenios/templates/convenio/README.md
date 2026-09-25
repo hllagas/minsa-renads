@@ -6,7 +6,7 @@ Plantillas Word (`.docx`) templatizadas con sintaxis **Jinja de docxtpl** que
 ## Selección de plantilla
 
 `pdf._seleccionar_plantilla(convenio)` elige de forma determinista por
-`(tipo_convenio.codigo, es_adenda, organo_directorio.categoria)`:
+`(tipo_convenio.codigo, es_adenda, unidad_organica.categoria)`:
 
 | Archivo | Uso | Condición |
 |---|---|---|

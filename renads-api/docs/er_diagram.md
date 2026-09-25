@@ -137,7 +137,7 @@ erDiagram
 %%  MÓDULO 1 — CONVENIOS: Directorio institucional
 %% ══════════════════════════════════════════════════════
 
-    organo_directorio {
+    unidad_organica {
         int id PK
         varchar categoria
         varchar nombre
@@ -148,7 +148,7 @@ erDiagram
     cargo_ejecutivo {
         int id PK
         int organo_id FK
-        int organo_directivo_id FK
+        int unidad_organica_id FK
         varchar nombre_masculino
         varchar nombre_femenino
         bool activo
@@ -156,7 +156,7 @@ erDiagram
 
     organo_representante {
         int id PK
-        int organo_directorio_id FK
+        int unidad_organica_id FK
         varchar nombre
         int cargo_ejecutivo_id FK
         varchar numero_resolucion_designacion
@@ -168,7 +168,7 @@ erDiagram
     historial_organo_representante {
         int id PK
         int representante_id FK
-        int organo_directorio_id FK
+        int unidad_organica_id FK
         int cargo_ejecutivo_id FK
         date fecha_baja
         datetime creado_en
@@ -258,7 +258,7 @@ erDiagram
         bool es_adenda
         varchar nomenclatura
         varchar titulo
-        int organo_directorio_id FK
+        int unidad_organica_id FK
         int gobierno_regional_id FK
         int universidad_id FK
         varchar unidad_ejecutora_id FK
@@ -273,7 +273,7 @@ erDiagram
         int id PK
         int convenio_id FK
         varchar rol
-        int organo_directorio_id FK
+        int unidad_organica_id FK
         int organo_representante_id FK
         int cargo_ejecutivo_id FK
         int orden
@@ -292,7 +292,7 @@ erDiagram
         int id PK
         int convenio_id FK
         varchar resultado
-        int organo_directorio_id FK
+        int unidad_organica_id FK
         date fecha_evaluacion
         int evaluado_por FK
     }
@@ -480,7 +480,7 @@ erDiagram
     documento_anexo ||--o{ documento_adjunto : "tipifica adjunto"
 
     %% Perfil usuario → directorio
-    organo_directorio ||--o{ perfil_usuario : "unidad orgánica"
+    unidad_organica ||--o{ perfil_usuario : "unidad orgánica"
     cargo_ejecutivo ||--o{ perfil_usuario : "cargo"
 
     %% Geografía
@@ -494,13 +494,13 @@ erDiagram
     ubigeo ||--o{ facultad : "ubica"
 
     %% Directorio institucional
-    organo_directorio ||--o{ cargo_ejecutivo : "tiene cargos"
-    organo_directorio ||--o{ organo_representante : "tiene representantes"
+    unidad_organica ||--o{ cargo_ejecutivo : "tiene cargos"
+    unidad_organica ||--o{ organo_representante : "tiene representantes"
     cargo_ejecutivo ||--o{ organo_representante : "cargo del rep."
     organo_representante ||--o{ historial_organo_representante : "historial"
 
     %% Entidades académicas
-    organo_directorio ||--o{ universidad : "tipo_entidad"
+    unidad_organica ||--o{ universidad : "tipo_entidad"
     universidad ||--o{ facultad : "tiene facultades"
     universidad ||--o{ universidad_carrera : "carreras"
     carrera_profesional ||--o{ universidad_carrera : "pertenece"
@@ -516,7 +516,7 @@ erDiagram
     estado_convenio ||--o{ convenio : "estado actual"
     convenio ||--o{ convenio : "convenio marco (self)"
     convenio ||--o{ convenio : "adenda origen (self)"
-    organo_directorio ||--o{ convenio : "órgano solicitante"
+    unidad_organica ||--o{ convenio : "órgano solicitante"
     gobierno_regional ||--o{ convenio : "gobierno regional"
     universidad ||--o{ convenio : "universidad"
     unidad_ejecutora ||--o{ convenio : "unidad ejecutora"
@@ -525,7 +525,7 @@ erDiagram
 
     %% Partes y estados convenio
     convenio ||--o{ parte_convenio : "firmantes"
-    organo_directorio ||--o{ parte_convenio : "órgano de la parte"
+    unidad_organica ||--o{ parte_convenio : "órgano de la parte"
     organo_representante ||--o{ parte_convenio : "representante"
     cargo_ejecutivo ||--o{ parte_convenio : "cargo apoderado"
     convenio ||--o{ historial_estado_convenio : "historial estados"

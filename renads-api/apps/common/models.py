@@ -107,10 +107,14 @@ DOCUMENT_TYPE_CHOICES = [
 class UserProfile(models.Model):
     """Datos personales e institucionales adicionales del usuario (extensión 1:1).
 
-    Almacena tipo y número de documento, apellidos, teléfono y referencias
-    institucionales (unidad orgánica y cargo). Se crea junto con el usuario en
-    ``services.crear_usuario_con_perfil`` y se actualiza vía
-    ``services.actualizar_perfil_usuario``.
+    Almacena tipo y número de documento, teléfono y referencias institucionales
+    (unidad orgánica y cargo). Los apellidos y el nombre **no** viven aquí: se
+    almacenan en ``auth_user`` (``last_name`` = ``"Paterno Materno"`` combinado;
+    ``first_name`` = nombre). **Todos los campos del perfil son obligatorios**
+    (``NOT NULL``); ``numero_documento`` y ``telefono`` además son únicos. El flag
+    ``tiene_ficha_usuario`` marca si la ficha del usuario está completa/validada.
+    Se crea junto con el usuario en ``services.crear_usuario_con_perfil`` y se
+    actualiza vía ``services.actualizar_perfil_usuario``.
     """
 
     usuario = models.OneToOneField(
@@ -126,65 +130,43 @@ class UserProfile(models.Model):
         db_column="tipo_documento",
         max_length=20,
         choices=DOCUMENT_TYPE_CHOICES,
-        blank=True,
-        default="",
         help_text="Tipo de documento de identidad",
     )
     numero_documento = models.CharField(
         "número de documento",
         db_column="numero_documento",
         max_length=20,
-        null=True,
-        blank=True,
         unique=True,
-        default=None,
         help_text="Número de documento de identidad",
-    )
-    apellido_paterno = models.CharField(
-        "apellido paterno",
-        db_column="apellido_paterno",
-        max_length=100,
-        blank=True,
-        default="",
-        help_text="Apellido paterno del usuario",
-    )
-    apellido_materno = models.CharField(
-        "apellido materno",
-        db_column="apellido_materno",
-        max_length=100,
-        blank=True,
-        default="",
-        help_text="Apellido materno del usuario",
     )
     telefono = models.CharField(
         "teléfono",
         db_column="telefono",
         max_length=20,
-        null=True,
-        blank=True,
         unique=True,
-        default=None,
         help_text="Número de teléfono de contacto",
     )
     unidad_organica = models.ForeignKey(
-        "convenios.OrganDirectory",
+        "convenios.OrganicUnit",
         on_delete=models.PROTECT,
         db_column="unidad_organica_id",
-        null=True,
-        blank=True,
         related_name="perfiles_usuarios",
         verbose_name="unidad orgánica",
-        help_text="Órgano del directorio al que pertenece el usuario",
+        help_text="Unidad orgánica a la que pertenece el usuario",
     )
     cargo = models.ForeignKey(
         "convenios.ExecutivePosition",
         on_delete=models.PROTECT,
         db_column="cargo_id",
-        null=True,
-        blank=True,
         related_name="perfiles_usuarios",
         verbose_name="cargo",
         help_text="Cargo ejecutivo del usuario",
+    )
+    tiene_ficha_usuario = models.BooleanField(
+        "tiene ficha de usuario",
+        db_column="tiene_ficha_usuario",
+        default=False,
+        help_text="Indica si la ficha del usuario está completa/validada",
     )
 
     class Meta:
@@ -193,7 +175,9 @@ class UserProfile(models.Model):
         verbose_name_plural = "perfiles de usuario"
 
     def __str__(self) -> str:
-        return f"{self.apellido_paterno} {self.apellido_materno}, {self.usuario.get_username()}"
+        # Los apellidos/nombre viven en ``auth_user``; el perfil ya no los almacena.
+        nombre = self.usuario.get_full_name().strip()
+        return nombre or self.usuario.get_username()
 
 
 def debe_cambiar_password(usuario) -> bool:

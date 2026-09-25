@@ -26,7 +26,7 @@ class ConventionFilter(filters.FilterSet):
             "es_adenda": ["exact"],
             "solicitante_tipo_contenido": ["exact"],
             "solicitante_id_objeto": ["exact"],
-            "organo_directorio": ["exact"],
+            "unidad_organica": ["exact"],
             "universidad": ["exact"],
         }
 

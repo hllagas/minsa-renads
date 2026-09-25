@@ -36,10 +36,10 @@ export const FLOW_ACTIONS: FlowAction[] = [
       },
       { name: "fecha_evaluacion", label: "Fecha de evaluación", type: "date" },
       {
-        name: "organo_directorio",
-        label: "Órgano del directorio",
+        name: "unidad_organica",
+        label: "Unidad orgánica",
         type: "select",
-        optionsEndpoint: "organ-directories",
+        optionsEndpoint: "organic-units",
       },
       { name: "observaciones", label: "Observaciones", type: "text", uppercase: false },
       { name: "subsanacion", label: "Subsanación", type: "text", uppercase: false },

@@ -251,7 +251,7 @@ def _titulo_hoja(ws, texto):
 # ═════════════════════════════════════════════════════════════════════════════
 
 # Catálogos de las listas simples (deben coincidir con las semillas de la BD).
-TIPOS_DOCUMENTO = ["DNI", "CE", "PASAPORTE"]
+TIPOS_DOCUMENTO = ["DNI", "CE"]
 PARENTESCOS = ["Padre", "Madre", "Hermano/a", "Cónyuge", "Hijo/a", "Abuelo/a", "Tío/a", "Otro"]
 
 # Fila final de datos con cuadros combinados (espejo de services._TRAMA_FILAS_DATOS).
@@ -275,7 +275,7 @@ def _cols_estudiantes(es_pregrado: bool):
         ("correo",            "correo personal",                                26),
         ("telefono",          "teléfono móvil",                                 16),
         ("direccion",         "direccion",                                      30),
-        ("departamento",      "departamento\n(elija de la lista)",              20),
+        ("departamento",      "Región\n(elija de la lista)",                    20),
         ("provincia",         "provincia\n(elija de la lista)",                 20),
         ("distrito",          "distrito\n(elija de la lista)",                  20),
     ]
@@ -385,9 +385,9 @@ def generar_estudiantes(ruta: Path, es_pregrado: bool = True):
         ("", False),
         ("REGLAS IMPORTANTES:", True),
         ("• La fila 1 son los encabezados que el sistema reconoce; los datos van desde la fila 2.", False),
-        ("• tipo_documento, sexo, departamento, provincia, distrito, parentesco y carrera/especialidad se ELIGEN de la lista.", False),
+        ("• tipo_documento, sexo, Región, provincia, distrito, parentesco y carrera/especialidad se ELIGEN de la lista.", False),
         (f"• tipo_documento: {tipos_txt} (según el catálogo vigente).", False),
-        ("• departamento → provincia → distrito son cuadros combinados EN CASCADA.", False),
+        ("• Región → provincia → distrito son cuadros combinados EN CASCADA.", False),
         ("• numero_documento: texto de solo dígitos 0-9 (conserva ceros a la izquierda); 8 si es DNI, 9 para otro tipo.", False),
         ("• correo personal: formato usuario@dominio.  teléfono móvil: solo dígitos.", False),
         ("• La universidad y el periodo de internado NO son columnas: se eligen en la pantalla de carga.", False),
@@ -635,9 +635,9 @@ COLS_CONVENIOS = [
         50,
     ),
     (
-        "organo_directorio",
+        "unidad_organica",
         True,
-        "ID numérico del órgano directivo principal\n(GERESA/DIRESA/DIRIS/MINSA/Universidad).\nConsultar: GET /api/v1/organ-directories/",
+        "ID numérico de la unidad orgánica principal\n(GERESA/DIRESA/DIRIS/MINSA/Universidad).\nConsultar: GET /api/v1/organic-units/",
         "12",
         22,
     ),
@@ -760,7 +760,7 @@ def generar_convenios(ruta: Path):
         ("", False),
         ("REGLAS POR TIPO DE CONVENIO:", True),
         ("MARCO:", True),
-        ("  • organo_directorio: categoría GOBIERNO_REGIONAL, ORGANO_MINSA o UNIVERSIDAD.", False),
+        ("  • unidad_organica: categoría GOBIERNO_REGIONAL, ORGANO_MINSA o UNIVERSIDAD.", False),
         ("  • gobierno_regional: requerido si el órgano es GOBIERNO_REGIONAL.", False),
         ("  • convenio_marco, unidad_ejecutora, facultad: deben estar VACÍOS.", False),
         ("  • nomenclatura: asignada por DIGEP (opcional).", False),
@@ -772,7 +772,7 @@ def generar_convenios(ruta: Path):
         ("  • gobierno_regional: dejar vacío.", False),
         ("", False),
         ("CÓMO OBTENER LOS IDs:", True),
-        ("  GET /api/v1/organ-directories/     → IDs de órganos directivos", False),
+        ("  GET /api/v1/organic-units/     → IDs de unidades orgánicas", False),
         ("  GET /api/v1/universities/          → IDs y código INEI de universidades", False),
         ("  GET /api/v1/executing-units/       → IDs y códigos de unidades ejecutoras", False),
         ("  GET /api/v1/faculties/             → IDs de facultades", False),

@@ -17,7 +17,7 @@ export const SOLICITANTE_ENTITIES: Record<string, { label: string; endpoint: str
   ipress: { label: "IPRESS", endpoint: "ipress" },
   regionalgovernment: { label: "Gobierno Regional", endpoint: "regional-governments" },
   executingunit: { label: "Unidad Ejecutora", endpoint: "executing-units" },
-  organdirectory: { label: "Órgano del directorio", endpoint: "organ-directories" },
+  organicunit: { label: "Unidad orgánica", endpoint: "organic-units" },
   conapres: { label: "CONAPRES", endpoint: "conapres" },
 };
 

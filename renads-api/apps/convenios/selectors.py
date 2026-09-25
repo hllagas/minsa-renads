@@ -23,7 +23,7 @@ def convenios_visibles(usuario) -> QuerySet[Convention]:
     """
     qs = Convention.objects.select_related(
         "tipo_convenio", "estado_actual", "convenio_marco", "convenio_origen",
-        "organo_directorio", "universidad__tipo_entidad",
+        "unidad_organica", "universidad__tipo_entidad",
         "unidad_ejecutora", "facultad",
     ).prefetch_related("adendas__estado_actual")
     if usuario.is_superuser:

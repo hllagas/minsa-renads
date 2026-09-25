@@ -234,6 +234,12 @@ export interface ResourceConfig<TRead extends WithId = WithId> {
   deleteConfirmDescription?: string;
   /** Mensaje de éxito tras borrar (por defecto `${singular} eliminada.`). */
   deleteSuccessMessage?: string;
+  /**
+   * Mapea la fila cruda de lectura al objeto `initial` del formulario de edición. Útil cuando la
+   * respuesta de lectura anida campos que el form espera al nivel superior (p. ej. `users` devuelve
+   * la ficha bajo `perfil`, pero el form la escribe plana). Si se omite, se usa la fila tal cual.
+   */
+  mapEditingToInitial?: (row: TRead) => Record<string, unknown>;
   /** Contenido de solo lectura mostrado encima del formulario al editar (no al crear). */
   renderEditInfo?: (row: TRead) => ReactNode;
   /** Clase del `DialogContent` de alta/edición (valor por defecto en `ResourceCrud`: `sm:max-w-2xl`). */

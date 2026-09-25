@@ -370,16 +370,43 @@ def crear_usuario_con_perfil(
 ) -> tuple:
     """Crea un ``User``, su ``UserSecurity`` y su ``UserProfile`` en una transacción (R-5).
 
+    **Regla username = numero_documento (no-superusuario):** para los usuarios que
+    **no** son superusuario, el ``username`` se deriva del ``numero_documento`` del
+    perfil (que provee el serializer en ``profile_data``); cualquier ``username``
+    enviado por el cliente se **ignora** (el serializer lo marca read-only). El
+    ``numero_documento`` es único, por lo que el ``username`` resultante también lo es.
+
+    **Exención total del superusuario:** si ``validated_data`` marca ``is_superuser``,
+    se respeta el ``username`` explícito recibido, **no** se deriva del documento y
+    **no** se crea ``UserProfile`` a menos que llegue ``profile_data``. Así el
+    superusuario puede crearse sin apellidos/nombre ni perfil completo (sin violar el
+    ``NOT NULL`` del perfil).
+
+    Los apellidos van a ``user.last_name`` (combinado ``"Paterno Materno"``) y el
+    nombre a ``user.first_name``; el serializer los deja en ``validated_data``. El
+    perfil ya **no** almacena apellidos.
+
     Si ``validated_data`` no contiene ``password``, la genera automáticamente con
     ``generar_password_segura()``. Retorna ``(user, password_plain)`` donde
     ``password_plain`` es la contraseña en texto claro (para devolverla al admin
     en la respuesta del POST; nunca se persiste en BD).
 
-    :param validated_data: campos del modelo ``User`` (sin ``password``/``groups``).
+    :param validated_data: campos del modelo ``User`` (sin ``password``/``groups``),
+        incluidos ``first_name``/``last_name``.
     :param groups: lista de instancias ``Group`` a asignar al usuario.
-    :param profile_data: campos del modelo ``UserProfile`` (todos opcionales).
+    :param profile_data: campos del modelo ``UserProfile`` (todos obligatorios salvo
+        ``tiene_ficha_usuario``, que tiene default ``False``) para no-superusuario;
+        puede venir vacío para el superusuario (no se crea perfil). Si faltara algún
+        campo obligatorio, la constraint ``NOT NULL`` dispararía ``IntegrityError``
+        dentro de este ``transaction.atomic`` → rollback completo.
     """
     password_plain = validated_data.pop("password", None) or generar_password_segura()
+
+    es_superusuario = bool(validated_data.get("is_superuser"))
+    if not es_superusuario:
+        # username = numero_documento (ignora cualquier username del cliente).
+        numero_documento = (profile_data.get("numero_documento") or "").strip()
+        validated_data["username"] = numero_documento
 
     user = User(**validated_data)
     user.set_password(password_plain)
@@ -391,25 +418,58 @@ def crear_usuario_con_perfil(
     user_security.password_changed_at = timezone.now()
     user_security.save(update_fields=["debe_cambiar_password", "password_changed_at", "actualizado_en"])
 
-    UserProfile.objects.create(usuario=user, **profile_data)
+    # Superusuario exento: solo se crea perfil si el serializer envió datos de perfil.
+    if profile_data:
+        UserProfile.objects.create(usuario=user, **profile_data)
 
     return user, password_plain
 
 
 def actualizar_perfil_usuario(user: User, profile_data: dict):
-    """Actualiza o crea el ``UserProfile`` del usuario con los datos proporcionados (R-8/R-9).
+    """Actualiza el ``UserProfile`` del usuario con los datos proporcionados (R-8/R-9).
 
-    Solo guarda si ``profile_data`` no está vacío, usando ``update_fields`` para
-    minimizar las columnas actualizadas. No usa ``transaction.atomic`` porque la
-    transacción la gestiona el caller (``UserViewSet.perform_update``).
+    Con el perfil endurecido (todos los campos ``NOT NULL``), un ``get_or_create``
+    que cree un perfil vacío violaría la constraint. Por eso:
 
-    :returns: la instancia ``UserProfile`` actualizada.
+    - Si el usuario **ya tiene** perfil, aplica el update parcial sobre los campos
+      recibidos (``update_fields``), sin exigir el conjunto completo.
+    - Si el usuario **no tiene** perfil, este service exige que ``profile_data`` traiga
+      los 5 campos obligatorios del perfil para poder crearlo sin violar ``NOT NULL``;
+      en caso contrario lanza ``ValidationError`` (nunca se crea un perfil vacío). El
+      alta normal del perfil ocurre en ``crear_usuario_con_perfil``.
+
+    Los apellidos/nombre **no** se editan aquí: viven en ``auth_user``
+    (``last_name``/``first_name``) y se aplican en el ``update()`` del
+    ``UserUpdateSerializer`` sobre la instancia ``User``, no sobre el perfil.
+
+    Permite actualizar ``tiene_ficha_usuario`` vía ``profile_data``. No usa
+    ``transaction.atomic`` porque la transacción la gestiona el caller
+    (``UserViewSet.perform_update``).
+
+    :returns: la instancia ``UserProfile`` actualizada (o ``None`` si no había perfil
+        y no se envió ningún dato).
     """
+    profile = UserProfile.objects.filter(usuario=user).first()
+
+    if profile is None:
+        if not profile_data:
+            # No hay perfil y no hay datos → no se crea nada (evita perfil vacío NOT NULL).
+            return None
+        campos_obligatorios = {
+            "tipo_documento", "numero_documento",
+            "telefono", "unidad_organica", "cargo",
+        }
+        faltantes = campos_obligatorios - set(profile_data.keys())
+        if faltantes:
+            raise ValidationError(
+                "No se puede crear el perfil de usuario: faltan campos obligatorios "
+                f"({', '.join(sorted(faltantes))})."
+            )
+        return UserProfile.objects.create(usuario=user, **profile_data)
+
     if not profile_data:
-        profile, _ = UserProfile.objects.get_or_create(usuario=user)
         return profile
 
-    profile, _ = UserProfile.objects.get_or_create(usuario=user)
     for campo, valor in profile_data.items():
         setattr(profile, campo, valor)
     profile.save(update_fields=list(profile_data.keys()))

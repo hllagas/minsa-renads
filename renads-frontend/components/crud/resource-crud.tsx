@@ -417,7 +417,13 @@ export function ResourceCrud<TRead extends WithId>({
                   ? config.editFields ?? config.fields
                   : config.createFields ?? config.fields,
               )}
-              initial={editing as Record<string, unknown> | null}
+              initial={
+                editing
+                  ? ((config.mapEditingToInitial
+                      ? config.mapEditingToInitial(editing)
+                      : editing) as Record<string, unknown>)
+                  : null
+              }
               submitting={createM.isPending || updateM.isPending}
               onSubmit={onSubmit}
               onCancel={() => setDialogOpen(false)}

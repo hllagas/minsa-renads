@@ -164,7 +164,7 @@ class SigningAuthorityType(Catalog):
         verbose_name = "tipo de autoridad firmante"
 
 
-# Categorías del directorio de órganos (`organo_directorio.categoria`). Los labels
+# Categorías de la unidad orgánica (`unidad_organica.categoria`). Los labels
 # replican los nombres canónicos de la tabla `organo` (fuente de la coherencia
 # cargo↔categoría en `OrganRepresentativeSerializer`). RN-1: GOBIERNO_REGIONAL
 # agrupa GERESA+DIRESA (pueden solicitar Marco); MINSA_DIRIS (DIRIS) está exenta.
@@ -197,11 +197,11 @@ class Organ(models.Model):
 
 
 class ExecutivePosition(models.Model):
-    """Cargo ejecutivo perteneciente a un órgano directivo concreto.
+    """Cargo ejecutivo perteneciente a una unidad orgánica concreta.
 
-    Cada cargo referencia un ``organo_directivo`` (`organo_directorio`) — un órgano
-    directivo tiene varios cargos (1:N). No hereda de ``Catalog`` porque su
-    ``nombre_masculino`` es único por ``organo_directivo``, no global.
+    Cada cargo referencia una ``unidad_organica`` (`unidad_organica`) — una unidad
+    orgánica tiene varios cargos (1:N). No hereda de ``Catalog`` porque su
+    ``nombre_masculino`` es único por ``unidad_organica``, no global.
     """
 
     organo = models.ForeignKey(
@@ -209,13 +209,13 @@ class ExecutivePosition(models.Model):
         related_name="cargos_ejecutivos", null=False, verbose_name="órgano",
         help_text=(
             "Categoría de órgano (FK a la tabla canónica `organo`) a la que pertenece "
-            "el cargo; debe coincidir con organo_directivo.organo cuando este está seteado"
+            "el cargo; debe coincidir con unidad_organica.organo cuando este está seteado"
         ),
     )
-    organo_directivo = models.ForeignKey(
-        "OrganDirectory", on_delete=models.PROTECT, db_column="organo_directivo_id",
-        related_name="cargos", null=True, blank=True, verbose_name="órgano directivo",
-        help_text="Órgano directivo (del directorio) al que pertenece el cargo",
+    unidad_organica = models.ForeignKey(
+        "OrganicUnit", on_delete=models.PROTECT, db_column="unidad_organica_id",
+        related_name="cargos", null=True, blank=True, verbose_name="unidad orgánica",
+        help_text="Unidad orgánica a la que pertenece el cargo",
     )
     nombre_masculino = models.CharField(
         "nombre (masculino)", max_length=255,
@@ -230,8 +230,8 @@ class ExecutivePosition(models.Model):
     class Meta:
         db_table = "cargo_ejecutivo"
         verbose_name = "cargo ejecutivo"
-        unique_together = (("organo_directivo", "nombre_masculino"),)
-        ordering = ["organo_directivo", "nombre_masculino"]
+        unique_together = (("unidad_organica", "nombre_masculino"),)
+        ordering = ["unidad_organica", "nombre_masculino"]
 
     def __str__(self):
         return self.nombre_masculino
@@ -322,8 +322,8 @@ class RegionalGovernment(models.Model):
         return self.nombre
 
 
-class OrganDirectory(models.Model):
-    """Directorio unificado de órganos/tipos institucionales.
+class OrganicUnit(models.Model):
+    """Directorio unificado de unidades orgánicas/tipos institucionales.
 
     Cataloga órganos del MINSA, universidades, gobiernos regionales, DIRIS y unidades
     ejecutoras en una única tabla. La categoría se deriva del FK ``organo`` (→ ``Organ``).
@@ -348,16 +348,16 @@ class OrganDirectory(models.Model):
     activo = models.BooleanField("activo", default=True)
 
     class Meta:
-        db_table = "organo_directorio"
-        verbose_name = "órgano del directorio"
-        verbose_name_plural = "órganos del directorio"
+        db_table = "unidad_organica"
+        verbose_name = "unidad orgánica"
+        verbose_name_plural = "unidades orgánicas"
         constraints = [
-            # RN-GORE-3: único por (organo, nombre). El GORE dejó de vivir en el
-            # órgano del directorio (se trasladó a `convenio.gobierno_regional`), por
+            # RN-GORE-3: único por (organo, nombre). El GORE dejó de vivir en la
+            # unidad orgánica (se trasladó a `convenio.gobierno_regional`), por
             # lo que la unicidad colapsa a un único constraint por (organo, nombre).
             models.UniqueConstraint(
                 fields=["organo", "nombre"],
-                name="uniq_organo_dir_organo_nombre",
+                name="uniq_unidad_organica_organo_nombre",
             ),
         ]
 
@@ -510,9 +510,9 @@ class OrganRepresentative(models.Model):
     """Representante/autoridad de una entidad del proceso docencia-servicio.
 
     Relación **polimórfica** (`entidad`): un representante pertenece a cualquiera de las
-    entidades participantes — órganos del directorio (MINSA/GORE/DIRIS), universidades,
+    entidades participantes — unidades orgánicas (MINSA/GORE/DIRIS), universidades,
     unidades ejecutoras, CONAPRES o IPRESS —, referenciada por `tipo_contenido` +
-    `id_objeto`. Antes tenía una FK directa a `OrganDirectory` (migrada a los campos
+    `id_objeto`. Antes tenía una FK directa a `OrganicUnit` (migrada a los campos
     genéricos en la migración 0038).
     """
 
@@ -888,10 +888,10 @@ class Convention(models.Model):
         "id objeto solicitante", help_text="Identificador de la entidad solicitante"
     )
     solicitante = GenericForeignKey("solicitante_tipo_contenido", "solicitante_id_objeto")
-    organo_directorio = models.ForeignKey(
-        OrganDirectory, on_delete=models.PROTECT, db_column="organo_directorio_id",
+    unidad_organica = models.ForeignKey(
+        OrganicUnit, on_delete=models.PROTECT, db_column="unidad_organica_id",
         related_name="convenios",
-        help_text="Órgano del directorio (GERESA/DIRESA/DIRIS) parte del convenio.",
+        help_text="Unidad orgánica (GERESA/DIRESA/DIRIS) parte del convenio.",
     )
     gobierno_regional = models.ForeignKey(
         RegionalGovernment, on_delete=models.PROTECT, db_column="gobierno_regional_id",
@@ -991,9 +991,9 @@ class ConventionParty(models.Model):
         "rol de la parte", max_length=20, choices=PARTY_ROLE, db_column="rol",
         help_text="Rol institucional de la parte firmante",
     )
-    organo_directorio = models.ForeignKey(
-        OrganDirectory, on_delete=models.PROTECT, db_column="organo_directorio_id",
-        related_name="+", help_text="Órgano del directorio que representa la parte",
+    unidad_organica = models.ForeignKey(
+        OrganicUnit, on_delete=models.PROTECT, db_column="unidad_organica_id",
+        related_name="+", help_text="Unidad orgánica que representa la parte",
     )
     organo_representante = models.ForeignKey(
         OrganRepresentative, on_delete=models.PROTECT, db_column="organo_representante_id",
@@ -1066,10 +1066,10 @@ class TechnicalEvaluation(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, db_column="evaluado_por",
         related_name="+", help_text="Responsable",
     )
-    organo_directorio = models.ForeignKey(
-        OrganDirectory, on_delete=models.SET_NULL, db_column="organo_directorio_id",
+    unidad_organica = models.ForeignKey(
+        OrganicUnit, on_delete=models.SET_NULL, db_column="unidad_organica_id",
         null=True, blank=True, related_name="+",
-        help_text="Unidad evaluadora (DIGEP) del directorio",
+        help_text="Unidad evaluadora (DIGEP) — unidad orgánica",
     )
     fecha_evaluacion = models.DateField("fecha de evaluación", help_text="Fecha de evaluación")
     creado_en = models.DateTimeField("creado en", auto_now_add=True)

@@ -117,7 +117,7 @@ export default function RepresentantesPage() {
   const isAdmin = userHasRole(user, "Administrador RENADS");
 
   const [tipoKey, setTipoKey] = useState<string>("");
-  // PK de la entidad concreta: numérica (organ-directories/universities/conapres) o textual
+  // PK de la entidad concreta: numérica (organic-units/universities/conapres) o textual
   // (executing-units `codigo`; ipress `codigo_renipress` en Fase B).
   const [entidadId, setEntidadId] = useState<string | number | null>(null);
   const [search, setSearch] = useState("");
@@ -138,7 +138,7 @@ export default function RepresentantesPage() {
     ? resolveTipoContenidoId(tipoOpt.model, typesQuery.data)
     : undefined;
 
-  // Para MINSA/GORE/DIRIS el paso 2 filtra `organ-directories?organo=<id>`; el id se resuelve
+  // Para MINSA/GORE/DIRIS el paso 2 filtra `organic-units?organo=<id>`; el id se resuelve
   // en runtime desde el catálogo `organs` (nunca hardcodeado). Las otras 4 entidades no filtran.
   const organsQuery = useOrgans();
   const organoIdPaso2 = tipoOpt?.organoNombre
@@ -276,7 +276,7 @@ export default function RepresentantesPage() {
           Entidad
         </label>
         <EntityCombobox
-          endpoint={tipoOpt?.endpoint ?? "organ-directories"}
+          endpoint={tipoOpt?.endpoint ?? "organic-units"}
           params={paso2Params}
           valueKey={
             tipoOpt?.endpoint === "executing-units"
@@ -539,17 +539,17 @@ function RepresentativeDialog({
   const docCodigo = docCodigoById(docTypesQuery.data, tipoDocId);
   const docMaxLen = docLengthByCodigo(docCodigo);
 
-  // Cargos disponibles = globales ∪ (por órgano, si la entidad es OrganDirectory).
+  // Cargos disponibles = globales ∪ (por órgano, si la entidad es OrganicUnit).
   const cargosQuery = useQuery({
     queryKey: ["executive-positions", "form", tipoOpt.key, idObjeto],
     queryFn: async () => {
       const globales = await fetchAllPages<ExecPosition>("executive-positions", {
-        organo_directivo__isnull: "true",
+        unidad_organica__isnull: "true",
         activo: "true",
       });
-      if (!tipoOpt.esOrganDirectory) return globales;
+      if (!tipoOpt.esOrganicUnit) return globales;
       const porOrgano = await fetchAllPages<ExecPosition>("executive-positions", {
-        organo_directivo: String(idObjeto),
+        unidad_organica: String(idObjeto),
         activo: "true",
       });
       // Fusiona sin duplicar por id.

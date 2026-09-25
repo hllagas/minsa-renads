@@ -30,7 +30,7 @@ from apps.convenios.models import (
     Microred,
     ObservationReason,
     Organ,
-    OrganDirectory,
+    OrganicUnit,
     OrganRepresentative,
     OrganRepresentativeHistory,
     ProfessionalCareer,
@@ -189,7 +189,7 @@ class OrganAdmin(admin.ModelAdmin):
 
 @admin.register(ExecutivePosition)
 class ExecutivePositionAdmin(admin.ModelAdmin):
-    list_display = ("nombre_masculino", "nombre_femenino", "organo", "organo_directivo", "activo")
+    list_display = ("nombre_masculino", "nombre_femenino", "organo", "unidad_organica", "activo")
     list_filter = ("organo", "activo")
     search_fields = ("nombre_masculino", "nombre_femenino")
 
@@ -201,8 +201,8 @@ class RegionalGovernmentAdmin(admin.ModelAdmin):
     search_fields = ("nombre", "sigla", "numero_ruc")
 
 
-@admin.register(OrganDirectory)
-class OrganDirectoryAdmin(admin.ModelAdmin):
+@admin.register(OrganicUnit)
+class OrganicUnitAdmin(admin.ModelAdmin):
     list_display = ("nombre", "siglas", "organo", "activo")
     list_filter = ("organo", "activo")
     search_fields = ("nombre", "siglas")
@@ -304,7 +304,7 @@ class ConventionTemplateAdmin(admin.ModelAdmin):
 
 @admin.register(Convention)
 class ConventionAdmin(admin.ModelAdmin):
-    list_display = ("titulo", "tipo_convenio", "universidad", "organo_directorio", "estado_actual", "fecha_solicitud", "es_adenda")
+    list_display = ("titulo", "tipo_convenio", "universidad", "unidad_organica", "estado_actual", "fecha_solicitud", "es_adenda")
     list_filter = ("tipo_convenio", "estado_actual", "es_adenda")
     search_fields = ("titulo", "nomenclatura", "universidad__nombre")
     readonly_fields = ("creado_en", "actualizado_en")
@@ -320,9 +320,9 @@ class ConventionParticipantAdmin(admin.ModelAdmin):
 
 @admin.register(ConventionParty)
 class ConventionPartyAdmin(admin.ModelAdmin):
-    list_display = ("convenio", "rol", "organo_directorio", "organo_representante", "orden", "es_firmante")
+    list_display = ("convenio", "rol", "unidad_organica", "organo_representante", "orden", "es_firmante")
     list_filter = ("rol", "es_firmante")
-    search_fields = ("convenio__titulo", "organo_directorio__nombre")
+    search_fields = ("convenio__titulo", "unidad_organica__nombre")
 
 
 @admin.register(ConventionStatusHistory)

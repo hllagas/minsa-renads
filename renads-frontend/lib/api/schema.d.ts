@@ -42,44 +42,6 @@ export interface paths {
         patch: operations["academic_levels_partial_update"];
         trace?: never;
     };
-    "/api/v1/academic-periods/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        get: operations["academic_periods_list"];
-        put?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        post: operations["academic_periods_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/academic-periods/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        get: operations["academic_periods_retrieve"];
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        put: operations["academic_periods_update"];
-        post?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        delete: operations["academic_periods_destroy"];
-        options?: never;
-        head?: never;
-        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
-        patch: operations["academic_periods_partial_update"];
-        trace?: never;
-    };
     "/api/v1/activity-statuses/": {
         parameters: {
             query?: never;
@@ -216,6 +178,139 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/2fa/confirm-totp/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Confirma la configuración TOTP verificando que el usuario escaneó el QR
+         *     correctamente y activa el segundo factor (T-17).
+         *
+         *     Requiere que ``POST /api/v1/auth/2fa/setup/totp/`` haya sido llamado antes.
+         */
+        post: operations["auth_2fa_confirm_totp_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/2fa/disable/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * @description Desactiva el segundo factor exigiendo contraseña actual más OTP vigente
+         *     (doble verificación — RN-2FA-07, T-20). Limpia todos los campos 2FA.
+         *
+         *     Para el método EMAIL: si no hay OTP en curso, primero lo genera y envía
+         *     por correo devolviendo instrucciones al cliente; si ya existe, verifica.
+         */
+        delete: operations["auth_2fa_disable_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/2fa/resend-otp/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Reenvía el código OTP por correo electrónico usando el ``session_token`` del
+         *     login diferido. Aplica rate-limit: mínimo 1 minuto entre envíos (T-19).
+         *
+         *     Solo aplica para el método EMAIL. No requiere JWT real.
+         */
+        post: operations["auth_2fa_resend_otp_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/2fa/setup/email/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Activa el segundo factor por correo electrónico verificando la contraseña
+         *     actual del usuario (T-18). Limpia el secreto TOTP previo si existía.
+         */
+        post: operations["auth_2fa_setup_email_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/2fa/setup/totp/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Inicia la configuración TOTP: genera un nuevo secreto base32 y devuelve el
+         *     URI de aprovisionamiento para que el frontend muestre el código QR (T-16).
+         *
+         *     No activa el 2FA todavía; la activación ocurre tras la confirmación en
+         *     ``POST /api/v1/auth/2fa/confirm-totp/``.
+         */
+        post: operations["auth_2fa_setup_totp_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/2fa/verify/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Intercambia el ``session_token`` de login diferido por el JWT completo tras
+         *     verificar el código OTP (TOTP o EMAIL) ingresado por el usuario (T-15).
+         *
+         *     No requiere ningún header ``Authorization``: la autenticación se basa en
+         *     el ``session_token`` de corta duración.
+         */
+        post: operations["auth_2fa_verify_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/me/": {
         parameters: {
             query?: never;
@@ -250,6 +345,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/password-reset/confirm/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Confirma el restablecimiento de contraseña validando el OTP y la nueva contraseña (T-23).
+         *
+         *     Devuelve 400 si el OTP no es válido o la contraseña no cumple los requisitos.
+         *     Devuelve 200 si el restablecimiento es exitoso.
+         *     Accesible sin autenticación (``AllowAny``).
+         */
+        post: operations["auth_password_reset_confirm_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/password-reset/request/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Solicita el restablecimiento de contraseña enviando un OTP por correo (T-22).
+         *
+         *     Siempre devuelve 200 para no revelar si el usuario existe (prevención de
+         *     enumeración de usuarios). Devuelve 429 si el rate-limit de reenvío está activo.
+         *     Accesible sin autenticación (``AllowAny``).
+         */
+        post: operations["auth_password_reset_request_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/token/": {
         parameters: {
             query?: never;
@@ -259,7 +400,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Obtiene el par de tokens JWT incluyendo roles y nombre en los claims. */
+        /**
+         * @description Obtiene el par de tokens JWT incluyendo roles y nombre en los claims.
+         *
+         *     Si el usuario tiene 2FA activo, en lugar de devolver el JWT completo devuelve
+         *     un ``session_token`` de corta duración (5 min, scope ``2fa_pending``) para
+         *     que el cliente lo intercambie por el JWT real en ``POST /api/v1/auth/2fa/verify/``
+         *     tras ingresar el código OTP.
+         */
         post: operations["auth_token_create"];
         delete?: never;
         options?: never;
@@ -585,6 +733,28 @@ export interface paths {
         patch: operations["clinical_field_allocations_partial_update"];
         trace?: never;
     };
+    "/api/v1/clinical-field-allocations/bulk-upload/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Carga masiva de asignación de campos clínicos (solo Administrador RENADS).
+         *
+         *     El archivo Excel debe seguir la estructura de ``TramaAsignacionCampos.xlsx``.
+         *     Devuelve un resumen: ``{creados, omitidos, errores}``.
+         */
+        post: operations["clinical_field_allocations_bulk_upload_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/clinical-field-registrations/": {
         parameters: {
             query?: never;
@@ -739,6 +909,29 @@ export interface paths {
          *     (versionado por anexo + auditoría). Responde `201` con el `Document`.
          */
         post: operations["clinical_field_registrations_annex_upload_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/clinical-field-registrations/bulk-upload/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Carga masiva de determinación de campos clínicos.
+         *
+         *     Disponible para los roles ``CONAPRES`` y ``Administrador RENADS``.
+         *     El archivo Excel debe seguir la estructura de ``TramaDeterminacionCampos.xlsx``.
+         *     Devuelve un resumen: ``{creados, omitidos, errores}``.
+         */
+        post: operations["clinical_field_registrations_bulk_upload_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1392,6 +1585,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/conventions/bulk-upload/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Carga masiva de convenios (Marco y Específico) ya suscritos/publicados.
+         *
+         *     Solo disponible para el rol ``Administrador RENADS``. El archivo Excel
+         *     debe seguir la estructura de la trama `TramaCargaMasivaConvenios.xlsx`.
+         *     Devuelve un resumen: ``{creados, omitidos, errores}``.
+         */
+        post: operations["conventions_bulk_upload_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/documents/": {
         parameters: {
             query?: never;
@@ -1539,10 +1755,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de cargos ejecutivos (RN de coherencia organo ↔ organo_directivo.organo). */
+        /** @description CRUD de cargos ejecutivos (RN de coherencia organo ↔ unidad_organica.organo). */
         get: operations["executive_positions_list"];
         put?: never;
-        /** @description CRUD de cargos ejecutivos (RN de coherencia organo ↔ organo_directivo.organo). */
+        /** @description CRUD de cargos ejecutivos (RN de coherencia organo ↔ unidad_organica.organo). */
         post: operations["executive_positions_create"];
         delete?: never;
         options?: never;
@@ -1557,16 +1773,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de cargos ejecutivos (RN de coherencia organo ↔ organo_directivo.organo). */
+        /** @description CRUD de cargos ejecutivos (RN de coherencia organo ↔ unidad_organica.organo). */
         get: operations["executive_positions_retrieve"];
-        /** @description CRUD de cargos ejecutivos (RN de coherencia organo ↔ organo_directivo.organo). */
+        /** @description CRUD de cargos ejecutivos (RN de coherencia organo ↔ unidad_organica.organo). */
         put: operations["executive_positions_update"];
         post?: never;
-        /** @description CRUD de cargos ejecutivos (RN de coherencia organo ↔ organo_directivo.organo). */
+        /** @description CRUD de cargos ejecutivos (RN de coherencia organo ↔ unidad_organica.organo). */
         delete: operations["executive_positions_destroy"];
         options?: never;
         head?: never;
-        /** @description CRUD de cargos ejecutivos (RN de coherencia organo ↔ organo_directivo.organo). */
+        /** @description CRUD de cargos ejecutivos (RN de coherencia organo ↔ unidad_organica.organo). */
         patch: operations["executive_positions_partial_update"];
         trace?: never;
     };
@@ -2064,6 +2280,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/internship-periods/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["internship_periods_list"];
+        put?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        post: operations["internship_periods_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/internship-periods/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        get: operations["internship_periods_retrieve"];
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        put: operations["internship_periods_update"];
+        post?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        delete: operations["internship_periods_destroy"];
+        options?: never;
+        head?: never;
+        /** @description ModelViewSet que registra create/update/delete en `bitacora_auditoria` (RNF-AUD-01). */
+        patch: operations["internship_periods_partial_update"];
+        trace?: never;
+    };
     "/api/v1/internship-statuses/": {
         parameters: {
             query?: never;
@@ -2306,44 +2560,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/organ-directories/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description CRUD del directorio unificado de órganos (RN: único por organo+nombre). */
-        get: operations["organ_directories_list"];
-        put?: never;
-        /** @description CRUD del directorio unificado de órganos (RN: único por organo+nombre). */
-        post: operations["organ_directories_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/organ-directories/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description CRUD del directorio unificado de órganos (RN: único por organo+nombre). */
-        get: operations["organ_directories_retrieve"];
-        /** @description CRUD del directorio unificado de órganos (RN: único por organo+nombre). */
-        put: operations["organ_directories_update"];
-        post?: never;
-        /** @description CRUD del directorio unificado de órganos (RN: único por organo+nombre). */
-        delete: operations["organ_directories_destroy"];
-        options?: never;
-        head?: never;
-        /** @description CRUD del directorio unificado de órganos (RN: único por organo+nombre). */
-        patch: operations["organ_directories_partial_update"];
-        trace?: never;
-    };
     "/api/v1/organ-representative-history/": {
         parameters: {
             query?: never;
@@ -2512,6 +2728,44 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organic-units/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description CRUD del directorio unificado de unidades orgánicas (RN: único por organo+nombre). */
+        get: operations["organic_units_list"];
+        put?: never;
+        /** @description CRUD del directorio unificado de unidades orgánicas (RN: único por organo+nombre). */
+        post: operations["organic_units_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organic-units/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description CRUD del directorio unificado de unidades orgánicas (RN: único por organo+nombre). */
+        get: operations["organic_units_retrieve"];
+        /** @description CRUD del directorio unificado de unidades orgánicas (RN: único por organo+nombre). */
+        put: operations["organic_units_update"];
+        post?: never;
+        /** @description CRUD del directorio unificado de unidades orgánicas (RN: único por organo+nombre). */
+        delete: operations["organic_units_destroy"];
+        options?: never;
+        head?: never;
+        /** @description CRUD del directorio unificado de unidades orgánicas (RN: único por organo+nombre). */
+        patch: operations["organic_units_partial_update"];
         trace?: never;
     };
     "/api/v1/organs/": {
@@ -3247,6 +3501,29 @@ export interface paths {
         patch: operations["students_partial_update"];
         trace?: never;
     };
+    "/api/v1/students/bulk-template/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Descarga la plantilla Excel de carga masiva según nivel académico.
+         *
+         *     Parámetro de query ``nivel_academico=PREGRADO`` (por defecto) genera la trama
+         *     con la columna ``carrera_profesional``. Cualquier otro valor genera la trama
+         *     con la columna ``especialidad`` (segunda especialidad, maestría, doctorado).
+         */
+        get: operations["students_bulk_template_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/students/bulk-upload/": {
         parameters: {
             query?: never;
@@ -3257,12 +3534,40 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * @description Carga masiva de estudiantes desde un Excel (.xlsx) — RN-16.
+         * @description Carga masiva de estudiantes desde un Excel (.xlsx) — RN-16 (all-or-nothing).
          *
-         *     Escritura por rol Universidad/Administrador (misma política que el CRUD).
-         *     El alcance institucional se valida por fila. Devuelve el resumen de la carga.
+         *     Pre-valida TODAS las filas; si hay ≥1 inconsistencia NO crea nada y devuelve el
+         *     mismo `.xlsx` con las celdas problema resaltadas (igual que `bulk-validate`). Si la
+         *     trama está limpia crea todos los estudiantes en una sola transacción.
+         *
+         *     `universidad_id` es opcional en el cuerpo: si no se envía se deriva del perfil
+         *     institucional del usuario. Si el usuario pertenece a más de una universidad debe
+         *     especificarla explícitamente.
          */
         post: operations["students_bulk_upload_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/students/bulk-validate/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Pre-valida la trama de carga masiva SIN escribir en BD — RN-16.
+         *
+         *     Si hay inconsistencias devuelve el mismo `.xlsx` con las celdas problema
+         *     resaltadas en rojo y un comentario por celda con el motivo. Si la trama está
+         *     limpia responde `200 {"valido": true, "filas": N}` para habilitar `bulk-upload`.
+         */
+        post: operations["students_bulk_validate_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3382,10 +3687,20 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de tutores/docentes. Escritura por rol Universidad/Administrador. */
+        /**
+         * @description CRUD de tutores/docentes. Escritura por rol Universidad/Administrador.
+         *
+         *     Acciones anidadas `convenios` y `convenio_detail` permiten gestionar los vínculos
+         *     del tutor con Convenios Específicos e IPRESS (tabla `tutor_convenio`).
+         */
         get: operations["tutors_list"];
         put?: never;
-        /** @description CRUD de tutores/docentes. Escritura por rol Universidad/Administrador. */
+        /**
+         * @description CRUD de tutores/docentes. Escritura por rol Universidad/Administrador.
+         *
+         *     Acciones anidadas `convenios` y `convenio_detail` permiten gestionar los vínculos
+         *     del tutor con Convenios Específicos e IPRESS (tabla `tutor_convenio`).
+         */
         post: operations["tutors_create"];
         delete?: never;
         options?: never;
@@ -3400,17 +3715,115 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de tutores/docentes. Escritura por rol Universidad/Administrador. */
+        /**
+         * @description CRUD de tutores/docentes. Escritura por rol Universidad/Administrador.
+         *
+         *     Acciones anidadas `convenios` y `convenio_detail` permiten gestionar los vínculos
+         *     del tutor con Convenios Específicos e IPRESS (tabla `tutor_convenio`).
+         */
         get: operations["tutors_retrieve"];
-        /** @description CRUD de tutores/docentes. Escritura por rol Universidad/Administrador. */
+        /**
+         * @description CRUD de tutores/docentes. Escritura por rol Universidad/Administrador.
+         *
+         *     Acciones anidadas `convenios` y `convenio_detail` permiten gestionar los vínculos
+         *     del tutor con Convenios Específicos e IPRESS (tabla `tutor_convenio`).
+         */
         put: operations["tutors_update"];
         post?: never;
-        /** @description CRUD de tutores/docentes. Escritura por rol Universidad/Administrador. */
+        /**
+         * @description CRUD de tutores/docentes. Escritura por rol Universidad/Administrador.
+         *
+         *     Acciones anidadas `convenios` y `convenio_detail` permiten gestionar los vínculos
+         *     del tutor con Convenios Específicos e IPRESS (tabla `tutor_convenio`).
+         */
         delete: operations["tutors_destroy"];
         options?: never;
         head?: never;
-        /** @description CRUD de tutores/docentes. Escritura por rol Universidad/Administrador. */
+        /**
+         * @description CRUD de tutores/docentes. Escritura por rol Universidad/Administrador.
+         *
+         *     Acciones anidadas `convenios` y `convenio_detail` permiten gestionar los vínculos
+         *     del tutor con Convenios Específicos e IPRESS (tabla `tutor_convenio`).
+         */
         patch: operations["tutors_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/tutors/{id}/convenios/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Lista o crea vínculos tutor ↔ Convenio Específico ↔ IPRESS.
+         *
+         *     - GET: retorna todos los `TutorConvenio` del tutor.
+         *     - POST: crea un nuevo vínculo; requiere rol `Universidad` o `Administrador RENADS`.
+         */
+        get: operations["tutors_convenios_retrieve"];
+        put?: never;
+        /**
+         * @description Lista o crea vínculos tutor ↔ Convenio Específico ↔ IPRESS.
+         *
+         *     - GET: retorna todos los `TutorConvenio` del tutor.
+         *     - POST: crea un nuevo vínculo; requiere rol `Universidad` o `Administrador RENADS`.
+         */
+        post: operations["tutors_convenios_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tutors/{id}/convenios/{convenio_pk}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Obtiene o elimina un vínculo tutor ↔ Convenio Específico.
+         *
+         *     - GET: retorna el vínculo individual.
+         *     - DELETE: elimina el vínculo; requiere rol `Universidad` o `Administrador RENADS`.
+         */
+        get: operations["tutors_convenios_retrieve_2"];
+        put?: never;
+        post?: never;
+        /**
+         * @description Obtiene o elimina un vínculo tutor ↔ Convenio Específico.
+         *
+         *     - GET: retorna el vínculo individual.
+         *     - DELETE: elimina el vínculo; requiere rol `Universidad` o `Administrador RENADS`.
+         */
+        delete: operations["tutors_convenios_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tutors/buscar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Busca un tutor por tipo y número de documento.
+         *
+         *     Parámetros requeridos: ``tipo_documento_identidad`` (id) y ``numero_documento`` (str).
+         *     Devuelve 200+datos si existe, 404 si no, 400 si faltan parámetros.
+         */
+        get: operations["tutors_buscar_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/ubigeos/": {
@@ -3710,6 +4123,40 @@ export interface paths {
         patch: operations["university_careers_partial_update"];
         trace?: never;
     };
+    "/api/v1/university-entity-types/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Tipos de entidad universitaria (catálogo fijo, solo lectura). */
+        get: operations["university_entity_types_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/university-entity-types/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Tipos de entidad universitaria (catálogo fijo, solo lectura). */
+        get: operations["university_entity_types_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/university-management-types/": {
         parameters: {
             query?: never;
@@ -3790,7 +4237,10 @@ export interface paths {
         /** @description CRUD de usuarios (solo superadministrador). `DELETE` desactiva, no borra. */
         get: operations["users_list"];
         put?: never;
-        /** @description CRUD de usuarios (solo superadministrador). `DELETE` desactiva, no borra. */
+        /**
+         * @description Crea el usuario y devuelve la respuesta con `UserReadSerializer` incluyendo
+         *     `password_generada` en texto claro (solo en la respuesta del POST). (T-21)
+         */
         post: operations["users_create"];
         delete?: never;
         options?: never;
@@ -3897,18 +4347,6 @@ export interface components {
             /** @description Indica si está activo */
             activo?: boolean;
         };
-        AcademicPeriodAuto: {
-            readonly id: number;
-            /**
-             * Código
-             * @description Código único
-             */
-            codigo: string;
-            /** @description Nombre */
-            nombre: string;
-            /** @description Indica si está activo */
-            activo?: boolean;
-        };
         ActivityStatusAuto: {
             readonly id: number;
             /**
@@ -3920,10 +4358,7 @@ export interface components {
             nombre: string;
             /** @description Indica si está activo */
             activo?: boolean;
-            /**
-             * Format: int64
-             * @description Orden en el flujo
-             */
+            /** @description Orden en el flujo */
             orden?: number;
         };
         ActivityTypeAuto: {
@@ -4125,7 +4560,6 @@ export interface components {
             detalle?: string;
             /**
              * Número de orden
-             * Format: int64
              * @description Orden de presentación (no único; usado en el ordenamiento por defecto)
              */
             numero_orden?: number;
@@ -4223,7 +4657,6 @@ export interface components {
             fecha_fin: string;
             /**
              * Campos clínicos autorizados
-             * Format: int64
              * @description Cupos autorizados para la universidad
              */
             campos_clinicos_autorizados: number;
@@ -4241,6 +4674,14 @@ export interface components {
             /** @description Usuario que actualizó la asignación */
             readonly actualizado_por: number | null;
         };
+        /** @description Entrada de la carga masiva de asignación de campos clínicos (solo Administrador RENADS). */
+        ClinicalFieldAllocationBulkUpload: {
+            /**
+             * Format: uri
+             * @description Archivo Excel (.xlsx) con la asignación de campos — estructura de TramaAsignacionCampos.xlsx
+             */
+            archivo: string;
+        };
         /**
          * @description Registro (CONAPRES) del total de campos clínicos por sede + carrera.
          *
@@ -4250,8 +4691,6 @@ export interface components {
          */
         ClinicalFieldRegistration: {
             readonly id: number;
-            /** @description Convenio (solo Específico) */
-            convenio: number;
             /**
              * Código RENIPRESS
              * @description Sede docente (establecimiento)
@@ -4263,7 +4702,6 @@ export interface components {
             especialidad?: number | null;
             /**
              * Campos clínicos registrados
-             * Format: int64
              * @description Total de campos clínicos registrados por CONAPRES para la sede y carrera
              */
             campos_clinicos_registrados: number;
@@ -4284,7 +4722,6 @@ export interface components {
              * @description Fecha de la resolución CONAPRES
              */
             fecha_resolucion_conapres?: string | null;
-            readonly convenio_detalle: string;
             readonly ipress_detalle: string;
             readonly carrera_profesional_detalle: string;
             readonly especialidad_detalle: string;
@@ -4296,6 +4733,14 @@ export interface components {
             readonly actualizado_en: string;
             /** @description Usuario que actualizó el registro */
             readonly actualizado_por: number | null;
+        };
+        /** @description Entrada de la carga masiva de determinación de campos clínicos (solo Administrador RENADS). */
+        ClinicalFieldRegistrationBulkUpload: {
+            /**
+             * Format: uri
+             * @description Archivo Excel (.xlsx) con la determinación de campos — estructura de TramaDeterminacionCampos.xlsx
+             */
+            archivo: string;
         };
         ClosureReasonAuto: {
             readonly id: number;
@@ -4360,9 +4805,9 @@ export interface components {
              */
             rol: components["schemas"]["RolEnum"];
             readonly rol_display: string;
-            /** @description Órgano del directorio que representa la parte */
-            organo_directorio: number;
-            readonly organo_directorio_detalle: string;
+            /** @description Unidad orgánica que representa la parte */
+            unidad_organica: number;
+            readonly unidad_organica_detalle: string;
             /** @description Representante que firma por la parte */
             organo_representante?: number | null;
             readonly organo_representante_detalle: string;
@@ -4371,7 +4816,6 @@ export interface components {
             readonly cargo_ejecutivo_detalle: string;
             /**
              * Orden de firma
-             * Format: int64
              * @description Orden de firma dentro del rol (apoderado = 2)
              * @default 1
              */
@@ -4408,10 +4852,10 @@ export interface components {
              */
             solicitante_id_objeto: number;
             readonly solicitante: string;
-            /** @description Órgano del directorio (GERESA/DIRESA/DIRIS) parte del convenio. */
-            organo_directorio: number;
-            readonly organo_directorio_nombre: string;
-            readonly tipo_organo_directorio: string | null;
+            /** @description Unidad orgánica (GERESA/DIRESA/DIRIS) parte del convenio. */
+            unidad_organica: number;
+            readonly unidad_organica_nombre: string;
+            readonly tipo_unidad_organica: string | null;
             /** @description Universidad parte del convenio. Su tipo de entidad se deriva de esta relación. */
             universidad: number;
             readonly universidad_nombre: string;
@@ -4450,7 +4894,6 @@ export interface components {
             readonly partes_firmantes: unknown[];
             /**
              * Máximo de campos clínicos
-             * Format: int64
              * @description Cantidad máxima de campos clínicos (solo Específico)
              */
             max_campos_clinicos?: number | null;
@@ -4479,10 +4922,7 @@ export interface components {
              *     * `ESPECIFICO` - Específico
              */
             aplica_a?: components["schemas"]["AplicaAEnum"];
-            /**
-             * Format: int64
-             * @description Orden en el flujo
-             */
+            /** @description Orden en el flujo */
             orden?: number;
         };
         ConventionTemplate: {
@@ -4493,7 +4933,6 @@ export interface components {
             referencia_externa: string;
             /**
              * Versión
-             * Format: int64
              * @description Versión
              */
             version?: number;
@@ -4516,7 +4955,6 @@ export interface components {
             activo?: boolean;
             /**
              * Años de vigencia
-             * Format: int64
              * @description Vigencia en años (Marco=4, Específico=3)
              */
             anios_vigencia: number;
@@ -4533,6 +4971,8 @@ export interface components {
              * @description Título / denominación
              */
             titulo: string;
+            /** @description Nomenclatura oficial del Convenio Marco (se asigna al aprobar DIGEP) */
+            nomenclatura?: string;
             /** @description Tipo de entidad solicitante */
             solicitante_tipo_contenido: number;
             /**
@@ -4541,8 +4981,8 @@ export interface components {
              * @description Identificador de la entidad solicitante
              */
             solicitante_id_objeto: number;
-            /** @description Órgano del directorio (GERESA/DIRESA/DIRIS) parte del convenio. */
-            organo_directorio: number;
+            /** @description Unidad orgánica (GERESA/DIRESA/DIRIS) parte del convenio. */
+            unidad_organica: number;
             /** @description Gobierno Regional del convenio (solo Convenio Marco regional). */
             gobierno_regional?: number | null;
             /** @description Universidad parte del convenio. Su tipo de entidad se deriva de esta relación. */
@@ -4571,7 +5011,6 @@ export interface components {
             fecha_fin?: string | null;
             /**
              * Máximo de campos clínicos
-             * Format: int64
              * @description Cantidad máxima de campos clínicos (solo Específico)
              */
             max_campos_clinicos?: number | null;
@@ -4767,6 +5206,18 @@ export interface components {
             /** @description Indica si está activo */
             activo?: boolean;
         };
+        InternshipPeriodAuto: {
+            readonly id: number;
+            /**
+             * Código
+             * @description Código único
+             */
+            codigo: string;
+            /** @description Nombre */
+            nombre: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+        };
         InternshipRead: {
             readonly id: number;
             readonly estudiante: string;
@@ -4820,10 +5271,7 @@ export interface components {
             nombre: string;
             /** @description Indica si está activo */
             activo?: boolean;
-            /**
-             * Format: int64
-             * @description Orden en el flujo
-             */
+            /** @description Orden en el flujo */
             orden?: number;
         };
         InternshipWrite: {
@@ -4841,7 +5289,7 @@ export interface components {
             /** @description Tutor responsable actual */
             tutor: number;
             /** @description Ámbito geográfico sanitario */
-            ambito_geografico_sanitario: number;
+            ambito_geografico_sanitario?: number | null;
             /**
              * Fecha de inicio
              * Format: date
@@ -4887,6 +5335,9 @@ export interface components {
             readonly nombre: string;
             es_superusuario: boolean;
             readonly debe_cambiar_password: boolean;
+            readonly two_factor_enabled: boolean;
+            readonly two_factor_method: string;
+            readonly perfil: string;
             readonly grupos: string[];
             readonly perfiles: {
                 [key: string]: unknown;
@@ -4935,7 +5386,7 @@ export interface components {
          *
          *     Valida: (a) unicidad del documento entre representantes activos, (b) que la entidad
          *     (`tipo_contenido`) sea uno de los modelos permitidos, y (c) la coherencia cargo↔entidad
-         *     (cargo por órgano ⇒ la entidad debe ser ese OrganDirectory; cargo global ⇒ cualquiera).
+         *     (cargo por órgano ⇒ la entidad debe ser esa OrganicUnit; cargo global ⇒ cualquiera).
          *     La baja del representante anterior (histórico) la resuelve el service
          *     ``registrar_organo_representante``.
          */
@@ -4944,7 +5395,6 @@ export interface components {
             readonly entidad_detalle: string;
             /**
              * Id del objeto
-             * Format: int64
              * @description Id de la entidad representada
              */
             id_objeto: number;
@@ -4996,7 +5446,6 @@ export interface components {
             readonly id: number;
             /**
              * Id del objeto
-             * Format: int64
              * @description Id de la entidad representada
              */
             id_objeto: number;
@@ -5069,21 +5518,6 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["AcademicLevelAuto"][];
-        };
-        PaginatedAcademicPeriodAutoList: {
-            /** @example 123 */
-            count: number;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=4
-             */
-            next?: string | null;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=2
-             */
-            previous?: string | null;
-            results: components["schemas"]["AcademicPeriodAuto"][];
         };
         PaginatedActivityStatusAutoList: {
             /** @example 123 */
@@ -5444,6 +5878,21 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["IdentityDocumentTypeAuto"][];
+        };
+        PaginatedInternshipPeriodAutoList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["InternshipPeriodAuto"][];
         };
         PaginatedInternshipReadList: {
             /** @example 123 */
@@ -5835,6 +6284,21 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["UniversityCareer"][];
         };
+        PaginatedUniversityEntityTypeAutoList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["UniversityEntityTypeAuto"][];
+        };
         PaginatedUniversityManagementTypeAutoList: {
             /** @example 123 */
             count: number;
@@ -5925,7 +6389,7 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["_Ipress"][];
         };
-        Paginated_OrganDirectoryList: {
+        Paginated_OrganicUnitList: {
             /** @example 123 */
             count: number;
             /**
@@ -5938,21 +6402,31 @@ export interface components {
              * @example http://api.example.org/accounts/?page=2
              */
             previous?: string | null;
-            results: components["schemas"]["_OrganDirectory"][];
+            results: components["schemas"]["_OrganicUnit"][];
+        };
+        /**
+         * @description Confirmación de restablecimiento de contraseña: valida el OTP y la nueva contraseña.
+         *
+         *     Ningún campo expone hashes, OTPs ni la contraseña en la representación de salida.
+         */
+        PasswordResetConfirm: {
+            /** @description Nombre de usuario para el que se confirma el restablecimiento. */
+            username: string;
+            /** @description Código OTP de 6 dígitos recibido por correo electrónico. */
+            otp_code: string;
+            /** @description Nueva contraseña que debe cumplir los requisitos de seguridad. */
+            password_nueva: string;
+        };
+        /**
+         * @description Solicitud de restablecimiento de contraseña: solo requiere el nombre de usuario.
+         *
+         *     El endpoint siempre devuelve 200 para no revelar si el usuario existe.
+         */
+        PasswordResetRequest: {
+            /** @description Nombre de usuario para el que se solicita el restablecimiento. */
+            username: string;
         };
         PatchedAcademicLevelAuto: {
-            readonly id?: number;
-            /**
-             * Código
-             * @description Código único
-             */
-            codigo?: string;
-            /** @description Nombre */
-            nombre?: string;
-            /** @description Indica si está activo */
-            activo?: boolean;
-        };
-        PatchedAcademicPeriodAuto: {
             readonly id?: number;
             /**
              * Código
@@ -6016,7 +6490,6 @@ export interface components {
             detalle?: string;
             /**
              * Número de orden
-             * Format: int64
              * @description Orden de presentación (no único; usado en el ordenamiento por defecto)
              */
             numero_orden?: number;
@@ -6104,7 +6577,6 @@ export interface components {
             fecha_fin?: string;
             /**
              * Campos clínicos autorizados
-             * Format: int64
              * @description Cupos autorizados para la universidad
              */
             campos_clinicos_autorizados?: number;
@@ -6131,8 +6603,6 @@ export interface components {
          */
         PatchedClinicalFieldRegistration: {
             readonly id?: number;
-            /** @description Convenio (solo Específico) */
-            convenio?: number;
             /**
              * Código RENIPRESS
              * @description Sede docente (establecimiento)
@@ -6144,7 +6614,6 @@ export interface components {
             especialidad?: number | null;
             /**
              * Campos clínicos registrados
-             * Format: int64
              * @description Total de campos clínicos registrados por CONAPRES para la sede y carrera
              */
             campos_clinicos_registrados?: number;
@@ -6165,7 +6634,6 @@ export interface components {
              * @description Fecha de la resolución CONAPRES
              */
             fecha_resolucion_conapres?: string | null;
-            readonly convenio_detalle?: string;
             readonly ipress_detalle?: string;
             readonly carrera_profesional_detalle?: string;
             readonly especialidad_detalle?: string;
@@ -6197,7 +6665,6 @@ export interface components {
             referencia_externa?: string;
             /**
              * Versión
-             * Format: int64
              * @description Versión
              */
             version?: number;
@@ -6219,6 +6686,8 @@ export interface components {
              * @description Título / denominación
              */
             titulo?: string;
+            /** @description Nomenclatura oficial del Convenio Marco (se asigna al aprobar DIGEP) */
+            nomenclatura?: string;
             /** @description Tipo de entidad solicitante */
             solicitante_tipo_contenido?: number;
             /**
@@ -6227,8 +6696,8 @@ export interface components {
              * @description Identificador de la entidad solicitante
              */
             solicitante_id_objeto?: number;
-            /** @description Órgano del directorio (GERESA/DIRESA/DIRIS) parte del convenio. */
-            organo_directorio?: number;
+            /** @description Unidad orgánica (GERESA/DIRESA/DIRIS) parte del convenio. */
+            unidad_organica?: number;
             /** @description Gobierno Regional del convenio (solo Convenio Marco regional). */
             gobierno_regional?: number | null;
             /** @description Universidad parte del convenio. Su tipo de entidad se deriva de esta relación. */
@@ -6257,7 +6726,6 @@ export interface components {
             fecha_fin?: string | null;
             /**
              * Máximo de campos clínicos
-             * Format: int64
              * @description Cantidad máxima de campos clínicos (solo Específico)
              */
             max_campos_clinicos?: number | null;
@@ -6316,6 +6784,18 @@ export interface components {
             /** @description Gobierno regional al que corresponde el ámbito sanitario (nulo para los 4 DIRIS de Lima Metropolitana) */
             gobierno_regional?: number | null;
         };
+        PatchedInternshipPeriodAuto: {
+            readonly id?: number;
+            /**
+             * Código
+             * @description Código único
+             */
+            codigo?: string;
+            /** @description Nombre */
+            nombre?: string;
+            /** @description Indica si está activo */
+            activo?: boolean;
+        };
         PatchedInternshipWrite: {
             /** @description Estudiante */
             estudiante?: number;
@@ -6331,7 +6811,7 @@ export interface components {
             /** @description Tutor responsable actual */
             tutor?: number;
             /** @description Ámbito geográfico sanitario */
-            ambito_geografico_sanitario?: number;
+            ambito_geografico_sanitario?: number | null;
             /**
              * Fecha de inicio
              * Format: date
@@ -6372,7 +6852,7 @@ export interface components {
          *
          *     Valida: (a) unicidad del documento entre representantes activos, (b) que la entidad
          *     (`tipo_contenido`) sea uno de los modelos permitidos, y (c) la coherencia cargo↔entidad
-         *     (cargo por órgano ⇒ la entidad debe ser ese OrganDirectory; cargo global ⇒ cualquiera).
+         *     (cargo por órgano ⇒ la entidad debe ser esa OrganicUnit; cargo global ⇒ cualquiera).
          *     La baja del representante anterior (histórico) la resuelve el service
          *     ``registrar_organo_representante``.
          */
@@ -6381,7 +6861,6 @@ export interface components {
             readonly entidad_detalle?: string;
             /**
              * Id del objeto
-             * Format: int64
              * @description Id de la entidad representada
              */
             id_objeto?: number;
@@ -6433,6 +6912,8 @@ export interface components {
             readonly id?: number;
             /** @description Nombre de la carrera o programa */
             nombre?: string;
+            /** @description Orden de visualización en el listado (menor primero) */
+            orden?: number;
             activo?: boolean;
             /** @description Carrera profesional / segunda especialidad / maestría / doctorado */
             nivel_academico?: number;
@@ -6528,13 +7009,8 @@ export interface components {
              */
             direccion?: string;
             /**
-             * Código universitario
-             * @description Código universitario / matrícula
-             */
-            codigo_universitario?: string;
-            /**
              * Format: decimal
-             * @description Nota promedio ponderado (escala 0–20)
+             * @description Nota promedio ponderado (escala 0–20, máximo 4 decimales)
              */
             nota_promedio_ponderado?: string | null;
             /**
@@ -6561,8 +7037,8 @@ export interface components {
             universidad?: number;
             /** @description Carrera / programa */
             carrera_profesional?: number;
-            /** @description Periodo académico (obligatorio para Pregrado — RN-19) */
-            periodo_academico?: number | null;
+            /** @description Periodo de internado (obligatorio para Pregrado — RN-19) */
+            periodo_internado?: number | null;
             /** @description Especialidad (obligatoria para niveles distintos de Pregrado — RN-19) */
             especialidad?: number | null;
             /** @description Parentesco del contacto de emergencia */
@@ -6585,14 +7061,15 @@ export interface components {
             /** @description Servicio, área o unidad */
             servicio_area?: number;
         };
-        /** @description CRUD de tutores. `universidades` (RN-24): de 1 a 2 universidades por tutor. */
+        /** @description CRUD de tutores. `universidades` (RN-24): de 1 a 5 universidades por tutor. */
         PatchedTutor: {
             readonly id?: number;
-            /** @description Universidades del tutor (de 1 a 2 — RN-24) */
+            /** @description Universidades del tutor (de 1 a 5 — RN-24) */
             universidades?: number[];
             readonly profesion_detalle?: string;
-            readonly ipress_detalle?: string;
             readonly especialidad_detalle?: string;
+            readonly tipo_documento_identidad_detalle?: string;
+            readonly universidades_detalle?: string;
             /**
              * Número de documento
              * @description Número de documento de identidad
@@ -6633,11 +7110,6 @@ export interface components {
             especialidad?: number | null;
             /** @description Profesión del tutor (carrera profesional) */
             profesion?: number | null;
-            /**
-             * Código RENIPRESS
-             * @description Establecimiento al que pertenece
-             */
-            ipress?: string | null;
         };
         PatchedUniversityAuto: {
             readonly id?: number;
@@ -6691,7 +7163,7 @@ export interface components {
             activo?: boolean;
             /** @description Pública / privada */
             tipo_gestion?: number;
-            /** @description Tipo de entidad del directorio (organo=Universidad) */
+            /** @description Tipo de entidad universitaria */
             tipo_entidad?: number;
             /** @description Licenciada / Denegada / Pendiente */
             tipo_autorizacion?: number;
@@ -6753,7 +7225,12 @@ export interface components {
             /** @description Rol institucional */
             grupo?: number;
         };
-        /** @description Edición de usuarios. La contraseña se cambia solo por la acción `set-password`. */
+        /**
+         * @description Edición de usuarios. La contraseña se cambia solo por la acción `set-password`.
+         *
+         *     Incluye campos de perfil opcionales que se persisten en ``UserProfile`` vía
+         *     ``services.actualizar_perfil_usuario`` (T-08, R-9).
+         */
         PatchedUserUpdate: {
             readonly id?: number;
             /**
@@ -6783,20 +7260,28 @@ export interface components {
              */
             is_superuser?: boolean;
             groups?: number[];
+            tipo_documento?: components["schemas"]["TipoDocumentoEnum"];
+            numero_documento?: string;
+            apellido_paterno?: string;
+            apellido_materno?: string;
+            telefono?: string;
+            unidad_organica?: number;
+            cargo?: number;
+            tiene_ficha_usuario?: boolean;
         };
         /**
-         * @description Serializer de cargos ejecutivos con RN de coherencia `organo == organo_directivo.organo`.
+         * @description Serializer de cargos ejecutivos con RN de coherencia `organo == unidad_organica.organo`.
          *
-         *     RN-CE-02: cuando `organo_directivo` está seteado, el `organo` del cargo debe coincidir
-         *     con el `organo` de ese órgano directivo. El auto-serializer (`ModelSerializer`) no ejecuta
+         *     RN-CE-02: cuando `unidad_organica` está seteado, el `organo` del cargo debe coincidir
+         *     con el `organo` de esa unidad orgánica. El auto-serializer (`ModelSerializer`) no ejecuta
          *     `Model.clean()`, así que la coherencia se valida aquí y se devuelve un 400 legible.
-         *     Si `organo_directivo` es nulo (cargo global), la coherencia no aplica; el FK `organo`
+         *     Si `unidad_organica` es nulo (cargo global), la coherencia no aplica; el FK `organo`
          *     obligatorio ya lo garantiza el propio `ModelSerializer` (campo requerido por `null=False`).
          */
         Patched_ExecutivePosition: {
             readonly id?: number;
             readonly organo_detalle?: string;
-            readonly organo_directivo_detalle?: string;
+            readonly unidad_organica_detalle?: string;
             /**
              * Nombre (masculino)
              * @description Nombre del cargo en masculino
@@ -6811,14 +7296,14 @@ export interface components {
             activo?: boolean;
             /**
              * Órgano
-             * @description Categoría de órgano (FK a la tabla canónica `organo`) a la que pertenece el cargo; debe coincidir con organo_directivo.organo cuando este está seteado
+             * @description Categoría de órgano (FK a la tabla canónica `organo`) a la que pertenece el cargo; debe coincidir con unidad_organica.organo cuando este está seteado
              */
             organo?: number;
             /**
-             * Órgano directivo
-             * @description Órgano directivo (del directorio) al que pertenece el cargo
+             * Unidad orgánica
+             * @description Unidad orgánica a la que pertenece el cargo
              */
-            organo_directivo?: number | null;
+            unidad_organica?: number | null;
         };
         /**
          * @description Serializer de IPRESS con validación de coherencia geográfica microred ↔ ámbito.
@@ -6859,7 +7344,6 @@ export interface components {
             longitud?: string | null;
             /**
              * Cantidad de camas
-             * Format: int64
              * @description Número de camas del establecimiento
              */
             cantidad_camas?: number | null;
@@ -6888,13 +7372,13 @@ export interface components {
             microred?: number | null;
         };
         /**
-         * @description Serializer de órganos del directorio con RN de unicidad `(organo, nombre)`.
+         * @description Serializer de unidades orgánicas con RN de unicidad `(organo, nombre)`.
          *
          *     RN-GORE-3: el nombre no se repite dentro del mismo `organo`. El auto-serializer no
          *     aplica esta regla, así que se valida aquí y se devuelve un 400 legible en vez del
          *     IntegrityError 500 de la ``UniqueConstraint`` de la BD.
          */
-        Patched_OrganDirectory: {
+        Patched_OrganicUnit: {
             readonly id?: number;
             readonly organo_detalle?: string;
             /** @description Nombre del órgano */
@@ -6921,6 +7405,8 @@ export interface components {
             readonly id: number;
             /** @description Nombre de la carrera o programa */
             nombre: string;
+            /** @description Orden de visualización en el listado (menor primero) */
+            orden?: number;
             activo?: boolean;
             /** @description Carrera profesional / segunda especialidad / maestría / doctorado */
             nivel_academico: number;
@@ -7038,7 +7524,6 @@ export interface components {
             interno: number;
             /**
              * Número de rotación
-             * Format: int64
              * @description Número de rotación (1–4, RN-9)
              */
             numero_rotacion: number;
@@ -7085,10 +7570,7 @@ export interface components {
             nombre: string;
             /** @description Indica si está activo */
             activo?: boolean;
-            /**
-             * Format: int64
-             * @description Orden en el flujo
-             */
+            /** @description Orden en el flujo */
             orden?: number;
         };
         ServiceAreaAuto: {
@@ -7192,13 +7674,8 @@ export interface components {
              */
             direccion?: string;
             /**
-             * Código universitario
-             * @description Código universitario / matrícula
-             */
-            codigo_universitario?: string;
-            /**
              * Format: decimal
-             * @description Nota promedio ponderado (escala 0–20)
+             * @description Nota promedio ponderado (escala 0–20, máximo 4 decimales)
              */
             nota_promedio_ponderado?: string | null;
             /**
@@ -7225,21 +7702,31 @@ export interface components {
             universidad: number;
             /** @description Carrera / programa */
             carrera_profesional: number;
-            /** @description Periodo académico (obligatorio para Pregrado — RN-19) */
-            periodo_academico?: number | null;
+            /** @description Periodo de internado (obligatorio para Pregrado — RN-19) */
+            periodo_internado?: number | null;
             /** @description Especialidad (obligatoria para niveles distintos de Pregrado — RN-19) */
             especialidad?: number | null;
             /** @description Parentesco del contacto de emergencia */
             contacto_emergencia_parentesco?: number | null;
             readonly creado_por: number;
         };
-        /** @description Entrada de la carga masiva de estudiantes (RN-16): archivo Excel `.xlsx`. */
+        /**
+         * @description Entrada de la carga masiva de estudiantes (RN-16): archivo Excel `.xlsx`.
+         *
+         *     `universidad_id` es opcional: si no se envía, la vista lo deriva del perfil
+         *     institucional del usuario (válido cuando el usuario pertenece a una sola universidad).
+         *     `periodo_internado_id` aplica solo a filas PREGRADO; se ignora en las demás.
+         */
         StudentBulkUpload: {
             /**
              * Format: uri
              * @description Archivo Excel (.xlsx) con los estudiantes a registrar
              */
             archivo: string;
+            /** @description Universidad que aplica a todos los estudiantes del archivo. Si no se envía, se deriva del perfil del usuario. */
+            universidad_id?: number | null;
+            /** @description Periodo de internado (solo para estudiantes PREGRADO); opcional */
+            periodo_internado_id?: number | null;
         };
         TeachingActivityRead: {
             readonly id: number;
@@ -7337,18 +7824,41 @@ export interface components {
          * @enum {string}
          */
         TipoActorEnum: "INTERNO" | "AUTORIDAD_UNIVERSIDAD" | "REPRESENTANTE" | "CONVENIO" | "CAMPO_CLINICO";
+        /**
+         * @description * `DNI` - DNI
+         *     * `CE` - Carnet de Extranjería
+         *     * `PASAPORTE` - Pasaporte
+         *     * `RUC` - RUC
+         * @enum {string}
+         */
+        TipoDocumentoEnum: "DNI" | "CE" | "PASAPORTE" | "RUC";
         TokenRefresh: {
             readonly access: string;
             refresh: string;
         };
-        /** @description CRUD de tutores. `universidades` (RN-24): de 1 a 2 universidades por tutor. */
+        /**
+         * @description Confirma que el usuario escaneó correctamente el código QR TOTP enviando
+         *     un código válido generado por su app autenticadora.
+         */
+        TotpSetupConfirm: {
+            /** @description Código TOTP de 6 dígitos generado por la app autenticadora. */
+            otp_code: string;
+        };
+        TotpSetupResponse: {
+            /** @description URI otpauth:// para generar el código QR en la app autenticadora. */
+            otpauth_uri: string;
+            /** @description Secreto base32 para ingresar manualmente en la app autenticadora. */
+            secret: string;
+        };
+        /** @description CRUD de tutores. `universidades` (RN-24): de 1 a 5 universidades por tutor. */
         Tutor: {
             readonly id: number;
-            /** @description Universidades del tutor (de 1 a 2 — RN-24) */
+            /** @description Universidades del tutor (de 1 a 5 — RN-24) */
             universidades: number[];
             readonly profesion_detalle: string;
-            readonly ipress_detalle: string;
             readonly especialidad_detalle: string;
+            readonly tipo_documento_identidad_detalle: string;
+            readonly universidades_detalle: string;
             /**
              * Número de documento
              * @description Número de documento de identidad
@@ -7389,11 +7899,34 @@ export interface components {
             especialidad?: number | null;
             /** @description Profesión del tutor (carrera profesional) */
             profesion?: number | null;
-            /**
-             * Código RENIPRESS
-             * @description Establecimiento al que pertenece
-             */
-            ipress?: string | null;
+        };
+        /**
+         * @description Solicita el reenvío del código OTP por correo electrónico usando el
+         *     ``session_token`` del login diferido (sin necesidad de JWT real).
+         */
+        TwoFactorResend: {
+            /** @description Token de sesión transitorio obtenido al hacer login con 2FA activo. */
+            session_token: string;
+        };
+        /**
+         * @description Activa el segundo factor por correo electrónico verificando la contraseña
+         *     actual del usuario para autorizar el cambio.
+         */
+        TwoFactorSetupEmail: {
+            /** @description Contraseña actual del usuario para autorizar la activación del 2FA por email. */
+            password: string;
+        };
+        /**
+         * @description Intercambia el ``session_token`` de login diferido por el JWT completo,
+         *     tras verificar el código OTP ingresado por el usuario (TOTP o EMAIL).
+         *
+         *     Ningún campo expone ``totp_secret`` ni ``otp_code`` (hash de BD).
+         */
+        TwoFactorVerify: {
+            /** @description Token de sesión transitorio obtenido al hacer login con 2FA activo. */
+            session_token: string;
+            /** @description Código de un solo uso: 6 dígitos TOTP (app autenticadora) o código por correo. */
+            otp_code: string;
         };
         UbigeoAuto: {
             /**
@@ -7461,7 +7994,7 @@ export interface components {
             activo?: boolean;
             /** @description Pública / privada */
             tipo_gestion: number;
-            /** @description Tipo de entidad del directorio (organo=Universidad) */
+            /** @description Tipo de entidad universitaria */
             tipo_entidad: number;
             /** @description Licenciada / Denegada / Pendiente */
             tipo_autorizacion: number;
@@ -7511,6 +8044,13 @@ export interface components {
             /** @description Carrera profesional */
             carrera_profesional: number;
         };
+        UniversityEntityTypeAuto: {
+            readonly id: number;
+            /** @description Nombre del tipo de entidad universitaria */
+            nombre: string;
+            /** @description Indica si el tipo está activo */
+            activo?: boolean;
+        };
         UniversityManagementTypeAuto: {
             readonly id: number;
             /**
@@ -7523,7 +8063,12 @@ export interface components {
             /** @description Indica si está activo */
             activo?: boolean;
         };
-        /** @description Alta de usuarios: contraseña write-only hasheada con `set_password`. */
+        /**
+         * @description Alta de usuarios: contraseña opcional (si no se envía se genera automáticamente).
+         *
+         *     Incluye campos de perfil opcionales que se persisten en ``UserProfile`` vía
+         *     ``services.crear_usuario_con_perfil`` (T-07, R-5).
+         */
         UserCreate: {
             readonly id: number;
             /**
@@ -7537,7 +8082,7 @@ export interface components {
             first_name?: string;
             /** Apellidos */
             last_name?: string;
-            password: string;
+            password?: string;
             /**
              * Activo
              * @description Indica si el usuario debe ser tratado como activo. Desmarque esta opción en lugar de borrar la cuenta.
@@ -7554,6 +8099,15 @@ export interface components {
              */
             is_superuser?: boolean;
             groups?: number[];
+            tipo_documento: components["schemas"]["TipoDocumentoEnum"];
+            numero_documento: string;
+            apellido_paterno: string;
+            apellido_materno: string;
+            telefono: string;
+            unidad_organica: number;
+            cargo: number;
+            /** @default false */
+            tiene_ficha_usuario: boolean;
         };
         UserEntityProfileAuto: {
             readonly id: number;
@@ -7597,6 +8151,47 @@ export interface components {
             rol: string;
             readonly id: number;
             readonly activo: boolean;
+        };
+        /** @description Lectura del perfil de usuario: expone datos personales e institucionales. */
+        UserProfileRead: {
+            /**
+             * Tipo de documento
+             * @description Tipo de documento de identidad
+             *
+             *     * `DNI` - DNI
+             *     * `CE` - Carnet de Extranjería
+             *     * `PASAPORTE` - Pasaporte
+             *     * `RUC` - RUC
+             */
+            readonly tipo_documento: components["schemas"]["TipoDocumentoEnum"];
+            /**
+             * Número de documento
+             * @description Número de documento de identidad
+             */
+            readonly numero_documento: string;
+            /** @description Apellido paterno del usuario */
+            readonly apellido_paterno: string;
+            /** @description Apellido materno del usuario */
+            readonly apellido_materno: string;
+            /**
+             * Teléfono
+             * @description Número de teléfono de contacto
+             */
+            readonly telefono: string;
+            /**
+             * Unidad orgánica
+             * @description Unidad orgánica a la que pertenece el usuario
+             */
+            readonly unidad_organica: number;
+            /** @description Cargo ejecutivo del usuario */
+            readonly cargo: number;
+            /**
+             * Tiene ficha de usuario
+             * @description Indica si la ficha del usuario está completa/validada
+             */
+            readonly tiene_ficha_usuario: boolean;
+            readonly unidad_organica_detalle: string;
+            readonly cargo_detalle: string;
         };
         /** @description Lectura de usuarios: nunca expone la contraseña ni su hash. */
         UserRead: {
@@ -7646,8 +8241,15 @@ export interface components {
              */
             readonly groups: number[];
             readonly groups_detalle: components["schemas"]["GroupBrief"][];
+            readonly perfil: components["schemas"]["UserProfileRead"];
+            readonly password_generada: string;
         };
-        /** @description Edición de usuarios. La contraseña se cambia solo por la acción `set-password`. */
+        /**
+         * @description Edición de usuarios. La contraseña se cambia solo por la acción `set-password`.
+         *
+         *     Incluye campos de perfil opcionales que se persisten en ``UserProfile`` vía
+         *     ``services.actualizar_perfil_usuario`` (T-08, R-9).
+         */
         UserUpdate: {
             readonly id: number;
             /**
@@ -7677,20 +8279,28 @@ export interface components {
              */
             is_superuser?: boolean;
             groups?: number[];
+            tipo_documento?: components["schemas"]["TipoDocumentoEnum"];
+            numero_documento?: string;
+            apellido_paterno?: string;
+            apellido_materno?: string;
+            telefono?: string;
+            unidad_organica?: number;
+            cargo?: number;
+            tiene_ficha_usuario?: boolean;
         };
         /**
-         * @description Serializer de cargos ejecutivos con RN de coherencia `organo == organo_directivo.organo`.
+         * @description Serializer de cargos ejecutivos con RN de coherencia `organo == unidad_organica.organo`.
          *
-         *     RN-CE-02: cuando `organo_directivo` está seteado, el `organo` del cargo debe coincidir
-         *     con el `organo` de ese órgano directivo. El auto-serializer (`ModelSerializer`) no ejecuta
+         *     RN-CE-02: cuando `unidad_organica` está seteado, el `organo` del cargo debe coincidir
+         *     con el `organo` de esa unidad orgánica. El auto-serializer (`ModelSerializer`) no ejecuta
          *     `Model.clean()`, así que la coherencia se valida aquí y se devuelve un 400 legible.
-         *     Si `organo_directivo` es nulo (cargo global), la coherencia no aplica; el FK `organo`
+         *     Si `unidad_organica` es nulo (cargo global), la coherencia no aplica; el FK `organo`
          *     obligatorio ya lo garantiza el propio `ModelSerializer` (campo requerido por `null=False`).
          */
         _ExecutivePosition: {
             readonly id: number;
             readonly organo_detalle: string;
-            readonly organo_directivo_detalle: string;
+            readonly unidad_organica_detalle: string;
             /**
              * Nombre (masculino)
              * @description Nombre del cargo en masculino
@@ -7705,14 +8315,14 @@ export interface components {
             activo?: boolean;
             /**
              * Órgano
-             * @description Categoría de órgano (FK a la tabla canónica `organo`) a la que pertenece el cargo; debe coincidir con organo_directivo.organo cuando este está seteado
+             * @description Categoría de órgano (FK a la tabla canónica `organo`) a la que pertenece el cargo; debe coincidir con unidad_organica.organo cuando este está seteado
              */
             organo: number;
             /**
-             * Órgano directivo
-             * @description Órgano directivo (del directorio) al que pertenece el cargo
+             * Unidad orgánica
+             * @description Unidad orgánica a la que pertenece el cargo
              */
-            organo_directivo?: number | null;
+            unidad_organica?: number | null;
         };
         /**
          * @description Serializer de IPRESS con validación de coherencia geográfica microred ↔ ámbito.
@@ -7753,7 +8363,6 @@ export interface components {
             longitud?: string | null;
             /**
              * Cantidad de camas
-             * Format: int64
              * @description Número de camas del establecimiento
              */
             cantidad_camas?: number | null;
@@ -7782,13 +8391,13 @@ export interface components {
             microred?: number | null;
         };
         /**
-         * @description Serializer de órganos del directorio con RN de unicidad `(organo, nombre)`.
+         * @description Serializer de unidades orgánicas con RN de unicidad `(organo, nombre)`.
          *
          *     RN-GORE-3: el nombre no se repite dentro del mismo `organo`. El auto-serializer no
          *     aplica esta regla, así que se valida aquí y se devuelve un 400 legible en vez del
          *     IntegrityError 500 de la ``UniqueConstraint`` de la BD.
          */
-        _OrganDirectory: {
+        _OrganicUnit: {
             readonly id: number;
             readonly organo_detalle: string;
             /** @description Nombre del órgano */
@@ -7955,157 +8564,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AcademicLevelAuto"];
-                };
-            };
-        };
-    };
-    academic_periods_list: {
-        parameters: {
-            query?: {
-                activo?: boolean;
-                /** @description Qué campo usar para ordenar los resultados. */
-                ordering?: string;
-                /** @description Un número de página dentro del conjunto de resultados paginado. */
-                page?: number;
-                /** @description Un término de búsqueda. */
-                search?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedAcademicPeriodAutoList"];
-                };
-            };
-        };
-    };
-    academic_periods_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AcademicPeriodAuto"];
-                "application/x-www-form-urlencoded": components["schemas"]["AcademicPeriodAuto"];
-                "multipart/form-data": components["schemas"]["AcademicPeriodAuto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AcademicPeriodAuto"];
-                };
-            };
-        };
-    };
-    academic_periods_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este periodo académico. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AcademicPeriodAuto"];
-                };
-            };
-        };
-    };
-    academic_periods_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este periodo académico. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AcademicPeriodAuto"];
-                "application/x-www-form-urlencoded": components["schemas"]["AcademicPeriodAuto"];
-                "multipart/form-data": components["schemas"]["AcademicPeriodAuto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AcademicPeriodAuto"];
-                };
-            };
-        };
-    };
-    academic_periods_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este periodo académico. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    academic_periods_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este periodo académico. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedAcademicPeriodAuto"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedAcademicPeriodAuto"];
-                "multipart/form-data": components["schemas"]["PatchedAcademicPeriodAuto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AcademicPeriodAuto"];
                 };
             };
         };
@@ -8425,6 +8883,144 @@ export interface operations {
             };
         };
     };
+    auth_2fa_confirm_totp_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TotpSetupConfirm"];
+                "application/x-www-form-urlencoded": components["schemas"]["TotpSetupConfirm"];
+                "multipart/form-data": components["schemas"]["TotpSetupConfirm"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TotpSetupConfirm"];
+                };
+            };
+        };
+    };
+    auth_2fa_disable_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    auth_2fa_resend_otp_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TwoFactorResend"];
+                "application/x-www-form-urlencoded": components["schemas"]["TwoFactorResend"];
+                "multipart/form-data": components["schemas"]["TwoFactorResend"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwoFactorResend"];
+                };
+            };
+        };
+    };
+    auth_2fa_setup_email_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TwoFactorSetupEmail"];
+                "application/x-www-form-urlencoded": components["schemas"]["TwoFactorSetupEmail"];
+                "multipart/form-data": components["schemas"]["TwoFactorSetupEmail"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwoFactorSetupEmail"];
+                };
+            };
+        };
+    };
+    auth_2fa_setup_totp_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Secreto TOTP generado. Escanear el URI o ingresar el secret manualmente. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TotpSetupResponse"];
+                };
+            };
+        };
+    };
+    auth_2fa_verify_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TwoFactorVerify"];
+                "application/x-www-form-urlencoded": components["schemas"]["TwoFactorVerify"];
+                "multipart/form-data": components["schemas"]["TwoFactorVerify"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwoFactorVerify"];
+                };
+            };
+        };
+    };
     auth_me_retrieve: {
         parameters: {
             query?: never;
@@ -8465,6 +9061,56 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Me"];
+                };
+            };
+        };
+    };
+    auth_password_reset_confirm_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordResetConfirm"];
+                "application/x-www-form-urlencoded": components["schemas"]["PasswordResetConfirm"];
+                "multipart/form-data": components["schemas"]["PasswordResetConfirm"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasswordResetConfirm"];
+                };
+            };
+        };
+    };
+    auth_password_reset_request_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordResetRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PasswordResetRequest"];
+                "multipart/form-data": components["schemas"]["PasswordResetRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasswordResetRequest"];
                 };
             };
         };
@@ -9134,6 +9780,7 @@ export interface operations {
             query?: {
                 campo_clinico_ipress?: number;
                 carrera_profesional?: number;
+                carrera_profesional__nivel_academico?: number;
                 convenio?: number;
                 /** @description Código RENIPRESS de 8 caracteres (clave primaria) */
                 ipress?: string;
@@ -9285,11 +9932,35 @@ export interface operations {
             };
         };
     };
+    clinical_field_allocations_bulk_upload_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["ClinicalFieldAllocationBulkUpload"];
+                "application/x-www-form-urlencoded": components["schemas"]["ClinicalFieldAllocationBulkUpload"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClinicalFieldAllocationBulkUpload"];
+                };
+            };
+        };
+    };
     clinical_field_registrations_list: {
         parameters: {
             query?: {
                 carrera_profesional?: number;
-                convenio?: number;
+                carrera_profesional__nivel_academico?: number;
                 especialidad?: number;
                 /** @description Código RENIPRESS de 8 caracteres (clave primaria) */
                 ipress?: string;
@@ -9486,6 +10157,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Document"];
+                };
+            };
+        };
+    };
+    clinical_field_registrations_bulk_upload_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["ClinicalFieldRegistrationBulkUpload"];
+                "application/x-www-form-urlencoded": components["schemas"]["ClinicalFieldRegistrationBulkUpload"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClinicalFieldRegistrationBulkUpload"];
                 };
             };
         };
@@ -10543,6 +11238,30 @@ export interface operations {
             };
         };
     };
+    conventions_bulk_upload_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["ConventionWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["ConventionWrite"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConventionWrite"];
+                };
+            };
+        };
+    };
     documents_list: {
         parameters: {
             query?: {
@@ -10851,12 +11570,12 @@ export interface operations {
                 /** @description Qué campo usar para ordenar los resultados. */
                 ordering?: string;
                 organo?: number;
-                organo_directivo?: number;
-                organo_directivo__isnull?: boolean;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
                 page?: number;
                 /** @description Un término de búsqueda. */
                 search?: string;
+                unidad_organica?: number;
+                unidad_organica__isnull?: boolean;
             };
             header?: never;
             path?: never;
@@ -11923,6 +12642,157 @@ export interface operations {
             };
         };
     };
+    internship_periods_list: {
+        parameters: {
+            query?: {
+                activo?: boolean;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedInternshipPeriodAutoList"];
+                };
+            };
+        };
+    };
+    internship_periods_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InternshipPeriodAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["InternshipPeriodAuto"];
+                "multipart/form-data": components["schemas"]["InternshipPeriodAuto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternshipPeriodAuto"];
+                };
+            };
+        };
+    };
+    internship_periods_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este periodo de internado. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternshipPeriodAuto"];
+                };
+            };
+        };
+    };
+    internship_periods_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este periodo de internado. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InternshipPeriodAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["InternshipPeriodAuto"];
+                "multipart/form-data": components["schemas"]["InternshipPeriodAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternshipPeriodAuto"];
+                };
+            };
+        };
+    };
+    internship_periods_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este periodo de internado. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    internship_periods_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este periodo de internado. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedInternshipPeriodAuto"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedInternshipPeriodAuto"];
+                "multipart/form-data": components["schemas"]["PatchedInternshipPeriodAuto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternshipPeriodAuto"];
+                };
+            };
+        };
+    };
     internship_statuses_list: {
         parameters: {
             query?: {
@@ -12553,158 +13423,6 @@ export interface operations {
             };
         };
     };
-    organ_directories_list: {
-        parameters: {
-            query?: {
-                activo?: boolean;
-                /** @description Qué campo usar para ordenar los resultados. */
-                ordering?: string;
-                organo?: number;
-                /** @description Un número de página dentro del conjunto de resultados paginado. */
-                page?: number;
-                /** @description Un término de búsqueda. */
-                search?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Paginated_OrganDirectoryList"];
-                };
-            };
-        };
-    };
-    organ_directories_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["_OrganDirectory"];
-                "application/x-www-form-urlencoded": components["schemas"]["_OrganDirectory"];
-                "multipart/form-data": components["schemas"]["_OrganDirectory"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["_OrganDirectory"];
-                };
-            };
-        };
-    };
-    organ_directories_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este órgano del directorio. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["_OrganDirectory"];
-                };
-            };
-        };
-    };
-    organ_directories_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este órgano del directorio. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["_OrganDirectory"];
-                "application/x-www-form-urlencoded": components["schemas"]["_OrganDirectory"];
-                "multipart/form-data": components["schemas"]["_OrganDirectory"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["_OrganDirectory"];
-                };
-            };
-        };
-    };
-    organ_directories_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este órgano del directorio. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    organ_directories_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Un valor de entero único que identifique este órgano del directorio. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["Patched_OrganDirectory"];
-                "application/x-www-form-urlencoded": components["schemas"]["Patched_OrganDirectory"];
-                "multipart/form-data": components["schemas"]["Patched_OrganDirectory"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["_OrganDirectory"];
-                };
-            };
-        };
-    };
     organ_representative_history_list: {
         parameters: {
             query?: {
@@ -12957,6 +13675,158 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Document"];
+                };
+            };
+        };
+    };
+    organic_units_list: {
+        parameters: {
+            query?: {
+                activo?: boolean;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                organo?: number;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Paginated_OrganicUnitList"];
+                };
+            };
+        };
+    };
+    organic_units_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["_OrganicUnit"];
+                "application/x-www-form-urlencoded": components["schemas"]["_OrganicUnit"];
+                "multipart/form-data": components["schemas"]["_OrganicUnit"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["_OrganicUnit"];
+                };
+            };
+        };
+    };
+    organic_units_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este unidad orgánica. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["_OrganicUnit"];
+                };
+            };
+        };
+    };
+    organic_units_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este unidad orgánica. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["_OrganicUnit"];
+                "application/x-www-form-urlencoded": components["schemas"]["_OrganicUnit"];
+                "multipart/form-data": components["schemas"]["_OrganicUnit"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["_OrganicUnit"];
+                };
+            };
+        };
+    };
+    organic_units_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este unidad orgánica. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    organic_units_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este unidad orgánica. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["Patched_OrganicUnit"];
+                "application/x-www-form-urlencoded": components["schemas"]["Patched_OrganicUnit"];
+                "multipart/form-data": components["schemas"]["Patched_OrganicUnit"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["_OrganicUnit"];
                 };
             };
         };
@@ -14212,7 +15082,50 @@ export interface operations {
             };
         };
     };
+    students_bulk_template_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Student"];
+                };
+            };
+        };
+    };
     students_bulk_upload_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["StudentBulkUpload"];
+                "application/x-www-form-urlencoded": components["schemas"]["StudentBulkUpload"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentBulkUpload"];
+                };
+            };
+        };
+    };
+    students_bulk_validate_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -14489,8 +15402,6 @@ export interface operations {
             query?: {
                 activo?: boolean;
                 especialidad?: number;
-                /** @description Código RENIPRESS de 8 caracteres (clave primaria) */
-                ipress?: string;
                 numero_documento?: string;
                 /** @description Qué campo usar para ordenar los resultados. */
                 ordering?: string;
@@ -14629,6 +15540,120 @@ export interface operations {
                 "multipart/form-data": components["schemas"]["PatchedTutor"];
             };
         };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tutor"];
+                };
+            };
+        };
+    };
+    tutors_convenios_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tutor. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tutor"];
+                };
+            };
+        };
+    };
+    tutors_convenios_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tutor. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Tutor"];
+                "application/x-www-form-urlencoded": components["schemas"]["Tutor"];
+                "multipart/form-data": components["schemas"]["Tutor"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tutor"];
+                };
+            };
+        };
+    };
+    tutors_convenios_retrieve_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                convenio_pk: string;
+                /** @description Un valor de entero único que identifique este tutor. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tutor"];
+                };
+            };
+        };
+    };
+    tutors_convenios_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                convenio_pk: string;
+                /** @description Un valor de entero único que identifique este tutor. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    tutors_buscar_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {
@@ -15197,6 +16222,55 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UniversityCareer"];
+                };
+            };
+        };
+    };
+    university_entity_types_list: {
+        parameters: {
+            query?: {
+                activo?: boolean;
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /** @description Un término de búsqueda. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedUniversityEntityTypeAutoList"];
+                };
+            };
+        };
+    };
+    university_entity_types_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este tipo de entidad universitaria. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UniversityEntityTypeAuto"];
                 };
             };
         };

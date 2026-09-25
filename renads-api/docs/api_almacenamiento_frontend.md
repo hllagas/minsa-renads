@@ -398,7 +398,7 @@ Catálogo de solo lectura con los 4 tipos de entidad universitaria del sistema.
 ### Breaking change — IDs de `tipo_entidad`
 
 > Los IDs del campo `tipo_entidad` de `universidad` **cambiaron** tras la migración `0052`.
-> Antes referenciaban filas de `organo_directorio`; ahora referencian filas de
+> Antes referenciaban filas de `unidad_organica`; ahora referencian filas de
 > `tipo_entidad_universidad`. Los IDs numéricos son distintos.
 >
 > Si el frontend guardaba IDs de `tipo_entidad` en caché o en URLs, debe refrescar el

@@ -61,14 +61,14 @@ SOLICITUD_REGISTRADA → PDF_PRELIMINAR_GENERADO → EN_EVALUACION_DIGEP
 ```
 
 - `crear_convenio` fija `SOLICITUD_REGISTRADA`.
-- **RN-1**: solo `organo_directorio.categoria == GOBIERNO_REGIONAL` (GERESA/DIRESA)
+- **RN-1**: solo `unidad_organica.categoria == GOBIERNO_REGIONAL` (GERESA/DIRESA)
   puede solicitar un **Marco**; **DIRIS** (`MINSA_DIRIS`) está exenta de Marco.
 - **Partes por tipo** (`_validar_partes_por_tipo`): el Marco no lleva
   `unidad_ejecutora`/`facultad`; el Específico exige ambos (la `facultad` debe
   pertenecer a la universidad del Marco).
 - **Partes firmantes (`parte_convenio`):** la solicitud captura las partes que suscriben,
   por `rol` (`MINSA`/`UNIVERSIDAD`/`GOBIERNO_REGIONAL`/`UNIDAD_EJECUTORA`/`FACULTAD`), cada
-  una con `organo_directorio` + `organo_representante` + `cargo_ejecutivo`. Composición
+  una con `unidad_organica` + `organo_representante` + `cargo_ejecutivo`. Composición
   requerida (`services._validar_composicion_partes`): Marco Lima (`MINSA_DIRIS`) ⇒
   MINSA+UNIVERSIDAD; Marco región (`GOBIERNO_REGIONAL`) ⇒ MINSA+GOBIERNO_REGIONAL+UNIVERSIDAD;
   Específico ⇒ UNIDAD_EJECUTORA+FACULTAD (apoderado `orden=2` opcional). Se sincronizan vía
@@ -140,7 +140,7 @@ PUBLICADO → VIGENTE
 
 `apps/convenios/pdf.py` genera el **proyecto de convenio** rellenando la plantilla Word
 correspondiente (docxtpl) y convirtiéndola a PDF con **LibreOffice headless**. La plantilla se
-elige de forma determinista por `(tipo_convenio, es_adenda, organo_directorio.categoria)`:
+elige de forma determinista por `(tipo_convenio, es_adenda, unidad_organica.categoria)`:
 
 | Plantilla | Caso |
 |-----------|------|

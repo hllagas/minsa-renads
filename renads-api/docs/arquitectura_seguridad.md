@@ -111,7 +111,7 @@ MIDDLEWARE = [
 | Modelo | Tabla | Responsabilidad |
 |---|---|---|
 | `UserSecurity` | `seguridad_usuario` | Flags 2FA, OTP hash, TTL, secret TOTP, `password_changed_at`, `debe_cambiar_password` |
-| `UserProfile` | `perfil_usuario` | Apellidos, DNI único, teléfono único, cargo, unidad orgánica |
+| `UserProfile` | `perfil_usuario` | DNI único **obligatorio**, teléfono único **obligatorio**, cargo **obligatorio**, unidad orgánica **obligatoria**, ficha completa (`tiene_ficha_usuario`). **Todos los campos son `NOT NULL`**. Los apellidos/nombre **no** viven aquí: se guardan en `auth_user.last_name` (combinado `"Paterno Materno"`) / `auth_user.first_name` (migración `common 0011`) |
 | `UserEntityProfile` | `perfil_usuario_entidad` | Scope multitenant: usuario ↔ entidad institucional |
 | `AuditLog` | `bitacora_auditoria` | Trazabilidad de todas las operaciones críticas |
 | `Document` | `documento` | Versionado de adjuntos por `(objeto, documento_anexo)` |
@@ -129,7 +129,7 @@ MIDDLEWARE = [
 
 Gestión del ciclo de vida de Convenios Marco y Específicos: documentos, evaluaciones (DIGEP, CONAPRES, OGAJ), firmas, publicación, vigencia. Subcampos clínicos, partes firmantes, generación de PDF vía plantillas Word + LibreOffice headless.
 
-**Modelos principales (32):** `Convention`, `ConventionParty`, `ClinicalFieldRegistration`, `ClinicalFieldAllocation`, `OrganDirectory`, `OrganRepresentative`, `ExecutingUnit`, `University`, `Faculty`, `Ipress` (PK = `codigo_renipress` varchar 8).
+**Modelos principales (32):** `Convention`, `ConventionParty`, `ClinicalFieldRegistration`, `ClinicalFieldAllocation`, `OrganicUnit`, `OrganRepresentative`, `ExecutingUnit`, `University`, `Faculty`, `Ipress` (PK = `codigo_renipress` varchar 8).
 
 **Reglas de negocio críticas:** estado avanza solo hacia adelante (`_avanzar_estado` idempotente), nomenclatura asignada por DIGEP, composición de partes por tipo/categoría, disponibilidad de campos clínicos calculada en tiempo real.
 
@@ -456,7 +456,15 @@ POST /auth/password-reset/confirm/   → { username, otp_code, password_nueva }
 - Limpia `debe_cambiar_password = False`
 - Registra en AuditLog sin exponer el valor
 
-### 4.5 Onboarding de usuario (RN-22)
+### 4.5 Regla de username y onboarding de usuario (RN-22, generalizada)
+
+**Regla `username = numero_documento` (todos los no-superusuario):** el `username`
+de cualquier usuario que **no** sea superusuario se **autogenera** a partir de su
+`numero_documento` (DNI/CE) — es **read-only** en la API (el cliente no lo envía; el
+service lo deriva del documento). El **superusuario está exento total**: username
+libre, sin apellidos/nombre ni perfil obligatorio. El algoritmo de username por
+apellidos quedó **descartado**. Los apellidos van a `auth_user.last_name` (combinado
+`"Paterno Materno"`) y el nombre a `auth_user.first_name`.
 
 Al registrar un internado se crea automáticamente el usuario del interno:
 
@@ -464,18 +472,47 @@ Al registrar un internado se crea automáticamente el usuario del interno:
 2. `debe_cambiar_password = True` — fuerza cambio en el primer login
 3. Grupo asignado: `Interno` (acceso de solo lectura a sus datos)
 4. `perfil_usuario_entidad` sobre su `Student` (scope restringido)
-5. Flag `debe_cambiar_password` expuesto como claim JWT y en `GET /auth/me/`
-6. Notificación por correo (best-effort, no bloquea si falla SMTP)
+5. Apellidos/nombre del interno en `auth_user` (`last_name` combinado / `first_name`)
+6. **Se crea su `UserProfile`** (perfil obligatorio endurecido) con datos derivados del
+   `Student` (`tipo_documento` mapeado, `numero_documento`, `telefono` real o
+   sintético único) y `unidad_organica`/`cargo` = filas placeholder "No aplica"
+   (idempotentes); `tiene_ficha_usuario = False`. El perfil ya **no** almacena apellidos
+7. Flag `debe_cambiar_password` expuesto como claim JWT y en `GET /auth/me/`
+8. Notificación por correo (best-effort, no bloquea si falla SMTP)
 
 ### 4.6 Campos únicos sensibles
 
 | Campo | Tabla | Constraint |
 |---|---|---|
-| `numero_documento` | `perfil_usuario` | `UNIQUE`, `NULL` cuando ausente (NULL no viola UNIQUE) |
-| `telefono` | `perfil_usuario` | `UNIQUE`, `NULL` cuando ausente |
+| `numero_documento` | `perfil_usuario` | `UNIQUE` + `NOT NULL` (perfil endurecido; ya no admite NULL) |
+| `telefono` | `perfil_usuario` | `UNIQUE` + `NOT NULL` (perfil endurecido; ya no admite NULL) |
 | `email` | `auth_user` | `UNIQUE`, `NULL` cuando ausente (migración convierte `""` → `NULL`) |
 | `numero_documento` | `estudiante` | `UNIQUE` |
 | `codigo_renipress` | `ipress` | PK (varchar 8) |
+
+### 4.6.1 Tabla `perfil_usuario` (`UserProfile`)
+
+Extensión 1:1 de `auth_user`. **Todos los campos son obligatorios (`NOT NULL`)** tras
+el endurecimiento (migraciones `common 0009`/`0010`). La migración `common 0011`
+**eliminó** las columnas `apellido_paterno`/`apellido_materno` del perfil: los apellidos
+viven en `auth_user.last_name` (combinado `"Paterno Materno"`) y el nombre en
+`auth_user.first_name`. El perfil obligatorio baja de 7 a 5 columnas de datos:
+
+| Columna | Tipo | Constraint | Descripción |
+|---|---|---|---|
+| `usuario_id` | bigint | FK `auth_user` `CASCADE`, `UNIQUE` (OneToOne) | Usuario propietario |
+| `tipo_documento` | varchar(20) | `NOT NULL`, choices DNI/CE/PASAPORTE/RUC | Tipo de documento de identidad |
+| `numero_documento` | varchar(20) | `NOT NULL`, `UNIQUE` | Número de documento de identidad |
+| `telefono` | varchar(20) | `NOT NULL`, `UNIQUE` | Teléfono de contacto |
+| `unidad_organica_id` | bigint | FK `unidad_organica` `PROTECT`, `NOT NULL` | Unidad orgánica |
+| `cargo_id` | bigint | FK `cargo_ejecutivo` `PROTECT`, `NOT NULL` | Cargo ejecutivo |
+| `tiene_ficha_usuario` | boolean | `NOT NULL`, default `False` | Ficha del usuario completa/validada |
+
+- El alta la hace `services.crear_usuario_con_perfil` (rollback atómico si falta algún
+  campo obligatorio); la edición, `services.actualizar_perfil_usuario` (no crea perfiles
+  vacíos que violen `NOT NULL`).
+- El onboarding del interno (RN-22) crea el perfil con placeholders "No aplica" para
+  `unidad_organica`/`cargo` y `telefono` real o sintético único.
 
 ### 4.7 Bitácora de auditoría
 

@@ -81,10 +81,10 @@ def _contexto_partes(convenio) -> list[dict]:
     """Construye la lista de partes firmantes para el contexto Jinja."""
     partes = []
     qs = convenio.partes_firmantes.select_related(
-        "organo_directorio", "organo_representante", "cargo_ejecutivo"
+        "unidad_organica", "organo_representante", "cargo_ejecutivo"
     ).order_by("orden", "id")
     for parte in qs:
-        organo = parte.organo_directorio
+        organo = parte.unidad_organica
         rep = parte.organo_representante
         cargo = parte.cargo_ejecutivo
         sexo = getattr(rep, "sexo", "") or ""
@@ -217,7 +217,7 @@ def _seleccionar_plantilla(convenio) -> Path:
         return PLANTILLAS_DIR / "adenda.docx"
 
     tipo = (convenio.tipo_convenio.codigo or "").upper()
-    organo = getattr(getattr(convenio.organo_directorio, "organo", None), "nombre", "")
+    organo = getattr(getattr(convenio.unidad_organica, "organo", None), "nombre", "")
 
     mapa = {
         ("MARCO", "MINSA DIRIS"): "modelo_1_marco_lima.docx",

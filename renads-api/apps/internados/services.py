@@ -18,7 +18,7 @@ from django.core.mail import send_mail
 from django.db import transaction
 from rest_framework.exceptions import ValidationError
 
-from apps.common.models import UserSecurity
+from apps.common.models import UserProfile, UserSecurity
 from apps.common.selectors import usuario_pertenece_a_entidad
 from apps.common.services import registrar_auditoria
 from apps.convenios.models import (
@@ -295,6 +295,9 @@ def aprovisionar_interno(internado: Internship, usuario) -> User:
       tras un estado liberador), se reutiliza sin resetear su contraseña.
     - Al crear: contraseña temporal aleatoria, ``is_staff=False`` y
       ``debe_cambiar_password=True`` (vía ``UserSecurity``).
+    - Al crear: se crea también su ``UserProfile`` (perfil de usuario endurecido:
+      todos los campos ``NOT NULL``) con datos derivados del ``Student``
+      (ver ``_crear_perfil_interno``).
     - Asigna el grupo ``Interno`` y un ``UserEntityProfile`` idempotente sobre el
       ``Student`` (rol ``Interno``, ``activo=True``).
     Devuelve el ``User``.
@@ -317,6 +320,7 @@ def aprovisionar_interno(internado: Internship, usuario) -> User:
         usuario_interno.set_password(secrets.token_urlsafe(16))
         usuario_interno.save()
         registrar_auditoria(usuario, "CREAR", usuario_interno)
+        _crear_perfil_interno(usuario_interno, estudiante)
 
     usuario_interno.groups.add(interno_group)
 
@@ -334,6 +338,111 @@ def aprovisionar_interno(internado: Internship, usuario) -> User:
         defaults={"activo": True},
     )
     return usuario_interno
+
+
+# Mapeo del código del catálogo `tipo_documento_identidad` del estudiante a los
+# choices de `UserProfile.tipo_documento` (DOCUMENT_TYPE_CHOICES: DNI/CE/PASAPORTE/RUC).
+# Los códigos del catálogo del estudiante suelen ser DNI/CE/PAS/PASAPORTE/RUC. Si el
+# código no mapea directo, se cae a "DNI" cuando el documento tiene 8 dígitos, y a
+# "CE" (Carnet de Extranjería) en cualquier otro caso.
+_MAPEO_TIPO_DOCUMENTO_INTERNO = {
+    "DNI": "DNI",
+    "CE": "CE",
+    "CARNET DE EXTRANJERIA": "CE",
+    "CARNET DE EXTRANJERÍA": "CE",
+    "PAS": "PASAPORTE",
+    "PASAPORTE": "PASAPORTE",
+    "RUC": "RUC",
+}
+
+
+def _mapear_tipo_documento_interno(estudiante: Student) -> str:
+    """Traduce el tipo de documento del estudiante a un choice de ``UserProfile``.
+
+    Estrategia: normaliza el ``codigo``/``nombre`` del catálogo del estudiante contra
+    ``_MAPEO_TIPO_DOCUMENTO_INTERNO``. Si no mapea, usa ``"DNI"`` cuando el número
+    tiene 8 dígitos (regla de negocio de DNI peruano) y ``"CE"`` en otro caso.
+    """
+    tipo = estudiante.tipo_documento_identidad
+    for candidato in (getattr(tipo, "codigo", ""), getattr(tipo, "nombre", "")):
+        clave = (candidato or "").strip().upper()
+        if clave in _MAPEO_TIPO_DOCUMENTO_INTERNO:
+            return _MAPEO_TIPO_DOCUMENTO_INTERNO[clave]
+    numero = (estudiante.numero_documento or "").strip()
+    return "DNI" if len(numero) == 8 and numero.isdigit() else "CE"
+
+
+def _obtener_placeholders_no_aplica() -> tuple:
+    """Devuelve (OrganicUnit, ExecutivePosition) placeholder "No aplica" idempotentes.
+
+    El interno no tiene unidad orgánica ni cargo ejecutivo reales, pero el perfil de
+    usuario endurecido exige ambos FK ``NOT NULL`` (T-13, Opción B con placeholders).
+    Se crean de forma idempotente (``get_or_create``) con FKs coherentes:
+
+    - ``OrganicUnit`` "No aplica" bajo un ``Organ`` "No aplica" (categoría neutra).
+    - ``ExecutivePosition`` "No aplica" cuyo ``organo`` == ``unidad_organica.organo``
+      (RN de coherencia de ``ExecutivePosition``) y ``unidad_organica`` = el placeholder.
+    """
+    from apps.convenios.models import ExecutivePosition, Organ, OrganicUnit
+
+    organo, _ = Organ.objects.get_or_create(nombre="No aplica")
+    unidad, _ = OrganicUnit.objects.get_or_create(
+        organo=organo,
+        nombre="No aplica",
+        defaults={"siglas": "N/A"},
+    )
+    cargo, _ = ExecutivePosition.objects.get_or_create(
+        unidad_organica=unidad,
+        nombre_masculino="No aplica",
+        defaults={"organo": organo},
+    )
+    return unidad, cargo
+
+
+def _generar_telefono_perfil_unico(telefono_base: str) -> str:
+    """Devuelve un teléfono único para ``UserProfile`` (columna ``telefono`` UNIQUE).
+
+    Usa el ``telefono`` real del estudiante si existe y no está tomado; si falta o
+    colisiona, genera un valor sintético único de 9 dígitos que empieza en 9.
+    """
+    candidato = (telefono_base or "").strip()
+    if candidato and not UserProfile.objects.filter(telefono=candidato).exists():
+        return candidato
+    while True:
+        sintetico = "9" + str(secrets.randbelow(100_000_000)).zfill(8)
+        if not UserProfile.objects.filter(telefono=sintetico).exists():
+            return sintetico
+
+
+def _crear_perfil_interno(usuario_interno: User, estudiante: Student) -> UserProfile:
+    """Crea el ``UserProfile`` del interno con datos derivados del ``Student`` (RN-22, T-12/T-13).
+
+    - ``tipo_documento``: mapeado desde el catálogo del estudiante (``_mapear_tipo_documento_interno``).
+    - ``numero_documento``: el del estudiante (coincide con el ``username``; es único).
+    - ``telefono``: el móvil del estudiante; si falta o colisiona, uno sintético único.
+    - ``unidad_organica``/``cargo``: filas placeholder "No aplica" (el interno no es
+      funcionario institucional; T-13 Opción B).
+    - ``tiene_ficha_usuario=False`` (ficha incompleta hasta que la complete un usuario).
+
+    Los apellidos/nombre del interno **no** viven en el perfil: se guardan en
+    ``auth_user`` (``last_name`` combinado / ``first_name``) desde ``aprovisionar_interno``.
+
+    Idempotente frente a reingresos: si el perfil ya existe, lo devuelve sin tocarlo.
+    """
+    perfil = UserProfile.objects.filter(usuario=usuario_interno).first()
+    if perfil is not None:
+        return perfil
+
+    unidad, cargo = _obtener_placeholders_no_aplica()
+    return UserProfile.objects.create(
+        usuario=usuario_interno,
+        tipo_documento=_mapear_tipo_documento_interno(estudiante),
+        numero_documento=estudiante.numero_documento,
+        telefono=_generar_telefono_perfil_unico(estudiante.telefono),
+        unidad_organica=unidad,
+        cargo=cargo,
+        tiene_ficha_usuario=False,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1383,7 +1492,7 @@ def generar_trama_excel(*, es_pregrado: bool = True) -> bytes:
         ("correo",                   "correo personal",                                 "opt"),
         ("telefono",                 "teléfono móvil",                                  "opt"),
         ("direccion",                "direccion",                                       "opt"),
-        ("departamento",             "departamento\n(elija de la lista)",               "opt"),
+        ("departamento",             "Región\n(elija de la lista)",                     "opt"),
         ("provincia",                "provincia\n(elija de la lista)",                  "opt"),
         ("distrito",                 "distrito\n(elija de la lista)",                   "opt"),
     ]
@@ -1543,7 +1652,7 @@ def generar_trama_excel(*, es_pregrado: bool = True) -> bytes:
         ("", None),
         ("NOTAS:", None),
         ("fecha_nacimiento",             "Formato dd/mm/yyyy  (ej. 15/04/1998)"),
-        ("departamento / provincia / distrito", "Elija en cascada: primero el departamento, luego la provincia y el distrito se filtran solos."),
+        ("Región / provincia / distrito", "Elija en cascada: primero la Región, luego la provincia y el distrito se filtran solos."),
         ("tipo_documento",               f"Elija de la lista ({tipos_doc})."),
         ("numero_documento",             "Texto de solo dígitos 0-9 (se conservan los ceros a la izquierda). 8 si es DNI, 9 para cualquier otro tipo."),
         ("correo personal",              "Debe tener formato de correo electrónico (usuario@dominio)."),

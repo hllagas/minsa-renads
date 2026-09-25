@@ -4,7 +4,7 @@ import { api, type Paginated } from "@/lib/api/client";
 import type { WithId } from "@/lib/api/query";
 
 /**
- * Catálogo canónico `organs` (5 filas) usado como discriminador de `OrganDirectory`
+ * Catálogo canónico `organs` (5 filas) usado como discriminador de `OrganicUnit`
  * (FK `organo`). Los ids dependen de la BD, así que el front los resuelve por `nombre`
  * (nunca se hardcodean). Ver `docs/api-catalogos.md §2`.
  */
