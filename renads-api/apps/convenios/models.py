@@ -330,13 +330,22 @@ class OrganicUnit(models.Model):
     """
 
     # Mapeo Organ.nombre → código de categoría (mirror del definido en migración 0039).
+    # Tolerante a ambos nombres del órgano MINSA: "MINSA Administrativo" (nombre en BD
+    # tras la migración 0039) y "Órgano del MINSA" (label de `ORGAN_DIRECTORY_CATEGORY`
+    # y del seed legacy 0018). Solo se usa para bootstrapear el cache por `organo_id`.
     _NOMBRE_A_CATEGORIA: dict[str, str] = {
         "MINSA Administrativo": "ORGANO_MINSA",
+        "Órgano del MINSA": "ORGANO_MINSA",
         "Universidad": "UNIVERSIDAD",
         "Gobierno Regional": "GOBIERNO_REGIONAL",
         "Unidad Ejecutora": "UNIDAD_EJECUTORA",
         "MINSA DIRIS": "MINSA_DIRIS",
     }
+
+    # Cache {organo_id: código de categoría}, poblado en el primer acceso desde la tabla
+    # `organo` y refrescado por señales post_save/post_delete de `Organ` (ver final del
+    # módulo). Resolver por id evita que un renombrado del órgano rompa `categoria`.
+    _CATEGORIA_POR_ORGANO_ID: dict[int, str] | None = None
 
     organo = models.ForeignKey(
         Organ, on_delete=models.PROTECT, db_column="organo_id",

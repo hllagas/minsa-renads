@@ -14,6 +14,13 @@ class Migration(migrations.Migration):
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
+    # Debe correr antes de que `convenios` renombre OrganDirectory → OrganicUnit
+    # (0054). Sin este orden, en un build limpio Django linealiza el rename antes
+    # de esta migración y la FK `to='convenios.organdirectory'` no resuelve.
+    run_before = [
+        ("convenios", "0052_university_entity_type"),
+    ]
+
     operations = [
         migrations.CreateModel(
             name="UserProfile",

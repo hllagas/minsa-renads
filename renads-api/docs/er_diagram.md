@@ -12,6 +12,8 @@ erDiagram
         varchar username UK
         varchar email UK
         varchar password
+        varchar first_name
+        varchar last_name
         bool is_active
         bool is_superuser
     }
@@ -38,11 +40,10 @@ erDiagram
         int usuario_id FK
         varchar tipo_documento
         varchar numero_documento UK
-        varchar apellido_paterno
-        varchar apellido_materno
         varchar telefono UK
         int unidad_organica_id FK
         int cargo_id FK
+        bool tiene_ficha_usuario
     }
 
     perfil_usuario_entidad {
@@ -139,7 +140,7 @@ erDiagram
 
     unidad_organica {
         int id PK
-        varchar categoria
+        int organo_id FK
         varchar nombre
         varchar siglas
         bool activo
@@ -156,8 +157,12 @@ erDiagram
 
     organo_representante {
         int id PK
-        int unidad_organica_id FK
+        int tipo_contenido_id FK
+        int id_objeto
         varchar nombre
+        int tipo_documento_identidad_id FK
+        varchar numero_documento_identidad
+        varchar sexo
         int cargo_ejecutivo_id FK
         varchar numero_resolucion_designacion
         varchar numero_resolucion_facultades
@@ -168,7 +173,8 @@ erDiagram
     historial_organo_representante {
         int id PK
         int representante_id FK
-        int unidad_organica_id FK
+        int tipo_contenido_id FK
+        int id_objeto
         int cargo_ejecutivo_id FK
         date fecha_baja
         datetime creado_en
@@ -321,6 +327,7 @@ erDiagram
         int id PK
         varchar ipress_id FK
         int carrera_profesional_id FK
+        int especialidad_id FK
         int campos_clinicos_registrados
         int campos_clinicos_asignados
         varchar numero_resolucion_conapres
@@ -333,6 +340,7 @@ erDiagram
         int convenio_id FK
         varchar ipress_id FK
         int carrera_profesional_id FK
+        int especialidad_id FK
         int universidad_id FK
         int campos_clinicos_autorizados
         date fecha_inicio
@@ -371,6 +379,13 @@ erDiagram
         int id PK
         int tutor_id FK
         int universidad_id FK
+    }
+
+    tutor_convenio {
+        int id PK
+        int tutor_id FK
+        int convenio_id FK
+        varchar ipress_id FK
     }
 
     interno {
@@ -495,12 +510,12 @@ erDiagram
 
     %% Directorio institucional
     unidad_organica ||--o{ cargo_ejecutivo : "tiene cargos"
-    unidad_organica ||--o{ organo_representante : "tiene representantes"
     cargo_ejecutivo ||--o{ organo_representante : "cargo del rep."
     organo_representante ||--o{ historial_organo_representante : "historial"
+    %% organo_representante.entidad es polimórfico (tipo_contenido_id + id_objeto):
+    %% apunta a unidad_organica / universidad / unidad_ejecutora / conapres / ipress
 
     %% Entidades académicas
-    unidad_organica ||--o{ universidad : "tipo_entidad"
     universidad ||--o{ facultad : "tiene facultades"
     universidad ||--o{ universidad_carrera : "carreras"
     carrera_profesional ||--o{ universidad_carrera : "pertenece"
@@ -552,11 +567,14 @@ erDiagram
     ipress ||--o{ interno : "sede"
     tutor ||--o{ interno : "tutoriza"
     ambito_geografico_sanitario ||--o{ interno : "ámbito"
-    estado_convenio ||--o{ interno : "estado actual"
+    %% interno.estado_actual → estado_internado (catálogo no modelado en este diagrama)
 
     %% Tutor
     tutor ||--o{ tutor_universidad : "imparte en"
     universidad ||--o{ tutor_universidad : "alberga tutor"
+    tutor ||--o{ tutor_convenio : "asignado en convenio"
+    convenio ||--o{ tutor_convenio : "convenio específico"
+    ipress ||--o{ tutor_convenio : "sede del tutor"
 
     %% Estudiante refs
     universidad ||--o{ estudiante : "estudia en"
