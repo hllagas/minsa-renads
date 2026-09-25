@@ -1,0 +1,8 @@
+# Dependencias de desarrollo (no requeridas en producción).
+# Instalar con: pip install -r requirements-dev.txt
+
+# Base: todas las dependencias de runtime.
+-r requirements.txt
+
+# Cobertura de pruebas unitarias (coverage.py) — mínimo 80% por módulo.
+coverage==7.16.1
