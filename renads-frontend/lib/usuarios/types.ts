@@ -33,8 +33,6 @@ export interface PermissionBrief {
 export interface UserFichaRead {
   tipo_documento: string;
   numero_documento: string;
-  apellido_paterno: string;
-  apellido_materno: string;
   telefono: string;
   unidad_organica: number;
   cargo: number;
@@ -66,11 +64,16 @@ export interface User extends WithId {
 
 /**
  * Usuario — alta (`POST /users/`). Incluye `password` write-only.
- * Los 7 campos de la ficha son **obligatorios** (el backend responde 400 si faltan);
- * `tiene_ficha_usuario` es opcional (default false).
+ *
+ * El formulario de alta es **uniforme** para todo rol (mismos campos, sin ramas por `is_superuser` en
+ * el front); es el **backend** quien valida por rol qué campos son obligatorios. `username` es
+ * **opcional**: el backend lo autogenera (= `numero_documento`) para no-super y es read-only en el
+ * serializer; solo el superusuario lo envía. `first_name`/`last_name` viven en `auth_user`. Los
+ * campos de la ficha (obligatorios solo para no-super según el backend) y `tiene_ficha_usuario`
+ * (opcional, default false) viajan **planos** en el payload aunque en lectura vengan bajo `perfil`.
  */
 export interface UserCreatePayload {
-  username: string;
+  username?: string;
   email: string;
   first_name: string;
   last_name: string;
@@ -79,11 +82,9 @@ export interface UserCreatePayload {
   is_staff: boolean;
   is_superuser: boolean;
   groups: number[];
-  // Ficha de usuario (obligatoria en el alta).
+  // Ficha de usuario (obligatoria en el alta solo para no-super).
   tipo_documento: string;
   numero_documento: string;
-  apellido_paterno: string;
-  apellido_materno: string;
   telefono: string;
   unidad_organica: number;
   cargo: number;
@@ -91,10 +92,12 @@ export interface UserCreatePayload {
 }
 
 /**
- * Usuario — edición (`PATCH /users/{id}/`). Igual que el alta pero **sin** `password`.
+ * Usuario — edición (`PATCH /users/{id}/`). Igual que el alta pero **sin** `password` (el cambio de
+ * contraseña va por la acción `set-password`). `username` es read-only en el backend: aunque el form
+ * lo muestre deshabilitado y pueda incluirlo en el payload, el PATCH no lo altera.
  * En PATCH los campos de ficha son opcionales, pero el `UserUpdateSerializer` usa
  * `allow_blank=False`/`allow_null=False`: NO deben enviarse vacíos ni nulos (el
- * `ResourceForm` omite del payload los opcionales vacíos, evitando el 400 — ver R7 del spec).
+ * `ResourceForm` omite del payload los opcionales vacíos, evitando el 400).
  */
 export type UserUpdatePayload = Omit<UserCreatePayload, "password">;
 

@@ -1,5 +1,6 @@
 import type { FieldConfig, ResourceConfig } from "@/lib/crud/types";
 import type { WithId } from "@/lib/api/query";
+import { boolIcon } from "@/components/ui/bool-icon";
 import type {
   Group,
   Permission,
@@ -33,40 +34,61 @@ const cargoLabel = (r: WithId) =>
   String(r.nombre_masculino ?? r.nombre_femenino ?? r.id);
 
 /**
- * Campos de la ficha de usuario (endurecida). El backend exige los 7 en el alta; en edición son
- * opcionales pero `allow_blank/allow_null=False`. `required` se pasa por parámetro para reutilizar
- * la misma definición en `createFields` (obligatorios) y `editFields` (opcionales; el `ResourceForm`
- * omite del payload los opcionales vacíos, evitando el 400 — ver R7 del spec).
+ * Campos de la ficha de usuario (endurecida). El backend la exige solo a los no-superusuarios (valida
+ * por rol); el formulario es **uniforme** para todos. Por eso la ficha va siempre con
+ * `required:false` (sin bloqueo de cliente) + `requiredMark:true` (asterisco visual). El
+ * `ResourceForm` omite del payload los opcionales vacíos, evitando el 400 por `allow_blank/allow_null`
+ * en la edición parcial. Idéntica en alta y edición ⇒ sin parámetro (ver T10 del spec).
  */
-const fichaUsuarioFields = (required: boolean): FieldConfig[] => [
-  { name: "_ficha", label: "Ficha de usuario", type: "separator" },
+const fichaUsuarioFields = (): FieldConfig[] => [
   {
     name: "tipo_documento",
     label: "Tipo de documento",
     type: "select",
-    required,
+    required: false,
+    requiredMark: true,
     choices: TIPO_DOCUMENTO_CHOICES,
   },
-  { name: "numero_documento", label: "Número de documento", type: "text", required, uppercase: false },
-  { name: "apellido_paterno", label: "Apellido paterno", type: "text", required, uppercase: true },
-  { name: "apellido_materno", label: "Apellido materno", type: "text", required, uppercase: true },
-  { name: "telefono", label: "Teléfono", type: "text", required, uppercase: false },
+  {
+    name: "numero_documento",
+    label: "Número de documento",
+    type: "text",
+    required: false,
+    requiredMark: true,
+    uppercase: false,
+  },
+  {
+    name: "telefono",
+    label: "Teléfono",
+    type: "text",
+    required: false,
+    requiredMark: true,
+    numericOnly: true,
+    uppercase: false,
+  },
   {
     name: "unidad_organica",
     label: "Unidad orgánica",
     type: "select",
-    required,
+    required: false,
+    requiredMark: true,
     optionsEndpoint: "organic-units",
   },
   {
     name: "cargo",
     label: "Cargo",
     type: "select",
-    required,
+    required: false,
+    requiredMark: true,
     optionsEndpoint: "executive-positions",
     optionsToLabel: cargoLabel,
+    // Cascada: el cargo se filtra por la unidad orgánica elegida (`executive-positions?unidad_organica=<id>`).
+    // Mientras no haya unidad seleccionada, no se pasa filtro (lista completa). Al cambiar la unidad, el
+    // cargo se resetea para no dejar seleccionado uno que ya no pertenece a la nueva unidad.
+    optionsParamsFrom: (v): Record<string, string> =>
+      v.unidad_organica ? { unidad_organica: String(v.unidad_organica) } : {},
+    resetsOn: ["unidad_organica"],
   },
-  { name: "tiene_ficha_usuario", label: "Tiene ficha de usuario", type: "boolean" },
 ];
 
 /** Etiqueta de un permiso (FK `permissions`): `nombre (app_label.codename)`. */
@@ -78,6 +100,16 @@ const permissionLabel = (r: WithId) => {
 /** Fecha legible (locale es-PE); vacío → «Nunca». */
 const fechaHora = (v: unknown) =>
   v ? new Date(String(v)).toLocaleString("es-PE") : "Nunca";
+
+// Ficha de usuario en el orden de la tabla §1: [tipo_documento, numero_documento, telefono,
+// unidad_organica, cargo]. `email` se intercala aparte entre `numero_documento` y `telefono`.
+const [
+  fichaTipoDocumento,
+  fichaNumeroDocumento,
+  fichaTelefono,
+  fichaUnidadOrganica,
+  fichaCargo,
+] = fichaUsuarioFields();
 
 /**
  * Usuarios (`users`) — CRUD. `DELETE` desactiva (baja lógica). Alta incluye `password` (write-only);
@@ -113,12 +145,12 @@ export const usersConfig: ResourceConfig<User> = {
       header: "Unidad orgánica",
       render: (r) => r.perfil?.unidad_organica_detalle || "—",
     },
-    { key: "ficha", header: "Ficha", render: (r) => siNo(r.perfil?.tiene_ficha_usuario) },
-    { key: "is_active", header: "Activo", render: (r) => siNo(r.is_active) },
+    { key: "ficha", header: "Ficha", render: (r) => boolIcon(Boolean(r.perfil?.tiene_ficha_usuario)) },
+    { key: "is_active", header: "Activo", render: (r) => boolIcon(Boolean(r.is_active)) },
     {
       key: "is_superuser",
       header: "Superusuario",
-      render: (r) => siNo(r.is_superuser),
+      render: (r) => boolIcon(Boolean(r.is_superuser)),
     },
     {
       key: "groups_detalle",
@@ -144,19 +176,47 @@ export const usersConfig: ResourceConfig<User> = {
       optionsToLabel: groupLabel,
     },
   ],
-  // Alta: incluye `password` write-only + los 7 campos de ficha obligatorios (backend endurecido).
+  // Alta — formulario UNIFORME para todo rol (sin `showWhen`): los 15 campos en el orden fijo de la
+  // tabla §1 del spec. La ficha y los nombres van con `requiredMark` (asterisco visual) pero
+  // `required:false` (el cliente no bloquea; el backend valida por rol). `password` se autogenera y
+  // prellena al montar (solo aquí). `email` sí es obligatorio (backend lo exige a todos).
   createFields: [
-    { name: "_cuenta", label: "Cuenta", type: "separator" },
-    { name: "username", label: "Usuario", type: "text", required: true, uppercase: false },
+    // 1. `username` — editable en el alta (el super lo teclea; para no-super el backend lo genera del
+    //    documento y es read-only). Helper explicativo bajo el input.
+    {
+      name: "username",
+      label: "Usuario",
+      type: "text",
+      uppercase: false,
+      required: false,
+      helperText: "Para usuarios no-superadmin se genera del número de documento",
+    },
+    // 2. `password` — autogenerado + mostrar/ocultar + regenerar. Solo en el alta.
+    {
+      name: "password",
+      label: "Contraseña",
+      type: "password",
+      required: true,
+      autogenerate: true,
+    },
+    // 3-4. Nombres/Apellidos (auth_user) — asterisco visual, sin bloqueo de cliente.
+    { name: "first_name", label: "Nombres", type: "text", uppercase: false, required: false, requiredMark: true },
+    { name: "last_name", label: "Apellidos", type: "text", uppercase: false, required: false, requiredMark: true },
+    // 5-6. Ficha: tipo/número de documento.
+    fichaTipoDocumento,
+    fichaNumeroDocumento,
+    // 7. Correo — obligatorio para todos.
     { name: "email", label: "Correo", type: "email", required: true },
-    { name: "first_name", label: "Nombres", type: "text", uppercase: false },
-    { name: "last_name", label: "Apellidos", type: "text", uppercase: false },
-    { name: "password", label: "Contraseña", type: "password", required: true },
-    { name: "is_active", label: "Activo", type: "boolean", defaultValue: true },
+    // 8-10. Ficha: teléfono, unidad orgánica, cargo.
+    fichaTelefono,
+    fichaUnidadOrganica,
+    fichaCargo,
+    // 11-14. Flags de cuenta.
+    { name: "tiene_ficha_usuario", label: "Tiene ficha de usuario", type: "boolean" },
     { name: "is_staff", label: "Staff", type: "boolean" },
     { name: "is_superuser", label: "Superusuario", type: "boolean" },
-    ...fichaUsuarioFields(true),
-    { name: "_roles", label: "Roles", type: "separator" },
+    { name: "is_active", label: "Activo", type: "boolean", defaultValue: true },
+    // 15. Roles (ocupa ancho completo).
     {
       name: "groups",
       label: "Roles",
@@ -165,21 +225,32 @@ export const usersConfig: ResourceConfig<User> = {
       optionsToLabel: groupLabel,
     },
   ],
-  // Edición: igual que el alta pero SIN `password` (se cambia con la acción `set-password`).
-  // Los campos de ficha son opcionales aquí (`allow_blank/allow_null=False` en el backend); el
-  // `ResourceForm` omite del payload los opcionales vacíos, así que un PATCH que no toca la ficha
-  // no la degrada ni produce 400 (ver R7 del spec).
+  // Edición — mismo orden 1,3..15 SIN `password` (el cambio va por la acción `set-password`).
+  // `username` deshabilitado (read-only en el backend; enviarlo en PATCH es inocuo). La ficha va
+  // `required:false`+`requiredMark`; el `ResourceForm` omite del payload los opcionales vacíos, así
+  // que un PATCH que no toca la ficha no la degrada ni produce 400.
   editFields: [
-    { name: "_cuenta", label: "Cuenta", type: "separator" },
-    { name: "username", label: "Usuario", type: "text", required: true, uppercase: false },
+    {
+      name: "username",
+      label: "Usuario",
+      type: "text",
+      uppercase: false,
+      required: false,
+      disabled: true,
+      helperText: "No editable (se conserva del alta)",
+    },
+    { name: "first_name", label: "Nombres", type: "text", uppercase: false, required: false, requiredMark: true },
+    { name: "last_name", label: "Apellidos", type: "text", uppercase: false, required: false, requiredMark: true },
+    fichaTipoDocumento,
+    fichaNumeroDocumento,
     { name: "email", label: "Correo", type: "email", required: true },
-    { name: "first_name", label: "Nombres", type: "text", uppercase: false },
-    { name: "last_name", label: "Apellidos", type: "text", uppercase: false },
-    { name: "is_active", label: "Activo", type: "boolean", defaultValue: true },
+    fichaTelefono,
+    fichaUnidadOrganica,
+    fichaCargo,
+    { name: "tiene_ficha_usuario", label: "Tiene ficha de usuario", type: "boolean" },
     { name: "is_staff", label: "Staff", type: "boolean" },
     { name: "is_superuser", label: "Superusuario", type: "boolean" },
-    ...fichaUsuarioFields(false),
-    { name: "_roles", label: "Roles", type: "separator" },
+    { name: "is_active", label: "Activo", type: "boolean", defaultValue: true },
     {
       name: "groups",
       label: "Roles",

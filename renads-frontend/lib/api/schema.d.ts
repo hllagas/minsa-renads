@@ -7233,11 +7233,7 @@ export interface components {
          */
         PatchedUserUpdate: {
             readonly id?: number;
-            /**
-             * Nombre de usuario
-             * @description Requerido. 150 carácteres como máximo. Únicamente letras, dígitos y @/./+/-/_
-             */
-            username?: string;
+            readonly username?: string;
             /** Format: email */
             email?: string;
             /** Nombre */
@@ -7262,8 +7258,6 @@ export interface components {
             groups?: number[];
             tipo_documento?: components["schemas"]["TipoDocumentoEnum"];
             numero_documento?: string;
-            apellido_paterno?: string;
-            apellido_materno?: string;
             telefono?: string;
             unidad_organica?: number;
             cargo?: number;
@@ -8071,16 +8065,10 @@ export interface components {
          */
         UserCreate: {
             readonly id: number;
-            /**
-             * Nombre de usuario
-             * @description Requerido. 150 carácteres como máximo. Únicamente letras, dígitos y @/./+/-/_
-             */
-            username: string;
+            readonly username: string;
             /** Format: email */
             email: string;
-            /** Nombre */
             first_name?: string;
-            /** Apellidos */
             last_name?: string;
             password?: string;
             /**
@@ -8099,13 +8087,11 @@ export interface components {
              */
             is_superuser?: boolean;
             groups?: number[];
-            tipo_documento: components["schemas"]["TipoDocumentoEnum"];
-            numero_documento: string;
-            apellido_paterno: string;
-            apellido_materno: string;
-            telefono: string;
-            unidad_organica: number;
-            cargo: number;
+            tipo_documento?: components["schemas"]["TipoDocumentoEnum"];
+            numero_documento?: string;
+            telefono?: string;
+            unidad_organica?: number;
+            cargo?: number;
             /** @default false */
             tiene_ficha_usuario: boolean;
         };
@@ -8169,10 +8155,6 @@ export interface components {
              * @description Número de documento de identidad
              */
             readonly numero_documento: string;
-            /** @description Apellido paterno del usuario */
-            readonly apellido_paterno: string;
-            /** @description Apellido materno del usuario */
-            readonly apellido_materno: string;
             /**
              * Teléfono
              * @description Número de teléfono de contacto
@@ -8252,11 +8234,7 @@ export interface components {
          */
         UserUpdate: {
             readonly id: number;
-            /**
-             * Nombre de usuario
-             * @description Requerido. 150 carácteres como máximo. Únicamente letras, dígitos y @/./+/-/_
-             */
-            username: string;
+            readonly username: string;
             /** Format: email */
             email: string;
             /** Nombre */
@@ -8281,8 +8259,6 @@ export interface components {
             groups?: number[];
             tipo_documento?: components["schemas"]["TipoDocumentoEnum"];
             numero_documento?: string;
-            apellido_paterno?: string;
-            apellido_materno?: string;
             telefono?: string;
             unidad_organica?: number;
             cargo?: number;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useForm, Controller, useWatch, type Control } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 
@@ -18,7 +18,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { EntityCombobox } from "@/components/form/entity-combobox";
 import { MultiEntityCombobox } from "@/components/form/multi-entity-combobox";
-import { Eye, EyeOff } from "lucide-react";
+import { generarPassword } from "@/lib/usuarios/password";
+import { Eye, EyeOff, RefreshCw } from "lucide-react";
 import { DatePicker } from "@/components/form/date-picker";
 import {
   Select,
@@ -51,9 +52,11 @@ function isFullWidth(field: FieldConfig): boolean {
 function FieldRow({
   field,
   control,
+  isCreate,
 }: {
   field: FieldConfig;
   control: Control<FormValues>;
+  isCreate: boolean;
 }) {
   if (field.type === "separator")
     return (
@@ -70,7 +73,7 @@ function FieldRow({
     return <MultiSelectFieldRow field={field} control={control} />;
   if (field.type === "boolean")
     return <BooleanFieldRow field={field} control={control} />;
-  return <InputFieldRow field={field} control={control} />;
+  return <InputFieldRow field={field} control={control} isCreate={isCreate} />;
 }
 
 function defaultFor(field: FieldConfig, initial: FormValues | null): unknown {
@@ -149,6 +152,10 @@ export function ResourceForm({
   onCancel: () => void;
   formClassName?: string;
 }) {
+  // `initial === null` ⇒ modo alta; con valores iniciales ⇒ edición. Lo usan los campos
+  // `password` con `autogenerate` para prellenar solo al crear.
+  const isCreate = initial === null;
+
   const { control, handleSubmit } = useForm<FormValues>({
     defaultValues: Object.fromEntries(
       fields.filter((f) => f.type !== "separator").map((f) => [f.name, defaultFor(f, initial)]),
@@ -158,10 +165,14 @@ export function ResourceForm({
   return (
     <form
       onSubmit={handleSubmit((values) => onSubmit(buildPayload(fields, values)))}
+      // `autoComplete="off"`: los formularios de administración gestionan datos de OTRAS
+      // entidades/usuarios, no las credenciales del propio admin. Evita que el navegador
+      // autocomplete campos o proponga guardar/actualizar contraseñas ajenas.
+      autoComplete="off"
       className={formClassName ?? "grid max-h-[75vh] grid-cols-1 gap-x-5 gap-y-4 overflow-x-hidden overflow-y-auto px-2 py-2 sm:grid-cols-2"}
     >
       {fields.map((field) => (
-        <ConditionalFieldWrapper key={field.name} field={field} control={control} />
+        <ConditionalFieldWrapper key={field.name} field={field} control={control} isCreate={isCreate} />
       ))}
       <div className="flex justify-end gap-2 pt-2 sm:col-span-2">
         <Button type="button" variant="outline" onClick={onCancel}>
@@ -179,16 +190,18 @@ export function ResourceForm({
 function ConditionalFieldWrapper({
   field,
   control,
+  isCreate,
 }: {
   field: FieldConfig;
   control: Control<FormValues>;
+  isCreate: boolean;
 }) {
   const watchedValues = useWatch({ control, disabled: !field.showWhen }) as FormValues;
   const visible = field.showWhen ? field.showWhen(watchedValues ?? {}) : true;
   if (!visible) return null;
   return (
     <div className={isFullWidth(field) ? "sm:col-span-2" : undefined}>
-      <FieldRow field={field} control={control} />
+      <FieldRow field={field} control={control} isCreate={isCreate} />
     </div>
   );
 }
@@ -196,11 +209,20 @@ function ConditionalFieldWrapper({
 function InputFieldRow({
   field,
   control,
+  isCreate,
 }: {
   field: FieldConfig;
   control: Control<FormValues>;
+  isCreate: boolean;
 }) {
   const [showPassword, setShowPassword] = useState(false);
+
+  // Asterisco visual: por `required` (validación dura) o por `requiredMark` (solo indicador).
+  const showAsterisk = field.required === true || field.requiredMark === true;
+
+  // Password autogenerado (solo en alta): prellena una contraseña segura al montar. En edición no
+  // aplica (el campo password no existe en `editFields`).
+  const autogen = field.type === "password" && field.autogenerate === true && isCreate;
 
   const inputType =
     field.type === "number"
@@ -281,7 +303,7 @@ function InputFieldRow({
         <div className="grid gap-1.5">
           <Label htmlFor={`f-${field.name}`}>
             {field.label}
-            {field.required ? " *" : ""}
+            {showAsterisk ? " *" : ""}
           </Label>
           {field.type === "date" ? (
             <DatePicker
@@ -291,29 +313,59 @@ function InputFieldRow({
               ariaInvalid={!!fieldState.error}
             />
           ) : field.type === "password" ? (
-            <div className="relative">
-              <Input
-                id={`f-${field.name}`}
-                type={inputType}
-                disabled={field.disabled}
-                autoComplete="new-password"
-                data-form-type="other"
-                data-lpignore="true"
-                value={(f.value as string | null) ?? ""}
-                onChange={(e) => f.onChange(e.target.value)}
-                onBlur={f.onBlur}
-                aria-invalid={!!fieldState.error}
-                className="pr-10"
-              />
-              <button
-                type="button"
-                tabIndex={-1}
-                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                onClick={() => setShowPassword((v) => !v)}
-                className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground focus:outline-none"
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                {autogen ? (
+                  <AutogenPasswordPrefill
+                    value={f.value as string | null}
+                    onChange={f.onChange}
+                  />
+                ) : null}
+                {/*
+                  Campo de contraseña de ADMIN (autogenerado): el `type` es SIEMPRE `text` —
+                  nunca `password` — y el enmascarado se hace por CSS (`-webkit-text-security`).
+                  Así el navegador NO lo clasifica como credencial y NO ofrece «guardar/actualizar
+                  contraseña» (el gestor de Chrome guardaría credenciales de OTROS usuarios en el
+                  navegador del admin). El botón del ojo alterna el enmascarado, no el `type`.
+                */}
+                <Input
+                  id={`f-${field.name}`}
+                  type="text"
+                  disabled={field.disabled}
+                  autoComplete="off"
+                  data-form-type="other"
+                  data-lpignore="true"
+                  data-1p-ignore="true"
+                  data-bwignore="true"
+                  style={{ WebkitTextSecurity: showPassword ? "none" : "disc" } as CSSProperties}
+                  value={(f.value as string | null) ?? ""}
+                  onChange={(e) => f.onChange(e.target.value)}
+                  onBlur={f.onBlur}
+                  aria-invalid={!!fieldState.error}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground focus:outline-none"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {autogen ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => f.onChange(generarPassword())}
+                  className="shrink-0"
+                >
+                  <RefreshCw className="mr-1.5 h-4 w-4" />
+                  Regenerar
+                </Button>
+              ) : null}
             </div>
           ) : (
             <Input
@@ -351,6 +403,9 @@ function InputFieldRow({
               className={toUpper ? "uppercase" : undefined}
             />
           )}
+          {field.helperText ? (
+            <p className="text-xs text-muted-foreground">{field.helperText}</p>
+          ) : null}
           {fieldState.error ? (
             <p className="text-sm text-destructive">{fieldState.error.message}</p>
           ) : null}
@@ -358,6 +413,28 @@ function InputFieldRow({
       )}
     />
   );
+}
+
+/**
+ * Prellena una contraseña autogenerada al montar el campo (solo en alta). No renderiza nada; usa un
+ * efecto para escribir el valor inicial una sola vez sin sobrescribir ediciones manuales posteriores.
+ */
+function AutogenPasswordPrefill({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (v: string) => void;
+}) {
+  const done = useRef(false);
+  useEffect(() => {
+    if (done.current) return;
+    done.current = true;
+    if (!value) onChange(generarPassword());
+    // Solo al montar; `onChange` es estable por render del Controller.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return null;
 }
 
 function MultiSelectFieldRow({
@@ -381,7 +458,7 @@ function MultiSelectFieldRow({
         <div className="grid gap-1.5">
           <Label>
             {field.label}
-            {field.required ? " *" : ""}
+            {field.required || field.requiredMark ? " *" : ""}
           </Label>
           <MultiEntityCombobox
             endpoint={field.optionsEndpoint!}
@@ -390,6 +467,9 @@ function MultiSelectFieldRow({
             value={Array.isArray(f.value) ? (f.value as number[]) : []}
             onChange={(val) => f.onChange(val)}
           />
+          {field.helperText ? (
+            <p className="text-xs text-muted-foreground">{field.helperText}</p>
+          ) : null}
           {fieldState.error ? (
             <p className="text-sm text-destructive">{fieldState.error.message}</p>
           ) : null}
@@ -476,7 +556,7 @@ function SelectFieldRow({
         <div className="grid gap-1.5">
           <Label>
             {field.label}
-            {field.required ? " *" : ""}
+            {field.required || field.requiredMark ? " *" : ""}
           </Label>
           {field.resetsOn?.length ? (
             <ResetOnParentChange
@@ -534,6 +614,9 @@ function SelectFieldRow({
               placeholder={entityGated ? "Elige primero el campo relacionado…" : undefined}
             />
           )}
+          {field.helperText ? (
+            <p className="text-xs text-muted-foreground">{field.helperText}</p>
+          ) : null}
           {fieldState.error ? (
             <p className="text-sm text-destructive">{fieldState.error.message}</p>
           ) : null}

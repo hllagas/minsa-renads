@@ -102,6 +102,24 @@ export interface FieldConfig {
   /** Deshabilita el campo (solo lectura en el formulario). */
   disabled?: boolean;
   /**
+   * Para `type: "password"`: en modo **alta** (form sin valores iniciales) prellena el campo con una
+   * contraseña segura autogenerada al montar y muestra un botón «Regenerar» junto al ojo de
+   * mostrar/ocultar. No aplica en edición. El valor se envía como string write-only en el payload.
+   */
+  autogenerate?: boolean;
+  /**
+   * Texto de ayuda mostrado bajo el input (pequeño, `text-muted-foreground`). Genérico: sirve como
+   * guía contextual del campo (p. ej. cómo se autogenera el `username`). No afecta la validación.
+   */
+  helperText?: string;
+  /**
+   * Fuerza el asterisco «*» en el label como **indicador visual** de campo requerido, SIN activar la
+   * validación dura de cliente (`required`). Útil cuando el backend valida el campo por rol/contexto
+   * pero el cliente no debe bloquear el envío (p. ej. la ficha de usuario, obligatoria solo para
+   * no-superusuarios).
+   */
+  requiredMark?: boolean;
+  /**
    * Para un campo de **número de documento** (`type: "text"`): nombre del select del **tipo de
    * documento** (`identity-document-types`). Valida la longitud según el tipo elegido: DNI → 8
    * dígitos, otro → 9 (solo dígitos). Ver `lib/validation/doc-number.ts`.

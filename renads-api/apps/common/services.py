@@ -413,8 +413,13 @@ def crear_usuario_con_perfil(
     user.save()
     user.groups.set(groups)
 
+    # Política (2026-09-25): la contraseña autogenerada en el alta por administrador es
+    # **definitiva** — NO se fuerza el cambio en el primer login (`debe_cambiar_password=False`).
+    # El usuario inicia sesión con la contraseña que el admin ve/copia al crear; el cambio solo
+    # ocurre por la acción «Restablecer contraseña» (`set-password`) o por decisión del propio
+    # usuario. (El onboarding del interno usa otro flujo y conserva su contraseña temporal.)
     user_security, _ = UserSecurity.objects.get_or_create(usuario=user)
-    user_security.debe_cambiar_password = True
+    user_security.debe_cambiar_password = False
     user_security.password_changed_at = timezone.now()
     user_security.save(update_fields=["debe_cambiar_password", "password_changed_at", "actualizado_en"])
 
