@@ -92,7 +92,10 @@ class ConventionScope(BasePermission):
         refs = entidades_del_usuario(user)
         if not refs:
             return False
-        if (obj.solicitante_tipo_contenido_id, obj.solicitante_id_objeto) in refs:
+        # `entidades_del_usuario` normaliza el id de objeto a str; el `solicitante_id_objeto`
+        # es int, por lo que hay que castear para que la comparación sea coherente con el
+        # selector (de lo contrario un usuario que solo es solicitante nunca pasaría el gate).
+        if (obj.solicitante_tipo_contenido_id, str(obj.solicitante_id_objeto)) in refs:
             return True
         condicion = Q()
         for tipo_contenido_id, id_objeto in refs:

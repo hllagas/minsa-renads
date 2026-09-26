@@ -9,6 +9,8 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
+from django.db.models.signals import post_delete, post_save
+from django.dispatch import receiver
 
 
 # ---------------------------------------------------------------------------
@@ -373,10 +375,31 @@ class OrganicUnit(models.Model):
     def __str__(self):
         return self.nombre
 
+    @classmethod
+    def _mapa_categoria_por_organo_id(cls) -> dict[int, str]:
+        """Devuelve {organo_id: código de categoría}, resuelto y cacheado una vez.
+
+        Bootstrapea el mapa desde ``Organ`` por nombre (tolerante a alias) pero la
+        resolución posterior es por id: un renombrado del órgano ya no rompe la
+        categoría de las filas existentes.
+        """
+        if cls._CATEGORIA_POR_ORGANO_ID is None:
+            cls._CATEGORIA_POR_ORGANO_ID = {
+                organo_id: cls._NOMBRE_A_CATEGORIA[nombre]
+                for organo_id, nombre in Organ.objects.values_list("id", "nombre")
+                if nombre in cls._NOMBRE_A_CATEGORIA
+            }
+        return cls._CATEGORIA_POR_ORGANO_ID
+
+    @classmethod
+    def refrescar_cache_categorias(cls) -> None:
+        """Invalida el cache {organo_id: categoría}; se reconstruye al próximo acceso."""
+        cls._CATEGORIA_POR_ORGANO_ID = None
+
     @property
     def categoria(self) -> str | None:
-        """Código de categoría derivado del FK ``organo`` (compat. con call sites legacy)."""
-        return self._NOMBRE_A_CATEGORIA.get(self.organo.nombre)
+        """Código de categoría derivado del FK ``organo`` (resuelto por ``organo_id``)."""
+        return self._mapa_categoria_por_organo_id().get(self.organo_id)
 
     def get_categoria_display(self) -> str | None:
         """Label español de la categoría (para serializers con source=...get_categoria_display)."""
@@ -1347,3 +1370,12 @@ class AuditLog(models.Model):
     class Meta:
         db_table = "bitacora_auditoria"
         verbose_name = "bitácora de auditoría"
+
+
+# ---------------------------------------------------------------------------
+# Señales — invalidación del cache {organo_id: categoría} de OrganicUnit
+# ---------------------------------------------------------------------------
+@receiver([post_save, post_delete], sender=Organ)
+def _invalidar_cache_categoria_organo(sender, **kwargs):
+    """Refresca el cache de categorías cuando la tabla `organo` cambia (alta/edición/baja)."""
+    OrganicUnit.refrescar_cache_categorias()
