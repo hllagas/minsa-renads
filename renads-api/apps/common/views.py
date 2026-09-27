@@ -5,6 +5,7 @@ y autenticación de dos factores (2FA)."""
 import pyotp
 from datetime import timedelta
 
+from django.contrib.auth import update_last_login
 from django.contrib.auth.models import Group, Permission, User
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
@@ -131,6 +132,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
         # 5. Sin 2FA activo → flujo habitual (devolver JWT completo sin modificar).
         if not user_security.two_factor_enabled:
+            update_last_login(None, user)
             return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
         # 6. Con 2FA opt-in activo → generar session_token diferido.
@@ -499,6 +501,7 @@ class TwoFactorVerifyView(APIView):
                 )
 
         # Generar el par JWT completo con los mismos claims que el login normal.
+        update_last_login(None, user)
         refresh = RefreshToken.for_user(user)
         # Agregar los claims personalizados del proyecto (igual que CustomTokenObtainPairSerializer).
         # Usamos _nombre_usuario para componer el nombre con apellidos cuando hay UserProfile (T-18).
