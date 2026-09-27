@@ -3,23 +3,34 @@
 import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-import { buildStudentsConfig, buildTutorsConfig } from "@/lib/internados/persons";
+import { buildStudentsConfig, buildTutorsConfig, buildCoordinatorsConfig } from "@/lib/internados/persons";
 import { useAuthStore, userHasRole } from "@/lib/auth/store";
 import { TutorCreateWizard } from "@/components/internados/tutor-create-wizard";
+import { TutorConvenioDialog } from "@/components/internados/tutor-convenio-dialog";
+import { CoordinatorSedesDialog } from "@/components/internados/coordinator-sedes-dialog";
 import { useUniversityScope } from "@/lib/auth/scope";
 import { api, type Paginated } from "@/lib/api/client";
 import type { WithId } from "@/lib/api/query";
+import type { RowAction } from "@/lib/crud/types";
 import { ResourceCrud } from "@/components/crud/resource-crud";
 import { StudentsBulkUploadDialog } from "@/components/internados/students-bulk-upload-dialog";
 import { useUniversityGate } from "@/components/internados/university-gate";
 import { UniversityLogoDisplay } from "@/components/internados/university-logo-display";
 import { extractApiError } from "@/lib/api/errors";
+import { EntityCombobox } from "@/components/form/entity-combobox";
 import { PageHeader } from "@/components/data/page-header";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -34,6 +45,7 @@ export default function PersonaPage() {
 
   if (entidad === "students") return <StudentsView />;
   if (entidad === "tutors") return <TutorsView />;
+  if (entidad === "coordinators") return <CoordinatorsView />;
 
   return (
     <div className="grid gap-3">
@@ -50,7 +62,7 @@ function BackLink() {
   return (
     <div className="mb-1">
       <Link href="/internados" className="text-sm text-muted-foreground hover:text-foreground">
-        ← Internados
+        ← Internado
       </Link>
     </div>
   );
@@ -265,6 +277,213 @@ function TutorUniversidades({
 }
 
 /**
+ * Vista de coordinadores: elegir universidad (acotada al alcance) → listar los coordinadores
+ * con sedes en esa universidad (filtro `sedes__universidad`).
+ */
+function CoordinatorsView() {
+  const user = useAuthStore((s) => s.user);
+  const canWrite = userHasRole(user, "Universidad", "Administrador RENADS");
+  const { universidad, gateUI } = useUniversityGate();
+  const queryClient = useQueryClient();
+  const config = useMemo(() => buildCoordinatorsConfig(), []);
+  const initialFilters = useMemo<Record<string, string> | undefined>(
+    () =>
+      universidad != null ? { universidad: String(universidad) } : undefined,
+    [universidad],
+  );
+
+  // Estado para el dialog de sedes
+  const [sedesCoordinador, setSedesCoordinador] = useState<{
+    id: number;
+    nombre: string;
+  } | null>(null);
+
+  // Estado para el dialog de asignar tutor
+  const [asignarTutorTarget, setAsignarTutorTarget] = useState<{
+    id: number;
+    nombre: string;
+    tutorActual: number | null;
+  } | null>(null);
+  const [tutorPick, setTutorPick] = useState<number | null>(null);
+
+  const asignarMutation = useMutation({
+    mutationFn: ({ coordId, tutorId }: { coordId: number; tutorId: number | null }) =>
+      api.patch(`/coordinators/${coordId}/`, { tutor: tutorId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["coordinators"] });
+      toast.success(tutorPick != null ? "Tutor asignado correctamente." : "Tutor desvinculado.");
+      setAsignarTutorTarget(null);
+      setTutorPick(null);
+    },
+    onError: (e) => toast.error(extractApiError(e)),
+  });
+
+  // Helper inline para apellidos+nombres
+  const apellidosNombresInline = (row: WithId): string =>
+    [row.apellido_paterno, row.apellido_materno, row.nombres]
+      .map((x) => String(x ?? "").trim())
+      .filter(Boolean)
+      .join(" ");
+
+  const tutorParams = useMemo<Record<string, string> | undefined>(
+    () => (universidad != null ? { universidades: String(universidad) } : undefined),
+    [universidad],
+  );
+
+  const rowActions: RowAction<WithId>[] = useMemo(
+    () => [
+      {
+        key: "sedes",
+        label: "Sedes",
+        variant: "outline" as const,
+        onClick: (row: WithId) =>
+          setSedesCoordinador({
+            id: Number(row.id),
+            nombre: apellidosNombresInline(row),
+          }),
+      },
+      ...(canWrite
+        ? [
+            {
+              key: "asignar-tutor",
+              label: "Asignar tutor",
+              variant: "outline" as const,
+              onClick: (row: WithId) => {
+                const tutorId =
+                  row.tutor != null && row.tutor !== "" ? Number(row.tutor) : null;
+                setTutorPick(tutorId);
+                setAsignarTutorTarget({
+                  id: Number(row.id),
+                  nombre: apellidosNombresInline(row),
+                  tutorActual: tutorId,
+                });
+              },
+            },
+          ]
+        : []),
+    ],
+    [canWrite, universidad],
+  );
+
+  return (
+    <div>
+      <BackLink />
+      <PageHeader
+        title={config.title}
+        description={config.description}
+        actions={
+          universidad != null ? <UniversityLogoDisplay id={universidad} /> : undefined
+        }
+      />
+      <div className="mb-4">{gateUI}</div>
+      {universidad == null ? (
+        <EmptyPick label="Selecciona una universidad para ver sus coordinadores." />
+      ) : (
+        <>
+          <ResourceCrud
+            key={universidad}
+            config={config}
+            initialFilters={initialFilters}
+            fixedValues={universidad != null ? { universidad } : undefined}
+            hideHeader
+            rowActions={rowActions}
+          />
+
+          {/* Dialog: sedes del coordinador */}
+          {sedesCoordinador != null && (
+            <CoordinatorSedesDialog
+              coordinatorId={sedesCoordinador.id}
+              coordinatorNombre={sedesCoordinador.nombre}
+              open={sedesCoordinador !== null}
+              onOpenChange={(open) => {
+                if (!open) setSedesCoordinador(null);
+              }}
+              universidad={universidad}
+              canWrite={canWrite}
+            />
+          )}
+
+          {/* Dialog: asignar tutor al coordinador */}
+          <Dialog
+            open={asignarTutorTarget !== null}
+            onOpenChange={(open) => {
+              if (!open) {
+                setAsignarTutorTarget(null);
+                setTutorPick(null);
+              }
+            }}
+          >
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>
+                  Asignar tutor — {asignarTutorTarget?.nombre}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="flex flex-col gap-4 py-2">
+                <p className="text-sm text-muted-foreground">
+                  Selecciona un tutor registrado en esta universidad que aún no haya
+                  sido asignado a otro coordinador.
+                </p>
+                <div className="grid gap-1.5">
+                  <Label className="text-sm font-medium">Tutor</Label>
+                  <EntityCombobox<number>
+                    endpoint="tutors"
+                    params={tutorParams}
+                    toLabel={(r) =>
+                      [r.apellido_paterno, r.apellido_materno, r.nombres]
+                        .map((x) => String(x ?? "").trim())
+                        .filter(Boolean)
+                        .join(" ")
+                    }
+                    value={tutorPick}
+                    onChange={setTutorPick}
+                    placeholder="Buscar tutor…"
+                  />
+                </div>
+                {asignarTutorTarget?.tutorActual != null && (
+                  <p className="text-xs text-muted-foreground">
+                    El coordinador ya tiene un tutor vinculado. Seleccionar uno nuevo lo
+                    reemplazará.
+                  </p>
+                )}
+              </div>
+              <DialogFooter className="gap-2">
+                {asignarTutorTarget?.tutorActual != null && (
+                  <Button
+                    variant="outline"
+                    disabled={asignarMutation.isPending}
+                    onClick={() =>
+                      asignarMutation.mutate({
+                        coordId: asignarTutorTarget.id,
+                        tutorId: null,
+                      })
+                    }
+                  >
+                    Desvincular tutor
+                  </Button>
+                )}
+                <Button
+                  disabled={tutorPick == null || asignarMutation.isPending}
+                  onClick={() => {
+                    if (asignarTutorTarget && tutorPick != null)
+                      asignarMutation.mutate({
+                        coordId: asignarTutorTarget.id,
+                        tutorId: tutorPick,
+                      });
+                  }}
+                >
+                  {asignarMutation.isPending ? "Asignando…" : "Asignar"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </>
+      )}
+    </div>
+  );
+}
+
+/**
  * Vista de tutores: elegir universidad (acotada al alcance) → listar los tutores de esa universidad
  * (filtro `universidades`). No usa `fixedValues` porque `universidades` es M2M (RN-24).
  */
@@ -280,6 +499,33 @@ function TutorsView() {
     [universidad],
   );
   const [wizardOpen, setWizardOpen] = useState(false);
+
+  // Estado para el dialog de gestión de TutorConvenio
+  const [conveniosTutor, setConveniosTutor] = useState<{ id: number; nombre: string } | null>(null);
+
+  // Helper inline que replica la lógica de `apellidosNombres` de lib/internados/persons.ts
+  const apellidosNombresInline = (row: WithId): string =>
+    [row.apellido_paterno, row.apellido_materno, row.nombres]
+      .map((x) => String(x ?? "").trim())
+      .filter(Boolean)
+      .join(" ");
+
+  // Row action «Convenios asignados» — visible para todos los roles autenticados
+  const rowActions: RowAction<WithId>[] = useMemo(
+    () => [
+      {
+        key: "convenios",
+        label: "Convenios asignados",
+        variant: "outline" as const,
+        onClick: (row: WithId) =>
+          setConveniosTutor({
+            id: Number(row.id),
+            nombre: apellidosNombresInline(row),
+          }),
+      },
+    ],
+    [],
+  );
 
   async function handleTutorDelete(row: WithId, close: () => void) {
     // IDs actuales de universidades del tutor. La lista puede exponerlos como
@@ -343,6 +589,7 @@ function TutorsView() {
             initialFilters={initialFilters}
             hideHeader
             onDelete={handleTutorDelete}
+            rowActions={rowActions}
             renderEditInfo={(row) => (
               <TutorUniversidades row={row} universidad={universidad} />
             )}
@@ -357,6 +604,18 @@ function TutorsView() {
               universidad={universidad}
               open={wizardOpen}
               onOpenChange={setWizardOpen}
+            />
+          )}
+          {conveniosTutor != null && (
+            <TutorConvenioDialog
+              tutorId={conveniosTutor.id}
+              tutorNombre={conveniosTutor.nombre}
+              open={conveniosTutor !== null}
+              onOpenChange={(open) => {
+                if (!open) setConveniosTutor(null);
+              }}
+              universidad={universidad}
+              canWrite={canWrite}
             />
           )}
         </>

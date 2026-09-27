@@ -315,10 +315,141 @@ export function buildTutorsConfig(isAdmin: boolean, _universidad: number | null)
   };
 }
 
+/** Columnas del listado de coordinadores. */
+const coordinatorColumns: ColumnConfig<WithId>[] = [
+  { key: "tipo_documento_identidad", header: "Tipo doc.", render: tipoDocLabel },
+  { key: "numero_documento", header: "N° documento", render: (r) => String(r.numero_documento ?? "—") },
+  { key: "apellidos_nombres", header: "Apellidos y nombres", render: (r) => apellidosNombres(r) },
+  { key: "universidad", header: "Universidad", render: (r) => detalleNombre(r.universidad_detalle) },
+  {
+    key: "tutor",
+    header: "Tutor vinculado",
+    render: (r) => {
+      const d = r.tutor_detalle;
+      if (d && typeof d === "object" && "nombres" in d) {
+        const det = d as { nombres?: unknown; apellido_paterno?: unknown };
+        return [det.apellido_paterno, det.nombres].map((x) => String(x ?? "").trim()).filter(Boolean).join(" ") || "—";
+      }
+      return "—";
+    },
+  },
+  { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
+];
+
+/**
+ * Config CRUD de coordinadores. Sin parámetros (a diferencia de estudiantes/tutores,
+ * la universidad se filtra vía `initialFilters` desde la vista, no como campo fijo).
+ */
+export function buildCoordinatorsConfig(): ResourceConfig {
+  const fields: FieldConfig[] = [
+    { name: "_s1", label: "Identificación", type: "separator" },
+    {
+      name: "tipo_documento_identidad",
+      label: "Tipo de documento",
+      type: "select",
+      required: true,
+      optionsEndpoint: "identity-document-types",
+    },
+    {
+      name: "numero_documento",
+      label: "Número de documento",
+      type: "text",
+      required: true,
+      uppercase: false,
+      docNumberFor: "tipo_documento_identidad",
+    },
+
+    { name: "_s2", label: "Datos personales", type: "separator" },
+    { name: "nombres", label: "Nombres", type: "text", required: true, uppercase: true },
+    { name: "apellido_paterno", label: "Apellido paterno", type: "text", required: true, uppercase: true },
+    { name: "apellido_materno", label: "Apellido materno", type: "text", required: false, uppercase: true },
+
+    { name: "_s4", label: "Datos profesionales", type: "separator" },
+    {
+      name: "universidad",
+      label: "Universidad",
+      type: "select",
+      required: true,
+      optionsEndpoint: "universities",
+    },
+    {
+      name: "profesion",
+      label: "Profesión",
+      type: "select",
+      required: false,
+      optionsEndpoint: "professional-careers",
+    },
+    {
+      name: "especialidad",
+      label: "Especialidad",
+      type: "select",
+      required: false,
+      optionsEndpoint: "specialties",
+    },
+    { name: "numero_colegiatura", label: "N° colegiatura", type: "text", required: false, uppercase: false },
+
+    { name: "_s5", label: "Contacto", type: "separator" },
+    { name: "correo", label: "Correo", type: "email", required: false },
+    { name: "telefono", label: "Teléfono", type: "text", required: false, uppercase: false, numericOnly: true },
+    { name: "direccion", label: "Dirección", type: "text", required: false, uppercase: true },
+    {
+      name: "ubigeo",
+      label: "Ubigeo",
+      type: "select",
+      required: false,
+      optionsEndpoint: "ubigeos",
+      optionsValueKey: "codigo", // PK textual (mig 0048-0049)
+      optionsSearchable: true,
+      optionsToLabel: (r) =>
+        [r.codigo, [r.distrito, r.provincia, r.departamento].filter(Boolean).join(", ")]
+          .filter(Boolean)
+          .join(" — "),
+    },
+
+    { name: "activo", label: "Activo", type: "boolean", defaultValue: true },
+  ];
+
+  const editFields: FieldConfig[] = fields.map((f) =>
+    f.name === "tipo_documento_identidad" || f.name === "numero_documento" || f.name === "universidad"
+      ? { ...f, disabled: true }
+      : f,
+  );
+
+  return {
+    endpoint: "coordinators",
+    title: "Coordinadores",
+    singular: "coordinador",
+    description: "Coordinadores de tutores por sede docente.",
+    searchPlaceholder: "Buscar por documento o nombres…",
+    writeRoles: WRITE,
+    columns: coordinatorColumns,
+    filters: [
+      { name: "activo", label: "Activo", type: "boolean" },
+      { name: "universidad", label: "Universidad", type: "select", optionsEndpoint: "universities" },
+      {
+        name: "sedes__ipress",
+        label: "IPRESS",
+        type: "select",
+        optionsEndpoint: "ipress",
+        optionsValueKey: "codigo_renipress",
+        optionsSearchable: true,
+      },
+    ],
+    fields,
+    editFields,
+    dialogClassName: "sm:max-w-2xl",
+    createFormClassName:
+      "grid max-h-[80vh] grid-cols-1 gap-x-5 gap-y-2 overflow-x-hidden overflow-y-auto px-2 py-1 sm:grid-cols-2",
+    editFormClassName:
+      "grid max-h-[80vh] grid-cols-1 gap-x-5 gap-y-2 overflow-x-hidden overflow-y-auto px-2 py-1 sm:grid-cols-2",
+  };
+}
+
 /** Configuración de personas del módulo Internados (solo students; tutors usa `buildTutorsConfig`). */
 export const PERSON_CONFIGS: Record<string, ResourceConfig> = {};
 
 export const PERSON_MENU: { slug: string; title: string }[] = [
   { slug: "students", title: "Estudiantes" },
   { slug: "tutors", title: "Tutores" },
+  { slug: "coordinators", title: "Coordinadores" },
 ];

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { Layers, CheckSquare, ArrowRightSquare } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -12,7 +11,6 @@ import { PageHeader } from "@/components/data/page-header";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -25,21 +23,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-
-const NAV_CARDS = [
-  {
-    href: "/campos-clinicos/registros",
-    title: "Determinación de campos de formación",
-    description:
-      "Campos de formación determinados a cada sede docente y carrera profesional (CONAPRES).",
-  },
-  {
-    href: "/campos-clinicos/asignaciones",
-    title: "Asignación de campos de formación",
-    description:
-      "Campos de formación asignados a cada universidad, según disponibilidad en cada sede docente (Órgano Regional).",
-  },
-];
 
 function KpiCard({
   title,
@@ -216,20 +199,6 @@ export default function CamposClinicosPage() {
             loading={asignacionesLoading}
           />
         </div>
-      </div>
-
-      {/* Tarjetas de navegación existentes */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        {NAV_CARDS.map((c) => (
-          <Link key={c.href} href={c.href}>
-            <Card className="h-full transition-colors hover:bg-muted/50">
-              <CardHeader>
-                <CardTitle>{c.title}</CardTitle>
-                <CardDescription>{c.description}</CardDescription>
-              </CardHeader>
-            </Card>
-          </Link>
-        ))}
       </div>
     </div>
   );

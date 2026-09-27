@@ -73,8 +73,8 @@
   --primary: #2563eb;
   --primary-foreground: #ffffff;
   /* Marca (navy/teal para el shell; CTA = naranja MASTER) */
-  --navy: oklch(0.25 0.05 255);
-  --navy-foreground: oklch(0.985 0 0);
+  --navy: #1e2a4a; /* barra de menú (navbar + sidebar), azul de marca más claro, distinta del cuerpo */
+  --navy-foreground: #ffffff;
   --cta: #f97316;
   --cta-foreground: #ffffff;
   --teal: oklch(0.70 0.13 180);
@@ -124,6 +124,9 @@
   --secondary-foreground: #0b1220;
   --cta: #fb923c;
   --cta-foreground: #0b1220;
+  /* Barra de menú en oscuro: navy un paso más claro que el cuerpo (#0b1220), texto azul claro. */
+  --navy: #0a0f1c;
+  --navy-foreground: #dbeafe;
   --muted: oklch(0.28 0.03 255);
   --muted-foreground: oklch(0.75 0.04 250);
   --accent: oklch(0.28 0.03 255);

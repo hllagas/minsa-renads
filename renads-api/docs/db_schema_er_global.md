@@ -81,7 +81,7 @@ erDiagram
     tutor ||--o{ interno : ""
     universidad ||--o{ estudiante : ""
     universidad ||--o{ tutor_universidad : ""
-    tutor ||--o{ tutor_universidad : "1 a 2 (RN-24)"
+    tutor ||--o{ tutor_universidad : "1 a 5 (RN-24)"
     carrera_profesional ||--o{ estudiante : ""
     parentesco ||--o{ interno : "contacto emergencia"
     periodo_internado ||--o{ estudiante : "Pregrado (RN-19)"
@@ -94,6 +94,14 @@ erDiagram
     rotacion ||--o{ autorizacion_rotacion : ""
     participante_convenio ||--o{ autorizacion_rotacion : ""
     rotacion ||--o{ historial_estado_rotacion : ""
+    %% ===== M2: Coordinador de tutores (RN-CRD-01..06) =====
+    coordinador ||--o{ coordinador_sede : "sedes (RN-CRD-01)"
+    coordinador_sede }o--|| universidad : ""
+    coordinador_sede }o--|| ipress : "sede docente (RN-CRD-04/05)"
+    coordinador_sede ||--o{ coordinador_tutor : "tutores asignados"
+    coordinador_tutor }o--|| tutor : "(RN-CRD-06)"
+    coordinador }o--o| tutor : "también tutor (RN-CRD-02)"
+
     %% Catálogo maestro de documentos requeridos por actor (interno / representante — cubre
     %% autoridad de universidad y CONAPRES) vía tipo_actor; el adjunto real por entidad se guarda
     %% en `documento_adjunto` (FK documento_anexo_id obligatoria, versionado por (objeto, documento_anexo)).

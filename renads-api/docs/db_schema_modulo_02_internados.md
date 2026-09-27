@@ -20,7 +20,7 @@ El módulo **Registrar Internados** registra a los estudiantes (alumnos de últi
 - Registro de estudiantes en **doble modalidad**: **individual** y **masiva** vía archivo Excel (RN-16, ver §7 bis).
 - La **universidad** asigna internos a los **campos clínicos disponibles** por sede docente y carrera profesional definidos en los Convenios Específicos (RN-17).
 - **Orden de prelación** de asignación de internos: por **orden de mérito** según `nota_promedio_ponderado` (mayor a menor) (RN-18).
-- Un **tutor** pertenece de **1 a 2 universidades** (tope de negocio) vía `tutor_universidad` (RN-24).
+- Un **tutor** pertenece de **1 a 5 universidades** (tope de negocio) vía `tutor_universidad` (RN-24).
 - **Registro de internos por la universidad con alcance institucional** (RN-20): el usuario de universidad solo registra/ve internos de las universidades dentro de su ámbito (`perfil_usuario_entidad` con entidad `universidad`; 1..N universidades). Superusuario y `Administrador RENADS` exentos.
 - **Unicidad de interno por DNI** (RN-21): un estudiante no puede tener más de un internado **vigente**. Estados **bloqueantes**: `REGISTRADO`, `PENDIENTE_VALIDACION`, `OBSERVADO`, `VALIDADO`, `ACTIVO`, `EN_ROTACION_SOLICITADA`, `EN_ROTACION_AUTORIZADA`, `EN_ROTACION_OBSERVADA`. Estados **liberadores** (permiten un nuevo registro): `SUSPENDIDO`, `RETIRADO`, `CULMINADO`, `ANULADO`.
 - **Onboarding del interno** (RN-22): al registrar el internado se crea (o reutiliza) un `User` con `username = numero_documento`, contraseña temporal, `debe_cambiar_password=True` (tabla `seguridad_usuario`), grupo `Interno` y `perfil_usuario_entidad` sobre su `estudiante`. Solo lee sus datos y adjunta sus declaraciones juradas; no edita datos personales ni ve otros internos. Se le **notifica por correo** (sede docente, fechas, tutor, instrucción de adjuntar DJ) — best-effort post-commit.
@@ -172,7 +172,7 @@ Re-subir el mismo anexo a la misma entidad genera una nueva versión del
 | `profesion_id` | FK → `carrera_profesional` (PROTECT) | Sí | Profesión del tutor (carrera profesional) |
 | `activo` | bool | No | |
 
-> **RN-24:** un tutor pertenece **de 1 a 2 universidades** (tope de negocio, validado a nivel de aplicación). La relación N–N se materializa en la tabla puente `tutor_universidad`. La asignación del tutor a una IPRESS se realiza **por convenio** mediante `tutor_convenio`.
+> **RN-24:** un tutor pertenece **de 1 a 5 universidades** (tope de negocio, validado a nivel de aplicación). La relación N–N se materializa en la tabla puente `tutor_universidad`. La asignación del tutor a una IPRESS se realiza **por convenio** mediante `tutor_convenio`.
 
 ### `tutor_universidad` (puente tutor ↔ universidad — RN-24)
 
@@ -201,7 +201,82 @@ Escritura exige rol `Universidad` o `Administrador RENADS`.
 
 ---
 
-## 5. Interno
+## 5. Coordinador
+
+### `coordinador`
+
+| Columna | Tipo | Null | Descripción |
+|---------|------|------|-------------|
+| `id` | PK | No | |
+| `tutor_id` | OneToOne → `tutor` (SET_NULL), único | Sí | Tutor vinculado (si el coordinador también es tutor — RN-CRD-02) |
+| `universidad_id` | FK → `universidad` (PROTECT) | No | Universidad a la que pertenece el coordinador |
+| `tipo_documento_identidad_id` | FK → `tipo_documento_identidad` | No | |
+| `numero_documento` | varchar(20), único | No | |
+| `nombres` | varchar(150) | No | |
+| `apellido_paterno` | varchar(100) | No | |
+| `apellido_materno` | varchar(100) | Sí | |
+| `correo` | varchar(255) | Sí | |
+| `telefono` | varchar(30) | Sí | |
+| `numero_colegiatura` | varchar(50) | Sí | |
+| `direccion` | varchar(500) | Sí | |
+| `ubigeo_id` | FK → `ubigeo` (PROTECT) — varchar(6) | Sí | |
+| `especialidad_id` | FK → `especialidad` (SET_NULL) | Sí | |
+| `profesion_id` | FK → `carrera_profesional` (PROTECT) | Sí | |
+| `activo` | bool | No | |
+
+> **RN-CRD-01..03:** un coordinador pertenece directamente a una universidad
+> (`universidad_id`, NOT NULL desde migración 0033). Puede ser también tutor
+> (RN-CRD-02, `tutor_id` único nullable — OneToOneField). Puede representar
+> múltiples sedes sin límite (RN-CRD-03).
+>
+> La universidad está en el **coordinador**, no en `coordinador_sede`.
+> El filtro `/api/v1/coordinators/?universidad=<id>` funciona directamente sobre
+> el campo `universidad_id` del modelo.
+
+### `coordinador_sede` (asignación coordinador ↔ sede — RN-CRD-01)
+
+| Columna | Tipo | Null | Descripción |
+|---------|------|------|-------------|
+| `id` | PK | No | |
+| `coordinador_id` | FK → `coordinador` (CASCADE) | No | La universidad se deriva de `coordinador.universidad` |
+| `ipress_id` | FK → `ipress` (PROTECT) — varchar(8) | No | Sede docente (código RENIPRESS) |
+
+Único por `(coordinador_id, ipress_id)`.
+La sede debe cumplir RN-CRD-04 (`es_sede_docente=True`) y RN-CRD-05 (unidad ejecutora
+con Convenio Específico vigente para la universidad del coordinador). Validado en
+`services.validar_asignacion_coordinador_sede`.
+
+El campo `universidad_id` fue eliminado de esta tabla en la migración 0033/0034 y movido
+a `coordinador`. El POST de la acción `sedes` ya no requiere `universidad` en el cuerpo.
+
+Endpoints:
+- `GET/POST /api/v1/coordinators/{id}/sedes/`
+- `GET/DELETE /api/v1/coordinators/{id}/sedes/{sede_pk}/`
+- `GET /api/v1/coordinators/{id}/sedes-disponibles/` — sedes aptas sin coordinador asignado para la universidad del coordinador
+
+### `coordinador_tutor` (tutores asignados a un coordinador por sede — RN-CRD-06)
+
+| Columna | Tipo | Null | Descripción |
+|---------|------|------|-------------|
+| `id` | PK | No | |
+| `coordinador_sede_id` | FK → `coordinador_sede` (CASCADE) | No | |
+| `tutor_id` | FK → `tutor` (PROTECT) | No | |
+
+Único por `(coordinador_sede_id, tutor_id)`. RN-CRD-06: un tutor es único a un
+coordinador por (universidad del coordinador, sede) — validado en
+`services.asignar_tutor_coordinador_sede` antes del insert; la universidad se
+deriva de `coordinador_sede.coordinador.universidad`.
+
+Endpoints: `GET/POST /api/v1/coordinators/{id}/sedes/{sede_pk}/tutores/`,
+`DELETE /api/v1/coordinators/{id}/sedes/{sede_pk}/tutores/{tutor_pk}/`.
+
+> **Tablas de Convenios referenciadas desde el coordinador:**
+> `convenio` se consulta en `validar_asignacion_coordinador_sede` (RN-CRD-05) para verificar
+> que la unidad ejecutora de la sede tenga ≥1 Convenio Específico vigente para la universidad.
+
+---
+
+## 6. Interno
 
 ### `interno`
 
@@ -250,7 +325,7 @@ Escritura exige rol `Universidad` o `Administrador RENADS`.
 
 ---
 
-## 6. Rotaciones
+## 7. Rotaciones
 
 ### `rotacion`
 
@@ -339,7 +414,7 @@ La estructura de referencia es la trama oficial **`TramaCargaEstudiante.xlsx`** 
 
 ---
 
-## 7. Adjuntos y auditoría
+## 8. Adjuntos y auditoría
 
 Se reutiliza la tabla `documento_adjunto` (módulo 1, relación genérica vía `django_content_type`). En este módulo se adjunta a: `interno`, `rotacion`, `autorizacion_rotacion`.
 
@@ -347,14 +422,19 @@ La tabla `bitacora_auditoria` (módulo 1) registra cambios de tutor, sede, estad
 
 ---
 
-## 8. Mapa de relaciones
+## 9. Mapa de relaciones
 
 ```
 estudiante >── universidad / carrera_profesional / tipo_documento_identidad
 estudiante >── periodo_internado / especialidad   (uno u otro según nivel — RN-19)
 tutor   >── especialidad / tipo_documento_identidad
-tutor   ──< tutor_universidad >── universidad   (1 a 2 universidades — RN-24)
+tutor   ──< tutor_universidad >── universidad   (1 a 5 universidades — RN-24)
 tutor   ──< tutor_convenio >── convenio / ipress   (por convenio específico — RN-TC-01)
+
+coordinador >o── tutor   (también tutor, opcional — RN-CRD-02)
+coordinador >── universidad   (campo directo, NOT NULL — migración 0033)
+coordinador ──< coordinador_sede >── ipress   (RN-CRD-01/04/05; universidad derivada del coordinador)
+coordinador_sede ──< coordinador_tutor >── tutor   (RN-CRD-06)
 
 interno >── estudiante
 interno >── convenio (Convenio Específico, módulo 1)
@@ -379,7 +459,7 @@ bitacora_auditoria >── django_content_type  (genérico)
 
 ---
 
-## 9. Trazabilidad de requerimientos
+## 10. Trazabilidad de requerimientos
 
 - **RN-1..4 (estudiante sobre Convenio Específico vigente):** `interno.convenio_id` + validación de estado del convenio.
 - **RN-5 (tutor obligatorio):** `interno.tutor_id` (no nulo).

@@ -158,12 +158,12 @@ export default function InternosPage() {
     <div>
       <div className="mb-1">
         <Link href="/internados" className="text-sm text-muted-foreground hover:text-foreground">
-          ← Internados
+          ← Internado
         </Link>
       </div>
       <PageHeader
         title="Internos"
-        description="Internados, rotaciones y autorizaciones."
+        description="Internado, rotaciones y autorizaciones."
         actions={universidad != null ? <UniversityLogoDisplay id={universidad} /> : undefined}
       />
 

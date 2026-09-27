@@ -259,6 +259,122 @@ class TutorConvenio(models.Model):
 
 
 # ---------------------------------------------------------------------------
+# Coordinador de tutores (RN-CRD-01..06)
+# ---------------------------------------------------------------------------
+class Coordinator(models.Model):
+    """Coordinador de tutores de una universidad en una sede docente (RN-CRD-01).
+
+    Puede ser también tutor (``tutor_id`` nullable y único — RN-CRD-02).
+    Puede representar múltiples pares (universidad, sede) sin límite (RN-CRD-03).
+    """
+
+    tutor = models.OneToOneField(
+        Tutor, on_delete=models.SET_NULL, null=True, blank=True,
+        db_column="tutor_id", related_name="coordinador",
+        help_text="Tutor vinculado (si el coordinador también es tutor — RN-CRD-02)",
+    )
+    universidad = models.ForeignKey(
+        University, on_delete=models.PROTECT, db_column="universidad_id",
+        related_name="coordinadores", help_text="Universidad a la que pertenece el coordinador",
+    )
+    tipo_documento_identidad = models.ForeignKey(
+        IdentityDocumentType, on_delete=models.PROTECT, db_column="tipo_documento_identidad_id",
+        related_name="+", help_text="Tipo de documento de identidad",
+    )
+    numero_documento = models.CharField(
+        "número de documento", max_length=20, unique=True,
+        help_text="Número de documento de identidad (único — un coordinador es una persona identificable)",
+    )
+    nombres = models.CharField("nombres", max_length=150, help_text="Nombres")
+    apellido_paterno = models.CharField("apellido paterno", max_length=100, help_text="Apellido paterno")
+    apellido_materno = models.CharField(
+        "apellido materno", max_length=100, null=True, blank=True, help_text="Apellido materno",
+    )
+    correo = models.CharField("correo", max_length=255, null=True, blank=True, help_text="Correo electrónico")
+    telefono = models.CharField("teléfono", max_length=30, null=True, blank=True, help_text="Teléfono")
+    numero_colegiatura = models.CharField(
+        "número de colegiatura", max_length=50, null=True, blank=True, help_text="Número de colegiatura",
+    )
+    direccion = models.CharField("dirección", max_length=500, null=True, blank=True, help_text="Dirección")
+    ubigeo = models.ForeignKey(
+        Ubigeo, on_delete=models.PROTECT, db_column="ubigeo_id", null=True, blank=True,
+        related_name="+", help_text="Ubicación geográfica (UBIGEO)",
+    )
+    especialidad = models.ForeignKey(
+        Specialty, on_delete=models.SET_NULL, db_column="especialidad_id", null=True, blank=True,
+        related_name="+", help_text="Especialidad del coordinador",
+    )
+    profesion = models.ForeignKey(
+        ProfessionalCareer, on_delete=models.PROTECT, db_column="profesion_id", null=True, blank=True,
+        related_name="+", help_text="Profesión del coordinador (carrera profesional)",
+    )
+    activo = models.BooleanField("activo", default=True, help_text="Indica si el coordinador está activo")
+
+    class Meta:
+        db_table = "coordinador"
+        verbose_name = "coordinador"
+        verbose_name_plural = "coordinadores"
+
+    def __str__(self):
+        return f"{self.nombres} {self.apellido_paterno}"
+
+
+class CoordinatorSede(models.Model):
+    """Asignación coordinador ↔ sede docente (RN-CRD-01, RN-CRD-04, RN-CRD-05).
+
+    La universidad se deriva de ``coordinador.universidad`` (campo directo en ``Coordinator``
+    desde migración 0033). La sede debe tener ``ipress.es_sede_docente=True`` (RN-CRD-04)
+    y su unidad ejecutora debe tener ≥1 Convenio Específico vigente para la universidad
+    (RN-CRD-05). Un coordinador puede representar múltiples sedes sin límite (RN-CRD-03).
+    """
+
+    coordinador = models.ForeignKey(
+        Coordinator, on_delete=models.CASCADE, db_column="coordinador_id",
+        related_name="sedes", help_text="Coordinador",
+    )
+    ipress = models.ForeignKey(
+        Ipress, on_delete=models.PROTECT, db_column="ipress_id",
+        related_name="coordinadores_sede",
+        help_text="Sede docente (código RENIPRESS de 8 chars, PK textual de ipress)",
+    )
+
+    class Meta:
+        db_table = "coordinador_sede"
+        verbose_name = "sede del coordinador"
+        verbose_name_plural = "sedes del coordinador"
+        unique_together = [("coordinador", "ipress")]
+
+    def __str__(self):
+        return f"Coordinador {self.coordinador_id} — {self.ipress_id}"
+
+
+class CoordinatorTutor(models.Model):
+    """Tutores asignados a un coordinador por sede (RN-CRD-06).
+
+    Un tutor pertenece a un solo coordinador por par (universidad, sede); la unicidad
+    global se valida en ``services.asignar_tutor_coordinador_sede`` antes del insert.
+    """
+
+    coordinador_sede = models.ForeignKey(
+        CoordinatorSede, on_delete=models.CASCADE, db_column="coordinador_sede_id",
+        related_name="tutores_asignados", help_text="Asignación coordinador-sede",
+    )
+    tutor = models.ForeignKey(
+        Tutor, on_delete=models.PROTECT, db_column="tutor_id",
+        related_name="coordinaciones", help_text="Tutor asignado",
+    )
+
+    class Meta:
+        db_table = "coordinador_tutor"
+        verbose_name = "tutor del coordinador"
+        verbose_name_plural = "tutores del coordinador"
+        unique_together = [("coordinador_sede", "tutor")]
+
+    def __str__(self):
+        return f"Tutor {self.tutor_id} → CoordinadorSede {self.coordinador_sede_id}"
+
+
+# ---------------------------------------------------------------------------
 # Internado
 # ---------------------------------------------------------------------------
 # Estado de las declaraciones juradas del interno (RN-23), independiente del

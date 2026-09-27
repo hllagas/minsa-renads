@@ -284,7 +284,7 @@ Revisión del `validator` (SDD) contra `spec/internados.md` (tarea **T-F4.1**, e
 |----------|--------|-----------|
 | Modelo M2M `Tutor.universidades` (through, `related_name="tutores"`) | OK | `models.py:194-197`. |
 | Tabla puente `TutorUniversity` (`tutor_universidad`): `tutor` FK CASCADE `db_column=tutor_id`, `universidad` FK PROTECT `db_column=universidad_id`, `unique_together` | OK | `models.py:208-223`. `db_table`, `verbose_name`/plural en español. |
-| Helper único `services.validar_universidades_tutor` (1..2, sin repetidos, mensajes ES) | OK | `services.py:63-83`; `MAX_UNIVERSIDADES_TUTOR=2`. |
+| Helper único `services.validar_universidades_tutor` (1..5, sin repetidos, mensajes ES) | OK | `services.py:63-83`; `MAX_UNIVERSIDADES_TUTOR=5`. |
 | `TutorSerializer`: `universidades` PK write; `validate_universidades` delega en el helper; `create`/`update` con `.set(...)` | OK | `serializers.py:62-90`. `update` solo re-setea si `universidades` viene en el payload. |
 | `TutorViewSet` con `prefetch_related("universidades")` y `universidades` en `filterset_fields` | OK | `views.py:281-284`. Permisos sin cambios (`IsUniversityOrReadOnly`). |
 | Migración a mano `0014` (CreateModel + AddField M2M; deps `internados 0013`, `convenios 0011`) | OK | `0014_tutor_universidades.py`; dependencias existen y el grafo aplica en limpio. |

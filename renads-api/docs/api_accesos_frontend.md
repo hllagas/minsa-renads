@@ -115,7 +115,7 @@ El backend **filtra en lectura** y **valida en escritura**. El front debe alinea
 |---------|------------------------------|-------------------------------------------|
 | **Estudiantes** `/api/v1/students/` | Solo estudiantes de **tus universidades**. El rol `Interno` ve **solo su propio** estudiante (lectura). Global ve todos. | Rol `Universidad`/`Administrador RENADS`. Al crear, la `universidad` enviada debe estar en tu ámbito → si no, **403**. |
 | **Internos** `/api/v1/interns/` | Internos de **tus universidades o sedes (IPRESS)**. El rol `Interno` ve **solo su propio** internado. Global ve todos. | Crear: rol `Universidad` + la universidad del estudiante en tu ámbito (**403** si no). Acciones de flujo con su rol (p. ej. `revisar-declaraciones`). Adjunto de DJ (`annex-upload`/`annex-checklist`, actor `INTERNO`) **sobre el internado**: rol `Universidad`/`Administrador RENADS` o el propio `Interno`. |
-| **Tutores** `/api/v1/tutors/` | Autenticados (los tutores son compartidos, no acotados por universidad). | Rol `Universidad`/`Administrador RENADS`. Al asignar `universidades` (RN-24, 1 a 2) usa **solo** las universidades permitidas del usuario. |
+| **Tutores** `/api/v1/tutors/` | Autenticados (los tutores son compartidos, no acotados por universidad). | Rol `Universidad`/`Administrador RENADS`. Al asignar `universidades` (RN-24, 1 a 5) usa **solo** las universidades permitidas del usuario. |
 | **Rotaciones** `/api/v1/rotations/` | Rotaciones de tus internos (según tu ámbito). | Acciones con su rol (`autorizar`, `iniciar`, `cambiar-estado`). |
 
 **Filtros útiles (query params):**

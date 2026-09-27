@@ -19,7 +19,7 @@ Exponer vía DRF (bajo `/api/v1/`) los recursos del módulo: catálogos (solo le
 
 > **Feature F3 — Registro de internos por universidad, unicidad, onboarding del interno y estado de declaraciones juradas (2026-07):** ver el bloque **Feature F3** al final del spec. Introduce: (a) el registro de internos a cargo del **usuario de universidad** con **alcance por universidad** (1..N vía `perfil_usuario_entidad`); (b) la **unicidad de interno por DNI** (un internado vigente por estudiante) con **excepción de estados liberadores** (incl. `SUSPENDIDO`); (c) el **onboarding del interno** al asociarse: creación de un `User` (username = DNI, clave temporal, rol `Interno`, solo lectura de sus datos), **notificación por correo** (sede docente, fechas, tutor, instrucción de adjuntar DJ); y (d) el **estado de declaraciones juradas** `Internship.estado_declaraciones` (PENDIENTE/COMPLETAS/OBSERVADAS/VALIDADAS) con revisión humana. Amplía T3.1 y agrega el rol `Interno`.
 
-> **Feature F4 — Universidades del tutor (2026-07):** ver la tarea **T-F4.1** al final del spec. Agrega la relación M2M `Tutor.universidades` (tabla puente `tutor_universidad`) con la regla de negocio **RN-24** (de 1 a 2 universidades por tutor), validada por `services.validar_universidades_tutor` desde `TutorSerializer`.
+> **Feature F4 — Universidades del tutor (2026-07):** ver la tarea **T-F4.1** al final del spec. Agrega la relación M2M `Tutor.universidades` (tabla puente `tutor_universidad`) con la regla de negocio **RN-24** (de 1 a 5 universidades por tutor), validada por `services.validar_universidades_tutor` desde `TutorSerializer`.
 
 > **Feature F6 — Eliminar `anio_academico` de `estudiante` (refactor 2026-07):** ver el bloque **Feature F6** al final del spec. Elimina el campo `anio_academico` del modelo `Student` por ser **redundante** con `periodo_academico`; la columna del Excel de carga masiva pasa a **ignorarse**. Sincroniza modelo, migración, services, schema y frontend.
 
@@ -292,9 +292,9 @@ Depende de **`spec/almacenamiento.md` — Etapa 2** (mixin `AnnexAttachmentMixin
 
 ## Feature F4 — Universidades del tutor (RN-24) (2026-07)
 
-### T-F4.1 — Relación `Tutor.universidades` (1 a 2) (`apps/internados/`)
+### T-F4.1 — Relación `Tutor.universidades` (1 a 5) (`apps/internados/`)
 - **Modelo:** M2M `Tutor.universidades = ManyToManyField(convenios.University, through="TutorUniversity", related_name="tutores")`. Tabla puente `TutorUniversity` (`db_table="tutor_universidad"`): `tutor` (FK CASCADE, `db_column="tutor_id"`), `universidad` (FK PROTECT, `db_column="universidad_id"`), `unique_together=[("tutor","universidad")]`.
-- **Regla RN-24 (1 a 2, sin repetidos):** helper único `services.validar_universidades_tutor(universidades)` (mensajes español). El tope `MAX_UNIVERSIDADES_TUTOR = 2` se valida a nivel de aplicación (no hay constraint DB de cardinalidad).
+- **Regla RN-24 (1 a 5, sin repetidos):** helper único `services.validar_universidades_tutor(universidades)` (mensajes español). El tope `MAX_UNIVERSIDADES_TUTOR = 5` se valida a nivel de aplicación (no hay constraint DB de cardinalidad).
 - **Serializer:** `TutorSerializer` expone `universidades` como lista de PKs **escribible** (`PrimaryKeyRelatedField(many=True)`); `validate_universidades` delega en el helper; `create`/`update` fijan la relación con `.set(...)`.
 - **ViewSet:** `TutorViewSet` con `prefetch_related("universidades")` y `universidades` en `filterset_fields` (filtro `/api/v1/tutors/?universidades=<id>`). Permisos sin cambios (escritura `Universidad`/`Administrador RENADS`).
 - **Migración a mano:** `0014_tutor_universidades` — `CreateModel TutorUniversity` + `AddField Tutor.universidades` (M2M through). Dependencias: `internados 0013` y `convenios 0011`.

@@ -426,7 +426,7 @@ Confirmar que `GET /api/v1/annex-documents/` documenta el parámetro de query `t
 # Feature F4 — Universidades del tutor (RN-24)
 
 Sección añadida tras validar la Feature F4. El recurso `tutors` incorpora la relación M2M
-`universidades` (de **1 a 2** universidades por tutor — RN-24), escribible y filtrable.
+`universidades` (de **1 a 5** universidades por tutor — RN-24), escribible y filtrable.
 Prerrequisitos, URL base y token JWT igual que en las secciones anteriores
 (`POST /api/v1/auth/token/` → `Authorization: Bearer <access>`).
 

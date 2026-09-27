@@ -30,6 +30,9 @@ from apps.internados.serializers import (
     CambiarEstadoInternadoSerializer,
     CambiarEstadoRotacionSerializer,
     CambiarTutorSerializer,
+    CoordinatorSerializer,
+    CoordinatorSedeSerializer,
+    CoordinatorTutorSerializer,
     InternshipReadSerializer,
     InternshipStatusHistorySerializer,
     InternshipUpdateSerializer,
@@ -488,6 +491,132 @@ class TutorViewSet(AuditedModelViewSet):
             services.eliminar_tutor_convenio(tutor_convenio=tc, usuario=request.user)
             return Response(status=204)
         return Response(TutorConvenioSerializer(tc).data)
+
+
+# ---------------------------------------------------------------------------
+# Coordinador de tutores (RN-CRD-01..06)
+# ---------------------------------------------------------------------------
+class CoordinatorViewSet(viewsets.ModelViewSet):
+    """CRUD de coordinadores de tutores con acciones anidadas de sedes y tutores.
+
+    - GET/POST /api/v1/coordinators/ — lista y creación.
+    - GET/PATCH/DELETE /api/v1/coordinators/{id}/ — detalle, edición y eliminación.
+    - Acciones anidadas de sedes: ``sedes``, ``sede_detail``.
+    - Acciones anidadas de tutores: ``sede_tutores``, ``sede_tutor_detail``.
+    Escritura restringida al rol ``Universidad`` o ``Administrador RENADS``.
+    """
+
+    queryset = im.Coordinator.objects.select_related(
+        "tutor", "tipo_documento_identidad", "ubigeo", "especialidad", "profesion", "universidad"
+    ).order_by("apellido_paterno", "nombres")
+    serializer_class = CoordinatorSerializer
+    permission_classes = [IsAuthenticated, IsInstitutionalMember, IsUniversityOrReadOnly]
+    filterset_fields = ["activo", "universidad", "sedes__ipress"]
+    search_fields = ["nombres", "apellido_paterno", "numero_documento"]
+
+    @action(detail=True, methods=["get", "post"], url_path="sedes")
+    def sedes(self, request, pk=None):
+        """Lista o asigna sedes docentes al coordinador.
+
+        - GET: retorna todas las asignaciones ``CoordinatorSede`` del coordinador.
+        - POST: crea una nueva asignación; requiere rol ``Universidad`` o ``Administrador RENADS``.
+        """
+        coordinador = self.get_object()
+        if request.method == "POST":
+            exigir_roles(request, "Universidad", "Administrador RENADS")
+            ser = CoordinatorSedeSerializer(data=request.data)
+            ser.is_valid(raise_exception=True)
+            cs = services.crear_coordinador_sede(
+                coordinador=coordinador,
+                ipress=ser.validated_data["ipress"],
+                usuario=request.user,
+            )
+            return Response(
+                CoordinatorSedeSerializer(cs).data,
+                status=201,
+            )
+        qs = im.CoordinatorSede.objects.filter(coordinador=coordinador).select_related(
+            "coordinador__universidad", "ipress"
+        )
+        return Response(CoordinatorSedeSerializer(qs, many=True).data)
+
+    @action(
+        detail=True, methods=["get", "delete"],
+        url_path=r"sedes/(?P<sede_pk>[^/.]+)",
+    )
+    def sede_detail(self, request, pk=None, sede_pk=None):
+        """Obtiene o desasigna una sede del coordinador.
+
+        - GET: retorna el detalle del ``CoordinatorSede``.
+        - DELETE: elimina la asignación (CASCADE → tutores); requiere rol.
+        """
+        coordinador = self.get_object()
+        cs = get_object_or_404(
+            im.CoordinatorSede.objects.select_related("coordinador__universidad", "ipress"),
+            coordinador=coordinador,
+            pk=sede_pk,
+        )
+        if request.method == "DELETE":
+            exigir_roles(request, "Universidad", "Administrador RENADS")
+            services.eliminar_coordinador_sede(coordinador_sede=cs, usuario=request.user)
+            return Response(status=204)
+        return Response(CoordinatorSedeSerializer(cs).data)
+
+    @action(
+        detail=True, methods=["get", "post"],
+        url_path=r"sedes/(?P<sede_pk>[^/.]+)/tutores",
+    )
+    def sede_tutores(self, request, pk=None, sede_pk=None):
+        """Lista o asigna tutores a una sede del coordinador (RN-CRD-06).
+
+        - GET: retorna todos los ``CoordinatorTutor`` de la sede.
+        - POST: asigna un tutor; requiere rol ``Universidad`` o ``Administrador RENADS``.
+        """
+        coordinador = self.get_object()
+        cs = get_object_or_404(im.CoordinatorSede, coordinador=coordinador, pk=sede_pk)
+        if request.method == "POST":
+            exigir_roles(request, "Universidad", "Administrador RENADS")
+            ser = CoordinatorTutorSerializer(data=request.data)
+            ser.is_valid(raise_exception=True)
+            ct = services.asignar_tutor_coordinador_sede(
+                coordinador_sede=cs,
+                tutor=ser.validated_data["tutor"],
+                usuario=request.user,
+            )
+            return Response(CoordinatorTutorSerializer(ct).data, status=201)
+        qs = im.CoordinatorTutor.objects.filter(coordinador_sede=cs).select_related("tutor")
+        return Response(CoordinatorTutorSerializer(qs, many=True).data)
+
+    @action(
+        detail=True, methods=["delete"],
+        url_path=r"sedes/(?P<sede_pk>[^/.]+)/tutores/(?P<tutor_pk>[^/.]+)",
+    )
+    def sede_tutor_detail(self, request, pk=None, sede_pk=None, tutor_pk=None):
+        """Desasigna un tutor de la sede del coordinador.
+
+        DELETE exige rol ``Universidad`` o ``Administrador RENADS``.
+        """
+        coordinador = self.get_object()
+        cs = get_object_or_404(im.CoordinatorSede, coordinador=coordinador, pk=sede_pk)
+        ct = get_object_or_404(im.CoordinatorTutor, coordinador_sede=cs, tutor_id=tutor_pk)
+        exigir_roles(request, "Universidad", "Administrador RENADS")
+        services.desasignar_tutor_coordinador_sede(coordinador_tutor=ct, usuario=request.user)
+        return Response(status=204)
+
+    @action(detail=True, methods=["get"], url_path="sedes-disponibles")
+    def sedes_disponibles(self, request, pk=None):
+        """Lista las sedes docentes pendientes de asignación para la universidad del coordinador.
+
+        Una sede es apta si:
+        - ``ipress.es_sede_docente = True``.
+        - La unidad ejecutora de la sede tiene ≥1 Convenio Específico VIGENTE para
+          la universidad del coordinador.
+        - El coordinador no tiene ya una asignación a esa sede.
+        """
+        coordinador = self.get_object()
+        qs = services.listar_sedes_disponibles(coordinador)
+        data = [{"id": i.codigo_renipress, "nombre": i.nombre} for i in qs]
+        return Response(data)
 
 
 # Catálogos del módulo (solo lectura): basename -> ViewSet

@@ -122,6 +122,27 @@ orden, es_firmante, creado_en (ro)
 POST sincroniza la lista completa (idempotente). El backend valida coherencia
 órgano↔representante↔cargo.
 
+## Generación de PDFs — `generar-proyecto` / `generar-expediente`
+
+Genera documentos PDF del convenio y los adjunta como `Document` versionado.
+Escritura: `Administrador RENADS` / `DIGEP` (pasa el gate `IsModuleEnabled`).
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| POST | `/conventions/{id}/generar-proyecto/` | Genera el proyecto de convenio (docxtpl → PDF) y lo adjunta con tipo `PROYECTO_CONVENIO` (o `PROYECTO_ADENDA` si es adenda). |
+| POST | `/conventions/{id}/generar-expediente/` | Genera expediente consolidado: concatena (pypdf) el proyecto + resoluciones de representantes firmantes + resoluciones CONAPRES. Lo adjunta con tipo `EXPEDIENTE`. |
+
+**Request body:** ninguno (vacío). **Respuesta `200`:** `Document` creado/versionado.
+
+```
+id, tipo_documento, tipo_documento_nombre, tipo_contenido, id_objeto,
+referencia_externa, nombre_archivo, version, estado, cargado_por, cargado_en
+```
+
+> Los documentos generados se visualizan desde la sección «Documentos» del convenio
+> (`/documents/?tipo_contenido=<ct_convenio>&id_objeto={id}`). Re-generar sobreescribe la versión anterior
+> (nuevo `version = n+1`, anterior queda `REEMPLAZADO`).
+
 ## Campos clínicos — `clinical-field-registrations`
 
 > **Cambio 2026-09-02:** Ya NO existe `conventions/{id}/campos-clinicos/`. Los campos clínicos

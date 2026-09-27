@@ -22,6 +22,7 @@ from apps.common.models import UserProfile, UserSecurity
 from apps.common.selectors import usuario_pertenece_a_entidad
 from apps.common.services import registrar_auditoria
 from apps.convenios.models import (
+    Convention,
     Document,
     ProfessionalCareer,
     Specialty,
@@ -32,6 +33,9 @@ from apps.convenios.models import (
 from apps.internados.models import (
     InternshipPeriod,
     AnnexDocument,
+    Coordinator,
+    CoordinatorSede,
+    CoordinatorTutor,
     IdentityDocumentType,
     Internship,
     InternshipStatus,
@@ -86,6 +90,151 @@ def validar_universidades_tutor(universidades) -> None:
         )
     if len({u.pk for u in universidades}) != cantidad:
         raise ValidationError({"universidades": "Hay universidades repetidas en la lista."})
+
+
+# ---------------------------------------------------------------------------
+# Coordinador de tutores (RN-CRD-01..06)
+# ---------------------------------------------------------------------------
+def validar_asignacion_coordinador_sede(*, ipress, universidad) -> None:
+    """Valida que una sede sea apta para ser asignada a un coordinador de la universidad dada.
+
+    - RN-CRD-04: ``ipress.es_sede_docente`` debe ser ``True``.
+    - RN-CRD-05: la unidad ejecutora de la sede debe tener ≥1 Convenio Específico
+      vigente para la universidad indicada.
+
+    No retorna nada; lanza ``ValidationError`` con mensaje en español si hay error.
+    """
+    # RN-CRD-04: la IPRESS debe ser sede docente autorizada por CONAPRES.
+    if not ipress.es_sede_docente:
+        raise ValidationError("La IPRESS indicada no es una sede docente autorizada.")
+
+    # RN-CRD-05: la unidad ejecutora de la sede debe tener ≥1 Convenio Específico vigente
+    # para la universidad indicada.
+    existe = Convention.objects.filter(
+        tipo_convenio__codigo="ESPECIFICO",
+        estado_actual__codigo="VIGENTE",
+        universidad=universidad,
+        unidad_ejecutora=ipress.unidad_ejecutora,
+    ).exists()
+    if not existe:
+        raise ValidationError(
+            "La sede docente no pertenece a una unidad ejecutora con "
+            "Convenio Específico vigente para la universidad indicada."
+        )
+
+
+@transaction.atomic
+def crear_coordinador_sede(*, coordinador: Coordinator, ipress, usuario) -> CoordinatorSede:
+    """Asigna una sede docente a un coordinador (RN-CRD-01, RN-CRD-04, RN-CRD-05).
+
+    La universidad se deriva del coordinador (campo directo desde la migración 0033).
+    Valida que la sede sea apta (``validar_asignacion_coordinador_sede``) y que la
+    asignación no sea duplicada. Registra auditoría tras crear la fila.
+    """
+    universidad = coordinador.universidad
+    validar_asignacion_coordinador_sede(ipress=ipress, universidad=universidad)
+
+    if CoordinatorSede.objects.filter(coordinador=coordinador, ipress=ipress).exists():
+        raise ValidationError("El coordinador ya está asignado a esta sede.")
+
+    # RN-CRD-01: por (universidad, sede) solo un coordinador.
+    if CoordinatorSede.objects.filter(
+        coordinador__universidad=universidad, ipress=ipress
+    ).exists():
+        raise ValidationError(
+            "Esta sede ya tiene un coordinador asignado para la universidad indicada."
+        )
+
+    coordinador_sede = CoordinatorSede.objects.create(
+        coordinador=coordinador,
+        ipress=ipress,
+    )
+    registrar_auditoria(usuario, "CREAR", coordinador_sede)
+    return coordinador_sede
+
+
+@transaction.atomic
+def eliminar_coordinador_sede(*, coordinador_sede: CoordinatorSede, usuario) -> None:
+    """Desasigna una sede docente de un coordinador (CASCADE → tutores asignados).
+
+    Registra auditoría antes de eliminar la fila.
+    """
+    registrar_auditoria(usuario, "ELIMINAR", coordinador_sede)
+    coordinador_sede.delete()
+
+
+def listar_sedes_disponibles(coordinador: Coordinator):
+    """Sedes docentes aptas para asignar al coordinador.
+
+    Criterios de inclusión:
+    - ``ipress.es_sede_docente = True``.
+    - La unidad ejecutora de la sede tiene ≥1 Convenio Específico VIGENTE para
+      la universidad del coordinador (RN-CRD-04, RN-CRD-05).
+
+    Criterios de exclusión:
+    - Ya existe un ``CoordinatorSede`` de cualquier coordinador de la misma universidad
+      para esa IPRESS (RN-CRD-01: una sede = un coordinador por universidad).
+
+    Retorna un QuerySet de ``Ipress``.
+    """
+    from apps.convenios.models import Ipress
+
+    universidad = coordinador.universidad
+    ipress_con_convenio = Ipress.objects.filter(
+        es_sede_docente=True,
+        unidad_ejecutora__convenios__tipo_convenio__codigo="ESPECIFICO",
+        unidad_ejecutora__convenios__estado_actual__codigo="VIGENTE",
+        unidad_ejecutora__convenios__universidad=universidad,
+    ).distinct()
+    ya_asignadas = CoordinatorSede.objects.filter(
+        coordinador__universidad=universidad,
+    ).values_list("ipress_id", flat=True)
+    return ipress_con_convenio.exclude(codigo_renipress__in=ya_asignadas)
+
+
+@transaction.atomic
+def asignar_tutor_coordinador_sede(*, coordinador_sede: CoordinatorSede, tutor, usuario) -> CoordinatorTutor:
+    """Asigna un tutor a un coordinador en una sede docente (RN-CRD-06).
+
+    - RN-CRD-06: en el par (universidad, sede) un tutor pertenece a un solo coordinador;
+      se valida la unicidad global antes del insert.
+    - También verifica que no exista ya el par ``(coordinador_sede, tutor)`` para dar un
+      mensaje legible antes del IntegrityError.
+
+    Registra auditoría tras crear la fila.
+    """
+    # RN-CRD-06: unicidad global — el tutor no puede estar en otro coordinador
+    # de la misma (universidad, sede). La universidad se deriva del coordinador.
+    ya_asignado = CoordinatorTutor.objects.filter(
+        coordinador_sede__coordinador__universidad=coordinador_sede.coordinador.universidad,
+        coordinador_sede__ipress=coordinador_sede.ipress,
+        tutor=tutor,
+    ).exists()
+    if ya_asignado:
+        raise ValidationError(
+            "El tutor ya está asignado a un coordinador en esta sede para esta universidad."
+        )
+
+    # Unicidad local — evita duplicado dentro del mismo CoordinadorSede.
+    if CoordinatorTutor.objects.filter(coordinador_sede=coordinador_sede, tutor=tutor).exists():
+        raise ValidationError("El tutor ya está asignado a este coordinador en esta sede.")
+
+    coordinador_tutor = CoordinatorTutor.objects.create(
+        coordinador_sede=coordinador_sede,
+        tutor=tutor,
+    )
+    registrar_auditoria(usuario, "CREAR", coordinador_tutor)
+    return coordinador_tutor
+
+
+@transaction.atomic
+def desasignar_tutor_coordinador_sede(*, coordinador_tutor: CoordinatorTutor, usuario) -> None:
+    """Desasigna un tutor de un coordinador en una sede.
+
+    Registra auditoría antes de eliminar la fila.
+    """
+    registrar_auditoria(usuario, "ELIMINAR", coordinador_tutor)
+    coordinador_tutor.delete()
 
 
 @transaction.atomic

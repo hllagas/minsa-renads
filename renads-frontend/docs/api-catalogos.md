@@ -100,7 +100,7 @@ Añadidos a `regional-governments`: `sigla`, `ubigeo`, `numero_ruc`, `direccion`
 | Endpoint | Filtros (`filterset_fields`) | Search | Detalles |
 |----------|------------------------------|--------|----------|
 | `organs` | — | — | Solo lectura. **5** categorías canónicas (`ORGANO_MINSA`, `UNIVERSIDAD`, `GOBIERNO_REGIONAL`, `MINSA_DIRIS`, `UNIDAD_EJECUTORA`). |
-| `organ-directories` | `organo`, `activo` | `nombre`, `siglas` | `organo_detalle` |
+| `organic-units` (**antes** `organ-directories`, rename 2026-09-24) | `organo`, `activo` | `nombre`, `siglas` | `organo_detalle` |
 | `executing-units` | `ambito_geografico_sanitario`, `activo` | `nombre`, `codigo` | `ambito_geografico_sanitario_detalle` |
 | `regional-governments` | `region`, `ubigeo`, `activo` | `nombre` | `ubigeo_detalle` (string) |
 | `ipress` | `unidad_ejecutora` (str), `ambito_geografico_sanitario`, `es_sede_docente`, `activo` | `nombre`, `codigo_renipress` | — |
@@ -182,15 +182,19 @@ Solo `Administrador RENADS`.
 > **`faculties`**: `FacultyAuto` no expone `universidad_detalle` (viewset sin kwarg `detalles`).
 > La tabla de facultades solo muestra `nombre` + `activo`. Ver REQ-BACK-03 en `CLAUDE.md`.
 
-### `universities` — `tipo_entidad` apunta a `organ-directories`
+### `universities` — `tipo_entidad` apunta a `university-entity-types`
 
-El campo `tipo_entidad` es FK a `OrganDirectory` con `limit_choices_to={"categoria": "UNIVERSIDAD"}`.
-Para el selector del front usar `?categoria=UNIVERSIDAD`.
+**Refactor 2026-09-18 (mig 0052):** el campo `tipo_entidad` es FK al nuevo catálogo
+`university-entity-types` (4 tipos fijos: `Universidad`, `Instituto`, `Escuela superior`, `Escuela de posgrado`).
+**Ya no apunta a `organ-directories`** (cambio breaking — IDs cambiaron tras la migración).
+Endpoint: `GET /university-entity-types/` (solo lectura, filtro `activo`).
+Para el selector del front usar `optionsEndpoint: "university-entity-types"`.
 
 ### Endpoints eliminados (no usar)
 
 `regional-organs`, `minsa-organs`, `university-authorities`, `organ-types` — eliminados del backend.
-Usar `organ-directories` con filtro `?categoria=<VALOR>` según corresponda.
+`organ-directories` **renombrado a `organic-units`** (mig 0054, 2026-09-24) — usar `organic-units`.
+Los campos `organo_directorio`/`organo_directivo` fueron renombrados a `unidad_organica`.
 
 ---
 

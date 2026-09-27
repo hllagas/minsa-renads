@@ -9,6 +9,9 @@ from apps.convenios.models import Convention, Ipress, University, UserEntityProf
 from apps.internados.models import InternshipPeriod
 from apps.internados import services
 from apps.internados.models import (
+    Coordinator,
+    CoordinatorSede,
+    CoordinatorTutor,
     Student,
     Internship,
     InternshipStatusHistory,
@@ -202,6 +205,95 @@ class TutorConvenioSerializer(serializers.ModelSerializer):
     def get_ipress_detalle(self, obj):
         i = obj.ipress
         return {"id": i.pk, "nombre": i.nombre}
+
+
+# ---------------------------------------------------------------------------
+# Coordinador de tutores (RN-CRD-01..06)
+# ---------------------------------------------------------------------------
+class CoordinatorSerializer(serializers.ModelSerializer):
+    """CRUD de coordinadores de tutores."""
+
+    tutor = serializers.PrimaryKeyRelatedField(
+        queryset=Tutor.objects.all(), allow_null=True, required=False,
+        help_text="Tutor vinculado (si el coordinador también es tutor — RN-CRD-02)",
+    )
+    universidad = serializers.PrimaryKeyRelatedField(
+        queryset=University.objects.all(),
+        help_text="Universidad a la que pertenece el coordinador",
+    )
+    tutor_detalle = serializers.SerializerMethodField(read_only=True)
+    universidad_detalle = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Coordinator
+        fields = [
+            "id", "tutor", "tutor_detalle", "universidad", "universidad_detalle",
+            "tipo_documento_identidad", "numero_documento",
+            "nombres", "apellido_paterno", "apellido_materno", "correo", "telefono",
+            "numero_colegiatura", "direccion", "ubigeo", "especialidad", "profesion", "activo",
+        ]
+
+    def get_tutor_detalle(self, obj):
+        if obj.tutor_id is None:
+            return None
+        t = obj.tutor
+        return {"id": t.id, "nombres": t.nombres, "apellido_paterno": t.apellido_paterno}
+
+    def get_universidad_detalle(self, obj):
+        u = obj.universidad
+        if u is None:
+            return None
+        return {"id": u.id, "nombre": u.nombre}
+
+
+class CoordinatorSedeSerializer(serializers.ModelSerializer):
+    """Serializer de asignación coordinador ↔ sede docente.
+
+    La universidad ya no se envía en el cuerpo: se deriva del coordinador.
+    ``universidad_detalle`` expone la universidad del coordinador en lectura.
+    La vista debe hacer ``select_related("coordinador__universidad", "ipress")``
+    para evitar consultas N+1.
+    """
+
+    coordinador = serializers.PrimaryKeyRelatedField(read_only=True)
+    ipress = serializers.PrimaryKeyRelatedField(queryset=Ipress.objects.all())
+    universidad_detalle = serializers.SerializerMethodField(read_only=True)
+    ipress_detalle = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = CoordinatorSede
+        fields = ["id", "coordinador", "ipress", "universidad_detalle", "ipress_detalle"]
+
+    def get_universidad_detalle(self, obj):
+        u = obj.coordinador.universidad
+        if u is None:
+            return None
+        return {"id": u.id, "nombre": u.nombre}
+
+    def get_ipress_detalle(self, obj):
+        i = obj.ipress
+        return {"id": i.pk, "nombre": i.nombre}
+
+
+class CoordinatorTutorSerializer(serializers.ModelSerializer):
+    """Serializer de tutores asignados a un coordinador por sede (RN-CRD-06)."""
+
+    coordinador_sede = serializers.PrimaryKeyRelatedField(read_only=True)
+    tutor = serializers.PrimaryKeyRelatedField(queryset=Tutor.objects.all())
+    tutor_detalle = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = CoordinatorTutor
+        fields = ["id", "coordinador_sede", "tutor", "tutor_detalle"]
+
+    def get_tutor_detalle(self, obj):
+        t = obj.tutor
+        return {
+            "id": t.id,
+            "nombres": t.nombres,
+            "apellido_paterno": t.apellido_paterno,
+            "numero_documento": t.numero_documento,
+        }
 
 
 # ---------------------------------------------------------------------------

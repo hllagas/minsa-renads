@@ -30,7 +30,7 @@ const MODULE_ROLES: Record<DashboardModule, string[]> = {
 
 const MODULE_LABELS: Record<DashboardModule, string> = {
   convenios: "Convenios",
-  internados: "Internados",
+  internados: "Internado",
   actividades: "Actividades",
 };
 

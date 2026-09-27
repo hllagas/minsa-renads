@@ -100,6 +100,34 @@ Estados de rotación: `SOLICITADA`, `AUTORIZADA`, `OBSERVADA`, `RECHAZADA`, `EN_
   la vista exige elegir universidad (acotada al alcance) antes de listar (filtro `universidades`);
   columnas = N° colegiatura / apellidos+nombres / profesión / sede docente; el form incluye `ubigeo`.
 
+### TutorConvenio — vínculo tutor × convenio × IPRESS
+
+Cada tutor puede estar asignado a uno o varios **Convenios Específicos + IPRESS** (tabla `tutor_convenio`).
+Escritura: `Universidad` / `Administrador RENADS`.
+
+| Método | Ruta | Notas |
+|--------|------|-------|
+| GET | `/tutors/{id}/convenios/` | Lista todos los `TutorConvenio` del tutor |
+| POST | `/tutors/{id}/convenios/` | Crea un vínculo nuevo |
+| GET | `/tutors/{id}/convenios/{convenio_pk}/` | Detalle de un vínculo |
+| DELETE | `/tutors/{id}/convenios/{convenio_pk}/` | Elimina el vínculo (204) |
+
+**Escritura (POST):**
+```
+convenio (req — Convenio Específico vigente), ipress (req — IPRESS del convenio)
+```
+
+**Lectura (GET):**
+```
+id (convenio_pk), tutor, convenio, convenio_detalle {id, titulo, nomenclatura},
+ipress, ipress_detalle {codigo_renipress, nombre}
+```
+
+> **RN:** solo Convenios Específicos vigentes (`VIGENTE`/`PUBLICADO`/`SUSCRITO`). La IPRESS debe
+> pertenecer al ámbito del convenio (validado en backend — 400 si no). Un tutor puede tener
+> múltiples vínculos con distintos convenios; no hay unicidad por convenio (puede asignarse a
+> varias IPRESS del mismo convenio).
+
 ### Carga masiva de estudiantes — RN-16
 
 - **`POST /students/bulk-upload/`** — rol `Universidad` / `Administrador RENADS`.
@@ -114,3 +142,74 @@ Estados de rotación: `SOLICITADA`, `AUTORIZADA`, `OBSERVADA`, `RECHAZADA`, `EN_
 
 `internship-statuses`, `rotation-statuses`, `service-areas`, `identity-document-types`,
 `relationship-types` (parentesco del contacto de emergencia).
+
+## Coordinadores (`coordinators`) — escritura `Universidad` / `Administrador RENADS`
+
+Coordinadores de tutores por sede docente. Un coordinador puede ser también tutor (FK
+opcional y única — RN-CRD-02). Puede representar múltiples sedes sin límite (RN-CRD-03).
+
+| Método | Ruta | Rol | Notas |
+|--------|------|-----|-------|
+| GET | `/coordinators/` | autenticado (alcance) | filtros abajo |
+| GET | `/coordinators/{id}/` | autenticado | |
+| POST | `/coordinators/` | `Universidad` / `Admin RENADS` | |
+| PATCH / DELETE | `/coordinators/{id}/` | `Universidad` / `Admin RENADS` | |
+| GET / POST | `/coordinators/{id}/sedes/` | GET: autenticado; POST: `Universidad` / `Admin RENADS` | Agregar sede (RN-CRD-04/05) |
+| GET / DELETE | `/coordinators/{id}/sedes/{sede_pk}/` | GET: autenticado; DELETE: `Universidad` / `Admin RENADS` | CASCADE elimina tutores |
+| GET / POST | `/coordinators/{id}/sedes/{sede_pk}/tutores/` | GET: autenticado; POST: `Universidad` / `Admin RENADS` | Asignar tutor (RN-CRD-06) |
+| DELETE | `/coordinators/{id}/sedes/{sede_pk}/tutores/{tutor_pk}/` | `Universidad` / `Admin RENADS` | Desasignar tutor |
+| GET | `/coordinators/{id}/sedes-disponibles/` | autenticado | IPRESS aptas para asignar al coordinador |
+
+**Filtros** (`CoordinatorFilter`): `activo`, `universidad`, `sedes__ipress`.
+**Search:** `nombres`, `apellido_paterno`, `numero_documento`.
+
+### Coordinator — lectura
+```
+id, tutor (FK nullable), tutor_detalle {id, nombres, apellido_paterno},
+universidad (FK req), universidad_detalle {id, nombre},
+tipo_documento_identidad, numero_documento,
+nombres, apellido_paterno, apellido_materno,
+correo, telefono, numero_colegiatura, direccion,
+ubigeo, especialidad, profesion, activo
+```
+
+### Coordinator — escritura (POST/PATCH)
+```
+tutor (nullable), universidad (req), tipo_documento_identidad, numero_documento,
+nombres, apellido_paterno, apellido_materno,
+correo, telefono, numero_colegiatura, direccion,
+ubigeo, especialidad, profesion, activo
+```
+
+### CoordinatorSede — lectura
+```
+id, coordinador, ipress,
+universidad_detalle {id, nombre},   (derivada de coordinador.universidad — mig 0033)
+ipress_detalle {codigo_renipress, nombre}
+```
+
+### CoordinatorSede — escritura (POST)
+```
+ipress (req — código RENIPRESS, es_sede_docente=True, RN-CRD-04/05)
+```
+> Desde la migración 0033, `CoordinatorSede` ya no tiene campo `universidad` propio.
+> La universidad se deriva automáticamente del coordinador al que pertenece la sede.
+
+### CoordinatorSede — sedes disponibles
+```
+GET /coordinators/{id}/sedes-disponibles/
+Devuelve [{id: codigo_renipress, nombre}] — IPRESS con es_sede_docente=True,
+con ≥1 Convenio Específico vigente para la universidad del coordinador y
+que no están ya asignadas al coordinador.
+```
+
+### CoordinatorTutor — lectura
+```
+id, coordinador_sede, tutor,
+tutor_detalle {id, nombres, apellido_paterno, numero_documento}
+```
+
+### CoordinatorTutor — escritura (POST)
+```
+tutor (req — id numérico; unicidad global por sede+universidad validada en backend — RN-CRD-06)
+```

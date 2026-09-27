@@ -9,6 +9,7 @@ router.register("interns", views.InternshipViewSet, basename="intern")
 router.register("rotations", views.RotationViewSet, basename="rotation")
 router.register("students", views.StudentViewSet, basename="student")
 router.register("tutors", views.TutorViewSet, basename="tutor")
+router.register("coordinators", views.CoordinatorViewSet, basename="coordinator")
 
 # Catálogos (solo lectura)
 for basename, viewset in views.CATALOG_VIEWSETS.items():

@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 import { conventionHooks } from "@/lib/convenios/hooks";
 import { FLOW_ACTIONS } from "@/lib/convenios/flow-actions";
@@ -12,6 +14,8 @@ import {
   usePartes,
 } from "@/lib/convenios/flow";
 import { useAuthStore, userHasRole } from "@/lib/auth/store";
+import { useGenerarProyecto, useGenerarExpediente } from "@/lib/convenios/pdf";
+import { extractApiError } from "@/lib/api/errors";
 import { PageHeader } from "@/components/data/page-header";
 import { FlowActionDialog } from "@/components/crud/flow-action-dialog";
 import { SimpleObjectTable } from "@/components/data/simple-object-table";
@@ -24,6 +28,22 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+/**
+ * Estados del convenio que se consideran "firmado o posterior".
+ * En estos estados se muestra «Generar expediente»; antes, «Generar proyecto».
+ */
+const ESTADOS_FIRMADO_O_POSTERIOR = new Set([
+  "FIRMADO_DIGEP",
+  "FIRMADO_MINSA",
+  "FIRMADO_UNIVERSIDAD",
+  "SUSCRITO",
+  "PUBLICADO",
+  "VIGENTE",
+  "VENCIDO",
+  "CERRADO",
+  "AMPLIADO",
+]);
 
 function Dato({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -51,6 +71,9 @@ export default function ConvenioDetallePage() {
   const participantes = useParticipantes(id);
   const historial = useHistorial(id);
 
+  const generarProyecto = useGenerarProyecto(id);
+  const generarExpediente = useGenerarExpediente(id);
+
   if (isLoading) {
     return <p className="text-sm text-muted-foreground">Cargando convenio…</p>;
   }
@@ -63,6 +86,39 @@ export default function ConvenioDetallePage() {
     (a) =>
       userHasRole(user, ...a.roles) && (!a.onlyEspecifico || esEspecifico),
   );
+
+  const esFirmadoOPosterior = ESTADOS_FIRMADO_O_POSTERIOR.has(c.estado_codigo);
+  const mostrarProyecto = !esFirmadoOPosterior;
+  const mostrarExpediente = esFirmadoOPosterior;
+  const puedeGenerar = userHasRole(user, "Administrador RENADS", "DIGEP");
+
+  function onGenerarProyecto() {
+    generarProyecto.mutate(undefined, {
+      onSuccess: (doc) => {
+        toast.success(`Proyecto generado: ${doc.nombre_archivo}`, {
+          action: {
+            label: "Descargar",
+            onClick: () => window.open(doc.referencia_externa, "_blank"),
+          },
+        });
+      },
+      onError: (e) => toast.error(extractApiError(e)),
+    });
+  }
+
+  function onGenerarExpediente() {
+    generarExpediente.mutate(undefined, {
+      onSuccess: (doc) => {
+        toast.success(`Expediente generado: ${doc.nombre_archivo}`, {
+          action: {
+            label: "Descargar",
+            onClick: () => window.open(doc.referencia_externa, "_blank"),
+          },
+        });
+      },
+      onError: (e) => toast.error(extractApiError(e)),
+    });
+  }
 
   const vigEfectiva = (c as Record<string, unknown>).vigencia_efectiva as
     | { fecha_inicio?: string; fecha_fin?: string }
@@ -94,7 +150,7 @@ export default function ConvenioDetallePage() {
         <Badge variant="outline" className="mb-3">Adenda</Badge>
       ) : null}
 
-      {acciones.length ? (
+      {(acciones.length || puedeGenerar) ? (
         <div className="mb-6 flex flex-wrap gap-2">
           {acciones.map((a) => (
             <FlowActionDialog
@@ -104,6 +160,38 @@ export default function ConvenioDetallePage() {
               action={a}
             />
           ))}
+          {puedeGenerar && mostrarProyecto && (
+            <Button
+              variant="outline"
+              onClick={onGenerarProyecto}
+              disabled={generarProyecto.isPending}
+            >
+              {generarProyecto.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generando…
+                </>
+              ) : (
+                "Generar proyecto"
+              )}
+            </Button>
+          )}
+          {puedeGenerar && mostrarExpediente && (
+            <Button
+              variant="outline"
+              onClick={onGenerarExpediente}
+              disabled={generarExpediente.isPending}
+            >
+              {generarExpediente.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generando…
+                </>
+              ) : (
+                "Generar expediente"
+              )}
+            </Button>
+          )}
         </div>
       ) : null}
 
