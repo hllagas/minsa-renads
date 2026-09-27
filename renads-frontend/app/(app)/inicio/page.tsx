@@ -1,67 +1,32 @@
 "use client";
 
-import { useAuthStore } from "@/lib/auth/store";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import Image from "next/image";
 
-/**
- * Home protegida (placeholder). Confirma la sesión end-to-end mostrando los datos reales de
- * `me` (nombre, roles y perfiles institucionales). Se reemplazará por el dashboard real.
- */
+import { useAuthStore } from "@/lib/auth/store";
+
 export default function HomePage() {
   const user = useAuthStore((s) => s.user);
 
   return (
-    <div className="grid gap-6">
+    <div className="flex flex-col gap-4">
       <div>
         <h1 className="text-2xl font-semibold">Bienvenido, {user?.nombre}</h1>
-        <p className="text-muted-foreground">Sistema del Registro Nacional de Articulación Docencia-Servicio en Salud- RENADS</p>
+        <p className="text-muted-foreground">
+          Sistema del Registro Nacional de Articulación Docencia-Servicio en Salud — RENADS
+        </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Roles</CardTitle>
-            <CardDescription>Grupos del usuario actual.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {user?.grupos.length ? (
-              <ul className="list-inside list-disc text-sm">
-                {user.grupos.map((g) => (
-                  <li key={g}>{g}</li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-muted-foreground">Sin roles asignados.</p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Perfiles institucionales</CardTitle>
-            <CardDescription>Entidades dentro de tu ámbito.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {user?.perfiles.length ? (
-              <ul className="grid gap-1 text-sm">
-                {user.perfiles.map((p, i) => (
-                  <li key={`${p.tipo_entidad}-${p.id_objeto}-${i}`}>
-                    <span className="font-medium">{p.entidad}</span>{" "}
-                    <span className="text-muted-foreground">({p.rol})</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-muted-foreground">Sin perfiles institucionales.</p>
-            )}
-          </CardContent>
-        </Card>
+      <div
+        className="relative w-full overflow-hidden rounded-lg border bg-muted/10"
+        style={{ height: "calc(100dvh - 11rem)" }}
+      >
+        <Image
+          src="/Gantt_Internado_2027.jpg"
+          alt="Cronograma Gantt — Internado 2027"
+          fill
+          className="object-contain"
+          priority
+        />
       </div>
     </div>
   );

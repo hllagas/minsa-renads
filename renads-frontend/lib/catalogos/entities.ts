@@ -63,16 +63,6 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         type: "select",
         optionsEndpoint: "universities",
       },
-      {
-        name: "ubigeo",
-        label: "Ubigeo",
-        type: "select",
-        optionsEndpoint: "ubigeos",
-        optionsToLabel: ubigeoLabel,
-        optionsValueKey: "codigo", // PK textual (mig 0048-0049)
-        optionsSearchable: true,
-      },
-      activoFilter,
     ],
     fields: [
       {

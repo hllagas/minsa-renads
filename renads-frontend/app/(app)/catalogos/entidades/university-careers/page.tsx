@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, Suspense } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -89,9 +90,20 @@ type CareerState =
 
 // ---------- Page ----------
 
-export default function UniversityCareersPage() {
-  const [universidadId, setUniversidadId] = useState<number | null>(null);
-  const [facultadId, setFacultadId] = useState<number | null>(null);
+function UniversityCareersInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Pre-carga desde URL (cuando se abre desde Facultades → Asignar carreras)
+  const urlUniversidad = searchParams.get("universidad");
+  const urlFacultad = searchParams.get("facultad");
+
+  const [universidadId, setUniversidadId] = useState<number | null>(
+    urlUniversidad ? Number(urlUniversidad) : null,
+  );
+  const [facultadId, setFacultadId] = useState<number | null>(
+    urlFacultad ? Number(urlFacultad) : null,
+  );
   const [nivelIdPicked, setNivelIdPicked] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   // Local selection state (derived from server + user changes)
@@ -210,6 +222,10 @@ export default function UniversityCareersPage() {
       queryClient.invalidateQueries({
         queryKey: ["university-careers", "by-universidad", universidadId],
       });
+      // Al venir de la página de Facultades, regresar a ella con el filtro de universidad
+      if (urlFacultad && urlUniversidad) {
+        router.push(`/catalogos/entidades/faculties?universidad=${urlUniversidad}`);
+      }
     },
     onError(err) {
       toast.error(extractApiError(err));
@@ -270,15 +286,20 @@ export default function UniversityCareersPage() {
   const step2Ready = universidadId != null;
   const step3Ready = step2Ready && facultadId != null;
 
+  const backHref = urlFacultad
+    ? `/catalogos/entidades/faculties${urlUniversidad ? `?universidad=${urlUniversidad}` : ""}`
+    : "/catalogos";
+  const backLabel = urlFacultad ? "← Facultades" : "← Catálogos";
+
   return (
     <TooltipProvider>
       <div className="grid gap-6 max-w-3xl">
         {/* Back */}
         <Link
-          href="/catalogos"
+          href={backHref}
           className="text-sm text-muted-foreground hover:text-foreground w-fit"
         >
-          ← Catálogos
+          {backLabel}
         </Link>
 
         {/* Header */}
@@ -558,6 +579,14 @@ export default function UniversityCareersPage() {
         )}
       </div>
     </TooltipProvider>
+  );
+}
+
+export default function UniversityCareersPage() {
+  return (
+    <Suspense>
+      <UniversityCareersInner />
+    </Suspense>
   );
 }
 
