@@ -39,7 +39,7 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
     singular: "facultad",
     createPrefix: "Nueva",
     description: "Facultades por universidad.",
-    searchPlaceholder: "Buscar por nombre o dirección…",
+    searchPlaceholder: "Buscar por facultad o dirección…",
     columns: [
       {
         key: "referencia_logo",
@@ -52,7 +52,7 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
             size: 32,
           }),
       },
-      { key: "nombre", header: "Nombre" },
+      { key: "nombre", header: "Facultad" },
       { key: "ubigeo_detalle", header: "Ubicación", render: (r) => ubigeoDetalleLabel(r.ubigeo_detalle) },
       { key: "activo", header: "Activo", render: (r) => siNo(r.activo) },
     ],
@@ -72,7 +72,7 @@ const ACADEMIC_ENTITY_CONFIGS: Record<string, ResourceConfig> = {
         required: true,
         optionsEndpoint: "universities",
       },
-      { name: "nombre", label: "Nombre", type: "text", required: true, uppercase: false },
+      { name: "nombre", label: "Nombre Facultad", type: "text", required: true, uppercase: false },
       { name: "direccion", label: "Dirección", type: "text", uppercase: false },
       {
         name: "ubigeo",

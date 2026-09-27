@@ -222,6 +222,10 @@ function UniversityCareersInner() {
       queryClient.invalidateQueries({
         queryKey: ["university-careers", "by-universidad", universidadId],
       });
+      // Invalidar los badges de conteo de todas las facultades (staleTime 2min no alcanza)
+      queryClient.invalidateQueries({
+        queryKey: ["university-careers", "count-by-faculty"],
+      });
       // Al venir de la página de Facultades, regresar a ella con el filtro de universidad
       if (urlFacultad && urlUniversidad) {
         router.push(`/catalogos/entidades/faculties?universidad=${urlUniversidad}`);

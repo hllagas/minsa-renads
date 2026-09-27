@@ -37,6 +37,31 @@ function FacultyCarrerasCount({ facultadId }: { facultadId: number }) {
   );
 }
 
+// ---------- Componente: nombre de universidad con fallback individual ----------
+// El mapa pre-carga 200 universidades ordenadas por nombre. Si el ID no está en el mapa
+// (universidades más allá del rango de 200), hace fetch individual cacheado por TanStack Query.
+
+function UniversityNameCell({
+  universidadId,
+  map,
+}: {
+  universidadId: number | null | undefined;
+  map: Map<number, string>;
+}) {
+  const cached = universidadId != null ? map.get(universidadId) : undefined;
+  const { data } = useQuery({
+    queryKey: ["universities", "detail", universidadId],
+    queryFn: () =>
+      api.get<WithId>(`/universities/${universidadId}/`).then((r) => r.data),
+    enabled: universidadId != null && cached == null,
+    staleTime: 5 * 60_000,
+  });
+
+  if (cached) return <>{cached}</>;
+  if (data) return <>{String((data as Record<string, unknown>).nombre ?? universidadId)}</>;
+  return <span className="text-muted-foreground">{universidadId ?? "—"}</span>;
+}
+
 // ---------- Página principal (requiere Suspense por useSearchParams) ----------
 
 function FacultadesInner() {
@@ -49,8 +74,7 @@ function FacultadesInner() {
   const urlUniversidad = searchParams.get("universidad");
   const initialFilters = useMemo<Record<string, string> | undefined>(
     () => (urlUniversidad ? { universidad: urlUniversidad } : undefined),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+    [urlUniversidad],
   );
 
   // Pre-carga universidades para mostrar el nombre en la columna (REQ-BACK-03: no hay _detalle)
@@ -71,28 +95,35 @@ function FacultadesInner() {
     return m;
   }, [universitiesQuery.data]);
 
-  // Config enriquecida con columnas de universidad y N° carreras
-  const config = useMemo<ResourceConfig>(
-    () => ({
+  // Config enriquecida con columnas de universidad y N° carreras.
+  // Orden: Logo · Universidad · Nombre · Ubicación · Activo · N° Carreras
+  const config = useMemo<ResourceConfig>(() => {
+    const byKey = Object.fromEntries(baseConfig.columns.map((c) => [c.key, c]));
+    return {
       ...baseConfig,
       columns: [
-        ...baseConfig.columns,
+        byKey["referencia_logo"],
         {
           key: "universidad",
           header: "Universidad",
           render: (r) =>
-            universityMap.get(r.universidad as number) ?? String(r.universidad ?? "—"),
+            React.createElement(UniversityNameCell, {
+              universidadId: r.universidad as number | null,
+              map: universityMap,
+            }),
         },
+        byKey["nombre"],
+        byKey["ubigeo_detalle"],
+        byKey["activo"],
         {
           key: "_n_carreras",
           header: "N° Carreras",
           render: (r) =>
             React.createElement(FacultyCarrerasCount, { facultadId: r.id }),
         },
-      ],
-    }),
-    [baseConfig, universityMap],
-  );
+      ].filter(Boolean),
+    };
+  }, [baseConfig, universityMap]);
 
   // Acciones por fila
   const canWrite = userHasRole(user, "Administrador RENADS");

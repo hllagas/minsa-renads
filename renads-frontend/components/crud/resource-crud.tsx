@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 import { Pencil, Trash2 } from "lucide-react";
@@ -119,16 +119,11 @@ export function ResourceCrud<TRead extends WithId>({
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const [filterValues, setFilterValues] = useState<FilterValues>({});
+  // Inicialización directa desde initialFilters: evita el flicker "Todos" → valor real
+  // que ocurría cuando se aplicaba en un useEffect (primer render sin filtro).
+  const [filterValues, setFilterValues] = useState<FilterValues>(() => initialFilters ?? {});
   const [editing, setEditing] = useState<TRead | null>(null);
 
-  // Aplica `initialFilters` una sola vez, en cuanto estén disponibles.
-  const appliedInitialRef = useRef(false);
-  useEffect(() => {
-    if (!initialFilters || appliedInitialRef.current) return;
-    appliedInitialRef.current = true;
-    setFilterValues(initialFilters);
-  }, [initialFilters]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState<TRead | null>(null);
   const [customDeletePending, setCustomDeletePending] = useState(false);
